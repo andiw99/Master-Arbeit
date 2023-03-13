@@ -9,8 +9,25 @@ long fibonacci(long number) {
     }
 }
 
-/*
+size_t py_mod2(int a, int b) {
+    // Implementation einer Funktion die sich verhält wie die python modulo funktion
+    std::cout << b << std::endl;
+    std::cout << a << std::endl;
+    std::cout << (a % b) << std::endl;
+    std::cout << (b + (a % b)) << std::endl;
+    std::cout << ((b + (a % b)) % b) << std::endl;
+    return ((b + (a % b)) % b);
+}
+
 int main() {
+    std::cout << (-1) % 10 << std::endl;
+    std::cout << (10 + ((-1) % 10)) % 10 << std::endl;
+    std::cout << py_mod2((-1), 20) << std::endl;
+    std::size_t a = 5;
+    int b = 4;
+    std::cout << (b < a);
+
+
     std::cout << "Welche Stelle der Fibonacci Reihe möchtest du wissen? ";
     long number;
     std::cin >> number;
@@ -23,4 +40,4 @@ int main() {
 
     return 0;
 }
-*/
+

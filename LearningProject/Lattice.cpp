@@ -47,6 +47,7 @@ void harmonic_oscillator( const state_type &x , state_type &dxdt , const double 
     dxdt[1] = -x[0] - gam*x[1];
 }
 
+/*
 int main() {
     // initialize parameters
     int n = 10;         // size of the lattice (one dimension)
@@ -63,3 +64,4 @@ int main() {
 
     return 0;
 }
+*/
