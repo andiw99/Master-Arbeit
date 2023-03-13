@@ -1,0 +1,7 @@
+# ninja log v5
+0	254	1678372820137751159	CMakeFiles/LearningProject.dir/main.cpp.o	cb7129d5a57c8ac
+2857	2914	1678376880049416323	LearningProject	a350032ec57354d8
+5	2856	1678376879989415824	CMakeFiles/LearningProject.dir/Lattice.cpp.o	a570b55b3d12f2b2
+7	577	1678700920900377425	CMakeFiles/LearningProject.dir/main.cpp.o	8e48049442c70e79
+8	4367	1678700924688348887	CMakeFiles/LearningProject.dir/Lattice.cpp.o	da40e686d6efcff7
+4367	4456	1678700924780348199	LearningProject	a350032ec57354d8
