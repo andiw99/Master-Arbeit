@@ -18,7 +18,7 @@ size_t py_mod2(int a, int b) {
     std::cout << ((b + (a % b)) % b) << std::endl;
     return ((b + (a % b)) % b);
 }
-
+/*
 int main() {
     std::cout << (-1) % 10 << std::endl;
     std::cout << (10 + ((-1) % 10)) % 10 << std::endl;
@@ -40,4 +40,4 @@ int main() {
 
     return 0;
 }
-
+*/
