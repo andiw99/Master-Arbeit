@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.24)
+
 project(LearningProject)
 
 set(CMAKE_CXX_STANDARD 17)
+
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/FirstTry")
 add_subdirectory("${PROJECT_SOURCE_DIR}/BrownianMotion")
