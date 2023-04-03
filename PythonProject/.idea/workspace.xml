@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b68edb7d-7fd0-4b8c-955b-3a2ba411f40c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../LearningProject/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../LearningProject/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../LearningProject/FullInteraction/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../LearningProject/FullInteraction/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../LearningProject/main" beforeDir="false" afterPath="$PROJECT_DIR$/../LearningProject/main" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PlotLatticeHeatMap.py" beforeDir="false" afterPath="$PROJECT_DIR$/PlotLatticeHeatMap.py" afterDir="false" />
-    </list>
+    <list default="true" id="b68edb7d-7fd0-4b8c-955b-3a2ba411f40c" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -61,7 +56,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Python.PlotLatticeHeatMap">
+  <component name="RunManager" selected="Python.main">
     <configuration name="PlotBrownianMotion" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -128,6 +123,28 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="JuliaProject" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.PlotLatticeHeatMap" />
@@ -146,7 +163,7 @@
       <updated>1679906599720</updated>
       <workItem from="1679906600892" duration="3630000" />
       <workItem from="1679927069872" duration="13721000" />
-      <workItem from="1680011661866" duration="12596000" />
+      <workItem from="1680011661866" duration="13535000" />
     </task>
     <servers />
   </component>
@@ -154,7 +171,7 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PythonProject$PlotLatticeHeatMap.coverage" NAME="PlotLatticeHeatMap Coverage Results" MODIFIED="1680540580015" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PythonProject$PlotLatticeHeatMap.coverage" NAME="PlotLatticeHeatMap Coverage Results" MODIFIED="1680540720243" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject$PlotLatticeModel.coverage" NAME="PlotLatticeModel Coverage Results" MODIFIED="1679991761947" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject$PlotBrownianMotion.coverage" NAME="PlotBrownianMotion Coverage Results" MODIFIED="1679929088320" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
