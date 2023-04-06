@@ -165,9 +165,8 @@ string trunc_double(double a, int precision=2) {
 }
 
 
-string create_directory(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau,
-                        const string root) {
-    string dir_name = root + "eta=" + trunc_double(eta)
+string create_directory(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau) {
+    string dir_name = "./Brownian Motion Full Interaction/eta=" + trunc_double(eta)
              + "/T=" + trunc_double(T) + "/dt=" +
                   trunc_double(dt, 4) + "/n="+ to_string(n) + "/alpha=" + trunc_double(alpha) + "/beta=" +
                   trunc_double(beta) + "/J=" + trunc_double(J) + "/tau=" + trunc_double(tau);
@@ -205,11 +204,7 @@ int count_files(string dir_name) {
 
 
 void search_grid(vector<double> eta_values, vector<double> T_values, vector<double> dt_values, vector<int> steps_values, vector<int> n_values,
-                 vector<double> alpha_values, vector<double> beta_values, vector<double> J_values, vector<double> tau_values,
-                 string storage_root) {
-    int k = 0;
-    int nr_configs = eta_values.size() * T_values.size() * dt_values.size() * steps_values.size() * n_values.size() *
-            alpha_values.size() * beta_values.size() * J_values.size() * tau_values.size();
+                 vector<double> alpha_values, vector<double> beta_values, vector<double> J_values, vector<double> tau_values) {
     for(double eta : eta_values) {
         for(double T : T_values) {
             for(double dt : dt_values) {
@@ -235,16 +230,14 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                             // ok we construct directory tree and if
                                             // it is not empty, we count the number of files inside and then just
                                             // number our runs
-                                            string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau,
-                                                                               storage_root);
+                                            string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau);
                                             // since dir_name is per construction
                                             // a directory we dont have to check if its a directory?
                                             string name = dir_name + "/" + to_string(count_files(dir_name));
                                             std::ofstream file;
                                             suite.run(steps, file, name);
                                             write_parameters(file, eta, T, dt, n, alpha, beta, J, tau, name);
-                                        k++;
-                                        cout << "run " << k << "/" << nr_configs << endl;
+
                                         }
                                     }
                                 }
@@ -294,22 +287,18 @@ int main() {
 
     }
     */
-    // important: choose the storage root outside of your git repo
-    string storage_root = "../../../Generated content/";
 
-    // TODO maybe replace dt with tmax
     vector<double> eta_values{5};
-    vector<double> T_values{0.1, 1};
-    vector<double> dt_values{0.00025};
-    vector<int> steps_values{80001};
+    vector<double> T_values{0.01};
+    vector<double> dt_values{0.002};
+    vector<int> steps_values{10001};
     vector<int> n_values{20};
     vector<double> alpha_values{1};
     vector<double> beta_values{5};
-    vector<double> J_values{1, 5};
-    vector<double> tau_values{1, 0.1};
+    vector<double> J_values{5};
+    vector<double> tau_values{2};
 
-    search_grid(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values,
-                storage_root);
+    search_grid(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values);
 
     return 0;
 }
