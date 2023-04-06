@@ -51,7 +51,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False):
         fig, ax = plt.subplots()
         ax.set_title(title)
         cf = ax.pcolormesh(x, y, z_values, vmin=-np.max(np.abs(z_values)),
-                           vmax=np.max(np.abs(z_values)))
+                           vmax=np.max(np.abs(z_values)), cmap="greys")
         fig.colorbar(cf, ax=ax)
         plt.show()
     else:
@@ -61,8 +61,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False):
         fig.colorbar(cf, ax=ax)
 
 
-
-def plot_multiple_times(df, paras, n, proj=False):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/"):
     # find out number of rows
     nr_rows = df.shape[0]
 
@@ -75,7 +74,7 @@ def plot_multiple_times(df, paras, n, proj=False):
     for axs in axes:
         for ax in axs:
             plot_colormesh(df_rows.iloc[i], fig, ax,
-                           title=f"t = {df_rows.iloc[i, 0]}", proj=proj)
+                           title=f"t = {df_rows.iloc[i, 0]:.2f}", proj=proj)
             i +=1
     # insert parameters
     textstr = ''
@@ -85,7 +84,17 @@ def plot_multiple_times(df, paras, n, proj=False):
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
     fig.text(0.02, 0.8, textstr, fontsize=14, bbox=props)
     plt.tight_layout()
+    # if you want to save the pics somewhere else
+    plt.savefig(storage_root + plot_name_paras(paras), format="png")
     plt.show()
+
+
+def plot_name_paras(paras):
+    fname = ""
+    for key in paras.keys():
+        fname += key + "=" + str(paras[key])
+    return fname
+
 
 
 def get_plotted_files(root):
@@ -114,8 +123,6 @@ def new_files_in_dir(cur_dir, root, old_files=None, plot_all=False):
         if os.path.isfile(f):
             if not f in old_files:
                 filepaths.append(f)
-                plotted_files = open(root + "/plotted_files.txt", "a")
-                plotted_files.write(f + "\n")
         elif os.path.isdir(f):
             filepaths += new_files_in_dir(f, root, old_files, plot_all)
 
@@ -143,19 +150,28 @@ def read_multiple_parameters(filepaths, nr_parameters):
 
 def main():
     filepath = "../LearningProject/Brownian Motion.csv"
-    root = "../LearningProject/Brownian Motion Full Interaction/"
+    root = "../../Generated content/"
     proj = False
-    nr_parameters=8
+    nr_parameters = 8
     nr_plots_per_dimension = 3
+    plot_all = False
+    plot_root = "../../Generated content/plots/"
 
     # TODO very unefficient to read in all trajectories first and then plot
-    filepaths = new_files_in_dir(root, root, plot_all=True)
+    filepaths = new_files_in_dir(root, root, plot_all=plot_all)
     trajectories = read_multiple_csv(filepaths, nrows=-nr_parameters)
     parameters = read_multiple_parameters(filepaths, nr_parameters)
     # plot_colormesh(trajectories[0])
     for traj_param_tuple in zip(trajectories, parameters):
         plot_multiple_times(traj_param_tuple[0], traj_param_tuple[1],
-                            nr_plots_per_dimension ** 2, proj)
+                            nr_plots_per_dimension ** 2, proj,
+                            storage_root=plot_root)
+    # at the end (no error) we write the plotted files into the tracking file
+    plotted_files = open(root + "/plotted_files.txt", "a")
+    for f in filepaths:
+        plotted_files.write(f + "\n")
+    # newline for visibility
+    plotted_files.write("\n")
 
 if __name__ == "__main__":
     main()
