@@ -1,4 +1,11 @@
 //
+// Created by andi on 06.04.23.
+//
+
+#ifndef LEARNINGPROJECT_FUNCTIONS_AND_CLASSES_H
+#define LEARNINGPROJECT_FUNCTIONS_AND_CLASSES_H
+
+//
 // Created by andi on 28.03.23.
 //
 
@@ -9,6 +16,7 @@
 #include <random>
 #include <fstream>
 #include <filesystem>
+#include <utility>
 
 
 // using namespaces!
@@ -22,37 +30,40 @@ int pymod(int a, int b) {
     return ((b + (a % b)) % b);
 }
 
-class lattice_model {
-// unser state_type ist einfach 2d Vektor, lass uns ublas matrix nehmen? Oder normalen vector?
+class lattice_system {
+    int n;      // lattice_system size, this is all taylored to lattices!
+public:
+    vector<vector<double>> x0;
+    vector<vector<double>> v0;
+    virtual void rhs(const state_type &x, state_type &dxdt, state_type &theta, double t) {
+    };
+
+    int get_n() const {
+        return n;
+    }
+
+
+    lattice_system(int n_val, vector<vector<double>> x0_val, vector<vector<double>> v0_val) {
+        n = n_val;
+        x0 = std::move(x0_val);
+        v0 = std::move(v0_val);
+    }
+    lattice_system() {
+        n = 0;
+    }
+};
+
+class full_interaction_system: public lattice_system {
     double eta;
     //static const auto dice = bind(normal_distribution<double>(0, 1), default_random_engine());
     // _Bind<normal_distribution(linear_congruential_engine<unsigned long, 16807, 0, 2147483647>)> dice;
     double T;
-    double dt;
     static inline auto normal_dice = bind(normal_distribution<double>(0, 1), default_random_engine(1234));
     double alpha;
     double beta;
     double J;
-    vector<vector<double>> x0;
-    vector<vector<double>> v0;
-    int n;      // size of the lattice
     double tau;
-    double tmin;       // starting time
-
-    /*
-    normal_distribution<double> normal_dist;
-    default_random_engine generator;
-    */
-    void stochastic_euler_method(state_type &x, const state_type &dxdt, const state_type &theta) {
-        // huh we dont have vector operations, maybe implement them
-        // We use the state_type here, so we need to cycle through every lattice
-        for(int i = 0; i < n; i++) {
-            for(int j=0; j < n; j++) {
-                x[i][j][0] = x[i][j][0] + dxdt[i][j][0] * dt + theta[i][j][0] * sqrt(dt);
-                x[i][j][1] = x[i][j][1] + dxdt[i][j][1] * dt + theta[i][j][1] * sqrt(dt);
-            }
-        }
-    }
+    int n;      // size of the lattice
 
     double dVsdq(double q, double t) {
         return alpha * (2 * q * q * q - beta * eps(t) * q);
@@ -71,8 +82,8 @@ class lattice_model {
         return dVsdq(qij, t) + dVidq(qij, qijp1, qip1j, qijm1, qim1j);
     }
 
-
-    void brownian_step(const state_type &x, state_type &dxdt, state_type &theta, double t){
+public:
+    void rhs(const state_type &x, state_type &dxdt, state_type &theta, double t) override{
         for(int i = 0; i < n; i++) {
             for(int j=0; j < n; j++) {
                 dxdt[i][j][0] = x[i][j][1];
@@ -89,11 +100,91 @@ class lattice_model {
                 theta[i][j][1] = sqrt(2 * eta * T) * normal_dice();
             }
         }
+    }
+    full_interaction_system( double eta_val, double T_val,  int n_val,
+                             vector<vector<double>> x0_val,
+                             vector<vector<double>> v0_val,
+                             double alpha_val, double beta_val, double J_val, double tau_val)
+            : lattice_system(n_val, x0_val, v0_val) {
+        eta = eta_val;
+        T = T_val;
+        n = n_val;
+        alpha = alpha_val;
+        beta = beta_val;
+        J = J_val;
+        tau = tau_val;
+    }
+};
 
+class harmonic_system: public lattice_system {
+    double eta;
+    //static const auto dice = bind(normal_distribution<double>(0, 1), default_random_engine());
+    // _Bind<normal_distribution(linear_congruential_engine<unsigned long, 16807, 0, 2147483647>)> dice;
+    double T;
+    static inline auto normal_dice = bind(normal_distribution<double>(0, 1), default_random_engine(1234));
+    double alpha;
+    int n;      // size of the lattice
+
+    double dVdq(double q, double t) {
+        return alpha * q;
     }
 
+
 public:
-    void run(int steps, std::ofstream& file) {
+    void rhs(const state_type &x, state_type &dxdt, state_type &theta, double t) override{
+        for(int i = 0; i < n; i++) {
+            for(int j=0; j < n; j++) {
+                dxdt[i][j][0] = x[i][j][1];
+                dxdt[i][j][1] = (-eta) * x[i][j][1] - dVdq(x[i][j][0], t);
+                theta[i][j][0] = 0;
+                theta[i][j][1] = sqrt(2 * eta * T) * normal_dice();
+            }
+        }
+    }
+    harmonic_system( double eta_val, double T_val,  int n_val,
+                             vector<vector<double>> x0_val,
+                             vector<vector<double>> v0_val,
+                             double alpha_val)
+            : lattice_system(n_val, x0_val, v0_val) {
+        eta = eta_val;
+        T = T_val;
+        n = n_val;
+        alpha = alpha_val;
+    }
+};
+
+
+class solver {
+// unser state_type ist einfach 2d Vektor, lass uns ublas matrix nehmen? Oder normalen vector?
+
+    double dt;
+
+    double tmin;       // starting time
+    // TODO weil ich nicht weiß wie man das hier anständig macht muss das System beim solver init mit & übergeben werden
+    lattice_system* LatticeSystem;
+    int n;
+    /*
+    normal_distribution<double> normal_dist;
+    default_random_engine generator;
+    */
+    void stochastic_euler_method(state_type &x, const state_type &dxdt, const state_type &theta) const {
+        // huh we dont have vector operations, maybe implement them
+        // We use the state_type here, so we need to cycle through every lattice
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                x[i][j][0] = x[i][j][0] + dxdt[i][j][0] * dt + theta[i][j][0] * sqrt(dt);
+                x[i][j][1] = x[i][j][1] + dxdt[i][j][1] * dt + theta[i][j][1] * sqrt(dt);
+            }
+        }
+    }
+public:
+    /**
+     *  runs the simulation
+     * @param steps how many steps of the dgl are calculated
+     * @param file the file
+     * @return the first moments of the simulation, (averaged over every lattice site?)
+     */
+    vector<double> run(int steps, std::ofstream& file, bool save = true) {
         // runs brownian motion with stepsize dt for steps steps
         // initialize
         state_type x = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
@@ -101,8 +192,8 @@ public:
         // naive setting because i don't know c++ to much atm and it only runs once when initializing
         for(int i = 0; i < n; i++) {
             for(int j=0; j < n; j++) {
-                x[i][j][0] = x0[i][j];
-                x[i][j][1] = v0[i][j];
+                x[i][j][0] = LatticeSystem->x0[i][j];
+                x[i][j][1] = LatticeSystem->v0[i][j];
 
             }
         }
@@ -112,49 +203,64 @@ public:
         // set ininital time to starting time
         double t = tmin;
 
-
-
+        // moments
         // average value
         double mu = 0;
-        for(int k = 0; k < steps; k++) {
-            brownian_step(x, dxdt, theta, t);
-            stochastic_euler_method(x, dxdt, theta);
+        if (save) {
+            for(int k = 0; k < steps; k++) {
+                LatticeSystem->rhs(x, dxdt, theta, t);
+                stochastic_euler_method(x, dxdt, theta);
 
-            // write to file
-            // everything?
-            file << "t, " << t << ",";
-            for(int i = 0; i < n; i++) {
-                for(int j=0; j < n; j++) {
-                    file << x[i][j][0] << ",";
+                // write to file
+                // everything?
+                file << "t, " << t << ",";
+                for(int i = 0; i < n; i++) {
+                    for(int j=0; j < n; j++) {
+                        file << x[i][j][0] << ",";
+                        // calc moments
+                        mu += x[i][j][0];
+                    }
                 }
-            }
-            for(int i = 0; i < n; i++) {
-                for(int j=0; j < n; j++) {
-                    file << x[i][j][1] << ",";
+                for(int i = 0; i < n; i++) {
+                    for(int j=0; j < n; j++) {
+                        file << x[i][j][1] << ",";
+                    }
                 }
+
+                // Zeilenumbruch
+                file << "\n";
+
+                t += dt;
             }
-
-            // Zeilenumbruch
-            file << "\n";
-
-            t += dt;
+        } else {
+            for(int k = 0; k < steps; k++) {
+                LatticeSystem->rhs(x, dxdt, theta, t);
+                stochastic_euler_method(x, dxdt, theta);
+                for(int i = 0; i < n; i++) {
+                    for (int j = 0; j < n; j++) {
+                        mu += x[i][j][0];
+                    }
+                }
+                t += dt;
+            }
         }
+
+        mu = mu / (n * n * steps);
+        cout << "average value: mu = " << mu << endl;
+        vector<double> moments{mu};
+        return moments;
     }
-    lattice_model(double eta_val, double dt_val, double T_val,  int n_val,
-                  vector<vector<double>> x0_val,
-                  vector<vector<double>> v0_val,
-                  double alpha_val, double beta_val, double J_val, double tau_val, double t_val = -5) {
-        eta = eta_val;
+
+    vector<vector<double>> run_and_return {
+            // TODO returns all values?
+    };
+
+    solver(double dt_val,
+           class lattice_system *specific_system, double t_val = -5) {
+        LatticeSystem = specific_system;
         dt = dt_val;
-        T = T_val;
-        x0 = x0_val;
-        v0 = v0_val;
-        n = n_val;
-        alpha = alpha_val;
-        beta = beta_val;
-        J = J_val;
-        tau = tau_val;
         tmin = t_val;
+        n = LatticeSystem->get_n();
     }
 };
 
@@ -168,9 +274,9 @@ string trunc_double(double a, int precision=2) {
 string create_directory(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau,
                         const string root) {
     string dir_name = root + "eta=" + trunc_double(eta)
-             + "/T=" + trunc_double(T) + "/dt=" +
-                  trunc_double(dt, 4) + "/n="+ to_string(n) + "/alpha=" + trunc_double(alpha) + "/beta=" +
-                  trunc_double(beta) + "/J=" + trunc_double(J) + "/tau=" + trunc_double(tau);
+                      + "/T=" + trunc_double(T) + "/dt=" +
+                      trunc_double(dt, 4) + "/n="+ to_string(n) + "/alpha=" + trunc_double(alpha) + "/beta=" +
+                      trunc_double(beta) + "/J=" + trunc_double(J) + "/tau=" + trunc_double(tau);
     // check wheter the directory already exists, if not create it
     if(!filesystem::is_directory(dir_name) || !filesystem::exists(dir_name)) {
         filesystem::create_directories(dir_name);
@@ -207,7 +313,7 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                  string storage_root) {
     int k = 0;
     int nr_configs = eta_values.size() * T_values.size() * dt_values.size() * steps_values.size() * n_values.size() *
-            alpha_values.size() * beta_values.size() * J_values.size() * tau_values.size();
+                     alpha_values.size() * beta_values.size() * J_values.size() * tau_values.size();
     for(double eta : eta_values) {
         for(double T : T_values) {
             for(double dt : dt_values) {
@@ -223,10 +329,13 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                         vector<vector<double>> v0 =
                                                 vector<vector<double>>(n, vector<double>(n, 0));
 
-                                        lattice_model suite =
-                                                lattice_model(eta, dt, T,n , x0, v0,
-                                                                            alpha, beta, J,
-                                                                            tau, starting_t);
+                                        full_interaction_system specific_system =
+                                                full_interaction_system(eta, T, n, x0,
+                                                                        v0,alpha,beta, J,
+                                                                        tau);
+
+                                        solver suite =
+                                                solver(dt, &specific_system, starting_t);
                                         // number of runs
                                         int runs = 1;
                                         for(int i = 0; i < runs; i++) {
@@ -243,8 +352,8 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                             suite.run(steps, file);
                                             write_parameters(file, eta, T, dt, n, alpha, beta, J, tau);
                                             file.close();
-                                        k++;
-                                        cout << "run " << k << "/" << nr_configs << endl;
+                                            k++;
+                                            cout << "run " << k << "/" << nr_configs << endl;
                                         }
                                     }
                                 }
@@ -256,61 +365,4 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
         }
     }
 }
-
-
-
-int main() {
-    double eta = 5;
-    double T = 0.01; // 10
-    double dt = 0.002;
-    int steps = 10001;
-    int n = 20;
-    double alpha = 1;   // 1
-    double beta  = 5;
-    double J = 10;
-    double tau = 2;
-    double starting_t = -10;
-
-
-
-    /*
-    // single search config
-    vector<vector<double>> x0 = vector<vector<double>>(n, vector<double>(n, 0));
-    vector<vector<double>> v0 = vector<vector<double>>(n, vector<double>(n, 0));
-
-    lattice_model suite = lattice_model(eta, dt, T,n , x0, v0,
-                                        alpha, beta, J, tau, starting_t);
-    // number of runs
-    int runs = 1;
-    for(int i = 0; i < runs; i++) {
-        // ok we construct directory tree and if it is not empty, we count the number of files inside and then just
-        // number our runs
-        string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau);
-        // since dir_name is per construction a directory we dont have to check if its a directory?
-        string name = dir_name + "/" + to_string(count_files(dir_name));
-        std::ofstream file;
-        suite.run(steps, file, name);
-        write_parameters(file, eta, T, dt, n, alpha, beta, J, tau, name);
-
-    }
-    */
-    // important: choose the storage root outside of your git repo
-    string storage_root = "../../../Generated content/";
-
-    // TODO maybe replace dt with tmax
-    vector<double> eta_values{5};
-    vector<double> T_values{0.1, 1};
-    vector<double> dt_values{0.00025};
-    vector<int> steps_values{80001};
-    vector<int> n_values{20};
-    vector<double> alpha_values{1};
-    vector<double> beta_values{5};
-    vector<double> J_values{1, 5};
-    vector<double> tau_values{1, 0.1};
-
-    search_grid(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values,
-                storage_root);
-
-    return 0;
-}
-
+#endif //LEARNINGPROJECT_FUNCTIONS_AND_CLASSES_H
