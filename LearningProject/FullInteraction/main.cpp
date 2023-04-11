@@ -93,7 +93,7 @@ class lattice_model {
     }
 
 public:
-    void run(int steps, std::ofstream& file, string name="Brownian Motion in Potential Data") {
+    void run(int steps, std::ofstream& file) {
         // runs brownian motion with stepsize dt for steps steps
         // initialize
         state_type x = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
@@ -112,7 +112,7 @@ public:
         // set ininital time to starting time
         double t = tmin;
 
-        file.open (name + ".csv");
+
 
         // average value
         double mu = 0;
@@ -180,7 +180,7 @@ string create_directory(double eta, double T, double dt, int n, double alpha, do
 
 
 void write_parameters(ofstream& file, double eta, double T, double dt, int n, double alpha, double beta, double J,
-                      double tau, string name="default") {
+                      double tau) {
     // insert the parameters
     file << "eta," << eta << ", \n";
     file << "T," << T << ", \n";
@@ -190,8 +190,6 @@ void write_parameters(ofstream& file, double eta, double T, double dt, int n, do
     file << "beta," << beta << ", \n";
     file << "J," << J << ", \n";
     file << "tau," << tau << ", \n";
-    file.close();
-
 }
 
 
@@ -241,8 +239,10 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                             // a directory we dont have to check if its a directory?
                                             string name = dir_name + "/" + to_string(count_files(dir_name));
                                             std::ofstream file;
-                                            suite.run(steps, file, name);
-                                            write_parameters(file, eta, T, dt, n, alpha, beta, J, tau, name);
+                                            file.open (name + ".csv");
+                                            suite.run(steps, file);
+                                            write_parameters(file, eta, T, dt, n, alpha, beta, J, tau);
+                                            file.close();
                                         k++;
                                         cout << "run " << k << "/" << nr_configs << endl;
                                         }

@@ -1,9 +1,0 @@
-# ninja log v5
-0	18	1681200349992222118	build.ninja	5bd6a335926ef51d
-6	4343	1678806493887020943	CMakeFiles/LearningProject.dir/kzm_silicon_2d.cpp.o	ac400508b8606c96
-6	4298	1678806493843020911	CMakeFiles/LearningProject.dir/SolarSystem.cpp.o	ffc8b2142658fc0
-5	660	1678806490207018176	CMakeFiles/LearningProject.dir/main.cpp.o	8e48049442c70e79
-4	567	1678970797572530412	CMakeFiles/LearningProject.dir/rng.cpp.o	ee1a25b53860cb2
-567	629	1678970797636530888	LearningProject	995e1038ad283e40
-6	4282	1678806493827020898	CMakeFiles/LearningProject.dir/matrices.cpp.o	5608b7eb0533ec3f
-5	4429	1678806493975021009	CMakeFiles/LearningProject.dir/Lattice.cpp.o	da40e686d6efcff7
