@@ -184,7 +184,7 @@ public:
      * @param file the file
      * @return the first moments of the simulation, (averaged over every lattice site?)
      */
-    vector<double> run(int steps, std::ofstream& file, bool save = true) {
+    state_type run(int steps, std::ofstream& file, bool save = true) {
         // runs brownian motion with stepsize dt for steps steps
         // initialize
         state_type x = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
@@ -217,8 +217,7 @@ public:
                 for(int i = 0; i < n; i++) {
                     for(int j=0; j < n; j++) {
                         file << x[i][j][0] << ",";
-                        // calc moments
-                        mu += x[i][j][0];
+
                     }
                 }
                 for(int i = 0; i < n; i++) {
@@ -236,20 +235,40 @@ public:
             for(int k = 0; k < steps; k++) {
                 LatticeSystem->rhs(x, dxdt, theta, t);
                 stochastic_euler_method(x, dxdt, theta);
-                for(int i = 0; i < n; i++) {
-                    for (int j = 0; j < n; j++) {
-                        mu += x[i][j][0];
-                    }
-                }
                 t += dt;
             }
         }
 
-        mu = mu / (n * n * steps);
-        cout << "average value: mu = " << mu << endl;
-        vector<double> moments{mu};
-        return moments;
-    }
+        return x;
+    };
+
+    double calc_mu(const state_type& x) {
+        double mu = 0;
+        for(int i = 0; i < n; i++) {
+            for(int j=0; j < n; j++) {
+                mu += x[i][j][0];
+            }
+        }
+        mu /= (n * n);
+        return mu;
+    };
+
+    double calc_msd(const state_type& x, const double exp_value) {
+        double msd = 0;
+        for(int i = 0; i < n; i++) {
+            for(int j=0; j < n; j++) {
+                msd += pow((x[i][j][0] - exp_value), 2);
+                // cout << pow((x[i][j][0] - exp_value), 2) << endl;
+            }
+        }
+        msd = 1.0/(n * n) * msd;
+        return msd;
+    };
+
+    double calc_msd(const state_type& x) {
+        double mu = calc_mu(x);
+        return calc_msd(x, mu);
+    };
 
     vector<vector<double>> run_and_return {
             // TODO returns all values?

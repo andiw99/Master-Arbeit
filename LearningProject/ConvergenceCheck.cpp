@@ -8,8 +8,9 @@ int main() {
     // for brownian motion in harmonic oscillators, the
     double eta = 5;
     double T = 100; // 10
-    double dt = 0.01;
-    int steps = 100000;
+    double passed_time = 100;
+    int steps = 1000000;
+    double dt = passed_time/steps;
     int n = 20;
     double alpha = 1;   // 1
     double beta  = 5;
@@ -17,6 +18,9 @@ int main() {
     double tau = 2;
     double starting_t = -10;
     int runs = 10;
+
+    double msd_harmonic_osc = T / alpha;
+    double mu_harmonic_osc = 0;
 
     string storage_root = "../../Generated content/";
 
@@ -41,9 +45,25 @@ int main() {
     string name = dir_name + "/" + to_string(count_files(dir_name));
     std::ofstream file;
     file.open (name + ".csv");
+    cout << "Evaluation time t = " << dt * steps << endl;
+    cout << "Step size dt = " << dt << endl;
+    cout << "n = " << n << endl;
+    cout << "nr of runs: " << runs << endl;
+    double error_mu = 0;
+    double error_msd = 0;
     for(int i = 0; i < runs; i++) {
-        suite.run(steps, file, false);
+        state_type x = suite.run(steps, file, false);
+        double mu = suite.calc_mu(x);
+        double msd = suite.calc_msd(x, 0);
+        cout << "supposed value: mu = " << mu_harmonic_osc << "   actual value: mu = " << mu << endl;
+        cout << "supposed value: msd = " << msd_harmonic_osc << "   actual value: msd = " << msd << endl;
+        error_mu += abs(mu_harmonic_osc - mu);
+        error_msd += abs(msd_harmonic_osc - msd);
     }
+    error_mu /= runs;
+    error_msd /= runs;
+    cout << "Average deviation dmu = " << error_mu << endl;
+    cout << "Average deviation dmsd = " << error_msd << endl;
     write_parameters(file, eta, T, dt, n, alpha, beta, J, tau);
     file.close();
 
