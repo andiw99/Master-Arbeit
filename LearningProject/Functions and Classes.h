@@ -69,12 +69,12 @@ class full_interaction_system: public lattice_system {
         return alpha * (2 * q * q * q - beta * eps(t) * q);
     }
 
-    double eps(double t) {
+    double eps(double t) const {
         // TODO normally with time scale, but is this important here?
         return min(t/tau, 1.0);
     }
 
-    double dVidq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) {
+    double dVidq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) const {
         return J * (sin(qij - qijp1) + sin(qij - qip1j) + sin(qij - qijm1) + sin(qij - qim1j));
     }
 

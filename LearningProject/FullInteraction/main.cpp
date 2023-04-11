@@ -4,24 +4,13 @@
 
 
 #include <iostream>
-#include <boost/numeric/odeint.hpp>
-#include <cmath>
 #include <random>
-#include <fstream>
-#include <filesystem>
+#include "../Functions and Classes.h"
 
 
 // using namespaces!
-using namespace std;
-using namespace boost::numeric::odeint;
-// new state is composed of every
-typedef vector<double> entry_type;
-typedef  vector<vector<entry_type>> state_type;
 
-int pymod(int a, int b) {
-    return ((b + (a % b)) % b);
-}
-
+/*
 class lattice_model {
 // unser state_type ist einfach 2d Vektor, lass uns ublas matrix nehmen? Oder normalen vector?
     double eta;
@@ -39,10 +28,10 @@ class lattice_model {
     double tau;
     double tmin;       // starting time
 
-    /*
-    normal_distribution<double> normal_dist;
-    default_random_engine generator;
-    */
+
+    // normal_distribution<double> normal_dist;
+    // default_random_engine generator;
+
     void stochastic_euler_method(state_type &x, const state_type &dxdt, const state_type &theta) {
         // huh we dont have vector operations, maybe implement them
         // We use the state_type here, so we need to cycle through every lattice
@@ -256,54 +245,55 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
         }
     }
 }
-
+*/
 
 
 int main() {
-    double eta = 5;
-    double T = 0.01; // 10
-    double dt = 0.002;
-    int steps = 10001;
-    int n = 20;
-    double alpha = 1;   // 1
-    double beta  = 5;
-    double J = 10;
-    double tau = 2;
-    double starting_t = -10;
-
-
-
     /*
-    // single search config
-    vector<vector<double>> x0 = vector<vector<double>>(n, vector<double>(n, 0));
-    vector<vector<double>> v0 = vector<vector<double>>(n, vector<double>(n, 0));
+double eta = 5;
+double T = 0.01; // 10
+double dt = 0.002;
+int steps = 10001;
+int n = 20;
+double alpha = 1;   // 1
+double beta  = 5;
+double J = 10;
+double tau = 2;
+double starting_t = -10;
 
-    lattice_model suite = lattice_model(eta, dt, T,n , x0, v0,
-                                        alpha, beta, J, tau, starting_t);
-    // number of runs
-    int runs = 1;
-    for(int i = 0; i < runs; i++) {
-        // ok we construct directory tree and if it is not empty, we count the number of files inside and then just
-        // number our runs
-        string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau);
-        // since dir_name is per construction a directory we dont have to check if its a directory?
-        string name = dir_name + "/" + to_string(count_files(dir_name));
-        std::ofstream file;
-        suite.run(steps, file, name);
-        write_parameters(file, eta, T, dt, n, alpha, beta, J, tau, name);
 
-    }
-    */
+
+
+// single search config
+vector<vector<double>> x0 = vector<vector<double>>(n, vector<double>(n, 0));
+vector<vector<double>> v0 = vector<vector<double>>(n, vector<double>(n, 0));
+
+lattice_model suite = lattice_model(eta, dt, T,n , x0, v0,
+                                    alpha, beta, J, tau, starting_t);
+// number of runs
+int runs = 1;
+for(int i = 0; i < runs; i++) {
+    // ok we construct directory tree and if it is not empty, we count the number of files inside and then just
+    // number our runs
+    string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau);
+    // since dir_name is per construction a directory we dont have to check if its a directory?
+    string name = dir_name + "/" + to_string(count_files(dir_name));
+    std::ofstream file;
+    suite.run(steps, file, name);
+    write_parameters(file, eta, T, dt, n, alpha, beta, J, tau, name);
+
+}
+*/
     // important: choose the storage root outside of your git repo
-    string storage_root = "../../../Generated content/";
+    string storage_root = "../../Generated content/Domain Size Test/";
 
     // TODO maybe replace dt with tmax
     vector<double> eta_values{5};
     vector<double> T_values{0.1, 1};
-    vector<double> dt_values{0.00025};
-    vector<int> steps_values{80001};
-    vector<int> n_values{20};
-    vector<double> alpha_values{1};
+    vector<double> dt_values{0.005};
+    vector<int> steps_values{4000};
+    vector<int> n_values{40};
+    vector<double> alpha_values{2};
     vector<double> beta_values{5};
     vector<double> J_values{1, 5};
     vector<double> tau_values{1, 0.1};
