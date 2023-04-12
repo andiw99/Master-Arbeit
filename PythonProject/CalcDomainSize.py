@@ -116,7 +116,7 @@ def calc_corr_manhatten(x, cutoff=0):
     n = x.shape[0]
     # possible dists in one direction
     # is halfed because of pbc
-    dists = np.arange(0, int(n/2) - cutoff)
+    dists = np.arange(0, np.minimum(int(n/2), cutoff//2 + 1))
     # with manhatten we can have double that so we need twice as much space
     corr_func = np.zeros(2 * len(dists) - 1)
     nr_calcs = np.zeros(2 * len(dists) - 1)
@@ -130,9 +130,43 @@ def calc_corr_manhatten(x, cutoff=0):
                     x[i][j] * x[(i + dist_i) % n][(j + dist_j) % n]
                 # keep track of number of calculations
                 nr_calcs[dist_i + dist_j] += 1
-    # normalize
+    # average
     corr_func /= nr_calcs
+    # TODO normalize to 1?
+    corr_func /= np.max(corr_func)
     return np.arange(2 * len(dists) - 1), corr_func
+
+
+def calc_corr(x, cutoff, dist_func):
+    # 1.) Gehe jeden Gitterplatz i,j durch
+    # 2.) Berechne Distanz zu jedem anderen Gitterplatz k,h
+    # 3.) Addiere corr((i,j), (k,h)) zu corr_func[squared_dist((i, j),(k, h))]
+    # problem: squared dist ist nicht äquidistant aber wir können:
+    # corr_func[dists.ind_of_arg(squared_dist((i, j), (k, h)] machen
+    # 4.) Average am Ende
+    # Eventuell musst du dir dafür die additionen auch merken
+    # die possible distances reichen jetzt von 0 bis (n-1) + (n-1)
+    n = x.shape[0]
+    squared_dists = distances_in_2D_lattice(n)
+    dists = list(squared_dists)     # so that we can use the index option
+    dists = dists[:dists.index(cutoff ** 2) + 1]
+    # with manhatten we can have double that so we need twice as much space
+    corr_func = np.zeros(len(dists))
+    nr_calcs = np.zeros(len(dists))
+    for (i, j) in product(range(n), range(n)):
+        for (k, h) in product(range(n), range(n)):
+            # Now calculating without PBC
+            curr_dist = dist_func((i, j), (k, h), n)
+            if curr_dist <= (cutoff ** 2):
+                dist_ind = dists.index(curr_dist)
+                corr_func[dist_ind] += \
+                    x[i][j] * x[k][h]
+                nr_calcs[dist_ind] += 1
+    # average
+    corr_func /= nr_calcs
+    # TODO normalize to 1?
+    corr_func /= np.max(corr_func)
+    return dists, corr_func
 
 
 def distance_tuples(n):
@@ -151,10 +185,19 @@ def distance_tuples(n):
     return sorted(dists)
 
 
-def squared_dist(coords1, coords2):
+def squared_dist(coords1, coords2, n):
     squared_dist = (coords1[0] - coords2[0]) ** 2 +\
                    (coords1[1] - coords2[1]) ** 2
     return squared_dist
+
+
+def squared_dist_pbc(coords1, coords2, n):
+    #  TODO there has to be a better way to calc this?
+    di_abs = abs(coords1[0] - coords2[0])
+    di = min(di_abs, n - di_abs)
+    dj_abs = abs(coords1[1] - coords2[1])
+    dj = min(dj_abs, n - dj_abs)
+    return di ** 2 + dj ** 2
 
 
 def distances_in_2D_lattice(n):
@@ -174,9 +217,10 @@ def distances_in_2D_lattice(n):
 
 
 def fourier_transform(corr_func, dists):
-    struct_fact = np.fft.fft(corr_func)
+    struct_fact = np.abs(np.fft.fft(corr_func))
     q_values = np.fft.fftfreq(len(dists), d=dists[1] - dists[0])
-
+    # shift the struct fact to zero?
+    struct_fact -= np.min(struct_fact)
     return q_values, struct_fact
 
 
@@ -214,8 +258,11 @@ def main():
 
 
     #plt.plot(np.sqrt(squared_dists), corr_func)
-    cutoff = 5
-    dists, corr_func = calc_corr_manhatten(op_values, cutoff)
+    cutoff = 15
+    squared_dists, corr_func = calc_corr_manhatten(op_values, cutoff,
+                                         )
+    dists = np.sqrt(squared_dists)
+    dists **= 2
     q_values, struct_fact = fourier_transform(corr_func, dists)
     struct_fact = np.abs(struct_fact[np.argsort(q_values)])
     q_values = sorted(q_values)
@@ -229,7 +276,7 @@ def main():
     axes[0].set_ylabel("C(r)")
     axes[0].set_xlabel("r")
     axes[0].plot(dists, corr_func, label="Corr. Function")
-    axes[0].plot(dists, 2 * exp_decay(dists, xi), label = "Exponential Fit")
+    axes[0].plot(dists, exp_decay(dists, xi), label="Exponential Fit")
     axes[0].legend()
     axes[1].set_ylabel("S(q)")
     axes[1].set_xlabel("q")
@@ -237,25 +284,6 @@ def main():
     axes[0].set_title("Correlation Function with Manhattan Metrik")
     plt.show()
 
-
-    """
-    N=1000
-    # Discretize the signal into a finite number of points
-    x = np.linspace(-300, 300, num=N, endpoint=False)
-    print(signal(x))
-    # Compute the DFT using the FFT algorithm
-    fft_y = np.fft.fft(signal(x))
-
-    # Compute the frequency axis
-    freq = np.fft.fftfreq(N, d=x[1] - x[0])
-
-    # Plot the magnitude of the DFT
-
-    plt.plot(freq, np.abs(fft_y))
-    plt.xlabel('Frequency')
-    plt.ylabel('Magnitude')
-    plt.show()
-"""
 
 if __name__ == "__main__":
     main()

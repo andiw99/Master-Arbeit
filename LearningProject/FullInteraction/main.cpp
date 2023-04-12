@@ -288,17 +288,17 @@ for(int i = 0; i < runs; i++) {
     string storage_root = "../../Generated content/Domain Size Test/";
 
     // TODO maybe replace dt with tmax
-    vector<double> eta_values{5};
-    vector<double> T_values{0.1, 1};
-    vector<double> dt_values{0.005};
-    vector<int> steps_values{4000};
-    vector<int> n_values{40};
+    vector<double> eta_values{6};
+    vector<double> T_values{ 1};
+    vector<double> dt_values{0.001};
+    vector<int> steps_values{100000};
+    vector<int> n_values{50};
     vector<double> alpha_values{2};
     vector<double> beta_values{5};
-    vector<double> J_values{1, 5};
-    vector<double> tau_values{1, 0.1};
+    vector<double> J_values{2};
+    vector<double> tau_values{0.5};
 
-    search_grid(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values,
+    search_grid<full_interaction_system>(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values,
                 storage_root);
 
     return 0;

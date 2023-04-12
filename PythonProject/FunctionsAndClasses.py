@@ -68,14 +68,18 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/"):
 
     # equidistant row numbers to use
     rows = np.linspace(0, nr_rows-1, n, endpoint=True)
+    # Select the rows with the row equidistant row numbers
     df_rows = df.iloc[rows]
     # create fig and axes
     fig, axes = plt.subplots(int(np.sqrt(n)), int(np.sqrt(n)), figsize =[12, 10])
     i = 0
     for axs in axes:
         for ax in axs:
-            plot_colormesh(df_rows.iloc[i], fig, ax,
-                           title=f"t = {df_rows.iloc[i, 0]:.2f}", proj=proj)
+            # plot with one row out of the row numbers
+            plot_colormesh(
+                df_rows.iloc[i], fig, ax,
+                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
+                proj=proj)
             i +=1
     # insert parameters
     textstr = ''
@@ -125,9 +129,11 @@ def new_files_in_dir(cur_dir, root, old_files=None, plot_all=False):
     for filename in os.listdir(cur_dir):
         f = os.path.join(cur_dir, filename)
         # check if f is file and if it wasnt already plotted
+        # and check if it is a csv
         if os.path.isfile(f):
-            if not f in old_files:
-                filepaths.append(f)
+            if os.path.splitext(f)[1] == ".csv":
+                if not f in old_files:
+                    filepaths.append(f)
         elif os.path.isdir(f):
             filepaths += new_files_in_dir(f, root, old_files, plot_all)
 
@@ -144,10 +150,25 @@ def read_parameters(filepath, nr_parameters):
         para_set[label] = df.loc[label, 1]
     return para_set
 
-def read_multiple_parameters(filepaths, nr_parameters):
+
+def read_parameters_txt(filepath):
+    df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
+    para_set = {}
+    for label in df.index:
+        para_set[label] = df.loc[label, 1]
+    return para_set
+
+
+def read_multiple_parameters(filepaths, nr_parameters=8, txt=True):
     parameters = []
     for filepath in filepaths:
-        para_set = read_parameters(filepath, nr_parameters=nr_parameters)
+        # filepaths are the paths with .csv extension since .txt files are
+        # ignored
+        if txt:
+            filepath = os.path.splitext(filepath)[0] + ".txt"
+            para_set = read_parameters_txt(filepath)
+        else:
+            para_set = read_parameters(filepath, nr_parameters=nr_parameters)
         parameters.append(para_set)
 
     return parameters
