@@ -19,7 +19,7 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
                       vector<int> steps_values, vector<int> n_values,
                       vector<double> alpha_values, vector<double> beta_values, vector<double> J_values,
                       vector<double> tau_values,
-                      string storage_root, double starting_t = 0, double max_dt = 0.01) {
+                      string storage_root, double starting_t = 0, double max_dt = 0.005) {
     // first we find the vector with the largest size
     int configs = max({eta_values.size(), T_start.size(), T_end.size(), steps_values.size(), n_values.size(),
                    alpha_values.size(), beta_values.size(), J_values.size(), tau_values.size()});
@@ -40,14 +40,7 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
             steps = (T_start[i % T_start.size()] - T_end[i % T_end.size()]) * tau / dt;
             cout << "Had to rescale steps. New number of steps: " << steps << endl;
         }
-        cout << steps << endl;
-        cout << tau << endl;
-        cout << dt << endl;
-        // i think we know have every value to call init_and_run
-        cout << ind_value(T_start, i) << endl;
-        cout << ind_value(n_values, i) << endl;
-        cout << ind_value(alpha_values, i) << endl;
-        cout << ind_value(beta_values, i) << endl;
+
         init_and_run<sys>(ind_value(eta_values, i), ind_value(T_start, i), dt, steps,
                           ind_value(n_values, i), ind_value(alpha_values, i),
                           ind_value(beta_values, i), ind_value(J_values, i), tau,
@@ -85,10 +78,12 @@ int main() {
     vector<double> alpha_values{5};
     vector<double> beta_values{10};
     vector<double> J_values{50};
-    vector<double> tau_values{50, 100};
+    vector<double> tau_values{10, 20};
+
+    double max_dt = 0.005;
 
     search_grid_bath<cooling_bath>(eta_values, T_start, T_end, steps_values, n_values, alpha_values, beta_values,
-                                   J_values, tau_values, storage_root);
+                                   J_values, tau_values, storage_root, max_dt);
 
 //    search_grid<cooling_bath>(eta_values, T_values, dt_values, steps_values, n_values, alpha_values, beta_values, J_values, tau_values,
   //                                       storage_root);

@@ -498,15 +498,7 @@ void init_and_run(double eta, double T, double dt, int steps, int n, double alph
             vector<vector<double>>(n, vector<double>(n, 0));
     vector<vector<double>> v0 =
             vector<vector<double>>(n, vector<double>(n, 0));
-    cout << eta << endl;
-    cout << T << endl;
-    cout << dt << endl;
-    cout << steps << endl;
-    cout << alpha << endl;
-    cout << beta << endl;
-    cout << J << endl;
-    cout << tau << endl;
-    cout << starting_t << endl;
+
     sys specific_system =
             sys(eta, T, n, x0, v0, alpha, beta, J, tau);
 
