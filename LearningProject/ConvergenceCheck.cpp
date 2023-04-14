@@ -1,7 +1,9 @@
 //
 // Created by andi on 06.04.23.
 //
-#include "Functions and Classes.h"
+#include "Helpfunctions and Classes.h"
+#include "Systems.h"
+#include "Solvers.h"
 
 int main() {
     // we wont to check whether the stochastic euler method converges.

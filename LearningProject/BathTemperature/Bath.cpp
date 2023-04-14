@@ -3,7 +3,9 @@
 //
 
 #include "Bath.h"
-#include "../Functions and Classes.h"
+#include "../Helpfunctions and Classes.h"
+#include "../Systems.h"
+#include "../Solvers.h"
 
 double ind_value(vector<double> paras, int ind) {
     return paras[ind % paras.size()];
@@ -78,7 +80,7 @@ int main() {
     vector<double> alpha_values{5};
     vector<double> beta_values{10};
     vector<double> J_values{50};
-    vector<double> tau_values{10, 20};
+    vector<double> tau_values{1};
 
     double max_dt = 0.005;
 
