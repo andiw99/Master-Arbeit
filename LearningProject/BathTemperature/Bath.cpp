@@ -7,50 +7,6 @@
 #include "../Systems.h"
 #include "../Solvers.h"
 
-double ind_value(vector<double> paras, int ind) {
-    return paras[ind % paras.size()];
-}
-
-
-int ind_value(vector<int> paras, int ind) {
-    return paras[ind % paras.size()];
-}
-
-template <typename sys>
-void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<double> T_end,
-                      vector<int> steps_values, vector<int> n_values,
-                      vector<double> alpha_values, vector<double> beta_values, vector<double> J_values,
-                      vector<double> tau_values,
-                      string storage_root, double starting_t = 0, double max_dt = 0.005) {
-    // first we find the vector with the largest size
-    int configs = max({eta_values.size(), T_start.size(), T_end.size(), steps_values.size(), n_values.size(),
-                   alpha_values.size(), beta_values.size(), J_values.size(), tau_values.size()});
-    cout << configs << " configs" << endl;
-
-    for(int i = 0; i < configs; i++) {
-        // we expect that the i-th entry of every vektor belongs to one config
-        // but if there are not enough values we just use the first one or random?
-        // we know calculate the step size for this run
-        int steps = steps_values[i % steps_values.size()];
-        double tau = ind_value(tau_values, i);
-        double dt = (ind_value(T_start, i)- ind_value(T_end, i)) * tau
-                / steps;
-        // check whether dt is to small
-        if(dt > max_dt) {
-            dt = max_dt;
-            // set the steps for this step
-            steps = (T_start[i % T_start.size()] - T_end[i % T_end.size()]) * tau / dt;
-            cout << "Had to rescale steps. New number of steps: " << steps << endl;
-        }
-
-        init_and_run<sys>(ind_value(eta_values, i), ind_value(T_start, i), dt, steps,
-                          ind_value(n_values, i), ind_value(alpha_values, i),
-                          ind_value(beta_values, i), ind_value(J_values, i), tau,
-                          storage_root, starting_t);
-        cout << "run " << i+1 << " / " << configs << endl;
-    }
-}
-
 
 
 int main() {
@@ -60,7 +16,7 @@ int main() {
     // we then have to rewrite the search grid function to take in the kind of system that should be tried out by the
     // parameters
 
-    string storage_root = "../../Generated content/Cooling Bath/Comparison/";
+    string storage_root = "../../Generated content/Cooling Bath/Test/";
 
     // we need to make sure that we cross the phase transition
     // so we have to select our parameters wisely

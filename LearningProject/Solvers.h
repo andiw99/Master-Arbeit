@@ -107,28 +107,30 @@ protected:
         }
     }
 
-    void iterate_interval(state_type& x, state_type& dxdt, state_type& theta, int steps, ofstream& file, bool save,
+    void iterate_interval(state_type& x, state_type& dxdt, state_type& theta, int steps, ofstream& file,
                           int save_interval) {
-        // set ininital time to starting time
         double t = tmin;
 
-        if (save) {
-            for(int k = 0; k < steps; k++) {
-                LatticeSystem->rhs(x, dxdt, theta, t);
-                update(x, dxdt, theta);
-                // only save if k is a multiple of save_interval
-                if(k % save_interval == 0 || k == steps - 1) {
-                    save_to_file(x, t, file);
-                }
+        for(int k = 0; k < steps; k++) {
+            LatticeSystem->rhs(x, dxdt, theta, t);
+            update(x, dxdt, theta);
+            // only save if k is a multiple of save_interval
+            if(k % save_interval == 0 || k == steps - 1) {
+                save_to_file(x, t, file);
+            }
 
-                t += dt;
-            }
-        } else {
-            for(int k = 0; k < steps; k++) {
-                LatticeSystem->rhs(x, dxdt, theta, t);
-                update(x, dxdt, theta);
-                t += dt;
-            }
+            t += dt;
+        }
+
+    }
+    // overload iterate_interval i the kind that it doesn't save if i dont hand in a file/ofstream instance
+    void iterate_interval(state_type& x, state_type& dxdt, state_type& theta, int steps) {
+        // set ininital time to starting time
+        double t = tmin;
+        for(int k = 0; k < steps; k++) {
+            LatticeSystem->rhs(x, dxdt, theta, t);
+            update(x, dxdt, theta);
+            t += dt;
         }
     }
 
@@ -163,7 +165,7 @@ public:
      * @param save_interval every "save_interval"-th value is saved in a file
      * @return
      */
-    state_type run(int steps, std::ofstream& file, bool save = true, int save_interval=100) {
+    state_type run(int steps, std::ofstream& file, int save_interval=100) {
         // runs brownian motion with stepsize dt for steps steps
         // initialize
         state_type x = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
@@ -175,9 +177,30 @@ public:
         state_type dxdt = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
         state_type theta = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
 
-        iterate_interval(x, dxdt, theta, steps, file, save, save_interval);
+        iterate_interval(x, dxdt, theta, steps, file, save_interval);
 
         return x;
+    };
+    // overload run to work without a file
+    state_type run(int steps) {
+        // runs brownian motion with stepsize dt for steps steps
+        // initialize
+        state_type x = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
+        // set initial values
+        // naive setting because i don't know c++ to much atm and it only runs once when initializing
+        set_IC(x);
+
+
+        state_type dxdt = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
+        state_type theta = state_type (n, vector<entry_type>(n, entry_type(2, 0)));
+
+        iterate_interval(x, dxdt, theta, steps);
+
+        return x;
+    };
+
+    virtual string get_name() {
+        return "Euler Mayurama Method";
     };
 
     double calc_mu(const state_type& x) {
@@ -213,7 +236,7 @@ public:
     };
 
     solver(double dt_val,
-           class lattice_system *specific_system, double t_val = -5) {
+           class lattice_system *specific_system, double t_val = 0) {
         LatticeSystem = specific_system;
         dt = dt_val;
         tmin = t_val;
@@ -244,6 +267,11 @@ private:
 
 public:
     state_type pre_theta;
+
+    string get_name() override {
+        return "Leimkuhler-Matthews Method";
+    };
+
     lm_solver(double dt_val,
               class lattice_system *specific_system, double t_val = -5) :
             solver(dt_val, specific_system, t_val) {
@@ -255,9 +283,8 @@ public:
 /**
  * Uses the fact that the DGL for x has no stochastic term
  */
-class min_lm_solver: lm_solver {
+class min_lm_solver: public lm_solver {
     void update(state_type &x, const state_type &dxdt, const state_type &theta) {
-        // huh we dont have vector operations, maybe implement them
         // We use the state_type here, so we need to cycle through every lattice
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -269,6 +296,10 @@ class min_lm_solver: lm_solver {
         }
     }
 public:
+    string get_name() override{
+        return "Min-Leimkuhler-Matthews Method";
+    };
+
     min_lm_solver(double dt_val,
                   class lattice_system *specific_system, double t_val = -5) :
             lm_solver(dt_val, specific_system, t_val) {};
@@ -294,7 +325,7 @@ void init_and_run(double eta, double T, double dt, int steps, int n, double alph
         // ok we construct directory tree and if
         // it is not empty, we count the number of files inside and then just
         // number our runs
-        string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau,
+        string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                            storage_root);
         // since dir_name is per construction
         // a directory we dont have to check if its a directory?
@@ -341,5 +372,42 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
         }
     }
 }
+
+
+template <typename sys>
+void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<double> T_end,
+                      vector<int> steps_values, vector<int> n_values,
+                      vector<double> alpha_values, vector<double> beta_values, vector<double> J_values,
+                      vector<double> tau_values,
+                      string storage_root, double starting_t = 0, double max_dt = 0.005) {
+    // first we find the vector with the largest size
+    int configs = max({eta_values.size(), T_start.size(), T_end.size(), steps_values.size(), n_values.size(),
+                       alpha_values.size(), beta_values.size(), J_values.size(), tau_values.size()});
+    cout << configs << " configs" << endl;
+
+    for(int i = 0; i < configs; i++) {
+        // we expect that the i-th entry of every vektor belongs to one config
+        // but if there are not enough values we just use the first one or random?
+        // we know calculate the step size for this run
+        int steps = steps_values[i % steps_values.size()];
+        double tau = ind_value(tau_values, i);
+        double dt = (ind_value(T_start, i)- ind_value(T_end, i)) * tau
+                    / steps;
+        // check whether dt is to small
+        if(dt > max_dt) {
+            dt = max_dt;
+            // set the steps for this step
+            steps = (T_start[i % T_start.size()] - T_end[i % T_end.size()]) * tau / dt;
+            cout << "Had to rescale steps. New number of steps: " << steps << endl;
+        }
+
+        init_and_run<sys>(ind_value(eta_values, i), ind_value(T_start, i), dt, steps,
+                          ind_value(n_values, i), ind_value(alpha_values, i),
+                          ind_value(beta_values, i), ind_value(J_values, i), tau,
+                          storage_root, starting_t);
+        cout << "run " << i+1 << " / " << configs << endl;
+    }
+}
+
 
 #endif //LEARNINGPROJECT_SOLVERS_H

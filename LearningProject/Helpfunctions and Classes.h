@@ -31,6 +31,46 @@ int pymod(int a, int b) {
 }
 
 
+string print_statetype(const state_type x) {
+    string str = "";
+    int n = x.size();
+    str += "x: \n";
+    str += "[";
+    for (int i = 0; i < n; i++) {
+        str += "[";
+        for (int j = 0; j < n; j++) {
+            if(j == n-1) {
+                str += to_string(x[i][j][0]);
+            } else {
+                str += to_string(x[i][j][0]) + ", ";
+            }
+        }
+        if(i < n-1) {
+            str += "]\n ";
+        }
+    }
+    str += "]]\n";
+    str += "p: \n";
+    str += "[";
+    for (int i = 0; i < n; i++) {
+        str += "[";
+        for (int j = 0; j < n; j++) {
+            if(j == n-1) {
+                str += to_string(x[i][j][1]);
+            } else {
+                str += to_string(x[i][j][1]) + ", ";
+            }
+        }
+        if(i < n-1) {
+            str += "]\n ";
+        }
+    }
+    str += "]]";
+    return str;
+}
+
+
+
 string trunc_double(double a, int precision=2) {
     stringstream stream;
     stream << std::fixed << std::setprecision(precision) << a;
@@ -38,19 +78,22 @@ string trunc_double(double a, int precision=2) {
 }
 
 
-string create_directory(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau,
+void create_dir(const string dir_name) {
+    // check wheter the directory already exists, if not create it
+    if(!filesystem::is_directory(dir_name) || !filesystem::exists(dir_name)) {
+        filesystem::create_directories(dir_name);
+    }
+}
+
+string create_tree_name(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau,
                         const string root) {
     string dir_name = root + "eta=" + trunc_double(eta)
                       + "/T=" + trunc_double(T) + "/dt=" +
                       trunc_double(dt, 4) + "/n="+ to_string(n) + "/alpha=" + trunc_double(alpha) + "/beta=" +
                       trunc_double(beta) + "/J=" + trunc_double(J) + "/tau=" + trunc_double(tau);
-    // check wheter the directory already exists, if not create it
-    if(!filesystem::is_directory(dir_name) || !filesystem::exists(dir_name)) {
-        filesystem::create_directories(dir_name);
-    }
+    create_dir(dir_name);
     return dir_name;
 }
-
 
 void write_parameters(ofstream& file, double eta, double T, double dt, int n, double alpha, double beta, double J,
                       double tau) {
@@ -88,5 +131,14 @@ void search_grid_v2(vector<vector<double>> paras) {
     }
 }
 
+
+double ind_value(vector<double> paras, int ind) {
+    return paras[ind % paras.size()];
+}
+
+
+int ind_value(vector<int> paras, int ind) {
+    return paras[ind % paras.size()];
+}
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

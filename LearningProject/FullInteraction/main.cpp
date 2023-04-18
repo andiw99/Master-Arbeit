@@ -222,7 +222,7 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                             // ok we construct directory tree and if
                                             // it is not empty, we count the number of files inside and then just
                                             // number our runs
-                                            string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau,
+                                            string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                                                                storage_root);
                                             // since dir_name is per construction
                                             // a directory we dont have to check if its a directory?
@@ -275,7 +275,7 @@ int runs = 1;
 for(int i = 0; i < runs; i++) {
     // ok we construct directory tree and if it is not empty, we count the number of files inside and then just
     // number our runs
-    string dir_name = create_directory(eta, T, dt, n, alpha, beta, J, tau);
+    string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau);
     // since dir_name is per construction a directory we dont have to check if its a directory?
     string name = dir_name + "/" + to_string(count_files(dir_name));
     std::ofstream file;
