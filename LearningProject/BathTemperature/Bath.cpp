@@ -80,7 +80,7 @@ int main() {
     vector<double> alpha_values{5};
     vector<double> beta_values{10};
     vector<double> J_values{50};
-    vector<double> tau_values{1};
+    vector<double> tau_values{200, 500};
 
     double max_dt = 0.005;
 

@@ -6,7 +6,7 @@
 #include "Solvers.h"
 
 int main() {
-    // we wont to check whether the stochastic euler method converges.
+    // we want to check whether the stochastic euler method converges.
     // for brownian motion in harmonic oscillators, the
     double eta = 5;
     double T = 100; // 10

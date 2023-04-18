@@ -1,6 +1,7 @@
 from FunctionsAndClasses import *
 from itertools import product
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 
 def signal(x):
     return np.exp(-x**2/2)
@@ -137,6 +138,30 @@ def calc_corr_manhatten(x, cutoff=0):
     return np.arange(2 * len(dists) - 1), corr_func
 
 
+def transform_corr_func(corr_func):
+    """
+    Transforms the correlation function in a way so that we only take te values
+    which are greater than zero and after that just set every value to be zero
+    :param dists:
+    :param corr_func:
+    :return:
+    """
+    # index at which the correlation function is closest to zero
+    # leider zu einfach
+    # ind = np.argmin(np.abs(corr_func))
+    # corr_func[ind:] = 0
+    # Wenn es keinen Vorzeichenwechsel gibt ist ind der inex vom kleinsten eintrag
+    ind = np.argmin(np.abs(corr_func))
+    for i in range(len(corr_func)-1):
+        if(corr_func[i] > 0) and corr_func[i+1] < 0:
+            ind = i
+            break
+
+    corr_func[ind:] = 0
+    return corr_func
+
+
+
 def calc_corr(x, cutoff, dist_func):
     # 1.) Gehe jeden Gitterplatz i,j durch
     # 2.) Berechne Distanz zu jedem anderen Gitterplatz k,h
@@ -220,7 +245,7 @@ def fourier_transform(corr_func, dists):
     struct_fact = np.abs(np.fft.fft(corr_func))
     q_values = np.fft.fftfreq(len(dists), d=dists[1] - dists[0])
     # shift the struct fact to zero?
-    struct_fact -= np.min(struct_fact)
+    # struct_fact -= np.min(struct_fact)
     return q_values, struct_fact
 
 
@@ -232,58 +257,107 @@ def fwhm(x, y):
     # Fit a Gaussian distribution to the data and extract the FWHM
     p0 = [np.max(y), x[np.argmax(y)], np.std(y)]
     popt, _ = curve_fit(gaussian, x, y, p0=p0)
-    return 2 * np.sqrt(2 * np.log(2)) * popt[2]
+    return 2 * np.sqrt(2 * np.log(2)) * np.abs(popt[2])
 
 
 def exp_decay(r, xi):
     return np.exp(-r/xi)
 
 
-def main():
-    root = "../../Generated content/Domain Size Test/"
-    name = "eta=5.00/T=1.00/dt=0.0050/n=40/alpha=2.00/beta=5.00/J=5.00/tau=0.10/0.csv"
-    filepath = root + name
-    nr_parameters = 8                   # letzte 8 Zeilen der csv sind parameter
-    # read in the file and extract last row
-    df = read_csv(filepath, nrows=-nr_parameters)
-    n2 = int((df.shape[1]-2)/2)
+
+def calc_corr_length(filepath):
+    df = read_csv(filepath)
+    n2 = int((df.shape[1] - 2) / 2)
     n = int(np.sqrt(n2))
-    op_values = df.iloc[-1].iloc[1:n2+1]
-    print(df)
-    print(op_values)
+    op_values = df.iloc[-1].iloc[1:n2 + 1]
     op_values = np.array(op_values, dtype=float).reshape((n, n))
-    print(op_values[2, 0])
-
-    #squared_dists, corr_func = calc_corr_func(op_values)
-
-
-    #plt.plot(np.sqrt(squared_dists), corr_func)
-    cutoff = 15
-    squared_dists, corr_func = calc_corr_manhatten(op_values, cutoff,
-                                         )
+    # squared_dists, corr_func = calc_corr_func(op_values)
+    # plt.plot(np.sqrt(squared_dists), corr_func)
+    cutoff = n // 2
+    squared_dists, corr_func = calc_corr_manhatten(op_values, cutoff)
+    corr_func = transform_corr_func(corr_func)
     dists = np.sqrt(squared_dists)
     dists **= 2
     q_values, struct_fact = fourier_transform(corr_func, dists)
     struct_fact = np.abs(struct_fact[np.argsort(q_values)])
     q_values = sorted(q_values)
     curve_width = fwhm(q_values, struct_fact)
-    xi = 1/curve_width
+    xi = 1 / curve_width
     n = op_values.shape[0]
     print("FWHM: ", curve_width)
     print("Correlation Length", xi)
     print("Number of Domains ", n ** 2 / xi ** 2)
-    fig, axes = plt.subplots(2, 1, figsize=(6, 7))
-    axes[0].set_ylabel("C(r)")
-    axes[0].set_xlabel("r")
-    axes[0].plot(dists, corr_func, label="Corr. Function")
-    axes[0].plot(dists, exp_decay(dists, xi), label="Exponential Fit")
-    axes[0].legend()
-    axes[1].set_ylabel("S(q)")
-    axes[1].set_xlabel("q")
-    axes[1].plot(q_values, np.abs(struct_fact))
-    axes[0].set_title("Correlation Function with Manhattan Metrik")
-    plt.show()
+    return (dists, corr_func), (q_values, struct_fact), xi
 
+
+def main():
+    root = "../../Generated content/Cooling Bath/Comparison/eta=5.00/T=70.00/dt=0.0050/n=50/alpha=5.00/beta=10.00/J=50.00/"
+    name = "tau=200.00/0.csv"
+    filepath = root + name
+    # read in the file and extract last row
+    filepaths = new_files_in_dir(root, root, plot_all=True)
+    # leeren container für xi und tau
+    data = {
+        "xi" : [],
+        "xi_inter": [],
+        "tau": [],
+    }
+    for filepath in filepaths:
+        # we need to read in the parameters
+        para_path = os.path.splitext(filepath)[0] + ".txt"
+        parameters = read_parameters_txt(para_path)
+        (dists, corr_func), (q_values, struct_fact), xi = calc_corr_length(filepath)
+        # interpolieren für zusätzliche stützstellen:
+
+        f = interp1d(dists, corr_func, kind="quadratic")
+        additional_dists = np.linspace(0, np.max(dists), 100)
+        additional_corr_func = f(additional_dists)
+        add_q, add_struct = fourier_transform(additional_corr_func, additional_dists)
+        add_struct = add_struct[np.argsort(add_q)]
+        add_q = sorted(add_q)
+        inter_xi = 1/fwhm(add_q, add_struct)
+        print("correlation length with interpolated values", inter_xi)
+        # den daten hinzufügen
+        data["xi"].append(xi)
+        data["tau"].append(parameters["tau"])
+        data["xi_inter"].append(inter_xi)
+        # plotten, plot speichern?
+        fig, axes = plt.subplots(2, 1, figsize=(6, 7))
+        axes[0].set_ylabel("C(r)")
+        axes[0].set_xlabel("r")
+        axes[0].plot(dists, corr_func, label="Corr. Function")
+        axes[0].plot(additional_dists, additional_corr_func,
+                     label="Interpolation")
+        axes[0].plot(dists, exp_decay(dists, xi), label="Exponential Fit")
+        axes[0].plot(dists, exp_decay(dists, inter_xi), label="Exp. Fit with Inter")
+        axes[0].legend()
+        axes[1].set_ylabel("S(q)")
+        axes[1].set_xlabel("q")
+        axes[1].plot(q_values, np.abs(struct_fact), label="Fourier Transform")
+        axes[1].plot(add_q, add_struct, label="Interpolated")
+        axes[0].set_title("Correlation Function with Manhattan Metrik")
+        axes[1].legend()
+        plt.show()
+
+    sortargs = np.argsort(data["tau"])
+    print(sortargs)
+    data["tau"] = sorted(data["tau"])
+    data["xi"] = np.array(data["xi"])[sortargs]
+    data["xi_inter"] = np.array(data["xi_inter"])[sortargs]
+
+    # write to csv:
+    df = pd.DataFrame(data)
+    df.to_csv(root + "Corr Length.txt", index=False)
+
+    # plot it
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlabel(r"$\tau$")
+    ax.set_ylabel(r"$\xi$")
+    ax.plot(data["tau"], data["xi"], label="corr length")
+    ax.plot(data["tau"], data["xi_inter"], label="with interpolation")
+    ax.legend()
+    plt.show()
 
 if __name__ == "__main__":
     main()
