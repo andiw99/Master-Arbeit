@@ -50,13 +50,10 @@ public:
         x0 = std::move(x0_val);
         v0 = std::move(v0_val);
     }
-    lattice_system() {
-        n = 0;
-    }
 };
 
-
-class cooling_bath: public lattice_system {
+class bath: public lattice_system {
+protected:
     // we have roughly the same parameters as the full interaction system
     double eta;
     //static const auto dice = bind(normal_distribution<double>(0, 1), default_random_engine());
@@ -67,21 +64,11 @@ class cooling_bath: public lattice_system {
     double current_T;              // current T
     // I would like to set the seed somehow but that doesnt seem to be possible so easily.
     // probably with a template but that seems overly complicated
+    double tau;
+
     // TODO worry about that later...
     static inline auto normal_dice =
             bind(normal_distribution<double>(0, 1), default_random_engine(1234));
-    // parameters of the potential
-    double alpha;
-    double beta;
-    // strenght of the interaction
-    double J;
-    // timescale of the quench
-    double tau;
-    // TODO phenomenological derivation of the behaviour of the system can't have less parameters
-
-    double dVsdq(double q) {
-        return alpha * (2 * q * q * q - beta * q);
-    }
 
     double linear_T(double t) {
         // parametrisierung für die Temperatur
@@ -90,12 +77,7 @@ class cooling_bath: public lattice_system {
         return current_T;
     }
 
-    double dVidq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) const {
-        return J * (sin(qij - qijp1) + sin(qij - qip1j) + sin(qij - qijm1) + sin(qij - qim1j));
-    }
-
-    double dVdq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) {
-        return dVsdq(qij) + dVidq(qij, qijp1, qip1j, qijm1, qim1j);
+    virtual double dVdq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) {
     }
 
 public:
@@ -121,17 +103,81 @@ public:
         return current_T;
     }
 
+    bath(double eta_val, double T_val,  int n_val,
+         vector<vector<double>> x0_val,
+         vector<vector<double>> v0_val,
+         double tau_val) : lattice_system(n_val, T_val, x0_val, v0_val) {
+        eta = eta_val;
+        current_T = T_val;
+        tau = tau_val;
+    }
+};
+
+class cooling_bath: public bath {
+
+    // parameters of the potential
+    double alpha;
+    double beta;
+    // strenght of the interaction
+    double J;
+    // timescale of the quench
+
+    // TODO phenomenological derivation of the behaviour of the system can't have less parameters
+
+    double dVsdq(double q) {
+        return alpha * (2 * q * q * q - beta * q);
+    }
+
+
+    double dVidq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) const {
+        return J * (sin(qij - qijp1) + sin(qij - qip1j) + sin(qij - qijm1) + sin(qij - qim1j));
+    }
+
+    double dVdq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) override{
+        return dVsdq(qij) + dVidq(qij, qijp1, qip1j, qijm1, qim1j);
+    }
+
+public:
     cooling_bath( double eta_val, double T_val,  int n_val,
                   vector<vector<double>> x0_val,
                   vector<vector<double>> v0_val,
                   double alpha_val, double beta_val, double J_val, double tau_val)
-            : lattice_system(n_val, T_val, x0_val, v0_val) {
-        eta = eta_val;
-        current_T = T_val;
+            : bath(eta_val, T_val, n_val, x0_val, v0_val, tau_val) {
         alpha = alpha_val;
         beta = beta_val;
         J = J_val;
-        tau = tau_val;
+    }
+};
+
+class silicon_bath : public bath {
+    double J_para;
+    double J_ortho;
+    double alpha;
+    double beta;
+
+    double dVsdq(double q) {
+        return alpha * (2 * q * q * q - beta * q);
+    }
+
+    double dVidq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) const {
+        return - J_ortho * (sin(qij - qijp1) + sin(qij - qijm1)) -
+        J_para * (sin(qij - qip1j)  + sin(qij - qim1j));
+    }
+
+    double dVdq(double qij, double qijp1, double qip1j, double qijm1, double qim1j) {
+        return dVsdq(qij) + dVidq(qij, qijp1, qip1j, qijm1, qim1j);
+    }
+
+public:
+    silicon_bath( double eta_val, double T_val,  int n_val,
+                  vector<vector<double>> x0_val,
+                  vector<vector<double>> v0_val,
+                  double alpha_val, double beta_val, double J_para_val, double J_ortho_val, double tau_val)
+            : bath(eta_val, T_val, n_val, x0_val, v0_val, tau_val) {
+        alpha = alpha_val;
+        beta = beta_val;
+        J_para = J_para_val;
+        J_ortho = J_ortho_val;
     }
 };
 
@@ -236,5 +282,28 @@ public:
     }
 };
 
+class brown_system: public lattice_system {
+    double eta;
+    static inline auto normal_dice = bind(normal_distribution<double>(0, 1), default_random_engine(1234));
+
+public:
+    void rhs(const state_type &x, state_type &dxdt, state_type &theta, double t) override {
+        for(int i = 0; i < n; i++) {
+            for(int j=0; j < n; j++) {
+                dxdt[i][j][0] = x[i][j][1];
+                dxdt[i][j][1] = (-eta) * x[i][j][1];
+                theta[i][j][0] = 0;
+                theta[i][j][1] = sqrt(2 * eta * T) * normal_dice();
+            }
+        }
+    }
+
+    brown_system(double T_val,  int n_val,
+                 vector<vector<double>> x0_val,
+                 vector<vector<double>> v0_val,
+                 double eta_val) : lattice_system(n_val, T_val, x0_val, v0_val) {
+        eta = eta_val;
+    }
+};
 
 #endif //LEARNINGPROJECT_SYSTEMS_H
