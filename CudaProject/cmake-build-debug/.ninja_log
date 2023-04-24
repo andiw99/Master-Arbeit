@@ -1,0 +1,19 @@
+# ninja log v5
+0	2188	1682255627377670707	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+2189	2230	1682255627425670485	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+2230	2322	1682255627517670062	CudaProject	305fd372fc5dade5
+1	6184	1682255733429183032	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+6186	6237	1682255733477182812	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+6237	6339	1682255733589182297	CudaProject	305fd372fc5dade5
+4	7611	1682260843367096633	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+7612	7672	1682260843435096767	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+7673	7795	1682260843559097012	CudaProject	305fd372fc5dade5
+4	7308	1682260868775145459	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+7309	7363	1682260868831145563	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+7364	7491	1682260868963145811	CudaProject	305fd372fc5dade5
+3	7287	1682260944363276473	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+7287	7342	1682260944419276562	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+7342	7466	1682260944551276774	CudaProject	305fd372fc5dade5
+3	7407	1682261021183390153	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+7407	7463	1682261021239390229	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+7463	7589	1682261021371390409	CudaProject	305fd372fc5dade5
