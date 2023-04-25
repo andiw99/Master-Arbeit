@@ -416,7 +416,7 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
         auto duration = chrono::duration_cast<std::chrono::seconds>(end - start);
         cout << "execution took " << duration.count() << "s, meaning " <<
         duration.count() * 1000/(steps) << "s per 1000 steps." << endl;
-        cout << "for a " << ind_value(n_values, i) << " by " << ind_value(n_values, i) << " lattice."
+        cout << "for a " << ind_value(n_values, i) << " by " << ind_value(n_values, i) << " lattice.";
 
     }
 }

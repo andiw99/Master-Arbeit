@@ -5,37 +5,77 @@
 #include "Testclass.h"
 #include <iostream>
 
-class B {
+class parent {
 public:
     virtual void foo() {
-        std::cout << "B::foo()" << std::endl;
+        std::cout << "parent::foo()" << std::endl;
     }
 };
 
-class C : public B {
+class child : public parent {
 public:
     void foo() override {
-        std::cout << "C::foo()" << std::endl;
+        std::cout << "child::foo()" << std::endl;
     }
 };
 
-class A {
+class pointer_container {
 public:
-    B* b; // using a pointer to B
-    A(class B *b_val) {
+    parent* b; // using a pointer to B
+    pointer_container(class parent *b_val) {
         b = b_val;
     }
-    A(){}
+    pointer_container(){}
+};
+
+
+class container {
+public:
+    parent member;
+    container(parent member) : member(member) {}
+
+};
+
+class Shape {
+public:
+    void draw() {
+        std::cout << "Drawing a shape" << std::endl;
+    };
+};
+
+class Circle : public Shape {
+public:
+    void draw() {
+        std::cout << "Drawing a circle" << std::endl;
+    }
+};
+
+class Square : public Shape {
+public:
+    void draw() {
+        std::cout << "Drawing a square" << std::endl;
+    }
 };
 
 int main() {
-    A a{};
-    C c;
+    child c;
+    pointer_container a{&c};
     a.b = &c; // assigning the address of c to the pointer to B in A
     a.b->foo(); // calls C::foo() due to dynamic binding
 
-    C c2;
-    A a2{&c2};
+    parent c2;
+    pointer_container a2{&c2};
     a2.b->foo();
+
+    child c3;
+    container con(c3);
+    con.member.foo();
+
+    Shape shapes[] = {Circle(), Square() };
+
+    for (auto shape : shapes) {
+        shape.draw();
+    }
+
     return 0;
 }
