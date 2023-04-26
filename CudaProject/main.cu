@@ -178,7 +178,7 @@ public:
             // i guess I will just use an inline implementation for my first implementation
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    + J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
+                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
         }
     };
 
@@ -344,11 +344,11 @@ public:
             : T(T), step_nr(0), n(lat_dim * lat_dim), T_t(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
     }
 
-    double get_cur_T() {
+    double get_cur_T() const{
         return T_t;
     }
 
-    size_t get_lattice_dim() {
+    size_t get_lattice_dim() const{
         return lat_dim;
     }
 };
@@ -359,9 +359,11 @@ class observer {
 public:
     template<class State, class System>
     void operator()(const System sys, const State &x , double t ) {
+        cout << "Base Observer gets called" << endl;
     }
 
-    observer() {}
+    observer() {
+    }
 
 };
 
@@ -376,7 +378,7 @@ class bath_observer : public observer {
 
 public:
     bath_observer(ofstream& out, size_t write_every = 1000) : file(out), write_every(write_every) {
-        count = 1;
+        count = 0;
     }
 
     template<class State, class System>
@@ -392,7 +394,7 @@ public:
             // writing, but only q for the moment
             file << "t, " << t << ",";
             for(int i = 0; i < lat_dim * lat_dim; i++) {
-                    file << x[i][0] << ",";
+                    file << x[i] << ",";
 
             }
             // for the last we write T? I mean thats how i did it, right?
@@ -402,6 +404,7 @@ public:
             // Zeilenumbruch
             file << "\n";
         }
+        count++;
     }
 };
 
@@ -419,7 +422,7 @@ template<
 >
 class euler_mayurama_stepper {
 public:
-    observer* Observer;
+    // observer* Observer;
     // the stepper needs a do_step method
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
     // We also template our do_step method to work with any system that we feed into it
@@ -454,15 +457,18 @@ public:
         // since not every System has a temperature or at least one that is relevant
         // we could give the system to the observer, this would be possible, so that we can use sys.getT in a
         // special observer for the systems with temperature
-        Observer->operator()(sys, x, t);
+        // Observer->operator()(sys, x, t);
     }
 
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N, observer*  Obs = new observer()) : N(N), dxdt(N), theta(N), Observer(Obs) {
+    euler_mayurama_stepper(size_t N) : N(N), dxdt(N), theta(N) //, Observer(Obs)
+                                                                                {}
 
-    }
+/*    euler_mayurama_stepper(size_t N) : N(N) {
+        Observer = new observer();
+    }*/
 
     // now for the memory allocation. I am not sure if this ever changes for me but the implementation should not harm
     // on the other hand, my class doesn't have any saved state_types that could potentially be resized
@@ -647,15 +653,27 @@ string create_tree_name(double eta, double T, double dt, int n, double alpha, do
     return dir_name;
 }
 
+void write_parameters(ofstream& file, double eta, double T, double dt, int n, double alpha, double beta, double J,
+                      double tau) {
+    // insert the parameters
+    file << "eta," << eta << ", \n";
+    file << "T," << T << ", \n";
+    file << "dt," << dt << ", \n";
+    file << "n," << n << ", \n";
+    file << "alpha," << alpha << ", \n";
+    file << "beta," << beta << ", \n";
+    file << "J," << J << ", \n";
+    file << "tau," << tau << ", \n";
+}
 
 int main() {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
     // But we can quickly write another system i guess
-    const int steps = 100000;
-    const double dt = 0.001;
+    const int steps = 500000;
+    const double dt = 0.005;
     const double eta2 = 5;
-    const double T = 100;
+    const double T = 70;
 
     // H has storage for 4 integers
     thrust::host_vector<int> H(4);
@@ -693,15 +711,17 @@ int main() {
     const double D = T / eta2;
     double theo_msd = 2 * D * dt * steps;
     double theo_mu = 0;
+    double mu = 0;
+    double msd = 0;
 
+/*    observer base_obs = observer();
 
-    euler_mayurama_stepper<state_type, container_algebra, default_operations> stepper(2);
+    euler_mayurama_stepper<state_type, container_algebra, default_operations> stepper(2, &base_obs);
     brownian_particel system(eta2, T);
 
     // I guess we directly have to check whether the distribution parameters are still the same.
-    const size_t runs = 100;
-    double mu = 0;
-    double msd = 0;
+    const size_t runs = 10;
+
 
 
     for(size_t i = 0; i < runs; i++) {
@@ -721,9 +741,9 @@ int main() {
     msd /= runs;
 
     cout << "mu = " << mu << endl;
-    cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
+    cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;*/
 
-    const size_t lattice_dim = 500;
+    const size_t lattice_dim = 250;
     // system size
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
@@ -735,23 +755,25 @@ int main() {
     const double J = 50;
     const double alpha = 5;
     const double beta = 10;
-    const double tau = 1;
+    const double tau = 50;
     const double eta = 5;
 
     // file stuff
     string storage_root = "../../../Generated content/GPU Test/";
     string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                        storage_root);
-    string name = dir_name + "/0.csv";
+    string name = dir_name + "/0";
     ofstream file;
-    file.open(name);
+    ofstream parafile;
+    file.open(name + ".csv");
+    parafile.open(name + ".txt");
 
     // init observer
     size_t write_every = 10000;
     bath_observer Obs(file, write_every);
 
     typedef thrust::device_vector<double> gpu_state_type;
-    euler_mayurama_stepper<gpu_state_type, thrust_algebra, thrust_operations > gpu_stepper(N * n, &Obs);
+    euler_mayurama_stepper<gpu_state_type, thrust_algebra, thrust_operations > gpu_stepper(N * n);
 
     // initialize the system...
     // gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau)
@@ -767,11 +789,20 @@ int main() {
     gpu_state_type x(N * n, 0.0);
       */
     auto start = chrono::high_resolution_clock::now();
+    double t = 0;
     for( size_t i=0 ; i<steps ; ++i ) {
-        gpu_stepper.do_step(gpu_system, x, dt, i*dt);
+        gpu_stepper.do_step(gpu_system, x, dt, t);
+        // ... why don't we just write here? wouldn't that be faster?
+        // i guess we do that
+        Obs(gpu_system, x, t);
+        t += dt;
         // cout << n*dt << " ";
         // cout << x[0] << " " << x[1] << endl;
     }
+
+    write_parameters(parafile, eta, T, dt, n, alpha, beta, J, tau);
+
+    file.close();
     auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start);
     cout << "execution took " << duration.count() << "ms, meaning " <<
@@ -781,7 +812,7 @@ int main() {
     // TODO we could use this reduction stuff to compute the moments
     mu = 0;
     msd = 0;
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; i <= n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
         if(i % 1000 == 0) {
