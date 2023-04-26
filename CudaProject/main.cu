@@ -670,42 +670,22 @@ int main() {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
     // But we can quickly write another system i guess
-    const int steps = 500000;
+    const int steps = 1000000;
     const double dt = 0.005;
     const double eta2 = 5;
     const double T = 70;
-
-    // H has storage for 4 integers
-    thrust::host_vector<int> H(4);
-
-    // initialize individual elements
-    H[0] = 14;
-    H[1] = 20;
-    H[2] = 38;
-    H[3] = 46;
-
-    // H.size() returns the size of vector H
-    std::cout << "H has size " << H.size() << std::endl;
-
-    // print contents of H
-    for(int i = 0; i < H.size(); i++)
-        std::cout << "H[" << i << "] = " << H[i] << std::endl;
-
-    // resize H
-    H.resize(2);
-
-    std::cout << "H now has size " << H.size() << std::endl;
-
-    // Copy host_vector H to device_vector D
-    thrust::device_vector<int> Dv = H;
-
-    // elements of D can be modified
-    Dv[0] = 99;
-    Dv[1] = 88;
-
-    // print contents of D
-    for(int i = 0; i < Dv.size(); i++)
-        std::cout << "D[" << i << "] = " << Dv[i] << std::endl;
+    const double J = 50;
+    const double alpha = 5;
+    const double beta = 10;
+    const double tau = 100;
+    const double eta = 5;
+    const int nr_save_values = 20;
+    size_t write_every = steps / nr_save_values;
+    const size_t lattice_dim = 250;
+    // system size
+    const size_t n = lattice_dim * lattice_dim;
+    // DGLs per lattice site
+    const size_t N = 2;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta2;
@@ -743,21 +723,6 @@ int main() {
     cout << "mu = " << mu << endl;
     cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;*/
 
-    const size_t lattice_dim = 250;
-    // system size
-    const size_t n = lattice_dim * lattice_dim;
-    // DGLs per lattice site
-    const size_t N = 2;
-    // We are no as far so that we can write down a euler mayurama stepper on the gpu
-
-
-    // okay this is the important test...
-    const double J = 50;
-    const double alpha = 5;
-    const double beta = 10;
-    const double tau = 50;
-    const double eta = 5;
-
     // file stuff
     string storage_root = "../../../Generated content/GPU Test/";
     string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
@@ -769,7 +734,7 @@ int main() {
     parafile.open(name + ".txt");
 
     // init observer
-    size_t write_every = 10000;
+
     bath_observer Obs(file, write_every);
 
     typedef thrust::device_vector<double> gpu_state_type;
@@ -788,6 +753,7 @@ int main() {
     // so this state type only has N=2 values, which are set to 0. Maybe we need to initialize N * n values?
     gpu_state_type x(N * n, 0.0);
       */
+
     auto start = chrono::high_resolution_clock::now();
     double t = 0;
     for( size_t i=0 ; i<steps ; ++i ) {
@@ -815,9 +781,6 @@ int main() {
     for(int i = 0; i <= n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
-        if(i % 1000 == 0) {
-            cout << "x[" << i << "] = " << x[i] << endl;
-        }
     }
     mu /= n;
     msd /= n;

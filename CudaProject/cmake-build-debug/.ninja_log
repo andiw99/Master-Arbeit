@@ -36,3 +36,6 @@
 4	8674	1682434738072554508	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
 8674	8739	1682434738144554635	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
 8739	8882	1682434738288554890	CudaProject	305fd372fc5dade5
+4	9037	1682512152832882640	CMakeFiles/CudaProject.dir/main.cu.o	819ac4edba7ed8b4
+9037	9093	1682512152900882678	CMakeFiles/CudaProject.dir/cmake_device_link.o	cbdb541a120d18e8
+9093	9233	1682512153036882754	CudaProject	305fd372fc5dade5
