@@ -38,6 +38,7 @@ int main() {
     vector<double> J_values{50};
     vector<double> tau_values{2, 4, 8, 32, 64, 128, 256, 1024, 2048};
 
+
     double max_dt = 0.005;
 
     search_grid_bath<cooling_bath>(eta_values, T_start, T_end, steps_values, n_values, alpha_values, beta_values,

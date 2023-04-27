@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <utility>
 #include "Systems.h"
+#include <chrono>
 
 
 // using namespaces!
@@ -380,6 +381,8 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
                       vector<double> alpha_values, vector<double> beta_values, vector<double> J_values,
                       vector<double> tau_values,
                       string storage_root, double starting_t = 0, double max_dt = 0.005) {
+
+
     // first we find the vector with the largest size
     int configs = max({eta_values.size(), T_start.size(), T_end.size(), steps_values.size(), n_values.size(),
                        alpha_values.size(), beta_values.size(), J_values.size(), tau_values.size()});
@@ -389,6 +392,9 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
         // we expect that the i-th entry of every vektor belongs to one config
         // but if there are not enough values we just use the first one or random?
         // we know calculate the step size for this run
+        // we want to measure the time needed for the execution of the config
+        auto start = chrono::high_resolution_clock::now();
+
         int steps = steps_values[i % steps_values.size()];
         double tau = ind_value(tau_values, i);
         double dt = (ind_value(T_start, i)- ind_value(T_end, i)) * tau
@@ -405,7 +411,13 @@ void search_grid_bath(vector<double> eta_values, vector<double> T_start, vector<
                           ind_value(n_values, i), ind_value(alpha_values, i),
                           ind_value(beta_values, i), ind_value(J_values, i), tau,
                           storage_root, starting_t);
-        cout << "run " << i+1 << " / " << configs << endl;
+        cout << "run " << i+1 << " / " << configs << " finished" << endl;
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<std::chrono::seconds>(end - start);
+        cout << "execution took " << duration.count() << "s, meaning " <<
+        duration.count() * 1000/(steps) << "s per 1000 steps." << endl;
+        cout << "for a " << ind_value(n_values, i) << " by " << ind_value(n_values, i) << " lattice.";
+
     }
 }
 

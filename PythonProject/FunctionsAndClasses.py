@@ -24,7 +24,7 @@ def read_multiple_csv(filepaths, nrows=None):
     return trajectories
 
 
-def plot_colormesh(df, fig=None, ax=None, title=None, proj=False):
+def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True):
     """
     plots the dataframe as a colormesh
     :param df:
@@ -34,11 +34,19 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False):
     # plot the last one, but for now thats okay
     # We have to construct a n x n matrix out of the values that we extract
     try:
-        n = (int(np.sqrt(df.shape[1] / 2 - 1)))
+        # this is if I am saving the impuls values
+        if p:
+            n = (int(np.sqrt(df.shape[1] / 2 - 1)))
+        else:
+            n = int(np.sqrt(df.shape[1] - 1))
+            print(n)
         z_values = df.iloc[-1, 1:n*n+1]
     except IndexError:
         # catch case that it is 1D-array
-        n = (int(np.sqrt(df.shape[0] / 2 - 1)))
+        if p:
+            n = (int(np.sqrt(df.shape[0] / 2 - 1)))
+        else:
+            n = int(np.sqrt(df.shape[0] -1))
         z_values = df.iloc[1:n*n+1]
     if proj:
         z_values = np.sign(z_values)
@@ -62,10 +70,9 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False):
         fig.colorbar(cf, ax=ax)
 
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/"):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True):
     # find out number of rows
     nr_rows = df.shape[0]
-
     # equidistant row numbers to use
     rows = np.linspace(0, nr_rows-1, n, endpoint=True)
     # Select the rows with the row equidistant row numbers
@@ -79,7 +86,7 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/"):
             plot_colormesh(
                 df_rows.iloc[i], fig, ax,
                 title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
-                proj=proj)
+                proj=proj, p=p)
             i +=1
     # insert parameters
     textstr = ''
