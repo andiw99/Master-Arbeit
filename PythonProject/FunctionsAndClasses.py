@@ -73,7 +73,6 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True):
 def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True):
     # find out number of rows
     nr_rows = df.shape[0]
-
     # equidistant row numbers to use
     rows = np.linspace(0, nr_rows-1, n, endpoint=True)
     # Select the rows with the row equidistant row numbers

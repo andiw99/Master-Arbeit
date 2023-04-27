@@ -690,7 +690,6 @@ int main() {
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta2;
     double theo_msd = 2 * D * dt * steps;
-    double theo_mu = 0;
     double mu = 0;
     double msd = 0;
 
