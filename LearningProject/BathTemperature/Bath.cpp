@@ -32,11 +32,11 @@ int main() {
     vector<double> T_start{70};
     vector<double> T_end{20};
     vector<int> steps_values{100000};
-    vector<int> n_values{50};
+    vector<int> n_values{75};
     vector<double> alpha_values{5};
     vector<double> beta_values{10};
     vector<double> J_values{50};
-    vector<double> tau_values{200, 500};
+    vector<double> tau_values{2, 4, 8, 32, 64, 128, 256, 1024, 2048};
 
     double max_dt = 0.005;
 

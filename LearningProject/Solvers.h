@@ -308,7 +308,7 @@ public:
 
 template <typename sys>
 void init_and_run(double eta, double T, double dt, int steps, int n, double alpha, double beta, double J, double tau,
-                  string storage_root, double starting_t) {
+                  string storage_root, double starting_t, int saving_interval = 1000) {
     vector<vector<double>> x0 =
             vector<vector<double>>(n, vector<double>(n, 0));
     vector<vector<double>> v0 =
@@ -334,7 +334,7 @@ void init_and_run(double eta, double T, double dt, int steps, int n, double alph
         std::ofstream para_file;
         file.open(name + ".csv");
         para_file.open(name + ".txt");
-        suite.run(steps, file);
+        suite.run(steps, file, saving_interval);
         write_parameters(para_file, eta, T, dt, n, alpha, beta, J, tau);
         file.close();
         para_file.close();
@@ -345,7 +345,7 @@ void init_and_run(double eta, double T, double dt, int steps, int n, double alph
 template<typename sys>
 void search_grid(vector<double> eta_values, vector<double> T_values, vector<double> dt_values, vector<int> steps_values, vector<int> n_values,
                  vector<double> alpha_values, vector<double> beta_values, vector<double> J_values, vector<double> tau_values,
-                 string storage_root, double starting_t = 0) {
+                 string storage_root, double starting_t = 0, int saving_interval=1000) {
     int k = 0;
     int nr_configs = eta_values.size() * T_values.size() * dt_values.size() * steps_values.size() * n_values.size() *
                      alpha_values.size() * beta_values.size() * J_values.size() * tau_values.size();
@@ -359,7 +359,7 @@ void search_grid(vector<double> eta_values, vector<double> T_values, vector<doub
                                 for(double J : J_values) {
                                     for(double tau : tau_values) {
                                         init_and_run<sys>(eta, T, dt, steps, n, alpha, beta, J, tau, storage_root,
-                                                          starting_t);
+                                                          starting_t, saving_interval);
                                         k++;
                                         cout << "run " << k << "/" << nr_configs << endl;
                                     }
