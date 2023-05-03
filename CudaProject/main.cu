@@ -1,5 +1,8 @@
 #include "main.cuh"
 #include "systems.cuh"
+#include <numeric>
+#include <chrono>
+
 
 struct rand_init_values
 {
@@ -37,7 +40,8 @@ void fill_init_values(thrust::device_vector<double>& state, double x0, double p0
                       rand_init_values(p0));
 }
 
-int main() {
+
+void single_calc_routine() {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
 //
@@ -59,7 +63,7 @@ int main() {
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
     const size_t N = 2;
-    
+
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << "steps." << endl;
     const double x0 = 8.0;
     const double p0 = 8.0;
@@ -181,8 +185,38 @@ int main() {
 
     cout << "mu = " << mu << endl;
     cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
+}
 
 
+void scan_temps_routine() {
+
+    const int steps = 500000;
+    const double dt = 0.0001;
+    //
+    const vector<double> T = linspace(20, 60, 20);
+    print_vector(T);
+
+    const double J = 100;
+    const double alpha = 1;
+    const double beta = 10;
+    const double tau = 10;
+    const double eta = 1.2;
+    const int nr_save_values = 32;
+    size_t write_every = steps / nr_save_values;
+    const size_t lattice_dim = 250;
+    // system size
+    const size_t n = lattice_dim * lattice_dim;
+    // DGLs per lattice site
+    const size_t N = 2;
+
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << "steps." << endl;
+    const double x0 = 8.0;
+    const double p0 = 8.0;
+}
+
+
+int main() {
+    scan_temps_routine();
     // add to msd and mu
     return 0;
 }

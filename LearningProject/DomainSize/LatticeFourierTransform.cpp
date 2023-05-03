@@ -16,6 +16,23 @@
 using namespace std;
 
 
+void exponential_decay(vector<double> &f, vector<double> r, double xi) {
+    size_t n = r.size();
+
+    for(int i = 0; i < n; i++){
+        f[i] = exp(r[i] / xi);
+    }
+}
+// that would be to easy, we need one that can handle arrays of type fftw_complex
+template <size_t n>
+void exponential_decay(fftw_complex f[n], vector<double> r, double xi = 1) {
+    for(int i = 0; i < n; i++){
+        // TODO this shouldnt work? f[i] should be an array
+        f[i][0] = exp(r[i] / xi);
+    }
+}
+
+
 string readLastLine(std::ifstream& file) {
     std::string line;
     std::string lastLine;
@@ -163,6 +180,33 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
     }
 }
 
+void fill_p_1d(const vector<double> &q, vector<double> &p) {
+    int lat_dim = q.size();         // f has size of lattice dim
+    int N = lat_dim;
+    // To center the impulses around the center, we shift by K = N/2
+    int K = N / 2;
+    // qi corresponds to xn, so i is the col
+    // find out the lattice spacings a_x = x_1 - x_0
+    double a = q[1] - q[0];
+    for(int i = 1 - K; i <= N-K; i++) {
+            int i_ind = i + K - 1;
+            double p_i = 2 * M_PI * i / N / a;
+            p[i_ind] = p_i;
+    }
+}
+
+template<size_t n>
+void write_1d(fftw_complex ft[n], vector<double> &p, fftw_complex f[n], vector<double> &x) {
+    ofstream file;
+    file.open("corr-func-trafo.csv");
+
+    file << "x, " << "f, " << "p, " << "ft\n";
+
+    for(int i = 0; i < n; i++) {
+        file << x[i] << ", " << f[i] << ", " << p[i] << ", " << ft[i] << "\n";
+    }
+
+}
 
 void print_coords(vector<vector<array<double, 2>>> &q, int val_per_row = 0) {
     size_t lat_dim = q.size();
@@ -349,6 +393,22 @@ int main() {
 
     cout << filesystem::current_path() << endl;
 
+    const int nn = 100;
+    double xi = 2;
+    vector<double> r = linspace(0, 10, nn);
+    vector<double> pr(nn, 0);
+    fill_p_1d(r, pr);
+    fftw_complex fu[nn];
+    fftw_complex ftu[nn];
+    exponential_decay<nn>(fu, r, xi);
+
+    fftw_plan plan;
+    plan = fftw_plan_dft_1d(nn, fu, ftu, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(plan);
+    write_1d<nn>(ftu, pr, fu, r);
+    exit(0);
+
+
     double T;
     if(file.is_open()) {
         cout << "File successfully opened" << endl;
@@ -389,11 +449,10 @@ int main() {
     // got to copy the values from 'values' to f_fftw
     copy_values2D<N>(f, f_fftw);
     // initialize this plan, just a 1D trafo now, doesnt make sense. Get back static arrays
-    fftw_plan plan;
-    auto test  = f_fftw;
-    plan = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_plan plan2d;
+    plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
     // so now we already have ft_fftw now an could print or write to file?
-    fftw_execute(plan);
+    fftw_execute(plan2d);
     cout << "plan executed " << ft_fftw[0][0] << endl;
     cout << ft_fftw[0][0][0] << endl;
     average_and_write(ft_fftw, p);
