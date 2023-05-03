@@ -679,14 +679,15 @@ int main() {
     const double beta = 10;
     const double tau = 100;
     const double eta = 5;
-    const int nr_save_values = 20;
+    const int nr_save_values = 32;
     size_t write_every = steps / nr_save_values;
-    const size_t lattice_dim = 250;
+    const size_t lattice_dim = 100;
     // system size
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
     const size_t N = 2;
-
+    
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << "steps." << endl;
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta2;
     double theo_msd = 2 * D * dt * steps;
