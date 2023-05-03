@@ -44,23 +44,25 @@ int main() {
 // Created by andi on 21.04.23.
     // But we can quickly write another system i guess
 
-    const int steps = 100000;
-    const double dt = 0.005;
-    const double T = 30;
-    const double J = 50;
-    const double alpha = 5;
+    const int steps = 500000;
+    const double dt = 0.0001;
+    const double T = 15;
+    const double J = 100;
+    const double alpha = 1;
     const double beta = 10;
     const double tau = 10;
-    const double eta = 5;
-    const int nr_save_values = 150;
+    const double eta = 1.2;
+    const int nr_save_values = 32;
     size_t write_every = steps / nr_save_values;
     const size_t lattice_dim = 250;
     // system size
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
     const size_t N = 2;
-    const double x0 = 100.0;
-    const double p0 = 100.0;
+    
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << "steps." << endl;
+    const double x0 = 8.0;
+    const double p0 = 8.0;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta;
@@ -131,8 +133,8 @@ int main() {
         cout << x[i] << endl;
     }
     cout << "Initial values:" << endl;
-    cout << mu / (2 * n) << endl;
-    cout << msd / (2 * n) << endl;
+    cout << mu / ( n) << endl;
+    cout << msd / (n) << endl;
     mu = 0;
     msd = 0;
     /*

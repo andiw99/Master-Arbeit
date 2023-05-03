@@ -391,7 +391,6 @@ public:
                         )
                 )
         )));
-
         thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
         step_nr++;
         cout << "x[1] = " << x[1] << endl;
