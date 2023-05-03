@@ -49,8 +49,8 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 
 def main():
-    root = "../../Generated content/GPU Oscillators/"
-
+    root = "../../Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010/n=25/"
+    # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
     filepaths = new_files_in_dir(root, root, plot_all=False)
     print(filepaths)
     for filepath in filepaths:

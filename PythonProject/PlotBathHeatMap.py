@@ -12,7 +12,7 @@ from FunctionsAndClasses import *
 
 def main():
     filepath = "../LearningProject/Brownian Motion.csv"
-    root = "../../Generated content/Cooling Bath/"
+    root = "../../Generated content/DomainSize/"
     proj = False
     nr_parameters = 8
     nr_plots_per_dimension = 4

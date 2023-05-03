@@ -9,13 +9,13 @@ int main() {
 // Created by andi on 21.04.23.
     // But we can quickly write another system i guess
 
-    const int steps = 1000000;
+    const int steps = 100000;
     const double dt = 0.005;
     const double T = 70;
     const double J = 50;
     const double alpha = 5;
     const double beta = 10;
-    const double tau = 100;
+    const double tau = 10;
     const double eta = 5;
     const int nr_save_values = 150;
     size_t write_every = steps / nr_save_values;

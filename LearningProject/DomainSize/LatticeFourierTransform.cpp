@@ -345,7 +345,7 @@ int main() {
     // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
     // okay so first things firs, we need to read in the csv
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
-    ifstream file("250.csv");
+    ifstream file("10.csv");
 
     cout << filesystem::current_path() << endl;
 
