@@ -12,6 +12,7 @@
 #include <cmath>
 #include <chrono>
 #include <cstdlib>
+#include <complex>
 
 
 using namespace std;
@@ -160,7 +161,7 @@ unordered_map<int, double> calcCorrFuncManhatten(vector<double> values) {
 }
 
 
-std::vector<double> calcCorrFuncManhattenVector(const vector<double> values) {
+std::vector<double> calcCorrFuncManhattenVector(const vector<double> &values) {
     // the lattice size is the sqrt of the size of values
     const int n = values.size();
     const int lat_dim = (int)sqrt(values.size());
@@ -239,7 +240,7 @@ std::vector<double> getVector(int n) {
 
 
 template <size_t lat_dim>
-array<double, lat_dim> calcCorrFuncManhattenArray(const vector<double> values) {
+array<double, lat_dim> calcCorrFuncManhattenArray(const vector<double> &values) {
     // the lattice size is the sqrt of the size of values
     const int n = lat_dim*lat_dim;
 /*    cout << "values size " << values.size() << endl;
@@ -356,6 +357,112 @@ array<double, lat_dim> calcCorrFuncManhattenArray(const vector<double> values) {
     return corrFunc;
 }
 
+/*
+ * Okay we write a 2D DFT on our own to understand what happens, afterwards we can still use the fftw
+ * Even though i don't think the DFT will be the part of the program that will be time consuming but lets see
+ * Okay lets think about what we have, what needs to come in and what we want to come out.
+ * We have the 2D lattice in a 1D array. For modularity, I think i might should write a function that first puts the
+ * 1D Vector in a 2D array and then a 2D DFT Function that transforms this lattice
+ * For now the lattice spacing in every direction is 1, so just the 2D array has all information over the lattice
+ */
+
+/*
+ * Okay so what are we working with? vector<double, n> to vector<vector<double, lat_dim>, lat_dim>?
+ * We can again not use arrays since their memory has to be known at compile time.
+ * I guess vector worked fine the last times...
+ */
+
+vector<vector<double>> oneD_to_twoD(vector<double> &q) {
+    int N = q.size();
+    int lat_dim = (int)sqrt(q.size());
+
+    vector<vector<double>> q_2D = vector<vector<double>>( lat_dim, vector<double>(0, lat_dim));
+    // now i fill it with values
+    // actually there was probably a function for this in some package...
+    int n;
+    int m;
+
+    for(int i = 0; i < N; i++) {
+        n = (i % lat_dim);
+        m = i / lat_dim;
+
+        // Zeile kreuz spalte?
+        q_2D[m][n] = q[i];
+    }
+
+    return q_2D;
+}
+
+
+complex<double> two_d_fourier(const vector<vector<complex<double>>> &f, const vector<vector<pair<double, double>>> &q,
+                     double pi, double pj) {
+    complex<double> ft_ij = 0;
+    int lat_dim = f.size();         // f has size of lattice dim
+
+    for(int n = 0; n < lat_dim; n++) {
+        for(int m = 0; m < lat_dim; m++) {
+            // only one array access
+            pair<double, double> xy = q[m][n];
+            // performance: we don't need these three variables but this won't make it much faster
+            // we could probably do the summation on the gpu for all 250000 lattice sites on the gpu and add them up
+            // to ft_ij afterwards
+            // this would probably make it very fast
+            // but we can also just use this self written stuff to check wheter i am using fftw right
+            // but if fftw is still to slow, gpu would save me again i guess.
+            double xn = xy.first;
+            double ym = xy.second;
+            complex<double> f_mn = f[m][n];
+            ft_ij += f_mn * exp(1i * (xn * pi + ym * pj));
+        }
+    }
+    return ft_ij;
+}
+
+
+void latticeTrafo(const vector<vector<complex<double>>> &f, const vector<vector<pair<double, double>>> &q,
+                                        vector<vector<complex<double>>> &ft, vector<vector<pair<double, double>>> &p) {
+    // We have x and f, even though with a = 1 we wouldnt really need q but it is more general that way
+    // but if we give q, q would be a tuple (x, y) for every lattice site, do we want to do it that way?
+    // i mean, we should, right?
+    // in our case N=M, do we want to make it even more genral or will we only ever use quadratic lattices?
+    // i guess in the moment i don't see the use of a rectangular lattice
+    // N is the number of x values i have, so the lattice dim
+    // The thing is, we also need the impulses, so we probably have to hand over empty arrays and fill them up here
+
+    int lat_dim = f.size();         // f has size of lattice dim
+    int N = lat_dim;
+    // To center the impulses around the center, we shift by K = N/2
+    int K = N / 2;
+    // qi corresponds to xn, so i is the col
+    // find out the lattice spacings a_x = x_1 - x_0
+    double ax = q[0][1].first - q[0][0].first;
+    double ay = q[1][0].second - q[0][0].second;
+
+    // now i think we can start to loop?
+    // we have to iterate over every lattice site, this will also take very long
+    for(int i = 1 - K; i <= N-K; i++) {
+        for(int j = 1 - K; j <= N-K; j++) {
+            // 250000 iterations for 500 x 500 lattice
+            // i,j are the indexes to calculate the p_i, p_j
+            // we need one more pair of indeces to fill up the vectors
+            int i_ind = i + K - 1;
+            int j_ind = j + K - 1;
+            // meaning for j = 0 -> p = 0 we are in the center of our vector
+            // calculate the p_i, p_j
+            double p_i = 2 * M_PI * i / N / ax;
+            double p_j = 2 * M_PI * j / N / ay;
+            // calculate the Trafo
+            // again 250000, makes again about 10^12 operations which is fucking expensive
+            complex<double> ft_ij = two_d_fourier(f, q, p_i, p_j);
+            // fill the vectors
+            // first the impuls vector, is a pair of  p_i and p_j
+            p[j_ind][i_ind] = pair<double, double>(p_i, p_j);
+            // now the fouriertransform
+            ft[j_ind][i_ind] = ft_ij;
+        }
+    }
+    // okay I think thats it
+}
 
 int main() {
     // okay so first things firs, we need to read in the csv
@@ -363,19 +470,19 @@ int main() {
     vector<double> values;
     double T;
 
-    vector<double> vec = getVector(100000);
-    for(int i = 0; i < vec.size(); i++) {
-        cout << vec[i] << endl;
+    // reorder the vector, this should work as expected?
+    vector<vector<double>> q = oneD_to_twoD(values);
+    for(int i = 0; i < 300; i ++ ) {
+        cout << values[i] << "  ";
+    }
+    cout << endl;
+    for(int i = 0; i < 250; i ++ ) {
+        for(int j = 0; j < 250; j++) {
+            cout << q[i][j] << " ";
+        }
+        cout << endl;
     }
 
-
-    int i = 11;
-    int lat_dim = 10;
-    int j = 19;
-
-
-    cout << i/lat_dim << endl;
-    cout << j/lat_dim << endl;
 
     array<double, 500> corrfuncarray{};
     values = readLastValues(file, T);

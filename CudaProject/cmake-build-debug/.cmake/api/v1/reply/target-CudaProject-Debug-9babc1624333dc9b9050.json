@@ -107,6 +107,13 @@
 			[
 				0
 			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				1
+			]
 		}
 	],
 	"sources" : 
@@ -116,6 +123,11 @@
 			"compileGroupIndex" : 0,
 			"path" : "main.cu",
 			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "systems.cuh",
+			"sourceGroupIndex" : 1
 		}
 	],
 	"type" : "EXECUTABLE"

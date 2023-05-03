@@ -24,6 +24,11 @@ def read_multiple_csv(filepaths, nrows=None):
     return trajectories
 
 
+def read_struct_func(filepath):
+    df = pd.read_csv(filepath, delimiter=",", index_col=False)
+    print(df)
+    return df
+
 def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True):
     """
     plots the dataframe as a colormesh
@@ -179,6 +184,31 @@ def read_multiple_parameters(filepaths, nr_parameters=8, txt=True):
         parameters.append(para_set)
 
     return parameters
+
+
+def chess_board_trafo(x):
+    """
+    Just flips the sign of every second value of x
+    :param x: array
+    :return: void
+    """
+    # in place trafo vermutlich langsamer als neues array aber egal
+
+    for i in range(x.shape[0]//2):
+        for j in range(x.shape[1]//2):
+            # we iterate over all even values with even i, j
+            x[i][j] *= (-1)
+            # we iterate over lattice sites with odd indices
+            x[2 * i + 1][2 * j + 1] += (-1)
+
+
+def pd_chess_board_trafo(x):
+    for i in range(x.shape[0]//2):
+        for j in range(x.shape[1]//2):
+            # we iterate over all even values with even i, j
+            x.iloc[i, j] *= (-1)
+            # we iterate over lattice sites with odd indices
+            x.iloc[2 * i + 1, 2 * j + 1] += (-1)
 
 
 def main():
