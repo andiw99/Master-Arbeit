@@ -1,25 +1,26 @@
 #include "main.cuh"
 #include "systems.cuh"
 
-template <size_t n>
-void fill_init_values(thrust::device_vector<double> state, double x0, double p0) {
-    struct rand_init_values
+struct rand_init_values
+{
+    double mu, sigma, ampl;
+
+    __host__ __device__
+    rand_init_values(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
+
+    __host__ __device__
+    float operator()(const unsigned int ind) const
     {
-        double mu, sigma, ampl;
+        thrust::default_random_engine rng;
+        thrust::normal_distribution<double> dist(mu, sigma);
+        rng.discard(ind);
 
-        __host__ __device__
-        rand(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
+        return ampl * dist(rng);
+    }
+};
 
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return ampl * dist(rng);
-        }
-    };
+template <size_t n>
+void fill_init_values(thrust::device_vector<double>& state, double x0, double p0) {
 
     thrust::counting_iterator<size_t> index_sequence_begin(0);
     // thrust::fill(theta.begin(), theta.begin() + n, 0);
@@ -27,12 +28,12 @@ void fill_init_values(thrust::device_vector<double> state, double x0, double p0)
     // fill the starting positions
     thrust::transform(index_sequence_begin,
                       index_sequence_begin + n,
-                      theta.begin(),
+                      state.begin(),
                       rand_init_values(x0));
     // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
-                      theta.begin() + n,
+                      state.begin() + n,
                       rand_init_values(p0));
 }
 
@@ -45,7 +46,7 @@ int main() {
 
     const int steps = 100000;
     const double dt = 0.005;
-    const double T = 70;
+    const double T = 30;
     const double J = 50;
     const double alpha = 5;
     const double beta = 10;
@@ -58,8 +59,8 @@ int main() {
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
     const size_t N = 2;
-    const double x0 = 0.0;
-    const double p0 = 0.0;
+    const double x0 = 100.0;
+    const double p0 = 100.0;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta;
@@ -67,7 +68,7 @@ int main() {
     double mu = 0;
     double msd = 0;
     // file stuff
-    string storage_root = "../../../Generated content/DomainSize/";
+    string storage_root = "../../../Generated content/Constant Bath/";
     string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                        storage_root);
     string name = dir_name + "/" + to_string(lattice_dim);
@@ -127,10 +128,11 @@ int main() {
     for(int i = 0; i <= n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
+        cout << x[i] << endl;
     }
     cout << "Initial values:" << endl;
-    cout << mu << endl;
-    cout << msd << endl;
+    cout << mu / (2 * n) << endl;
+    cout << msd / (2 * n) << endl;
     mu = 0;
     msd = 0;
     /*

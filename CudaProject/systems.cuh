@@ -273,7 +273,7 @@ public:
     size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
-    double T_t;
+    double T;
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -396,7 +396,7 @@ public:
         step_nr++;
     }
 public:
-    gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J)
+    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J)
             : T(T), step_nr(0), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
     }
 
