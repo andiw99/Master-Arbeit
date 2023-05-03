@@ -5,7 +5,7 @@ project(CudaProject CUDA)
 set(CMAKE_CUDA_STANDARD 23)
 
 
-add_executable(CudaProject main.cu)
+add_executable(CudaProject main.cu systems.cuh)
 
 set_target_properties(CudaProject PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)

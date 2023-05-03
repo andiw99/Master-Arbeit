@@ -291,7 +291,8 @@ def calc_corr_length(filepath):
 
 
 def main():
-    root = "../../Generated content/Cooling Bath/Comparison/eta=5.00/T=70.00/dt=0.0050/n=50/alpha=5.00/beta=10.00/J=50.00/"
+    root = "../../Generated content/Cooling Bath/Comparison/eta=5.00/T=70.00/dt=0.0050/n=75" \
+           "/alpha=5.00/beta=10.00/J=50.00/"
     name = "tau=200.00/0.csv"
     filepath = root + name
     # read in the file and extract last row

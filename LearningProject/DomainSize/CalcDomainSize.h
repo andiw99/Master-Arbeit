@@ -1,0 +1,14 @@
+//
+// Created by weitze73 on 27.04.23.
+//
+
+#ifndef LEARNINGPROJECT_CALCDOMAINSIZE_H
+#define LEARNINGPROJECT_CALCDOMAINSIZE_H
+
+
+class CalcDomainSize {
+
+};
+
+
+#endif //LEARNINGPROJECT_CALCDOMAINSIZE_H

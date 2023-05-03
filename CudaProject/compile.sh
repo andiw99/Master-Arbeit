@@ -3,6 +3,7 @@
 # Load modules
 module load cuda/11.8
 module load gcc/9.2.0
+module load gcc/10.2.0
 module load nvidia/21.7
 
 # Get the input and output file names from the command line arguments
