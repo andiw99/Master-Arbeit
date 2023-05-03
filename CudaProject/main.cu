@@ -1,6 +1,40 @@
 #include "main.cuh"
 #include "systems.cuh"
 
+template <size_t n>
+void fill_init_values(thrust::device_vector<double> state, double x0, double p0) {
+    struct rand_init_values
+    {
+        double mu, sigma, ampl;
+
+        __host__ __device__
+        rand(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<double> dist(mu, sigma);
+            rng.discard(ind);
+
+            return ampl * dist(rng);
+        }
+    };
+
+    thrust::counting_iterator<size_t> index_sequence_begin(0);
+    // thrust::fill(theta.begin(), theta.begin() + n, 0);
+    // n is system size
+    // fill the starting positions
+    thrust::transform(index_sequence_begin,
+                      index_sequence_begin + n,
+                      theta.begin(),
+                      rand_init_values(x0));
+    // fill starting impulses
+    thrust::transform(index_sequence_begin + n,
+                      index_sequence_begin + 2*n,
+                      theta.begin() + n,
+                      rand_init_values(p0));
+}
 
 int main() {
     // We try out the code for the brownian motion i would say
@@ -81,12 +115,24 @@ int main() {
 
     // initialize the system...
     // gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau);
-    gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau);
+    // gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau);
+    constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J);
     // gpu_oscillator_chain<lattice_dim> gpu_system(T, eta, alpha);
     // this state type sets x and p to be x0, meaning 100 in our case.
     gpu_state_type x(N * n, x0);
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
+    // okay we overwrite this here
+    fill_init_values<n>(x, x0, p0);
+    for(int i = 0; i <= n; i++) {
+        mu += x[i];
+        msd += x[i] * x[i];
+    }
+    cout << "Initial values:" << endl;
+    cout << mu << endl;
+    cout << msd << endl;
+    mu = 0;
+    msd = 0;
     /*
 
 
