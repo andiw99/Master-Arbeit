@@ -125,7 +125,7 @@ int main() {
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
     fill_init_values<n>(x, x0, p0);
-    for(int i = 0; i <= n; i++) {
+    for(int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
         cout << x[i] << endl;
@@ -170,7 +170,7 @@ int main() {
     // TODO we could use this reduction stuff to compute the moments
     mu = 0;
     msd = 0;
-    for(int i = 0; i <= n; i++) {
+    for(int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
     }
