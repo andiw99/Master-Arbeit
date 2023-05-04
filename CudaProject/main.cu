@@ -45,7 +45,7 @@ int main() {
     // But we can quickly write another system i guess
 
     const int steps = 100000;
-    const double dt = 0.005;
+    const double dt = 0.001;
     const double T = 30;
     const double J = 50;
     const double alpha = 5;
@@ -59,8 +59,8 @@ int main() {
     const size_t n = lattice_dim * lattice_dim;
     // DGLs per lattice site
     const size_t N = 2;
-    const double x0 = 100.0;
-    const double p0 = 100.0;
+    const double x0 = 50.0;
+    const double p0 = 50.0;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta;
