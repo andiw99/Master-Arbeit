@@ -245,8 +245,8 @@ public:
         step_nr++;
     }
 public:
-    gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau)
-            : T(T), step_nr(0), n(lat_dim * lat_dim), T_t(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+    gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
+            : T(T), step_nr(init_step), n(lat_dim * lat_dim), T_t(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
     }
 
     double get_cur_T() const{

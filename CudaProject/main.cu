@@ -43,7 +43,7 @@ void fill_init_values(thrust::device_vector<double>& state, float x0, float p0, 
 }
 
 
-void single_calc_routine() {
+int single_calc_routine(long seed = 0) {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
 //
@@ -79,7 +79,7 @@ void single_calc_routine() {
     string storage_root = "../../../Generated content/Constant Bath/";
     string dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                        storage_root);
-    string name = dir_name + "/" + to_string(lattice_dim);
+    string name = dir_name + "/" + to_string(seed/steps);
     ofstream file;
     ofstream parafile;
     file.open(name + ".csv");
@@ -124,8 +124,8 @@ void single_calc_routine() {
 
     // initialize the system...
     // gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau);
-    // gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau);
-    constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J);
+    gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
+    // constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J);
     // gpu_oscillator_chain<lattice_dim> gpu_system(T, eta, alpha);
     // this state type sets x and p to be x0, meaning 100 in our case.
     gpu_state_type x(N * n, x0);
@@ -188,6 +188,7 @@ void single_calc_routine() {
 
     cout << "mu = " << mu << endl;
     cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
+    return steps;
 }
 
 
@@ -305,6 +306,20 @@ void convergence_check_oscillatorchain() {
         scan_temps_routine(step, t_end, root, 1.0, 0.0);
     }
 }
+
+void repeat(int runs, long seed = 0) {
+    // seed is the seed for the random numbers so that we can have different random numbers per run
+    if(runs == 0) {
+        return;
+    }
+
+    int steps = single_calc_routine(seed);
+    // how to get the number of steps that were done? let single calc routine return it?
+    // or put it also into repeat
+    repeat(runs - 1, seed + steps);
+
+}
+
 
 int main() {
     scan_temps_routine();
