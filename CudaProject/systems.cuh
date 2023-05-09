@@ -391,9 +391,12 @@ public:
                         )
                 )
         )));
-
         thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
         step_nr++;
+        // cout << "x[1] = " << x[1] << endl;
+        // the problem is here, actually dxdt[0] = x[1] should be
+        // somehow dxdt is not set but i dont really get why
+        // cout << "dxdt[0] = " << dxdt[0] << endl;
     }
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J)

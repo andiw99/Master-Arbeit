@@ -12,8 +12,27 @@
 #include <fftw3.h>
 #include <complex>
 #include <filesystem>
+#include "../Header/Helpfunctions and Classes.h"
 
 using namespace std;
+
+
+void exponential_decay(vector<double> &f, vector<double> r, double xi) {
+    size_t n = r.size();
+    cout << "n = " << n << endl;
+    for(int i = 0; i < n; i++){
+        f[i] = exp(- r[i] / xi);
+    }
+}
+// that would be to easy, we need one that can handle arrays of type fftw_complex
+template <size_t n>
+void exponential_decay(fftw_complex f[n], vector<double> r, double xi = 1) {
+    for(int i = 0; i < n; i++){
+        // TODO this shouldnt work? f[i] should be an array
+        f[i][0] = exp(- r[i] / xi);
+
+    }
+}
 
 
 string readLastLine(std::ifstream& file) {
@@ -163,6 +182,51 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
     }
 }
 
+void fill_p_1d(const vector<double> &q, vector<double> &p) {
+    int lat_dim = q.size();         // f has size of lattice dim
+    int N = lat_dim;
+    // To center the impulses around the center, we shift by K = N/2
+    int K = N / 2;
+    // qi corresponds to xn, so i is the col
+    // find out the lattice spacings a_x = x_1 - x_0
+    double a = 1;
+    for(int i = 0; i < N; i++) {
+            int i_ft = i < K ? i : i - N;
+            double p_i = 2 * M_PI * i_ft / N / a;
+            p[i] = p_i;
+    }
+}
+
+template<size_t n>
+void write_1d(double ft[n][2], vector<double> &p, double f[n][2], vector<double> &x, string root, string name = "corr-func-trafo.csv") {
+    ofstream file;
+    create_dir(root);
+    file.open(root + name);
+
+    file << "x," << "f," << "p," << "ft\n";
+
+    for(int i = 0; i < n; i++) {
+        file << x[i] << ", " << sqrt(f[i][0] * f[i][0] + f[i][1] * f[i][1]) << ", " << p[i] << ", " <<
+        sqrt(ft[i][0] * ft[i][0] + ft[i][1] * ft[i][1]) << "\n";
+    }
+
+}
+
+
+template<size_t n>
+void write_1d_real(double ft[n][2], vector<double> &p, double f[n][2], vector<double> &x, string root, string name = "corr-func-trafo.csv") {
+    ofstream file;
+    create_dir(root);
+    file.open(root + name);
+
+    file << "x," << "f," << "p," << "ft\n";
+
+    for(int i = 0; i < n; i++) {
+        file << x[i] << ", " << f[i][0] << ", " << p[i] << ", " <<
+                                                                ft[i][0] << "\n";
+    }
+
+}
 
 void print_coords(vector<vector<array<double, 2>>> &q, int val_per_row = 0) {
     size_t lat_dim = q.size();
@@ -241,7 +305,7 @@ void average_and_write(vector<vector<complex<double>>>& ft, vector<vector<array<
     // but we don't actually write the stirings 'px' and 'py' since we will get stress with pandas
     // or maybe we could use another format?    px      ft_avg_y(px)        py          ft_avg_x(py)
     // then we would have a normal heade r
-    file << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
+    file << "px," << "ft_avg_y," << "py," << "ft_avg_x\n";
     for(int i = 0; i<lat_dim; i++) {
         // so px(i) is just the p_x value of every entry of p of the i-th col
         // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
@@ -345,9 +409,33 @@ int main() {
     // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
     // okay so first things firs, we need to read in the csv
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
+
     ifstream file("10.csv");
 
     cout << filesystem::current_path() << endl;
+
+    /*
+     *
+
+    const int nn = 1000;
+    double xi = 1.2;
+    string root = "../../Generated content/LatticeTrafo/1D/";
+    string name = "1000+20+1.2";
+    create_dir(root);
+    double end = 20;
+    vector<double> r = linspace(0, 20, nn);
+    vector<double> pr(nn, 0);
+    fill_p_1d(r, pr);
+    fftw_complex fu[nn];
+    fftw_complex ftu[nn];
+    exponential_decay<nn>(fu, r, xi);
+
+    fftw_plan plan;
+    plan = fftw_plan_dft_1d(nn, fu, ftu, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_execute(plan);
+    write_1d_real<nn>(ftu, pr, fu, r, root, name);
+    exit(0);
+*/
 
     double T;
     if(file.is_open()) {
@@ -389,11 +477,10 @@ int main() {
     // got to copy the values from 'values' to f_fftw
     copy_values2D<N>(f, f_fftw);
     // initialize this plan, just a 1D trafo now, doesnt make sense. Get back static arrays
-    fftw_plan plan;
-    auto test  = f_fftw;
-    plan = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_plan plan2d;
+    plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
     // so now we already have ft_fftw now an could print or write to file?
-    fftw_execute(plan);
+    fftw_execute(plan2d);
     cout << "plan executed " << ft_fftw[0][0] << endl;
     cout << ft_fftw[0][0][0] << endl;
     average_and_write(ft_fftw, p);

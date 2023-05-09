@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.25)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
+endif()
 set(CMAKE_CUDA_COMPILER /usr/local/cuda-12.1/bin/nvcc)
 project(CudaProject CUDA)
 
 set(CMAKE_CUDA_STANDARD 23)
 
 
-add_executable(CudaProject main.cu systems.cuh)
+add_executable(CudaProject main.cu)
 
 set_target_properties(CudaProject PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)

@@ -2,7 +2,7 @@
 // Created by andi on 14.04.23.
 //
 
-#include "OdeintTest.h"
+#include "../Odeint/OdeintTest.h"
 //
 // Created by weitze73 on 13.03.23.
 //

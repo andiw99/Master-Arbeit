@@ -163,6 +163,7 @@ public:
             file << "t, " << t << ",";
             for(int i = 0; i < lat_dim * lat_dim; i++) {
                 file << x[i] << ",";
+                // cout << x[i] << endl;
 
             }
             // for the last we write T? I mean thats how i did it, right?
@@ -291,4 +292,41 @@ void write_parameters(ofstream& file, double eta, double T, double dt, int n, do
     file << "J," << J << ", \n";
     file << "tau," << tau << ", \n";
 }
+
+template<typename T>
+std::vector<T> linspace(T start_in, T end_in, int num_in)
+{
+
+    std::vector<T> linspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return linspaced; }
+    if (num == 1)
+    {
+        linspaced.push_back(start);
+        return linspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        linspaced.push_back((T)(start + delta * i));
+    }
+    linspaced.push_back(end); // I want to ensure that start and end
+    // are exactly the same as the input
+    return linspaced;
+}
+void print_vector(std::vector<double> vec)
+{
+    std::cout << "size: " << vec.size() << std::endl;
+    for (double d : vec)
+        std::cout << d << " ";
+    std::cout << std::endl;
+}
+
+
 #endif //CUDAPROJECT_MAIN_CUH

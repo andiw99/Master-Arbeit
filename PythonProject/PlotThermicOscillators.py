@@ -6,17 +6,17 @@ def plot_trajectories(df, parameters):
     times = df.iloc[:, 0]
     x_values = df.iloc[:, 1:-1]
     n = x_values.shape[1]
-    print(n)
     x_avg = x_values.mean(axis=1)
 
     # extract values for theoretical curve
     eta = parameters["eta"]
-    print(eta)
     alpha = parameters["alpha"]
     N = times.size
     a = times.iloc[0]
     b = times.iloc[-1]
     x0 = x_avg[0]
+
+    print(a, "  ", b)
 
     t, osc = theoretical_trajectory(eta, alpha, x0, a, b, N)
 
@@ -35,6 +35,40 @@ def plot_trajectories(df, parameters):
     plt.show()
 
 
+def theo_msd(eta, alpha, T, a, b, N):
+    t = np.linspace(a, b, N)
+    return t, T / alpha * (1 - np.exp(-2 * alpha / eta * t))
+def plot_theo_msd(df, parameters, savepath):
+    eta = parameters["eta"]
+    alpha = parameters["alpha"]
+    T = parameters["T"]
+    times = df.iloc[:, 0]
+    N = times.size
+    a = times.iloc[0]
+    b = times.iloc[-1]
+
+    x_values = df.iloc[:, 1:-1]
+    n = x_values.shape[1]
+
+
+    t, msd_theo = theo_msd(eta, alpha, T, a, b, N)
+    msd_avg = x_values ** 2
+    msd_avg = msd_avg.mean(axis=1)
+    dt = parameters["dt"]
+    fig, axes = plt.subplots(1, 1)
+    axes.plot(times, msd_avg, label=f" {n} Oscialltors")
+    axes.plot(t, msd_theo, linestyle="dashed", label="Theoretical MSD")
+    axes.set_xlabel("t")
+    axes.set_ylabel("MSD(t)")
+    axes.set_ylim((0.9 * np.min(msd_avg), 1.1 * np.max(msd_avg)))
+    axes.set_xlim((a, b))
+    axes.set_title(f"Uncoupled harmonic oscillators in T={T} \n dt = {dt}")
+    axes.legend()
+    name = str(dt + T)
+    save_plot(savepath, name)
+    plt.show()
+
+
 def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
     xi = eta/ (2 * np.sqrt(alpha))
     w0 = np.sqrt(alpha)
@@ -49,7 +83,7 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 
 def main():
-    root = "../../Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010/n=25/"
+    root = "../../../Generated content/Convergence Check MSD/"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
     filepaths = new_files_in_dir(root, root, plot_all=False)
     print(filepaths)
@@ -59,7 +93,8 @@ def main():
         parameters = read_parameters_txt(txt_filepath)
 
         # average and plot, actually no big deal
-        plot_trajectories(df, parameters)
+        plot_theo_msd(df, parameters, root + "plots/")
+        #plot_trajectories(df, parameters)
 
     plotted_files = open(root + "/plotted_files.txt", "a")
     for f in filepaths:

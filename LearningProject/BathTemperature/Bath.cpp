@@ -3,9 +3,9 @@
 //
 
 #include "Bath.h"
-#include "../Helpfunctions and Classes.h"
-#include "../Systems.h"
-#include "../Solvers.h"
+#include "../Header/Helpfunctions and Classes.h"
+#include "../Header/Systems.h"
+#include "../Header/Solvers.h"
 
 
 

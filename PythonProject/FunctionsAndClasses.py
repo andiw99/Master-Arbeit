@@ -29,7 +29,7 @@ def read_struct_func(filepath):
     print(df)
     return df
 
-def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True):
+def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2):
     """
     plots the dataframe as a colormesh
     :param df:
@@ -64,15 +64,49 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True):
     if fig is None:
         fig, ax = plt.subplots()
         ax.set_title(title)
-        cf = ax.pcolormesh(x, y, z_values, vmin=-np.max(np.abs(z_values)),
-                           vmax=np.max(np.abs(z_values)), cmap="greys")
-        fig.colorbar(cf, ax=ax)
+        vmin = -np.max(np.abs(z_values))
+        vmax = np.max(np.abs(z_values))
+        # find out how many multiples of the minimum we need
+        min_pos = np.sqrt(beta/2)
+        print(min_pos)
+        nr_ticks = vmax // min_pos + 1
+        tick_labels = np.arange(-nr_ticks, nr_ticks + 1)
+        # calculate tick positions
+        tick_positions = tick_labels * min_pos
+        # make labels to strings
+        tick_labels = [str(label) for label in tick_labels]
+        cf = ax.pcolormesh(x, y, z_values, vmin=vmin,
+                           vmax=vmax)
+        print(tick_labels)
+        cbar = fig.colorbar(cf, ax=ax, ticks=tick_positions)
+        cbar.ax.set_yticklabels(tick_labels)
         plt.show()
     else:
+        ax.set_title(title)
+        vmin = -np.max(np.abs(z_values))
+        vmax = np.max(np.abs(z_values))
+        # find out how many multiples of the minimum we need
+        min_pos = np.sqrt(beta/2)
+        max_tick_nr = vmax // min_pos + 1
+        # always 5 ticks
+        tick_labels = np.int32(np.linspace(-max_tick_nr, max_tick_nr, 7))
+        # could be to long
+
+        # calculate tick positions
+        tick_positions = tick_labels * min_pos
+        # make labels to strings
+        tick_labels = [str(int(label)) for label in tick_labels]
+        cf = ax.pcolormesh(x, y, z_values, vmin=vmin,
+                           vmax=vmax)
+        cbar = fig.colorbar(cf, ax=ax, ticks=tick_positions)
+        cbar.ax.set_yticklabels(tick_labels)
+        """
         cf = ax.pcolormesh(x, y, z_values,  vmin=-np.max(np.abs(z_values)),
                            vmax=np.max(np.abs(z_values)))
         ax.set_title(title)
         fig.colorbar(cf, ax=ax)
+        """
+
 
 
 def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True):
@@ -82,6 +116,8 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True)
     rows = np.linspace(0, nr_rows-1, n, endpoint=True)
     # Select the rows with the row equidistant row numbers
     df_rows = df.iloc[rows]
+    # read beta
+    beta = paras["beta"]
     # create fig and axes
     fig, axes = plt.subplots(int(np.sqrt(n)), int(np.sqrt(n)), figsize =[12, 10])
     i = 0
@@ -91,8 +127,10 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True)
             plot_colormesh(
                 df_rows.iloc[i], fig, ax,
                 title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
-                proj=proj, p=p)
+                proj=proj, p=p, beta=beta)
             i +=1
+            # scale colormap in multiples of the position of the minimum
+
     # insert parameters
     textstr = ''
     for para in paras:
@@ -109,6 +147,17 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True)
         plt.savefig(storage_root + plot_name_paras(paras), format="png")
     plt.show()
 
+
+def make_dir(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+
+def save_plot(path, name):
+    make_dir(path)
+    plt.savefig(path + name, format="png")
 
 def plot_name_paras(paras):
     fname = ""
