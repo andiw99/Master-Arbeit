@@ -69,6 +69,16 @@ string print_statetype(const state_type x) {
     return str;
 }
 
+template <class T>
+void print_vector(vector<T> vec) {
+    cout << vec.size() << endl;
+    for(int i = 0; i < vec.size(); i++) {
+        if(i % 20 == 0) {
+            cout << "\n";
+        }
+        cout << vec[i] << ", ";
+    }
+}
 
 
 string trunc_double(double a, int precision=2) {

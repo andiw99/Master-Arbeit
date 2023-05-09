@@ -70,7 +70,7 @@ def analyze(df):
 
 
 def main():
-    filepath = "../../Generated content/structfunc.fftw"
+    filepath = "../../Generated content/Repeat Cooling/struct.func"
 
     df = read_struct_func(filepath)
     analyze(df)

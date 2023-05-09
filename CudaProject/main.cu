@@ -66,7 +66,7 @@ int single_calc_routine(long seed = 0) {
     // DGLs per lattice site
     const size_t N = 2;
 
-    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << "steps." << endl;
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
     const double x0 = 8.0;
     const double p0 = 8.0;
 
@@ -136,7 +136,6 @@ int single_calc_routine(long seed = 0) {
     for(int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
-        cout << x[i] << endl;
     }
     cout << "Initial values:" << endl;
     cout << mu / (n) << endl;
@@ -312,6 +311,8 @@ void repeat(int runs, long seed = 0) {
     if(runs == 0) {
         return;
     }
+
+    cout << runs << " runs left" << endl;
 
     int steps = single_calc_routine(seed);
     // how to get the number of steps that were done? let single calc routine return it?
