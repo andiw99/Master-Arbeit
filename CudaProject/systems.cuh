@@ -37,6 +37,27 @@ public:
     // the current temperature
     double T_t;
     // parameters of the potential and of the Interaction
+    struct cos_functor {
+        // Old functor with cos interaction
+        const double alpha, beta, J, eta;
+
+        cos_functor(const double eta, const double alpha,
+                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
+                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
+        }
+    };
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
         // I mean i could template everything and this would probably also give a bit of potential but is it really
@@ -47,7 +68,7 @@ public:
         const double alpha, beta, J, eta;
 
         bath_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+                    const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -83,7 +104,7 @@ public:
             // i guess I will just use an inline implementation for my first implementation
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
+                                    - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
         }
     };
 
@@ -299,7 +320,7 @@ public:
 
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
+                                      - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
         }
     };
 

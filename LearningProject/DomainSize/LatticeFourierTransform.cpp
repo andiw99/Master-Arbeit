@@ -126,10 +126,11 @@ int main() {
 
     // write it
 
-    string path = "../../../Generated content/Repeat Cooling/struct.func";
+    string path = "../../../Generated content/Repeat Cooling/structfunc";
     ofstream ofile;
     ofile.open(path);
     ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
+    cout << N << endl;
     for(int i = 0; i<N; i++) {
         // so px(i) is just the p_x value of every entry of p of the i-th col
         // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
@@ -137,8 +138,10 @@ int main() {
         // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
         // py = p[i][0][1]
         ofile <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i];
+        cout <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i] << endl;
+        cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
         if(i < N - 1) {
-            ofile << "\n";
+            ofile << endl;
         }
     }
     exit(0);
