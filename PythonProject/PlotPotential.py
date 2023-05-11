@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def double_well(x, alpha, beta):
-    return 1/2 * (x ** 4 - beta * x **2)
+    return 1/2 * alpha*  (x ** 4 - beta * x **2)
 
 
 def kos():
@@ -63,6 +63,29 @@ def plot_potential(alpha, beta):
     plt.tight_layout()
 
 
+def plot_potential_interaction(alpha, beta, J):
+    xmin = np.sqrt(beta / 2)
+    Vmin = - 1/8 * alpha * beta ** 2
+
+    x = np.linspace(-1.7 * xmin, 1.7 * xmin, 500)
+
+    V = double_well(x, alpha, beta) + 2 * J * (x - xmin) ** 2
+
+    # Enter x and y coordinates of points and colors
+
+
+    fig, ax = kos()
+
+    ax.plot(x, V, c="C1", lw=2)
+    ax.scatter(xmin, Vmin)
+    ax.plot([xmin, xmin], [0, Vmin], c="C0", ls='--', lw=2, alpha=0.75)
+    ax.plot([0, xmin], [Vmin, Vmin], c="C0", ls='--', lw=2, alpha=0.75)
+    # Create 'x' and 'y' labels placed at the end of the axes
+    ax.set_xlabel('q', size=14, labelpad=-35, x=1.00)
+    ax.set_ylabel('V(q)', size=14, labelpad=-50, y=0.98, x=0.5, rotation=0)
+    plt.tight_layout()
+
+
 def plot_transformation(a):
 
     eps = 0.01
@@ -85,11 +108,13 @@ def plot_transformation(a):
 
 
 def main():
-    alpha = 1
-    beta = 10
+    alpha = 10
+    beta = 1
     a = 1
-    plot_potential(alpha, beta)
-    plot_transformation(a)
+    J = alpha * beta / 17
+    #plot_potential(alpha, beta)
+    #plot_transformation(a)
+    plot_potential_interaction(alpha, beta, J)
 
     plt.tight_layout()
     plt.show()

@@ -1,4 +1,4 @@
-#include "LatticeFourierTransform.h"
+#include "FourierLatticeTrafo.h"
 #include "../Header/Helpfunctions and Classes.h"
 
 using namespace std;
@@ -97,11 +97,11 @@ int main() {
     // lattice dim
     int lat_dim = 250;
 
-    fs::path root = "../../../Generated content/Repeat Cooling/";
+    fs::path root = "../../../Generated content/Quadratic/Average/";
     vector<fs::path> csv_files = list_csv_files(root);
     print_vector(csv_files);
 
-    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
+
 
     cout << filesystem::current_path() << endl;
     // we need running arrays for the averages over the lattices
@@ -126,7 +126,7 @@ int main() {
 
     // write it
 
-    string path = "../../../Generated content/Repeat Cooling/structfunc";
+    string path = "../../../Generated content/Quadratic/structfunc.average";
     ofstream ofile;
     ofile.open(path);
     ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
@@ -168,7 +168,7 @@ int main() {
     write_1d_real<nn>(ftu, pr, fu, r, root, name);
     exit(0);
 */
-
+    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
     double T;
     if(file.is_open()) {
         cout << "File successfully opened" << endl;

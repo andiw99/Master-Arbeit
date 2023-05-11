@@ -70,7 +70,7 @@ def analyze(df):
 
 
 def main():
-    filepath = "../../Generated content/Repeat Cooling/structfunc"
+    filepath = "../../Generated content/Quadratic/structfunc.average"
 
     df = read_struct_func(filepath)
     analyze(df)

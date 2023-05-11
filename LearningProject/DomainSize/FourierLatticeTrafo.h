@@ -2,8 +2,8 @@
 // Created by andi on 28.04.23.
 //
 
-#ifndef LEARNINGPROJECT_LATTICEFOURIERTRANSFORM_H
-#define LEARNINGPROJECT_LATTICEFOURIERTRANSFORM_H
+#ifndef LEARNINGPROJECT_FOURIERLATTICETRAFO_H
+#define LEARNINGPROJECT_FOURIERLATTICETRAFO_H
 #include <fstream>
 #include <string>
 #include <vector>
@@ -565,10 +565,10 @@ void copy_values2D(const vector<vector<complex<double>>> &f, complex<double> (&f
 }
 
 
-class LatticeFourierTransform {
+class DomainSize {
 
 };
 
 
 
-#endif //LEARNINGPROJECT_LATTICEFOURIERTRANSFORM_H
+#endif //LEARNINGPROJECT_FOURIERLATTICETRAFO_H
