@@ -65,14 +65,14 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     const double    eta = parameters["eta"];
     const size_t    N = (size_t) parameters["N"];
     const int       nr_save_values = (int)parameters["nr_save_values"];
+    const double x0 = parameters["x0"];
+    const double p0 = parameters["p0"];
 
 
     const           size_t n = lattice_dim * lattice_dim;
 
     size_t write_every = steps / nr_save_values;
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
-    const double x0 = 8.0;
-    const double p0 = 8.0;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta;
@@ -179,6 +179,8 @@ int single_calc_routine(long seed = 0) {
     paras["eta"] = 1.2;
     paras["N"] = 32;
     paras["nr_save_values"] = 250;
+    paras["x0"] = 0;
+    paras["p0"] = 0;
 
     return single_calc_routine<lattice_dim>(paras, seed);
 }
@@ -264,6 +266,8 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     cout << "Stepsize is dt = " << dt << endl;
     const double x0 = 8.0;
     const double p0 = 8.0;
+    paras["x0"] = x0;
+    paras["p0"] = p0;
 
     create_dir(root);
 
@@ -273,6 +277,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     // keep track at which
     int count = 0;
     for(double temp : T) {
+        paras["T"] = temp;
         // for every T we need to initalize a new system, but first i think we maybe should check our system?
         // for every T we need another directory
         string dirpath = root + "/" + to_string(temp);
