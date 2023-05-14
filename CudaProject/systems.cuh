@@ -19,11 +19,93 @@
 
 using namespace std;
 
+template <size_t lat_dim>
+struct System {
+    const double T = 0;
+
+    struct rand
+    {
+        double mu, sigma, D;
+
+        __host__ __device__
+        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<double> dist(mu, sigma);
+            rng.discard(ind);
+
+            return D * dist(rng);
+        }
+    };
+    struct left : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // Here we implement logic that return the index of the left neighbor
+            // we have to think about that we are actually in 2D and i guess we want to use PBC?
+            // so we have to know the system size
+            // would we do that with a template oder with a attribute?
+            // Another thing is how to implement the logic
+            // with modulo we don't need any logic but will this be faster?
+            // lat_dim is the sqrt of n
+            // size_t j;
+            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
+            // if i is on the left side of the lattice, i % lat_dim = 0
+            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+
+            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+        }
+    };
+
+    struct right : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i+1, expect when i is on the right side of the lattice
+            // if i is on the right side of the lattice, j is i - (d - 1)
+            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
+
+            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
+        }
+    };
+
+    struct up : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i - d, except when i is on the upper bound of the lattice
+            // if it is on the upper bound, j will be i + d(d-1)
+            // if i is on the upper bound, i will be smaller than d
+            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
+        }
+    };
+
+    struct down : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i + d, except when i is on the lower bound of the lattice
+            // if it is on the lower bound, j will be i - d(d-1)
+            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
+            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
+        }
+    };
+
+
+    template<class State, class Deriv, class Stoch>
+    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {}
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
+    double get_cur_T() const{
+        return T;
+    }
+
+
+};
+
 
 template <size_t lat_dim>
-struct gpu_bath {
+struct gpu_bath : public System<lat_dim> {
 public:
-    const double T;
+    const double T_start;
     const double alpha;
     const double eta;
     const double tau;
@@ -35,7 +117,7 @@ public:
     size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
-    double T_t;
+    double T;
     // parameters of the potential and of the Interaction
     struct cos_functor {
         // Old functor with cos interaction
@@ -108,74 +190,13 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
 
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
 
     double linear_T(double t) {
         // parametrisierung für die Temperatur
         // linearer Abfall
-        T_t = max(T - t/tau, 1.0);
-        return T_t;
+        T = max(T_start - t/tau, 1.0);
+        return T;
     }
 
     template<class State, class Deriv, class Stoch>
@@ -199,7 +220,7 @@ public:
         thrust::transform(index_sequence_begin,
                           index_sequence_begin + n,
                           theta.begin() + n,
-                          rand(D));
+                          System<lat_dim>::rand(D));
         /*
         cout << "theta[n-1] = " << theta[n-1] << endl;
         cout << "theta[n] = " << theta[n] << endl;
@@ -226,7 +247,7 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left()
+                                System<lat_dim>::left()
                         )
                 ),
                 // right neighbor q values
@@ -234,7 +255,7 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right()
+                                System<lat_dim>::right()
                         )
                 ),
                 // TODO this looks horibly bloated, but safest, fastest, easiest
@@ -242,14 +263,14 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up()
+                                System<lat_dim>::up()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down()
+                                System<lat_dim>::down()
                         )
                 )
         )));
@@ -267,21 +288,13 @@ public:
     }
 public:
     gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
-            : T(T), step_nr(init_step), n(lat_dim * lat_dim), T_t(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
-    }
-
-    double get_cur_T() const{
-        return T_t;
-    }
-
-    size_t get_lattice_dim() const{
-        return lat_dim;
+            : T_start(T), step_nr(init_step), n(lat_dim * lat_dim), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
     }
 };
 
 
 template <size_t lat_dim>
-struct constant_bath {
+struct constant_bath : public System<lat_dim> {
 public:
     const double alpha;
     const double eta;
@@ -324,47 +337,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
-
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
@@ -377,7 +349,7 @@ public:
         thrust::transform(index_sequence_begin,
                           index_sequence_begin + n,
                           theta.begin() + n,
-                          rand(D));
+                          System<lat_dim>::rand(D));
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 x.begin() + n,
@@ -387,28 +359,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left()
+                                System<lat_dim>::left()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right()
+                                System<lat_dim>::right()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up()
+                                System<lat_dim>::up()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down()
+                                System<lat_dim>::down()
                         )
                 )
         )));
@@ -420,8 +392,8 @@ public:
         // cout << "dxdt[0] = " << dxdt[0] << endl;
     }
 public:
-    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J)
-            : T(T), step_nr(0), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{

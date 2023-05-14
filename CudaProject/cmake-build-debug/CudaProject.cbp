@@ -66,6 +66,9 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main-cleaned.cu">
+			<Option target="CudaProject"/>
+		</Unit>
 		<Unit filename="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main.cu">
 			<Option target="CudaProject"/>
 		</Unit>

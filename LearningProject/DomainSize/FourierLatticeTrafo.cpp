@@ -5,28 +5,7 @@ using namespace std;
 
 namespace fs = std::filesystem;
 
-vector<fs::path> list_csv_files(const fs::path& root)
-{
-    vector<fs::path> csv_files;
 
-    if (fs::is_directory(root))
-    {
-        for (const auto& entry : fs::directory_iterator(root))
-        {
-            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
-            {
-                csv_files.push_back(entry.path());
-            }
-            else if (fs::is_directory(entry.path()))
-            {
-                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
-                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
-            }
-        }
-    }
-
-    return csv_files;
-}
 
 void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&ft_squared_x)[N]) {
     // supposed to calculate ft_avg_y for one lattice and add it to ft_avg_y

@@ -129,6 +129,30 @@ CudaProject/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/CudaProject.dir/build.make CMakeFiles/CudaProject.dir/build
 .PHONY : CudaProject/fast
 
+main-cleaned.o: main-cleaned.cu.o
+.PHONY : main-cleaned.o
+
+# target to build an object file
+main-cleaned.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/CudaProject.dir/build.make CMakeFiles/CudaProject.dir/main-cleaned.cu.o
+.PHONY : main-cleaned.cu.o
+
+main-cleaned.i: main-cleaned.cu.i
+.PHONY : main-cleaned.i
+
+# target to preprocess a source file
+main-cleaned.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/CudaProject.dir/build.make CMakeFiles/CudaProject.dir/main-cleaned.cu.i
+.PHONY : main-cleaned.cu.i
+
+main-cleaned.s: main-cleaned.cu.s
+.PHONY : main-cleaned.s
+
+# target to generate assembly for a file
+main-cleaned.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/CudaProject.dir/build.make CMakeFiles/CudaProject.dir/main-cleaned.cu.s
+.PHONY : main-cleaned.cu.s
+
 main.o: main.cu.o
 .PHONY : main.o
 
@@ -162,6 +186,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... CudaProject"
+	@echo "... main-cleaned.o"
+	@echo "... main-cleaned.i"
+	@echo "... main-cleaned.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

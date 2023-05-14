@@ -1,5 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/CudaProject.dir/cmake_device_link.o"
+  "CMakeFiles/CudaProject.dir/main-cleaned.cu.o"
+  "CMakeFiles/CudaProject.dir/main-cleaned.cu.o.d"
   "CMakeFiles/CudaProject.dir/main.cu.o"
   "CMakeFiles/CudaProject.dir/main.cu.o.d"
   "CudaProject"

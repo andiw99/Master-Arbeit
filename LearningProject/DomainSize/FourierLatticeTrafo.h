@@ -16,6 +16,32 @@
 #include "../Header/Helpfunctions and Classes.h"
 
 using namespace std;
+namespace fs = std::filesystem;
+
+
+vector<fs::path> list_csv_files(const fs::path& root)
+{
+    vector<fs::path> csv_files;
+
+    if (fs::is_directory(root))
+    {
+        for (const auto& entry : fs::directory_iterator(root))
+        {
+            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
+            {
+                csv_files.push_back(entry.path());
+            }
+            else if (fs::is_directory(entry.path()))
+            {
+                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
+                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
+            }
+        }
+    }
+
+    return csv_files;
+}
+
 
 template<typename T>
 std::vector<double> linspace(T start_in, T end_in, int num_in)
