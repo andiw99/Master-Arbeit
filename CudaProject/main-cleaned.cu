@@ -104,14 +104,16 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     // initialize the system...
     // ugly af
     // TODO this won't work again probalby?
-    System<lattice_dim>* gpu_system;
+/*    System<lattice_dim>* gpu_system;
     if(system == "default") {
         gpu_system = new gpu_bath<lattice_dim>(T, eta, alpha, beta, J, tau, seed);
     } else if (system == "constant") {
         gpu_system = new constant_bath<lattice_dim>(T, eta, alpha, beta, J, seed);
     } else {
         throw runtime_error("invalid system name");
-    }
+    }*/
+
+
     // gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau);
     // constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J);
     // gpu_oscillator_chain<lattice_dim> gpu_system(T, eta, alpha);
@@ -134,11 +136,27 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     auto start = chrono::high_resolution_clock::now();
     double t = 0;
 
-    for( size_t i=0 ; i<steps ; ++i ) {
+    // i THINK we will do the ugly way here until we understand polymorphism
+    if (system == "constant") {
+        constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
+        for( size_t i=0 ; i<steps ; ++i ) {
+            gpu_stepper.do_step(gpu_system, x, dt, t);
+            Obs(gpu_system, x, t);
+            t += dt;
+        }
+    } else {
+        gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
+        for( size_t i=0 ; i<steps ; ++i ) {
+            gpu_stepper.do_step(gpu_system, x, dt, t);
+            Obs(gpu_system, x, t);
+            t += dt;
+        }
+    }
+/*    for( size_t i=0 ; i<steps ; ++i ) {
         gpu_stepper.do_step(*gpu_system, x, dt, t);
         Obs(*gpu_system, x, t);
         t += dt;
-    }
+    }*/
 
     write_parameters(parafile, eta, T, dt, n, alpha, beta, J, tau);
 
@@ -213,7 +231,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
     int steps = single_calc_routine<lattice_dim>(parameters, seed, system, dir_path);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
-    repeat<lattice_dim>(parameters, runs - 1, seed + steps, dir_path);
+    repeat<lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path);
 
 }
 
