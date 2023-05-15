@@ -202,7 +202,7 @@ void repeat(int runs, long seed = 0) {
 }
 
 template <size_t lattice_dim>
-void repeat(map<string, double> parameters, int runs, long seed = 0, string dir_path="") {
+void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="") {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
         return;
@@ -210,7 +210,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string dir_
 
     cout << runs << " runs left" << endl;
 
-    int steps = single_calc_routine<lattice_dim>(parameters, seed, dir_path);
+    int steps = single_calc_routine<lattice_dim>(parameters, seed, system, dir_path);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
     repeat<lattice_dim>(parameters, runs - 1, seed + steps, dir_path);
@@ -239,6 +239,9 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     const size_t    N = 2;
     int             repeat_nr = 3;
 
+    steps = (steps_val == 0) ? steps : steps_val;
+    end_t = (end_t_val == 0) ? end_t : end_t_val;
+
     map<string, double> paras;
 
     paras["steps"] = steps;
@@ -253,10 +256,8 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     paras["N"] = N;
     paras["nr_save_values"] = nr_save_values;
 
-    size_t write_every = steps / nr_save_values;
 
-    steps = (steps_val == 0) ? steps : steps_val;
-    end_t = (end_t_val == 0) ? end_t : end_t_val;
+
 
     const vector<double> T = linspace(7.5, 45.0, nr_temps + 1);
     print_vector(T);
@@ -283,7 +284,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
         string dirpath = root + "/" + to_string(temp);
         // we could repeat?
         // we need a new observer with a file name
-        repeat<lattice_dim>(paras, repeat_nr, 0, dirpath);
+        repeat<lattice_dim>(paras, repeat_nr, 0, "constant", dirpath);
         count++;
     }
 }
