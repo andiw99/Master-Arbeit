@@ -6,7 +6,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 
-
+template <size_t N>
 void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&ft_squared_x)[N]) {
     // supposed to calculate ft_avg_y for one lattice and add it to ft_avg_y
 
@@ -51,8 +51,10 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     // and now we do the stuff we did all the time?
     // read last line and put it into a 2D vector
     double T;
+    cout << "before reading in the last values" << endl;
     vector<complex<double>> values = readLastValues(file, T);
     vector<vector<complex<double>>> f = oneD_to_twoD(values);
+    cout << "after reading in the last values" << endl;
 
     // init the empty arrays for the fftw
     fftw_complex f_fftw[N][N], ft_fftw[N][N];
@@ -62,6 +64,7 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     fftw_plan plan2d;
     plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
     fftw_execute(plan2d);
+    cout << "Executed the plan" << endl;
 
     // now we got to calculate the avg abs squared for every row and col and add them to ft_avg_y and ft_avg_x
     average_and_add(ft_fftw, ft_squared_y, ft_squared_x);
@@ -74,56 +77,68 @@ int main() {
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
 
     // lattice dim
-    int lat_dim = 250;
+    const int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/Quadratic/Average/";
-    vector<fs::path> csv_files = list_csv_files(root);
-    print_vector(csv_files);
-
-
-
-    cout << filesystem::current_path() << endl;
-    // we need running arrays for the averages over the lattices
-    double ft_squared_y[N];
-    double ft_squared_x[N];
+    fs::path root = "../../../Generated content/New Scan/";
+    vector<fs::path> temp_directories = list_dir_paths(root);
+    print_vector(temp_directories);
 
 
-    for(auto path :csv_files) {
-        trafo_routine(path, ft_squared_y, ft_squared_x);
+    for(auto path : temp_directories) {
+        vector<fs::path> csv_files = list_csv_files(path);
+        print_vector(csv_files);
+
+        cout << filesystem::current_path() << endl;
+        // we need running arrays for the averages over the lattices
+        double ft_squared_y[lat_dim];
+        double ft_squared_x[lat_dim];
+
+
+        for(auto csv_path :csv_files) {
+            trafo_routine(csv_path, ft_squared_y, ft_squared_x);
+        }
+        // and now just average over the run size
+        for(int i = 0; i < lat_dim; i++) {
+            ft_squared_x[i] /= (double)csv_files.size();
+            ft_squared_y[i] /= (double)csv_files.size();
+        }
+
+        auto q = init_q(lat_dim);
+        auto p = vector<vector<array<double, 2>>>(
+                lat_dim, vector<array<double, 2>>(lat_dim, array<double, 2>()));
+        fill_p(q, p);
+
+
+        // write it
+
+        fs::path writepath = path / "struct.fact";
+        ofstream ofile;
+        ofile.open(writepath);
+        ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
+        cout << lat_dim << endl;
+        for(int i = 0; i<lat_dim; i++) {
+            // so px(i) is just the p_x value of every entry of p of the i-th col
+            // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
+            // px = p[0][i][0]
+            // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
+            // py = p[i][0][1]
+            ofile <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i];
+            cout <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i] << endl;
+            cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
+            if(i < lat_dim - 1) {
+                ofile << endl;
+            }
+        }
     }
-    // and now just average over the run size
-    for(int i = 0; i < N; i++) {
-        ft_squared_x[i] /= (double)csv_files.size();
-        ft_squared_y[i] /= (double)csv_files.size();
-    }
+
+
+    exit(0);
+
+    const int N = lat_dim;
 
     auto q = init_q(N);
     auto p = vector<vector<array<double, 2>>>(
             N, vector<array<double, 2>>(N, array<double, 2>()));
-    fill_p(q, p);
-
-
-    // write it
-
-    string path = "../../../Generated content/Quadratic/structfunc.average";
-    ofstream ofile;
-    ofile.open(path);
-    ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
-    cout << N << endl;
-    for(int i = 0; i<N; i++) {
-        // so px(i) is just the p_x value of every entry of p of the i-th col
-        // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
-        // px = p[0][i][0]
-        // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
-        // py = p[i][0][1]
-        ofile <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i];
-        cout <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i] << endl;
-        cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
-        if(i < N - 1) {
-            ofile << endl;
-        }
-    }
-    exit(0);
 
     /*
      *

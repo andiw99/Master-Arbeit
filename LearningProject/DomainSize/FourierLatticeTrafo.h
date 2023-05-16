@@ -19,6 +19,28 @@ using namespace std;
 namespace fs = std::filesystem;
 
 
+vector<fs::path> list_dir_paths(const fs::path& root)
+{
+    vector<fs::path> dir_paths;
+
+    if (fs::is_directory(root))
+    {
+        for (const auto& entry : fs::directory_iterator(root))
+        {
+            // if regular file, do nothing?
+            // if directory, add
+            if (fs::is_directory(entry.path()) && entry.path().filename() != "plots")
+            {
+                dir_paths.push_back(entry.path());
+                vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
+                dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+            }
+        }
+    }
+    return dir_paths;
+}
+
+
 vector<fs::path> list_csv_files(const fs::path& root)
 {
     vector<fs::path> csv_files;
@@ -462,7 +484,8 @@ void average_and_write(vector<vector<complex<double>>>& ft, vector<vector<array<
         }
     }
 }
-const size_t N = 250;
+
+template <size_t N>
 void average_and_write(fftw_complex ft[N][N], vector<vector<array<double, 2>>> &p,
                        string filename = "./../../../Generated content/structfunc.fftw") {
     // lat dim

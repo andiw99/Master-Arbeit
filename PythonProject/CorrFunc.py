@@ -18,10 +18,13 @@ def fit_exp(r, C, func=exp):
 
 
 def main():
-    root = "../../Generated content/Relax Scan Underdamped/detaileder/"
+    root = "../../Generated content/New Scan/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
+
+    # define a cutoff since the exponential decay is only correct for large distances
+    cutoff = 10
 
     # arrays to save the xi corrsponding to T
 
@@ -55,7 +58,7 @@ def main():
             S = np.fft.fft(C)
             k = np.fft.fftfreq(len(dists), d=dists[1] - dists[0])
 
-            popt=fit_exp(dists, C)
+            popt=fit_exp(dists[cutoff:], C[cutoff:])
             xi = popt[0]
 
             # save
@@ -78,11 +81,15 @@ def main():
             #axes[1].set_ylabel("S(k)")
             #axes[0].legend()
             #axes[1].legend()
+            #try:
+            #    plt.savefig(root + "plots/corr/" + str(T), format="png")
+            #except FileNotFoundError:
+            #    os.makedirs(root + "plots/corr/")
+            #    plt.savefig(root + "plots/corr/" + str(T), format="png")
             #plt.show()
 
 # sorting
-    print(np.argsort(T_arr))
-    print(xi_arr)
+
     xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]
     T_arr = np.sort(T_arr)
 

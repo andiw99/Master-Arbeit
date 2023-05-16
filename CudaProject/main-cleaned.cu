@@ -56,7 +56,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     // But we can quickly write another system i guess
 
     const int       steps = (int)parameters["steps"];
-    const double    dt = parameters["dt"];
+    double    dt = parameters["dt"];
     const double    T = parameters["T"];
     const double    J = parameters["J"];
     const double    alpha = parameters["alpha"];
@@ -136,6 +136,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     auto start = chrono::high_resolution_clock::now();
     double t = 0;
 
+
     // i THINK we will do the ugly way here until we understand polymorphism
     if (system == "constant") {
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
@@ -146,7 +147,15 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
         }
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
+        double dt_max = parameters["dt_max"];
+        int t_relax = (int)parameters["t_relax"];
         for( size_t i=0 ; i<steps ; ++i ) {
+            // we need small stepsizes at the beginning to guarantee stability
+            // but after some time, we can increase the stepsize
+            // there should be a t that is equal to t_relax?
+            if(t >= t_relax) {
+                dt = dt_max;
+            }
             gpu_stepper.do_step(gpu_system, x, dt, t);
             Obs(gpu_system, x, t);
             t += dt;
@@ -241,10 +250,12 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     root = (root_val.empty()) ? root : root_val;
     // make sure root exists
 
+    int             end_t = 1000;
+    int             t_relax = 50;                     // approximate time where system is relaxed, probably math to approximate?
+    double dt_max, dt = 0.005;
+    double dt_start = 0.0001;
+    int steps = (int)(t_relax / dt_start + (end_t - t_relax) / dt_max);
 
-    int             steps = 3000000;
-    int             end_t = 100;
-    const double    dt = (double)end_t / steps;
     const int       nr_temps = 75;
     const double    J = 50;
     const double    alpha = 1;
@@ -264,7 +275,9 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
 
     paras["steps"] = steps;
     paras["end_t"] = end_t;
-    paras["dt"] = dt;
+    paras["t_relax"] = t_relax;
+    paras["dt"] = dt_start;
+    paras["dt_max"] = dt_max;
     paras["J"] = J;
     paras["alpha"] = alpha;
     paras["beta"] = beta;

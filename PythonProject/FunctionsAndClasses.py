@@ -26,7 +26,6 @@ def read_multiple_csv(filepaths, nrows=None):
 
 def read_struct_func(filepath):
     df = pd.read_csv(filepath, delimiter=",", index_col=False)
-    print(df)
     return df
 
 def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2):
