@@ -141,21 +141,21 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     if (system == "constant") {
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
+            // we need small stepsizes at the beginning to guarantee stability
+            // but after some time, we can increase the stepsize
+            // there should be a t that is equal to t_relax?
+            double dt_max = parameters["dt_max"];
+            int t_relax = (int)parameters["t_relax"];
+            if(t >= t_relax) {
+                dt = dt_max;
+            }
             gpu_stepper.do_step(gpu_system, x, dt, t);
             Obs(gpu_system, x, t);
             t += dt;
         }
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
-        double dt_max = parameters["dt_max"];
-        int t_relax = (int)parameters["t_relax"];
         for( size_t i=0 ; i<steps ; ++i ) {
-            // we need small stepsizes at the beginning to guarantee stability
-            // but after some time, we can increase the stepsize
-            // there should be a t that is equal to t_relax?
-            if(t >= t_relax) {
-                dt = dt_max;
-            }
             gpu_stepper.do_step(gpu_system, x, dt, t);
             Obs(gpu_system, x, t);
             t += dt;
@@ -250,14 +250,14 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     root = (root_val.empty()) ? root : root_val;
     // make sure root exists
 
-    int             end_t = 1000;
+    int             end_t = 2000;
     int             t_relax = 50;                     // approximate time where system is relaxed, probably math to approximate?
-    double dt_max, dt = 0.005;
+    double dt_max =  0.005;
     double dt_start = 0.0001;
+    double dt = dt_start;
     int steps = (int)(t_relax / dt_start + (end_t - t_relax) / dt_max);
-
-    const int       nr_temps = 75;
-    const double    J = 50;
+    const int       nr_temps = 40;
+    const double    J = 2;
     const double    alpha = 1;
     const double    beta = 10;
     const double    tau = 10;
@@ -266,7 +266,9 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     const size_t    lattice_dim = 100;
     const size_t    n = lattice_dim * lattice_dim;
     const size_t    N = 2;
-    int             repeat_nr = 3;
+    int             repeat_nr = 10;
+
+    const vector<double> T = linspace(5.0, 7.0, nr_temps + 1);
 
     steps = (steps_val == 0) ? steps : steps_val;
     end_t = (end_t_val == 0) ? end_t : end_t_val;
@@ -288,9 +290,6 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     paras["nr_save_values"] = nr_save_values;
 
 
-
-
-    const vector<double> T = linspace(7.5, 45.0, nr_temps + 1);
     print_vector(T);
 
 
