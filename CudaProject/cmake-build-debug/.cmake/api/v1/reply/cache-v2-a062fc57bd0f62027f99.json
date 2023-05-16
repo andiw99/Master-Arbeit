@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug"
+			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -92,6 +92,42 @@
 			],
 			"type" : "INTERNAL",
 			"value" : "2"
+		},
+		{
+			"name" : "CMAKE_CODEBLOCKS_COMPILER_ID",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Id string of the compiler for the CodeBlocks IDE. Automatically detected when left empty"
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
+		},
+		{
+			"name" : "CMAKE_CODEBLOCKS_EXECUTABLE",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "The CodeBlocks executable"
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "CMAKE_CODEBLOCKS_EXECUTABLE-NOTFOUND"
+		},
+		{
+			"name" : "CMAKE_CODEBLOCKS_MAKE_ARGUMENTS",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Additional command line arguments when CodeBlocks invokes make. Enter e.g. -j<some_number> to get parallel builds"
+				}
+			],
+			"type" : "STRING",
+			"value" : "-j8"
 		},
 		{
 			"name" : "CMAKE_COLOR_DIAGNOSTICS",
@@ -140,22 +176,6 @@
 			],
 			"type" : "INTERNAL",
 			"value" : "/snap/clion/235/bin/cmake/linux/x64/bin/ctest"
-		},
-		{
-			"name" : "CMAKE_CUDA_COMPILER",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "CUDA compiler"
-				}
-			],
-			"type" : "FILEPATH",
-			"value" : "/usr/local/cuda-12.1/bin/nvcc"
 		},
 		{
 			"name" : "CMAKE_CUDA_FLAGS",
@@ -371,7 +391,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : ""
+			"value" : "CodeBlocks"
 		},
 		{
 			"name" : "CMAKE_FIND_PACKAGE_REDIRECTS_DIR",
@@ -383,7 +403,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug/CMakeFiles/pkgRedirects"
+			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/pkgRedirects"
 		},
 		{
 			"name" : "CMAKE_GENERATOR",
@@ -395,7 +415,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "Ninja"
+			"value" : "Unix Makefiles"
 		},
 		{
 			"name" : "CMAKE_GENERATOR_INSTANCE",
@@ -443,7 +463,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject"
+			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
 		},
 		{
 			"name" : "CMAKE_INSTALL_PREFIX",
@@ -490,12 +510,16 @@
 			"properties" : 
 			[
 				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
 					"name" : "HELPSTRING",
-					"value" : "No help, variable specified on the command line."
+					"value" : "Path to a program."
 				}
 			],
-			"type" : "UNINITIALIZED",
-			"value" : "/snap/clion/235/bin/ninja/linux/x64/ninja"
+			"type" : "FILEPATH",
+			"value" : "/usr/bin/gmake"
 		},
 		{
 			"name" : "CMAKE_MODULE_LINKER_FLAGS",
@@ -975,7 +999,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug"
+			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"
 		},
 		{
 			"name" : "CudaProject_IS_TOP_LEVEL",
@@ -999,7 +1023,39 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject"
+			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
+		},
+		{
+			"name" : "ProcessorCount_cmd_nproc",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Path to a program."
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "/usr/bin/nproc"
+		},
+		{
+			"name" : "ProcessorCount_cmd_sysctl",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Path to a program."
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "/usr/sbin/sysctl"
 		},
 		{
 			"name" : "_CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED",

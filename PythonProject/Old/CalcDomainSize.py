@@ -290,6 +290,8 @@ def calc_corr_length(filepath):
     return (dists, corr_func), (q_values, struct_fact), xi
 
 
+
+
 def main():
     root = "../../Generated content/Cooling Bath/Comparison/eta=5.00/T=70.00/dt=0.0050/n=75" \
            "/alpha=5.00/beta=10.00/J=50.00/"

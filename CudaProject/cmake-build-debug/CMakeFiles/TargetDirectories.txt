@@ -1,3 +1,3 @@
-/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug/CMakeFiles/CudaProject.dir
-/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/CudaProject.dir
+/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir

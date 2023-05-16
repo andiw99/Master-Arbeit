@@ -69,6 +69,31 @@ string print_statetype(const state_type x) {
     return str;
 }
 
+template <class T>
+void print_vector(vector<T> vec) {
+    cout << vec.size() << endl;
+    for(int i = 0; i < vec.size(); i++) {
+        if(i % 20 == 0) {
+            cout << "\n";
+        }
+        cout << vec[i] << ", ";
+    }
+}
+
+
+ifstream safe_read(string readpath) {
+    cout << "reading: " << readpath << endl;
+    ifstream file(readpath);
+    // check if file is opened
+    if(file.is_open()) {
+        cout << "File successfully opened" << endl;
+    } else {
+        cout << "Failed to open file" << endl;
+        // abort if file is not opened
+        exit(0);
+    }
+    return file;
+}
 
 
 string trunc_double(double a, int precision=2) {
@@ -139,6 +164,17 @@ double ind_value(vector<double> paras, int ind) {
 
 int ind_value(vector<int> paras, int ind) {
     return paras[ind % paras.size()];
+}
+
+template <class T>
+vector<T>& operator+ (vector<T> &a, vector<T> &b) {
+    if (a.size() != b.size()) {
+        throw std::invalid_argument("Vectors must be of equal length.");
+    }
+    for(int i = 0; i < a.size(); i++) {
+        a[i] += b[i];
+    }
+    return a;
 }
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

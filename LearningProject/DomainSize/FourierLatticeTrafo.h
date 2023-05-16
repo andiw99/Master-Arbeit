@@ -2,19 +2,79 @@
 // Created by andi on 28.04.23.
 //
 
+#ifndef LEARNINGPROJECT_FOURIERLATTICETRAFO_H
+#define LEARNINGPROJECT_FOURIERLATTICETRAFO_H
 #include <fstream>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <chrono>
-#include "LatticeFourierTransform.h"
 #include <array>
-#include <fftw3.h>
 #include <complex>
+#include <fftw3.h>
 #include <filesystem>
 #include "../Header/Helpfunctions and Classes.h"
 
 using namespace std;
+namespace fs = std::filesystem;
+
+
+vector<fs::path> list_csv_files(const fs::path& root)
+{
+    vector<fs::path> csv_files;
+
+    if (fs::is_directory(root))
+    {
+        for (const auto& entry : fs::directory_iterator(root))
+        {
+            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
+            {
+                csv_files.push_back(entry.path());
+            }
+            else if (fs::is_directory(entry.path()))
+            {
+                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
+                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
+            }
+        }
+    }
+
+    return csv_files;
+}
+
+
+template<typename T>
+std::vector<double> linspace(T start_in, T end_in, int num_in)
+{
+
+    std::vector<double> linspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return linspaced; }
+    if (num == 1)
+    {
+        linspaced.push_back(start);
+        return linspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        linspaced.push_back(start + delta * i);
+    }
+    linspaced.push_back(end); // I want to ensure that start and end
+    // are exactly the same as the input
+    return linspaced;
+}
+
+//
+// Created by andi on 28.04.23.
+//
+
 
 
 void exponential_decay(vector<double> &f, vector<double> r, double xi) {
@@ -34,6 +94,35 @@ void exponential_decay(fftw_complex f[n], vector<double> r, double xi = 1) {
     }
 }
 
+template <int N>
+void nanscan(fftw_complex (&f)[N][N]) {
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            if(isnan(f[i][j][0])) {
+                cout << "nan found" << endl;
+            }
+            if(isnan(f[i][j][1])) {
+                cout << "nan found" << endl;
+            }
+        }
+    }
+    cout << "nan scan done" << endl;
+}
+
+void nanscan(const vector<vector<complex<double>>> (&f)) {
+    int N = f.size();
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            if(isnan(f[i][j].real())) {
+                cout << "nan found" << endl;
+            }
+            if(isnan(f[i][j].imag())) {
+                cout << "nan found" << endl;
+            }
+        }
+    }
+    cout << "nan scan done" << endl;
+}
 
 string readLastLine(std::ifstream& file) {
     std::string line;
@@ -109,6 +198,7 @@ complex<double> two_d_fourier(const vector<vector<complex<double>>> &f, const ve
             double xn = q[m][n][0];
             double ym = q[m][n][1];
             complex<double> f_mn = f[m][n];
+            // TODO isnt this lacking a 2pi factor?
             ft_ij += f_mn * exp(1i * (xn * pi + ym * pj));
         }
     }
@@ -160,7 +250,61 @@ void latticeTrafo(const vector<vector<complex<double>>> &f, const vector<vector<
         }
     }
     // okay I think thats it
+
 }
+
+template <int N>
+void latticeTrafo1D(const complex<double> (&f)[N][N], const vector<vector<array<double, 2>>> &q,
+                    complex<double> (&fx_k)[N], complex<double> (&fy_k)[N], vector<double> &px, vector<double> &py) {
+    // To center the impulses around the center, we shift by K = N/2
+    int K = N / 2;
+    // qi corresponds to xn, so i is the col
+    // find out the lattice spacings a_x = x_1 - x_0
+    double ax = q[0][1][0] - q[0][0][0];
+    double ay = q[1][0][1] - q[0][0][1];
+
+    // so, we need to make clear again what we want to do here
+    // What we want, is the 1D Fourier Transform of every row j and save that into an array
+    // after that, we can average this over all j and get the Structure Function for k
+    // so we have rows:     j=0 : [f_01, f_02, ..., f_0N]
+    //                      j=1 : [f_11, f_12, ..., f_1N]
+    // and for every row, we do a 1D Fourier Trafo, meaning we get an array:
+    //       [f_j1, f_j2, ..., f_jN] -> [px_j(k=-N/2), px_j(k=-N/2 + 1), ..., px_j(k=N/2)]
+    // for every j.
+    // then we calculate the absolute squared value of this fourier trafo
+    // [px_j(k=-N/2) * px_j(k=-N/2)^* , ..., px_j(k=N/2) * px_j(k=N/2)^*] = [fx_j(k=-N/2), ..., fx_j(k=N/2)]
+    // afterwards we average/sum
+    //                                  [fx_0(k=-N/2), fx_0(k=-N/2 + 1), ..., fx_0(k=N/2)]
+    //                                  [fx_1(k=-N/2), fx_1(k=-N/2 + 1), ..., fx_1(k=N/2)]
+    //                                  ...
+    //  to
+    //                                  [fx(k=-N/2), fx(k=-N/2 + 1), ..., fx(k=N/2)]  = S_x(k)
+    // We will do the same thing for every column and calculate fy
+    for(int j = 0; j < N; j++){
+        // This will be the loop that sums um the fourier trafos of the different rows
+        complex<double> px_jk[N];
+        // we do the same thing for every col
+        complex<double> py_jk[N];
+        for(int i = 0; i < N; i++) {
+            // This will be the loop that does the fourier trafo or row j, so sums over all cols i
+            // We need to calculate for all possible k
+            for(int k = -N/2; k < N/2; k++) {
+                // f[i][j] is in general a complex number, so will be p_ij
+                px_jk[k + N/2] += f[i][j] * exp(2 * M_PI * 1i * (double)(i * k));
+                // i think the only difference is that we need to switch i and j...
+                py_jk[k + N/2] += f[j][i] * exp(2 * M_PI * 1i * (double)(i * k));
+
+                px[k + N/2] = 2 * M_PI * k / N / ax;
+                py[k + N/2] = 2 * M_PI * k / N / ay;
+            }
+        }
+        // sum over all j and squared
+        fx_k[j] += px_jk[j] * conj(px_jk[j]);
+        fy_k[j] += py_jk[j] * conj(py_jk[j]);
+        // TODO averaging?
+    }
+}
+
 
 void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<double, 2>>> &p) {
     int lat_dim = q.size();         // f has size of lattice dim
@@ -191,9 +335,9 @@ void fill_p_1d(const vector<double> &q, vector<double> &p) {
     // find out the lattice spacings a_x = x_1 - x_0
     double a = 1;
     for(int i = 0; i < N; i++) {
-            int i_ft = i < K ? i : i - N;
-            double p_i = 2 * M_PI * i_ft / N / a;
-            p[i] = p_i;
+        int i_ft = i < K ? i : i - N;
+        double p_i = 2 * M_PI * i_ft / N / a;
+        p[i] = p_i;
     }
 }
 
@@ -207,7 +351,7 @@ void write_1d(double ft[n][2], vector<double> &p, double f[n][2], vector<double>
 
     for(int i = 0; i < n; i++) {
         file << x[i] << ", " << sqrt(f[i][0] * f[i][0] + f[i][1] * f[i][1]) << ", " << p[i] << ", " <<
-        sqrt(ft[i][0] * ft[i][0] + ft[i][1] * ft[i][1]) << "\n";
+             sqrt(ft[i][0] * ft[i][0] + ft[i][1] * ft[i][1]) << "\n";
     }
 
 }
@@ -223,7 +367,7 @@ void write_1d_real(double ft[n][2], vector<double> &p, double f[n][2], vector<do
 
     for(int i = 0; i < n; i++) {
         file << x[i] << ", " << f[i][0] << ", " << p[i] << ", " <<
-                                                                ft[i][0] << "\n";
+             ft[i][0] << "\n";
     }
 
 }
@@ -320,15 +464,17 @@ void average_and_write(vector<vector<complex<double>>>& ft, vector<vector<array<
 }
 const size_t N = 250;
 void average_and_write(fftw_complex ft[N][N], vector<vector<array<double, 2>>> &p,
-                       string filename = "./structfunc.fftw") {
+                       string filename = "./../../../Generated content/structfunc.fftw") {
     // lat dim
 
     // so i think we first average
 
-    array<array<double, 2>, N> ft_y;
-    array<array<double, 2>, N> ft_x;;
-    array<double, N> ft_avg_x;;
-    array<double, N> ft_avg_y;;
+    array<array<double, 2>, N> ft_y{};
+    array<array<double, 2>, N> ft_x{};
+    array<double, N> ft_avg_x{};
+    array<double, N> ft_avg_y{};
+
+
 
     for(int i = 0; i < N; i++) {
         // I think we can average simulatenously
@@ -339,17 +485,26 @@ void average_and_write(fftw_complex ft[N][N], vector<vector<array<double, 2>>> &
             // avg_x is the average over the x dimension meaning ft[i][j] and j has to run over the lat dim
             ft_x[i][0] += ft[i][j][0];
             ft_x[i][1] += ft[i][j][1];
+/*            if(isnan(ft[j][i][0])) {
+                cout << "nan found in ft " << i << " " << j << endl;
+            }
+            if(isnan(ft[j][i][1])) {
+                cout << "nan found in img ft " << i << " " << j << endl;
+            }
+            if(isnan(ft_x[i][0])) {
+                cout << "nan found in ftx real" << endl;
+            }
+            if(isnan(ft_x[i][1])) {
+                cout<< "nan found in ftx img" << endl;
+            }*/
         }
         // finally we also have to get the abs and square
         // and average!!
         // okay the average is a bit tricky, we have to average the real and the imaginary part and we actually would
         // have to do it before and we need to average by N * N since that is how many values we hav
-        cout << "before  " << ft_y[i][0] << ",   " << ft_y[i][1] << endl;
-        cout << "before  " << pow((double)N, 8) << endl;
         ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0] + ft_y[i][1] * ft_y[i][1]) / pow((double)N, 8);
         ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0] + ft_x[i][1] * ft_x[i][1]) / pow((double)N, 8);
-        cout << "after  " <<  ft_y[i][0] << endl;
-        cout << "after  " <<  ft_avg_y[i] << endl;
+        // cout << "after  " <<  ft_avg_y[i] << endl;
     }
 
     // and this is the stuff we plot?
@@ -373,7 +528,29 @@ void average_and_write(fftw_complex ft[N][N], vector<vector<array<double, 2>>> &
         // px = p[0][i][0]
         // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
         // py = p[i][0][1]
+        if(isnan(ft_avg_y[i])) {
+            cout << "y nan gefunden " << i << endl;
+        }
+        if(isnan(ft_avg_x[i])) {
+            cout << "x nan gefunden " << i << endl;
+        }
         file <<  p[0][i][0] << ", " << ft_avg_y[i] << ", " << p[i][0][1] << ", " << ft_avg_x[i];
+        if(i < N - 1) {
+            file << "\n";
+        }
+    }
+}
+
+template <size_t N>
+void write_lattice_trafo(complex<double> (&ft_x)[N], complex<double> ft_y[N], vector<double> px, vector<double> py,
+                         string filename="./../../../Generated content/struct1d.func") {
+    ofstream file;
+    file.open(filename);
+
+    file << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
+    for(int i = 0; i<N; i++) {
+        // write only real part? no i dont think so
+        file <<  px[i] << ", " << abs(ft_x[i]) << ", " << py[i] << ", " << abs(ft_y[i]);
         if(i < N - 1) {
             file << "\n";
         }
@@ -401,107 +578,23 @@ void copy_values2D(const vector<vector<complex<double>>> &f, fftw_complex (&f_ff
             // cout << f_fftw[i][j][0] << "  ";
         }
     }
-
 }
 
-int main() {
-    // I tried to implement matplotlib with the following flags
-    // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
-    // okay so first things firs, we need to read in the csv
-    // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
-
-    ifstream file("10.csv");
-
-    cout << filesystem::current_path() << endl;
-
-    /*
-     *
-
-    const int nn = 1000;
-    double xi = 1.2;
-    string root = "../../Generated content/LatticeTrafo/1D/";
-    string name = "1000+20+1.2";
-    create_dir(root);
-    double end = 20;
-    vector<double> r = linspace(0, 20, nn);
-    vector<double> pr(nn, 0);
-    fill_p_1d(r, pr);
-    fftw_complex fu[nn];
-    fftw_complex ftu[nn];
-    exponential_decay<nn>(fu, r, xi);
-
-    fftw_plan plan;
-    plan = fftw_plan_dft_1d(nn, fu, ftu, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftw_execute(plan);
-    write_1d_real<nn>(ftu, pr, fu, r, root, name);
-    exit(0);
-*/
-
-    double T;
-    if(file.is_open()) {
-        cout << "File successfully opened" << endl;
-    } else {
-        cout << "Failed to open file" << endl;
-    }
-    vector<complex<double>> values = readLastValues(file, T);
-    vector<vector<complex<double>>> f = oneD_to_twoD(values);
-
-    // now we can try wether the fourier transform will run through
-    // but i guess we should build some markers in so tht we can see where we are
-    // we allocate a vector that has the dimensions of f
-    vector<vector<complex<double>>> ft = vector<vector<complex<double>>>(f.size(),
-                                                                         vector<complex<double>>(f.size(), 0.0));
-    auto q = init_q(f.size());
-    auto p = vector<vector<array<double, 2>>>(
-            f.size(), vector<array<double, 2>>(f.size(), array<double, 2>()));
-
-    print_coords(q, 10);
-
-    // I think my implementation works but it is slow, I will try now to use fftw
-    // latticeTrafo(f, q, ft, p);
-    // I already wrote a function that gets me the corresponding p
-    fill_p(q, p);
-    // now i need to do this plan stuff
-    // first we need our data in an fftw_complex array
-    // i guess for this the size has to be clear at compile time sadly
-
-    /*
-     *
-    fftw_complex *f_fftw, *ft_fftw;
-    // best way is allocating memory with fftw_malloc but i don't now how I would use this to get an array
-    // can only be one dimensional and i have to retransform it afterwars, but that is actually not a huge deal?
-    f_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
-    ft_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
-     */
-    fftw_complex f_fftw[N][N], ft_fftw[N][N];
-    // got to copy the values from 'values' to f_fftw
-    copy_values2D<N>(f, f_fftw);
-    // initialize this plan, just a 1D trafo now, doesnt make sense. Get back static arrays
-    fftw_plan plan2d;
-    plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
-    // so now we already have ft_fftw now an could print or write to file?
-    fftw_execute(plan2d);
-    cout << "plan executed " << ft_fftw[0][0] << endl;
-    cout << ft_fftw[0][0][0] << endl;
-    average_and_write(ft_fftw, p);
-    // average_and_write(ft, p);
-
-
-/*
-    for (int i = 0; i < 300; i++) {
-        if(i == 250) {
-            cout << endl;
+template<size_t N>
+void copy_values2D(const vector<vector<complex<double>>> &f, complex<double> (&f_arr)[N][N]) {
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            f_arr[i][j] = f[i][j];
+            // cout << f_fftw[i][j][0] << "  ";
         }
-        cout << values[i] << "  ";
     }
-    cout << endl << "values size: " << values.size() << endl;
-    // reorder the vector, this should work as expected?
-    cout << endl;
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
-            cout << q[i][j] << " ";
-        }
-        cout << endl;
-    }
-*/
 }
+
+
+class DomainSize {
+
+};
+
+
+
+#endif //LEARNINGPROJECT_FOURIERLATTICETRAFO_H

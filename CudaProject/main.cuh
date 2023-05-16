@@ -146,13 +146,13 @@ class bath_observer : public observer {
 
 public:
     bath_observer(ofstream& out, size_t write_every = 1000) : file(out), write_every(write_every) {
-        count = 0;
+        count = 1;
     }
 
     template<class State, class System>
     void operator()(const System sys, const State &x , double t ) {
         // so i think if statements are not to costly on c++
-        if (count % write_every == 0) {
+        if (count % write_every == 0 || count == 1) {
             // now we write the state to the file
             // i call a function here that would not be available for all Systems, not to clean and a bit fishy
             // but i guess it works for now

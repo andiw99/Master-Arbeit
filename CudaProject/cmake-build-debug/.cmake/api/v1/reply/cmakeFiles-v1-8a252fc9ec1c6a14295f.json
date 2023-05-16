@@ -45,6 +45,21 @@
 		{
 			"isCMake" : true,
 			"isExternal" : true,
+			"path" : "/snap/clion/235/bin/cmake/linux/x64/share/cmake-3.25/Modules/CMakeFindCodeBlocks.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/235/bin/cmake/linux/x64/share/cmake-3.25/Modules/CMakeExtraGeneratorDetermineCompilerMacrosAndIncludeDirs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/235/bin/cmake/linux/x64/share/cmake-3.25/Modules/ProcessorCount.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
 			"path" : "/snap/clion/235/bin/cmake/linux/x64/share/cmake-3.25/Modules/CMakeCUDAInformation.cmake"
 		},
 		{
@@ -66,8 +81,8 @@
 	"kind" : "cmakeFiles",
 	"paths" : 
 	{
-		"build" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug",
-		"source" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject"
+		"build" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug",
+		"source" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
 	},
 	"version" : 
 	{
