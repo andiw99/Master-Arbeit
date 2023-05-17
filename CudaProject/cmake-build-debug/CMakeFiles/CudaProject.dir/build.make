@@ -44,19 +44,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /snap/clion/235/bin/cmake/linux/x64/bin/cmake
+CMAKE_COMMAND = /snap/clion/237/bin/cmake/linux/x64/bin/cmake
 
 # The command to remove a file.
-RM = /snap/clion/235/bin/cmake/linux/x64/bin/cmake -E rm -f
+RM = /snap/clion/237/bin/cmake/linux/x64/bin/cmake -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
+CMAKE_SOURCE_DIR = /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"
+CMAKE_BINARY_DIR = /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug
 
 # Include any dependencies generated for this target.
 include CMakeFiles/CudaProject.dir/depend.make
@@ -70,10 +70,10 @@ include CMakeFiles/CudaProject.dir/progress.make
 include CMakeFiles/CudaProject.dir/flags.make
 
 CMakeFiles/CudaProject.dir/main.cu.o: CMakeFiles/CudaProject.dir/flags.make
-CMakeFiles/CudaProject.dir/main.cu.o: /home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/main.cu
+CMakeFiles/CudaProject.dir/main.cu.o: /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main.cu
 CMakeFiles/CudaProject.dir/main.cu.o: CMakeFiles/CudaProject.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Building CUDA object CMakeFiles/CudaProject.dir/main.cu.o"
-	/usr/local/cuda-12.1/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/CudaProject.dir/main.cu.o -MF CMakeFiles/CudaProject.dir/main.cu.o.d -x cu -rdc=true -c "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main.cu" -o CMakeFiles/CudaProject.dir/main.cu.o
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CUDA object CMakeFiles/CudaProject.dir/main.cu.o"
+	/usr/local/cuda-12.1/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/CudaProject.dir/main.cu.o -MF CMakeFiles/CudaProject.dir/main.cu.o.d -x cu -rdc=true -c /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main.cu -o CMakeFiles/CudaProject.dir/main.cu.o
 
 CMakeFiles/CudaProject.dir/main.cu.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CUDA source to CMakeFiles/CudaProject.dir/main.cu.i"
@@ -84,10 +84,10 @@ CMakeFiles/CudaProject.dir/main.cu.s: cmake_force
 	$(CMAKE_COMMAND) -E cmake_unimplemented_variable CMAKE_CUDA_CREATE_ASSEMBLY_SOURCE
 
 CMakeFiles/CudaProject.dir/main-cleaned.cu.o: CMakeFiles/CudaProject.dir/flags.make
-CMakeFiles/CudaProject.dir/main-cleaned.cu.o: /home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/main-cleaned.cu
+CMakeFiles/CudaProject.dir/main-cleaned.cu.o: /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main-cleaned.cu
 CMakeFiles/CudaProject.dir/main-cleaned.cu.o: CMakeFiles/CudaProject.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Building CUDA object CMakeFiles/CudaProject.dir/main-cleaned.cu.o"
-	/usr/local/cuda-12.1/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/CudaProject.dir/main-cleaned.cu.o -MF CMakeFiles/CudaProject.dir/main-cleaned.cu.o.d -x cu -rdc=true -c "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main-cleaned.cu" -o CMakeFiles/CudaProject.dir/main-cleaned.cu.o
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CUDA object CMakeFiles/CudaProject.dir/main-cleaned.cu.o"
+	/usr/local/cuda-12.1/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/CudaProject.dir/main-cleaned.cu.o -MF CMakeFiles/CudaProject.dir/main-cleaned.cu.o.d -x cu -rdc=true -c /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main-cleaned.cu -o CMakeFiles/CudaProject.dir/main-cleaned.cu.o
 
 CMakeFiles/CudaProject.dir/main-cleaned.cu.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CUDA source to CMakeFiles/CudaProject.dir/main-cleaned.cu.i"
@@ -111,7 +111,7 @@ CMakeFiles/CudaProject.dir/cmake_device_link.o: CMakeFiles/CudaProject.dir/build
 CMakeFiles/CudaProject.dir/cmake_device_link.o: CMakeFiles/CudaProject.dir/deviceLinkLibs.rsp
 CMakeFiles/CudaProject.dir/cmake_device_link.o: CMakeFiles/CudaProject.dir/deviceObjects1
 CMakeFiles/CudaProject.dir/cmake_device_link.o: CMakeFiles/CudaProject.dir/dlink.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_3) "Linking CUDA device code CMakeFiles/CudaProject.dir/cmake_device_link.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CUDA device code CMakeFiles/CudaProject.dir/cmake_device_link.o"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/CudaProject.dir/dlink.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -133,7 +133,7 @@ CudaProject: CMakeFiles/CudaProject.dir/cmake_device_link.o
 CudaProject: CMakeFiles/CudaProject.dir/linkLibs.rsp
 CudaProject: CMakeFiles/CudaProject.dir/objects1
 CudaProject: CMakeFiles/CudaProject.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_4) "Linking CUDA executable CudaProject"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CUDA executable CudaProject"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/CudaProject.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -145,6 +145,6 @@ CMakeFiles/CudaProject.dir/clean:
 .PHONY : CMakeFiles/CudaProject.dir/clean
 
 CMakeFiles/CudaProject.dir/depend:
-	cd "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug" && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject" "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject" "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug" "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug" "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/CudaProject.dir/DependInfo.cmake" --color=$(COLOR)
+	cd /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/CudaProject.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/CudaProject.dir/depend
 

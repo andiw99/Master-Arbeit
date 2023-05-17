@@ -8,8 +8,8 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main-cleaned.cu" "CMakeFiles/CudaProject.dir/main-cleaned.cu.o" "gcc" "CMakeFiles/CudaProject.dir/main-cleaned.cu.o.d"
-  "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main.cu" "CMakeFiles/CudaProject.dir/main.cu.o" "gcc" "CMakeFiles/CudaProject.dir/main.cu.o.d"
+  "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main-cleaned.cu" "CMakeFiles/CudaProject.dir/main-cleaned.cu.o" "gcc" "CMakeFiles/CudaProject.dir/main-cleaned.cu.o.d"
+  "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main.cu" "CMakeFiles/CudaProject.dir/main.cu.o" "gcc" "CMakeFiles/CudaProject.dir/main.cu.o.d"
   )
 
 # Targets to which this target links.

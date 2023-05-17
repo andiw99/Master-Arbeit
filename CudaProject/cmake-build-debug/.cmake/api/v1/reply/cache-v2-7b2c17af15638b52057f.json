@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"
+			"value" : "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -151,7 +151,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/235/bin/cmake/linux/x64/bin/cmake"
+			"value" : "/snap/clion/237/bin/cmake/linux/x64/bin/cmake"
 		},
 		{
 			"name" : "CMAKE_CPACK_COMMAND",
@@ -163,7 +163,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/235/bin/cmake/linux/x64/bin/cpack"
+			"value" : "/snap/clion/237/bin/cmake/linux/x64/bin/cpack"
 		},
 		{
 			"name" : "CMAKE_CTEST_COMMAND",
@@ -175,7 +175,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/235/bin/cmake/linux/x64/bin/ctest"
+			"value" : "/snap/clion/237/bin/cmake/linux/x64/bin/ctest"
 		},
 		{
 			"name" : "CMAKE_CUDA_FLAGS",
@@ -207,7 +207,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "-g"
+			"value" : ""
 		},
 		{
 			"name" : "CMAKE_CUDA_FLAGS_MINSIZEREL",
@@ -223,7 +223,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "-O1 -DNDEBUG"
+			"value" : ""
 		},
 		{
 			"name" : "CMAKE_CUDA_FLAGS_RELEASE",
@@ -239,7 +239,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "-O3 -DNDEBUG"
+			"value" : ""
 		},
 		{
 			"name" : "CMAKE_CUDA_FLAGS_RELWITHDEBINFO",
@@ -255,7 +255,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "-O2 -g -DNDEBUG"
+			"value" : ""
 		},
 		{
 			"name" : "CMAKE_DLLTOOL",
@@ -283,7 +283,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "ELF"
+			"value" : "Unknown"
 		},
 		{
 			"name" : "CMAKE_EXE_LINKER_FLAGS",
@@ -403,7 +403,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/pkgRedirects"
+			"value" : "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CMakeFiles/pkgRedirects"
 		},
 		{
 			"name" : "CMAKE_GENERATOR",
@@ -463,7 +463,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
+			"value" : "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
 		},
 		{
 			"name" : "CMAKE_INSTALL_PREFIX",
@@ -751,7 +751,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/235/bin/cmake/linux/x64/share/cmake-3.25"
+			"value" : "/snap/clion/237/bin/cmake/linux/x64/share/cmake-3.25"
 		},
 		{
 			"name" : "CMAKE_SHARED_LINKER_FLAGS",
@@ -999,7 +999,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"
+			"value" : "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"
 		},
 		{
 			"name" : "CudaProject_IS_TOP_LEVEL",
@@ -1023,7 +1023,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
+			"value" : "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
 		},
 		{
 			"name" : "ProcessorCount_cmd_nproc",

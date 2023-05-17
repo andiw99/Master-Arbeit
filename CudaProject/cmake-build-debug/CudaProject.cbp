@@ -8,71 +8,71 @@
 		<Option virtualFolders="CMake Files\;"/>
 		<Build>
 			<Target title="all">
-				<Option working_dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
+				<Option working_dir="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
 				<Option type="4"/>
 				<MakeCommands>
-					<Build command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
-					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 			<Target title="CudaProject">
-				<Option output="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CudaProject" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
+				<Option output="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CudaProject" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler/>
 				<MakeCommands>
-					<Build command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 CudaProject"/>
-					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 CudaProject"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 			<Target title="CudaProject/fast">
-				<Option output="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug/CudaProject" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
+				<Option output="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/CudaProject" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler/>
 				<MakeCommands>
-					<Build command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 CudaProject/fast"/>
-					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 CudaProject/fast"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 			<Target title="edit_cache">
-				<Option working_dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
+				<Option working_dir="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
 				<Option type="4"/>
 				<MakeCommands>
-					<Build command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
-					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 			<Target title="rebuild_cache">
-				<Option working_dir="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
+				<Option working_dir="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug"/>
 				<Option type="4"/>
 				<MakeCommands>
-					<Build command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
-					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/andi/Studium/Master-Arbeit\ Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main-cleaned.cu">
+		<Unit filename="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main-cleaned.cu">
 			<Option target="CudaProject"/>
 		</Unit>
-		<Unit filename="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/main.cu">
+		<Unit filename="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/main.cu">
 			<Option target="CudaProject"/>
 		</Unit>
-		<Unit filename="/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/CMakeLists.txt">
+		<Unit filename="/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
 	</Project>

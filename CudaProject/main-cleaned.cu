@@ -252,7 +252,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
 
     int             end_t = 2000;
     int             t_relax = 50;                     // approximate time where system is relaxed, probably math to approximate?
-    double dt_max =  0.005;
+    double dt_max =  0.001;                             // max dt of 0.005 was to high
     double dt_start = 0.0001;
     double dt = dt_start;
     int steps = (int)(t_relax / dt_start + (end_t - t_relax) / dt_max);
@@ -266,7 +266,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     const size_t    lattice_dim = 100;
     const size_t    n = lattice_dim * lattice_dim;
     const size_t    N = 2;
-    int             repeat_nr = 10;
+    int             repeat_nr = 5;
 
     const vector<double> T = linspace(5.0, 7.0, nr_temps + 1);
 
@@ -274,7 +274,6 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     end_t = (end_t_val == 0) ? end_t : end_t_val;
 
     map<string, double> paras;
-
     paras["steps"] = steps;
     paras["end_t"] = end_t;
     paras["t_relax"] = t_relax;

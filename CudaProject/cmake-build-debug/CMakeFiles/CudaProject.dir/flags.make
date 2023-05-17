@@ -6,5 +6,5 @@ CUDA_DEFINES =
 
 CUDA_INCLUDES = 
 
-CUDA_FLAGS = -g --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++20
+CUDA_FLAGS =  --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++20
 
