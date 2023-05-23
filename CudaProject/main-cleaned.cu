@@ -164,8 +164,12 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
         }
         // calculate the energy and print it
         double E = gpu_system.calc_energy(x);
+        double Ekin = gpu_system.calc_kinetic_energy(x);
+        double Epot = gpu_system.calc_potential_energy(x);
         cout << "Energy of the System: " << E << endl;
         cout << "Theoretical Energy: " << (double)N * T << endl;
+        cout << "kinetic Energy of the System: " << Ekin << endl;
+        cout << "potential Energy of the System: " << Epot << endl;
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         for( size_t i=0 ; i<steps ; ++i ) {

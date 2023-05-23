@@ -667,6 +667,28 @@ public:
         }
         return E;
     }
+
+    template<class State>
+    double calc_kinetic_energy(const State &x) {
+        double Ekin = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add kinetic energy
+            Ekin += 1/2 * x[i + n] * x[i + n];
+        }
+        return Ekin;
+    }
+
+    template<class State>
+    double calc_potential_energy(const State &x) {
+        double Epot = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add kinetic energy
+            Epot += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
+
+        }
+        return Epot;
+    }
+
 };
 
 
