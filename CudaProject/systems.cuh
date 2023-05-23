@@ -534,7 +534,7 @@ public:
 
 
 template <size_t lat_dim>
-struct quadratic_chain : public System<lat_dim> {
+struct quadratic_chain {
 public:
     const double eta;
     const double J;

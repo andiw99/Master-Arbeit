@@ -69,7 +69,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     const double p0 = parameters["p0"];
 
 
-    const           size_t n = lattice_dim * lattice_dim;
+    const           size_t n = lattice_dim;
 
     size_t write_every = steps / nr_save_values;
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
@@ -138,6 +138,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
 
 
     // i THINK we will do the ugly way here until we understand polymorphism
+    cout << "creating System " << system << endl;
     if (system == "constant") {
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
@@ -153,7 +154,8 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
             Obs(gpu_system, x, t);
             t += dt;
         }
-    } else if(system == "quadratic chain") {
+    } else if(system == "quadratic_chain") {
+        cout << "creating quadratic chain obj" << endl;
         quadratic_chain<lattice_dim> gpu_system(T, eta, J, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
             gpu_stepper.do_step(gpu_system, x, dt, t);
@@ -215,7 +217,7 @@ int single_calc_routine(long seed = 0, string system="default", string save_dir=
     paras["beta"] = 10;
     paras["tau"] = 10;
     paras["eta"] = 1.2;
-    paras["N"] = 32;
+    paras["N"] = 2;
     paras["nr_save_values"] = 250;
     paras["x0"] = 0;
     paras["p0"] = 0;
@@ -257,7 +259,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const string& root_val = "", double mu = 0, double sigma=1) {
 
-    string root = "../../Generated content/New Scan/";
+    string root = "../../Generated content/Adaptive Stepsize 2/";
     root = (root_val.empty()) ? root : root_val;
     // make sure root exists
 
@@ -279,7 +281,9 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     const size_t    N = 2;
     int             repeat_nr = 5;
 
+
     const vector<double> T = linspace(5.0, 7.0, nr_temps + 1);
+
 
     steps = (steps_val == 0) ? steps : steps_val;
     end_t = (end_t_val == 0) ? end_t : end_t_val;
@@ -298,6 +302,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     paras["lattice_dim"] = lattice_dim;
     paras["N"] = N;
     paras["nr_save_values"] = nr_save_values;
+
 
 
     print_vector(T);
@@ -359,9 +364,9 @@ void quadratic_chain_routine() {
 
 
 int main() {
-    scan_temps_routine();
+    // scan_temps_routine();
     // convergence_check_oscillatorchain();
-
+    quadratic_chain_routine();
 
 
     // single_calc_routine();

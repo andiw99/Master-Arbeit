@@ -177,6 +177,48 @@ public:
     }
 };
 
+// Observer for lattic on bath specific for gpu_bath system?
+class chain_observer : public observer {
+    // this one has a filestream
+    ofstream& file;
+    // and a write_every
+    const size_t write_every;
+    // and a count? Is that all efficient?
+    size_t count;
+
+public:
+    chain_observer(ofstream& out, size_t write_every = 1000) : file(out), write_every(write_every) {
+        count = 1;
+    }
+
+    template<class State, class System>
+    void operator()(const System sys, const State &x , double t ) {
+        // so i think if statements are not to costly on c++
+        if (count % write_every == 0 || count == 1) {
+            // now we write the state to the file
+            // i call a function here that would not be available for all Systems, not to clean and a bit fishy
+            // but i guess it works for now
+            size_t lat_dim = sys.get_lattice_dim();
+            double T = sys.get_cur_T();
+
+            // writing, but only q for the moment
+            file << "t, " << t << ",";
+            for(int i = 0; i < lat_dim; i++) {
+                file << x[i] << ",";
+                // cout << x[i] << endl;
+
+            }
+            // for the last we write T? I mean thats how i did it, right?
+            // Temperatur saven
+            file << T;
+
+            // Zeilenumbruch
+            file << "\n";
+        }
+        count++;
+    }
+};
+
 /*
  * We start with the stepper, this stepper has to be templated since we want to exchange the container for our state type
  * We also template the 'Algebra' that outsources the iteration through my lattice sites?
