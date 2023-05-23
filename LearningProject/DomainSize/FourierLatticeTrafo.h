@@ -337,14 +337,19 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
     // find out the lattice spacings a_x = x_1 - x_0
     double ax = q[0][1][0] - q[0][0][0];
     double ay = q[1][0][1] - q[0][0][1];
-    for(int i = 1 - K; i <= N-K; i++) {
-        for(int j = 1 - K; j <= N-K; j++) {
-            int i_ind = i + K - 1;
-            int j_ind = j + K - 1;
-            double p_i = 2 * M_PI * i / N / ax;
-            double p_j = 2 * M_PI * j / N / ay;
-            p[j_ind][i_ind] = array<double, 2>{p_i, p_j};
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            int i_ft = i < K ? i : i - N;
+            int j_ft = j < K ? j : j - N;
+            double p_i = 2 * M_PI * (double)i_ft / N / ax;
+            double p_j = 2 * M_PI * (double)j_ft / N / ay;
+            p[i][j] = array<double, 2>{p_i, p_j};
+            if (i == 0) {
+                cout << i << endl;
+                cout << "in loop" << p[j][i][0] << endl;
+            }
         }
+        cout << p[0][i][0] << endl;
     }
 }
 

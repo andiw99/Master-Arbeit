@@ -534,6 +534,197 @@ public:
 
 
 template <size_t lat_dim>
+struct coulomb_interaction : public System<lat_dim> {
+public:
+    const double alpha;
+    const double eta;
+    const double beta;
+    const double J;
+    const double D;
+    // systemsize should probably be a template argument?
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    double T;
+    // parameters of the potential and of the Interaction
+    struct coulomb_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, beta, J, eta;
+
+        coulomb_functor(const double eta, const double alpha,
+                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ double coulomb_interaction(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+
+            return J * (
+                    ((q - q_left) / pow(1.0 + (q - q_left) * (q - q_left), 1.5))
+                    +   ((q - q_right) / pow(1.0 + (q - q_right) * (q - q_right), 1.5))
+                    +   ((q - q_up) / pow(1.0 + (q - q_up) * (q - q_up), 1.5))
+                    +   ((q - q_down) / pow(1.0 + (q - q_down) * (q - q_down), 1.5))
+            );
+        }
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
+                                    - coulomb_interaction(tup);       // Interaction
+        }
+    };
+
+    struct rand
+    {
+        double mu, sigma, D;
+
+        __host__ __device__
+        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<double> dist(mu, sigma);
+            rng.discard(ind);
+
+            return D * dist(rng);
+        }
+    };
+    struct left : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // Here we implement logic that return the index of the left neighbor
+            // we have to think about that we are actually in 2D and i guess we want to use PBC?
+            // so we have to know the system size
+            // would we do that with a template oder with a attribute?
+            // Another thing is how to implement the logic
+            // with modulo we don't need any logic but will this be faster?
+            // lat_dim is the sqrt of n
+            // size_t j;
+            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
+            // if i is on the left side of the lattice, i % lat_dim = 0
+            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+
+            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+        }
+    };
+
+    struct right : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i+1, expect when i is on the right side of the lattice
+            // if i is on the right side of the lattice, j is i - (d - 1)
+            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
+
+            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
+        }
+    };
+
+    struct up : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i - d, except when i is on the upper bound of the lattice
+            // if it is on the upper bound, j will be i + d(d-1)
+            // if i is on the upper bound, i will be smaller than d
+            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
+        }
+    };
+
+    struct down : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // j is always i + d, except when i is on the lower bound of the lattice
+            // if it is on the lower bound, j will be i - d(d-1)
+            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
+            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
+        }
+    };
+
+    template<class State, class Deriv, class Stoch>
+    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down()
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, coulomb_functor(eta, alpha, beta, J));
+        step_nr++;
+        // cout << "x[1] = " << x[1] << endl;
+        // the problem is here, actually dxdt[0] = x[1] should be
+        // somehow dxdt is not set but i dont really get why
+        // cout << "dxdt[0] = " << dxdt[0] << endl;
+    }
+public:
+    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+    }
+
+    double get_cur_T() const{
+        return T;
+    }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+};
+
+
+template <size_t lat_dim>
 struct quadratic_chain {
 public:
     const double eta;
@@ -645,7 +836,7 @@ public:
     }
 public:
     quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
-            : T(T), step_nr(init_step), n(lat_dim ), eta(eta), J(J), D(sqrt(2 * T * eta)) {
+            : T(T), step_nr(init_step), n(lat_dim), eta(eta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{
@@ -688,7 +879,15 @@ public:
         }
         return Epot;
     }
-
+    template<class State>
+    double calc_total_squared_dist(const State &x) {
+        double d2 = 0;
+        for(int i = 0; i < lat_dim - 1; i++) {
+            // add kinetic energy
+            d2 += (x[i] - x[i + 1]) * (x[i] - x[i + 1]);
+        }
+        return d2;
+    }
 };
 
 

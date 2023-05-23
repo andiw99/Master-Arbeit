@@ -51,10 +51,8 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     // and now we do the stuff we did all the time?
     // read last line and put it into a 2D vector
     double T;
-    cout << "before reading in the last values" << endl;
     vector<complex<double>> values = readLastValues(file, T);
     vector<vector<complex<double>>> f = oneD_to_twoD(values);
-    cout << "after reading in the last values" << endl;
 
     // init the empty arrays for the fftw
     fftw_complex f_fftw[N][N], ft_fftw[N][N];
@@ -64,7 +62,6 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     fftw_plan plan2d;
     plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
     fftw_execute(plan2d);
-    cout << "Executed the plan" << endl;
 
     // now we got to calculate the avg abs squared for every row and col and add them to ft_avg_y and ft_avg_x
     average_and_add(ft_fftw, ft_squared_y, ft_squared_x);
@@ -79,7 +76,7 @@ int main() {
     // lattice dim
     const int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/New Scan/";
+    fs::path root = "../../../Generated content/Adaptive Stepsize 2/";
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 
@@ -116,16 +113,20 @@ int main() {
         ofile.open(writepath);
         ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
         cout << lat_dim << endl;
-        for(int i = 0; i<lat_dim; i++) {
+        for(int j = 0; j<lat_dim; j++) {
             // so px(i) is just the p_x value of every entry of p of the i-th col
             // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
             // px = p[0][i][0]
             // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
             // py = p[i][0][1]
-            ofile <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i];
-            cout <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i] << endl;
+            int K = lat_dim/2;
+            int i = (j + K < lat_dim) ? j + K : j - K;
+
+
+            ofile <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i];
+            cout <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i] << endl;
             cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
-            if(i < lat_dim - 1) {
+            if(j < lat_dim - 1) {
                 ofile << endl;
             }
         }

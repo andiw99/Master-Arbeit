@@ -166,10 +166,13 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
         double E = gpu_system.calc_energy(x);
         double Ekin = gpu_system.calc_kinetic_energy(x);
         double Epot = gpu_system.calc_potential_energy(x);
+        double d2 = gpu_system.calc_total_squared_dist(x);
         cout << "Energy of the System: " << E << endl;
-        cout << "Theoretical Energy: " << (double)N * T << endl;
+        cout << "Theoretical Energy: " << (double)lattice_dim * T << endl;
         cout << "kinetic Energy of the System: " << Ekin << endl;
         cout << "potential Energy of the System: " << Epot << endl;
+        cout << "total squared dist: " << d2 << endl;
+        cout << "theoretical total squared dist: " << (double)lattice_dim * T / J;
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
