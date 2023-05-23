@@ -534,6 +534,143 @@ public:
 
 
 template <size_t lat_dim>
+struct quadratic_chain : public System<lat_dim> {
+public:
+    const double eta;
+    const double J;
+    const double D;
+    // systemsize should probably be a template argument?
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    double T;
+    // parameters of the potential and of the Interaction
+    struct functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double J, eta;
+
+        functor(const double eta, const double J) : J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+
+
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                      - J * ((q - q_left) + (q - q_right));       // Interaction
+        }
+    };
+
+    struct rand
+    {
+        double mu, sigma, D;
+
+        __host__ __device__
+        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<double> dist(mu, sigma);
+            rng.discard(ind);
+
+            return D * dist(rng);
+        }
+    };
+    struct left : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // if we are at the left end of our chain, we need to use the right end as left neighbor
+            return (i == 0) ? i + lat_dim - 1 : i - 1;
+        }
+    };
+
+    struct right : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            return (i == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
+        }
+    };
+
+
+    template<class State, class Deriv, class Stoch>
+    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right()
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor(eta, J));
+        step_nr++;
+        // cout << "x[1] = " << x[1] << endl;
+        // the problem is here, actually dxdt[0] = x[1] should be
+        // somehow dxdt is not set but i dont really get why
+        // cout << "dxdt[0] = " << dxdt[0] << endl;
+    }
+public:
+    quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
+            : T(T), step_nr(init_step), n(lat_dim ), eta(eta), J(J), D(sqrt(2 * T * eta)) {
+    }
+
+    double get_cur_T() const{
+        return T;
+    }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
+    template<class State>
+    double calc_energy(const State &x) {
+        double E = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add potential energy
+            E += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
+            // add kinetic energy
+            E += 1/2 * x[i + n] * x[i + n];
+        }
+        return E;
+    }
+};
+
+
+template <size_t lat_dim>
 struct gpu_oscillator_chain {
 public:
     const double T;

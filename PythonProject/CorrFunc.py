@@ -18,7 +18,7 @@ def fit_exp(r, C, func=exp):
 
 
 def main():
-    root = "../../Generated content/New Scan/"
+    root = "../../Generated content/Adaptive Stepsize 2/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
