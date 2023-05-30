@@ -8,45 +8,6 @@
 #include <map>
 
 
-struct rand_init_values
-{
-    double mu, sigma, ampl;
-
-    __host__ __device__
-    rand_init_values(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
-
-    __host__ __device__
-    float operator()(const unsigned int ind) const
-    {
-        thrust::default_random_engine rng;
-        thrust::normal_distribution<double> dist(mu, sigma);
-        rng.discard(ind);
-
-        // dist * ampl zu returnen ist wie... aus dist mit std ampl zu ziehen: b * N(m, o) = N(m, b*o)
-
-        return ampl * dist(rng);
-    }
-};
-
-template <size_t n>
-void fill_init_values(thrust::device_vector<double>& state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
-    cout << "do i get called?  " << x0 << endl;
-    thrust::counting_iterator<size_t> index_sequence_begin(run * state.size());
-    // thrust::fill(theta.begin(), theta.begin() + n, 0);
-    // n is system size
-    // fill the starting positions
-    thrust::transform(index_sequence_begin,
-                      index_sequence_begin + n,
-                      state.begin(),
-                      rand_init_values(x0, mu, sigma));
-    // fill starting impulses
-    thrust::transform(index_sequence_begin + n,
-                      index_sequence_begin + 2*n,
-                      state.begin() + n,
-                      rand_init_values(p0, mu, sigma));
-}
-
-
 template <size_t lattice_dim>
 int single_calc_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "") {
     // We try out the code for the brownian motion i would say
