@@ -370,6 +370,8 @@ void print_vector(std::vector<double> vec)
     std::cout << std::endl;
 }
 
+double testvariable = 2.0;
+
 struct rand_init_values
 {
     double mu, sigma, ampl;

@@ -3,6 +3,7 @@
 //
 #include "main.cuh"
 #include "systems.cuh"
+#include "parameters.cuh"
 #include <numeric>
 #include <chrono>
 #include <map>
@@ -15,7 +16,6 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
 //
 // Created by andi on 21.04.23.
     // But we can quickly write another system i guess
-
     const int       steps = (int)parameters["steps"];
     double    dt = parameters["dt"];
     const double    T = parameters["T"];
@@ -28,8 +28,6 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     const int       nr_save_values = (int)parameters["nr_save_values"];
     const double x0 = parameters["x0"];
     const double p0 = parameters["p0"];
-
-
     const           size_t n = lattice_dim;
 
     size_t write_every = steps / nr_save_values;
@@ -62,37 +60,21 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     typedef thrust::device_vector<double> gpu_state_type;
     euler_mayurama_stepper<gpu_state_type, thrust_algebra, thrust_operations > gpu_stepper(N * n);
 
-    // initialize the system...
-    // ugly af
-    // TODO this won't work again probalby?
-/*    System<lattice_dim>* gpu_system;
-    if(system == "default") {
-        gpu_system = new gpu_bath<lattice_dim>(T, eta, alpha, beta, J, tau, seed);
-    } else if (system == "constant") {
-        gpu_system = new constant_bath<lattice_dim>(T, eta, alpha, beta, J, seed);
-    } else {
-        throw runtime_error("invalid system name");
-    }*/
+    // init and print initial state
 
-
-    // gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau);
-    // constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J);
-    // gpu_oscillator_chain<lattice_dim> gpu_system(T, eta, alpha);
-    // this state type sets x and p to be x0, meaning 100 in our case.
     gpu_state_type x(N * n, x0);
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    fill_init_values<n>(x, (float)x0, (float)p0);
-    for(int i = 0; i < n; i++) {
+    fill_init_values<n>(x, (float) x0, (float) p0);
+    for (int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
     }
     cout << "Initial values:" << endl;
     cout << mu / (n) << endl;
     cout << msd / (n) << endl;
-    mu = 0;
-    msd = 0;
+
 
     auto start = chrono::high_resolution_clock::now();
     double t = 0;
@@ -115,7 +97,8 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
             Obs(gpu_system, x, t);
             t += dt;
         }
-    } else if(system == "quadratic_chain") {
+    }
+    else if(system == "quadratic_chain") {
         cout << "creating quadratic chain obj" << endl;
         quadratic_chain<lattice_dim> gpu_system(T, eta, J, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
@@ -124,16 +107,18 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
             t += dt;
         }
         // calculate the energy and print it
-        double E = gpu_system.calc_energy(x);
-        double Ekin = gpu_system.calc_kinetic_energy(x);
-        double Epot = gpu_system.calc_potential_energy(x);
-        double d2 = gpu_system.calc_total_squared_dist(x);
-        cout << "Energy of the System: " << E << endl;
-        cout << "Theoretical Energy: " << (double)lattice_dim * T << endl;
-        cout << "kinetic Energy of the System: " << Ekin << endl;
-        cout << "potential Energy of the System: " << Epot << endl;
-        cout << "total squared dist: " << d2 << endl;
-        cout << "theoretical total squared dist: " << (double)lattice_dim * T / J;
+        {
+            double E = gpu_system.calc_energy(x);
+            double Ekin = gpu_system.calc_kinetic_energy(x);
+            double Epot = gpu_system.calc_potential_energy(x);
+            double d2 = gpu_system.calc_total_squared_dist(x);
+            cout << "Energy of the System: " << E << endl;
+            cout << "Theoretical Energy: " << (double) lattice_dim * T << endl;
+            cout << "kinetic Energy of the System: " << Ekin << endl;
+            cout << "potential Energy of the System: " << Epot << endl;
+            cout << "total squared dist: " << d2 << endl;
+            cout << "theoretical total squared dist: " << (double) lattice_dim * T / J;
+        }
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
@@ -142,53 +127,38 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
             t += dt;
         }
     }
-/*    for( size_t i=0 ; i<steps ; ++i ) {
-        gpu_stepper.do_step(*gpu_system, x, dt, t);
-        Obs(*gpu_system, x, t);
-        t += dt;
-    }*/
 
     write_parameters(parafile, eta, T, dt, n, alpha, beta, J, tau);
 
-    file.close();
-    auto end = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    cout << "execution took " << duration.count() << "ms, meaning " <<
-         duration.count() * 1000/(steps) << "ms per 1000 steps." << endl;
-    cout << "for a " << lattice_dim << " by " << lattice_dim << " lattice." << endl;
-    // print this shit
-    // TODO we could use this reduction stuff to compute the moments
-    mu = 0;
-    msd = 0;
-    for(int i = 0; i < n; i++) {
-        mu += x[i];
-        msd += x[i] * x[i];
-    }
-    mu /= n;
-    msd /= n;
+    // print stuff
+    {
+        file.close();
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        cout << "execution took " << duration.count() << "ms, meaning " <<
+             duration.count() * 1000/(steps) << "ms per 1000 steps." << endl;
+        cout << "for a " << lattice_dim << " by " << lattice_dim << " lattice." << endl;
+        // print this shit
+        // TODO we could use this reduction stuff to compute the moments
+        mu = 0;
+        msd = 0;
+        for(int i = 0; i < n; i++) {
+            mu += x[i];
+            msd += x[i] * x[i];
+        }
+        mu /= n;
+        msd /= n;
 
-    cout << "mu = " << mu << endl;
-    cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
-    return steps;
+        cout << "mu = " << mu << endl;
+        cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
+        return steps;
+    }
 }
 
 template <size_t lattice_dim>
 int single_calc_routine(long seed = 0, string system="default", string save_dir="") {
-    map<string, double> paras;
 
-    // Adding key-value pairs to the map
-    paras["steps"] = (double) 100000;
-    paras["dt"] = 0.001;
-    paras["T"] = 30;
-    paras["J"] = 10;
-    paras["alpha"] = 5;
-    paras["beta"] = 10;
-    paras["tau"] = 10;
-    paras["eta"] = 1.2;
-    paras["N"] = 2;
-    paras["nr_save_values"] = 250;
-    paras["x0"] = 0;
-    paras["p0"] = 0;
+    map<string, double> paras = single_calc_standard;
 
     return single_calc_routine<lattice_dim>(paras, seed, system, save_dir);
 }
@@ -229,64 +199,29 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
 
     string root = "../../Generated content/Adaptive Stepsize 2/";
     root = (root_val.empty()) ? root : root_val;
-    // make sure root exists
+    create_dir(root);
 
-    int             end_t = 2000;
-    int             t_relax = 50;                     // approximate time where system is relaxed, probably math to approximate?
-    double dt_max =  0.001;                             // max dt of 0.005 was to high
-    double dt_start = 0.0001;
-    double dt = dt_start;
-    int steps = (int)(t_relax / dt_start + (end_t - t_relax) / dt_max);
-    const int       nr_temps = 40;
-    const double    J = 2;
-    const double    alpha = 1;
-    const double    beta = 10;
-    const double    tau = 10;
-    const double    eta = 0.2;
-    const int       nr_save_values = 32;
-    const size_t    lattice_dim = 100;
-    const size_t    n = lattice_dim * lattice_dim;
-    const size_t    N = 2;
-    int             repeat_nr = 5;
+    const size_t lattice_dim = 100;
 
 
-    const vector<double> T = linspace(5.0, 7.0, nr_temps + 1);
+    double t_relax = temp_scan_standard["t_relax"];
+    int end_t = (end_t_val == 0) ? (int)temp_scan_standard["end_t"] : end_t_val;
 
+    map<string, double> paras = temp_scan_standard;
 
-    steps = (steps_val == 0) ? steps : steps_val;
-    end_t = (end_t_val == 0) ? end_t : end_t_val;
+    int steps = (int)(t_relax / temp_scan_standard["dt_start"] + (end_t - t_relax) / temp_scan_standard["dt_start"]);
 
-    map<string, double> paras;
     paras["steps"] = steps;
-    paras["end_t"] = end_t;
-    paras["t_relax"] = t_relax;
-    paras["dt"] = dt_start;
-    paras["dt_max"] = dt_max;
-    paras["J"] = J;
-    paras["alpha"] = alpha;
-    paras["beta"] = beta;
-    paras["tau"] = tau;
-    paras["eta"] = eta;
-    paras["lattice_dim"] = lattice_dim;
-    paras["N"] = N;
-    paras["nr_save_values"] = nr_save_values;
+    paras["dt"] = temp_scan_standard["dt_start"];
 
-
+    const vector<double> T = linspace(5.0, 7.0, (int)temp_scan_standard["nr_temps"] + 1);
 
     print_vector(T);
 
-
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
-    cout << "Stepsize is dt = " << dt << endl;
-    const double x0 = 8.0;
-    const double p0 = 8.0;
-    paras["x0"] = x0;
-    paras["p0"] = p0;
+    cout << "Stepsize is dt = " << paras["dt"] << endl;
 
-    create_dir(root);
 
-    // stepper will be the same for all temps
-    euler_mayurama_stepper<gpu_state_type, thrust_algebra, thrust_operations > gpu_stepper(N * n);
 
     // keep track at which
     int count = 0;
@@ -297,7 +232,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
         string dirpath = root + "/" + to_string(temp);
         // we could repeat?
         // we need a new observer with a file name
-        repeat<lattice_dim>(paras, repeat_nr, 0, "constant", dirpath);
+        repeat<lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
         count++;
     }
 }
