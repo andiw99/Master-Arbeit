@@ -107,6 +107,11 @@ public:
 
 template <size_t lat_dim>
 struct gpu_bath : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double T_start;
     const double alpha;
@@ -190,69 +195,6 @@ public:
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
-        }
-    };
-
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
         }
     };
 
@@ -360,6 +302,11 @@ public:
 
 template <size_t lat_dim>
 struct constant_bath : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double eta;
@@ -402,68 +349,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
@@ -536,6 +421,11 @@ public:
 
 template <size_t lat_dim>
 struct coulomb_interaction : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double eta;
@@ -593,68 +483,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
@@ -727,6 +555,7 @@ public:
 
 template <size_t lat_dim>
 struct quadratic_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
     const double eta;
     const double J;
@@ -764,23 +593,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // if we are at the left end of our chain, we need to use the right end as left neighbor
@@ -894,6 +706,7 @@ public:
 
 template <size_t lat_dim>
 struct gpu_oscillator_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
     const double T;
     const double alpha;
@@ -921,24 +734,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    // no neighbors
 
 
     template<class State, class Deriv, class Stoch>
