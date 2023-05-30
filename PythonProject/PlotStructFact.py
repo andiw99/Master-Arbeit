@@ -14,8 +14,19 @@ def fit_lorentz(p, ft):
         # function has form of a delta peak
         # we delete the largest value
         ind = np.argmax(ft)
-        ft = np.delete(ft, ind)
-        p = np.delete(p, ind)
+
+        ft = np.insert(ft, ind + 1, 1/2 * ft[ind])
+        ft = np.insert(ft, ind, 1 / 2 * ft[ind])
+        p = np.insert(p, ind + 1, p[ind] + 1/2 * p[ind + 1])
+        p = np.insert(p, ind, (p[ind] + 1 / 2 * p[ind-1]))
+
+        #ft = np.delete(ft, ind)
+        #p = np.delete(p, ind)
+        print("had to insert values")
+        print(p)
+
+        # maybe not cut off the maximum but insert values?
+
         return fit_lorentz(p, ft)
     return popt
 
@@ -23,7 +34,6 @@ def plot_struct_func(px, py, fx, fy):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     axx = axes[0]
     axy = axes[1]
-
 
     axx.plot(px, fx, ls=" ", marker=".", label="Structure Func")
     axx.set_xlabel(r"$p_x$")
@@ -44,21 +54,27 @@ def analyze(df, parameters=None):
         T = parameters["T"]
 
     px = df["px"]
-    ft_avg_y = df.iloc[:, 1]
-    py = df.iloc[:, 2]
-    ft_avg_x = df.iloc[:, 3]
-
-
     px = np.array(px)
-    px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
+    ft_avg_y = np.array(df.iloc[:, 1])
+
+    py = df.iloc[:, 2]
     py = np.array(py)
-    py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
+    ft_avg_x = np.array(df.iloc[:, 3])
+
+    # sorting
+    #ft_avg_x = ft_avg_x[np.argsort(px)]
+    #px = np.sort(px)
+    #ft_avg_y = ft_avg_y[np.argsort(py)]
+    #py = np.sort(py)
+
+    #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
+    #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
     popt_x = fit_lorentz(px, ft_avg_y)
     popt_y = fit_lorentz(py, ft_avg_x)
-    print("a = %g" % popt_x[0])
-    print("x0 = %g" % popt_x[1])
-    print("gamma = %g" % popt_x[2])
+    #print("a = %g" % popt_x[0])
+    #print("x0 = %g" % popt_x[1])
+    #print("gamma = %g" % popt_x[2])
 
 
     xix = 1 / (np.abs(popt_x[2]) * 2)
@@ -66,25 +82,24 @@ def analyze(df, parameters=None):
     xi = 1 / 2 * (xix + xiy)
 
     # plotting
-    #fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
-    #p = np.linspace(min(px), max(px), px.size)
-    #lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
-    #lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
-#
-    #axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    #axes[1].plot(p, lorentz_y, label="Lorentzian fit")
-#
+    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
+    p = np.linspace(min(px), max(px), px.size)
+    lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
+    lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
+    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+    axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
+    axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
+
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
-    #axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
-    #axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
     #print("Corr Length x:", xix)
     #print("Corr Length y:", xiy)
     return xi, T
 
 
 def main():
-    root = "../../Generated content/New Scan/"
+    root = "../../Generated content/Adaptive Stepsize 2/"
     name = "struct.fact"
     root_dirs = os.listdir(root)
 

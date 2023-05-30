@@ -30,7 +30,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     const double p0 = parameters["p0"];
 
 
-    const           size_t n = lattice_dim * lattice_dim;
+    const           size_t n = lattice_dim;
 
     size_t write_every = steps / nr_save_values;
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
@@ -43,7 +43,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     // file stuff
     string dir_name;
     if(save_dir.empty()) {
-        string storage_root = "../../../Generated content/Constant Bath/";
+        string storage_root = "../../../Generated content/Default/";
         dir_name = create_tree_name(eta, T, dt, n, alpha, beta, J, tau,
                                     storage_root);
     } else {
@@ -99,6 +99,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
 
 
     // i THINK we will do the ugly way here until we understand polymorphism
+    cout << "creating System " << system << endl;
     if (system == "constant") {
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
@@ -114,6 +115,25 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
             Obs(gpu_system, x, t);
             t += dt;
         }
+    } else if(system == "quadratic_chain") {
+        cout << "creating quadratic chain obj" << endl;
+        quadratic_chain<lattice_dim> gpu_system(T, eta, J, seed);
+        for( size_t i=0 ; i<steps ; ++i ) {
+            gpu_stepper.do_step(gpu_system, x, dt, t);
+            Obs(gpu_system, x, t);
+            t += dt;
+        }
+        // calculate the energy and print it
+        double E = gpu_system.calc_energy(x);
+        double Ekin = gpu_system.calc_kinetic_energy(x);
+        double Epot = gpu_system.calc_potential_energy(x);
+        double d2 = gpu_system.calc_total_squared_dist(x);
+        cout << "Energy of the System: " << E << endl;
+        cout << "Theoretical Energy: " << (double)lattice_dim * T << endl;
+        cout << "kinetic Energy of the System: " << Ekin << endl;
+        cout << "potential Energy of the System: " << Epot << endl;
+        cout << "total squared dist: " << d2 << endl;
+        cout << "theoretical total squared dist: " << (double)lattice_dim * T / J;
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         for( size_t i=0 ; i<steps ; ++i ) {
@@ -153,28 +173,28 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
 }
 
 template <size_t lattice_dim>
-int single_calc_routine(long seed = 0) {
+int single_calc_routine(long seed = 0, string system="default", string save_dir="") {
     map<string, double> paras;
 
     // Adding key-value pairs to the map
     paras["steps"] = (double) 100000;
     paras["dt"] = 0.001;
     paras["T"] = 30;
-    paras["J"] = 50;
+    paras["J"] = 10;
     paras["alpha"] = 5;
     paras["beta"] = 10;
     paras["tau"] = 10;
     paras["eta"] = 1.2;
-    paras["N"] = 32;
+    paras["N"] = 2;
     paras["nr_save_values"] = 250;
     paras["x0"] = 0;
     paras["p0"] = 0;
 
-    return single_calc_routine<lattice_dim>(paras, seed);
+    return single_calc_routine<lattice_dim>(paras, seed, system, save_dir);
 }
 
 template <size_t lattice_dim>
-void repeat(int runs, long seed = 0) {
+void repeat(int runs, long seed = 0, string system="default", string save_dir="") {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
         return;
@@ -182,10 +202,10 @@ void repeat(int runs, long seed = 0) {
 
     cout << runs << " runs left" << endl;
 
-    int steps = single_calc_routine<lattice_dim>(seed);
+    int steps = single_calc_routine<lattice_dim>(seed, system, save_dir);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
-    repeat<lattice_dim>(runs - 1, seed + steps);
+    repeat<lattice_dim>(runs - 1, seed + steps, system, save_dir);
 
 }
 
@@ -207,13 +227,13 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const string& root_val = "", double mu = 0, double sigma=1) {
 
-    string root = "../../Generated content/New Scan/";
+    string root = "../../Generated content/Adaptive Stepsize 2/";
     root = (root_val.empty()) ? root : root_val;
     // make sure root exists
 
     int             end_t = 2000;
     int             t_relax = 50;                     // approximate time where system is relaxed, probably math to approximate?
-    double dt_max =  0.005;
+    double dt_max =  0.001;                             // max dt of 0.005 was to high
     double dt_start = 0.0001;
     double dt = dt_start;
     int steps = (int)(t_relax / dt_start + (end_t - t_relax) / dt_max);
@@ -227,15 +247,16 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     const size_t    lattice_dim = 100;
     const size_t    n = lattice_dim * lattice_dim;
     const size_t    N = 2;
-    int             repeat_nr = 10;
+    int             repeat_nr = 5;
+
 
     const vector<double> T = linspace(5.0, 7.0, nr_temps + 1);
+
 
     steps = (steps_val == 0) ? steps : steps_val;
     end_t = (end_t_val == 0) ? end_t : end_t_val;
 
     map<string, double> paras;
-
     paras["steps"] = steps;
     paras["end_t"] = end_t;
     paras["t_relax"] = t_relax;
@@ -249,6 +270,7 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     paras["lattice_dim"] = lattice_dim;
     paras["N"] = N;
     paras["nr_save_values"] = nr_save_values;
+
 
 
     print_vector(T);
@@ -298,10 +320,21 @@ void convergence_check_oscillatorchain() {
 }
 
 
-int main() {
-    scan_temps_routine();
-    // convergence_check_oscillatorchain();
+void quadratic_chain_routine() {
+    const size_t N = 10000;
+    int runs = 10;
+    string save_dir = "../../Generated content/quadratic chain/";
+    // if we here just use the standard repeat function, we have to set the parameters in the standard single
+    // calc function
+    // TODO this is all not optimal, I need to rewrite this soon
+    repeat<N>(runs, 0, "quadratic_chain", save_dir);
+}
 
+
+int main() {
+    // scan_temps_routine();
+    // convergence_check_oscillatorchain();
+    quadratic_chain_routine();
 
 
     // single_calc_routine();
