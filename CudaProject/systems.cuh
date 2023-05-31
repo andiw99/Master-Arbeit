@@ -335,7 +335,7 @@ public:
 
     void set_rng_end() {
         rng_end = chrono::high_resolution_clock ::now();
-        rng_generation_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        rng_generation_time += std::chrono::duration_cast<std::chrono::microseconds>(
                 rng_end - rng_start).count();
     }
 
@@ -345,13 +345,13 @@ public:
 
     void set_functor_end() {
         functor_end = chrono::high_resolution_clock ::now();
-        functor_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        functor_time += std::chrono::duration_cast<std::chrono::microseconds>(
                 functor_end - functor_start).count();
     }
 
     ~constant_bath_timer() {
-        cout << "RNG took " << (double)rng_generation_time * 0.001 << " us" << endl;
-        cout << "Functor executions took " << (double)functor_time * 0.001 << " us" << endl;
+        cout << "RNG took " << (double)rng_generation_time * 0.001 << " ms" << endl;
+        cout << "Functor executions took " << (double)functor_time * 0.001 << " ms" << endl;
     }
 };
 
