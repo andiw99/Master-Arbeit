@@ -28,7 +28,7 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
     const int       nr_save_values = (int)parameters["nr_save_values"];
     const double x0 = parameters["x0"];
     const double p0 = parameters["p0"];
-    const           size_t n = lattice_dim;
+    const           size_t n = lattice_dim * lattice_dim;
 
     size_t write_every = steps / nr_save_values;
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;

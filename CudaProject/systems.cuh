@@ -344,6 +344,7 @@ public:
         chrono::time_point<chrono::high_resolution_clock> functor_end;
     public:
         constant_bath_timer() : timer() {
+            cout << "timer is constructed" << endl;
             rng_start = chrono::high_resolution_clock ::now();
             rng_end = chrono::high_resolution_clock ::now();
             functor_start = chrono::high_resolution_clock ::now();
@@ -356,7 +357,7 @@ public:
 
         void set_rng_end() {
             rng_end = chrono::high_resolution_clock ::now();
-            rng_generation_time += std::chrono::duration_cast<std::chrono::milliseconds>(
+            rng_generation_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                     rng_end - rng_start).count();
         }
 
@@ -371,12 +372,12 @@ public:
         }
 
         ~constant_bath_timer() {
-            cout << "RNG took " << rng_generation_time << " ms" << endl;
-            cout << "Functor executions took " << functor_time << " ms" << endl;
+            // cout << "RNG took " << rng_generation_time << " ms" << endl;
+            // cout << "Functor executions took " << functor_time << " ms" << endl;
         }
     };
 
-    constant_bath_timer timer = constant_bath_timer();
+    constant_bath_timer timer;
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -432,6 +433,8 @@ public:
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
             : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+                cout << "Bath System is constructed" << endl;
+                timer = constant_bath_timer();
     }
 
     double get_cur_T() const{
@@ -440,6 +443,9 @@ public:
 
     size_t get_lattice_dim() const{
         return lat_dim;
+    }
+    ~constant_bath() {
+        cout << "Bath System is destroyed" << endl;
     }
 };
 
