@@ -214,7 +214,8 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     paras["steps"] = steps;
     paras["dt"] = temp_scan_standard["dt_start"];
 
-    const vector<double> T = linspace(5.0, 7.0, (int)temp_scan_standard["nr_temps"] + 1);
+    const vector<double> T = linspace(temp_scan_standard["min_temp"],
+                                      temp_scan_standard["max_temp"], (int)temp_scan_standard["nr_temps"] + 1);
 
     print_vector(T);
 
@@ -267,9 +268,9 @@ void quadratic_chain_routine() {
 
 
 int main() {
-    // scan_temps_routine();
+    scan_temps_routine();
     // convergence_check_oscillatorchain();
-    quadratic_chain_routine();
+    // quadratic_chain_routine();
 
 
     // single_calc_routine();

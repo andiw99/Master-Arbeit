@@ -16,6 +16,7 @@
 #include <thrust/random.h>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
 
 
 using namespace std;
@@ -23,6 +24,9 @@ using namespace std;
 template <size_t lat_dim>
 struct System {
 public:
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
     const double T = 0;
 
     struct rand
@@ -92,6 +96,53 @@ public:
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {}
 
+    struct Functor {
+        Functor(){}
+
+        virtual void operator()() {}
+
+    };
+
+    template<class State, class Deriv, class Stoch, class FunctorType>
+    void universalStepOperations(const State &x, Deriv &dxdt, Stoch &theta, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down()
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
     size_t get_lattice_dim() const{
         return lat_dim;
     }
@@ -100,6 +151,7 @@ public:
         return T;
     }
 
+    System(size_t step_nr) : step_nr(step_nr), n(lat_dim * lat_dim) {}
 
 };
 
@@ -120,9 +172,6 @@ public:
     const double beta;
     const double J;
     // systemsize should probably be a template argument?
-    const size_t n;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
@@ -208,10 +257,10 @@ public:
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
+        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
+        if(System<lat_dim>::step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
+            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
         }
         // One thing is that now T has to change, which we will realize like we have for the cpu case
         // In the cpu case i had a starting T and one that was changing, but why was that again?
@@ -225,79 +274,48 @@ public:
         // since the Temperature is the same for all lattice sites and so it is only one computation
         // generate the random values
         thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
+                          index_sequence_begin + System<lat_dim>::n,
+                          theta.begin() + System<lat_dim>::n,
                           rand(D));
+        // init functor
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
+
+        // call universal steps
+        this->universalStepOperations(x, dxdt, theta, t, functor);
+
         /*
         cout << "theta[n-1] = " << theta[n-1] << endl;
         cout << "theta[n] = " << theta[n] << endl;
         cout << "theta[n+1] = " << theta[n+1] << endl;
         */
 
-        // Problem now is that i have to generate iterators that iterate over all neighbors
-        // We have an example of how to do this but i actually do not understand it
-        // the most reasonable thing to do would be to just do it analogous and hope that it works
-        // i only need the q values of the neighbors, so i get 4 additional iterators, one for each neighbor
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                // x begin has all q values
-                x.begin(),
-                // x begin + n has all p values
-                x.begin() + n,
-                // dxdt begin has all dqdt values
-                dxdt.begin(),
-                // dxdt begin + n has all dpdt values
-                dxdt.begin() + n,
-                // left neighbor q values
-                // TODO i don't know what exactly is happening here but
-                // i understand what effect it has or supposed to have
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                // right neighbor q values
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                // TODO this looks horibly bloated, but safest, fastest, easiest
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        // bath_functor(const double eta, const double alpha,
-        //                     const double beta, const double J)
-        // apply bath_functor()() for each tuple between start and start + n
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
 
-/*        cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        cout << "dxdt[0] = " << dxdt[0] << endl;*/
-
-        step_nr++;
     }
 public:
     gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
-            : T_start(T), step_nr(init_step), n(lat_dim * lat_dim), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+            : System<lat_dim>(init_step), T_start(T), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
     }
 };
+
+
+struct timer {
+    chrono::time_point<chrono::high_resolution_clock> starttime;
+public:
+    timer() {
+        auto starttime = chrono::high_resolution_clock ::now();
+
+    }
+    ~timer() {
+        auto endtime = chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                endtime - starttime);
+        auto duration_count = duration.count();
+        cout << "total execution took " << duration_count << "ms" << endl;
+    }
+};
+
+
+
 
 
 template <size_t lat_dim>
@@ -314,12 +332,51 @@ public:
     const double J;
     const double D;
     // systemsize should probably be a template argument?
-    const size_t n;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
+    struct constant_bath_timer : public timer {
+        long rng_generation_time = 0;
+        long functor_time = 0;
+        chrono::time_point<chrono::high_resolution_clock> rng_start;
+        chrono::time_point<chrono::high_resolution_clock> rng_end;
+        chrono::time_point<chrono::high_resolution_clock> functor_start;
+        chrono::time_point<chrono::high_resolution_clock> functor_end;
+    public:
+        constant_bath_timer() : timer() {
+            rng_start = chrono::high_resolution_clock ::now();
+            rng_end = chrono::high_resolution_clock ::now();
+            functor_start = chrono::high_resolution_clock ::now();
+            functor_end = chrono::high_resolution_clock ::now();
+        }
+
+        void set_rng_start() {
+            rng_start = chrono::high_resolution_clock ::now();
+        }
+
+        void set_rng_end() {
+            rng_end = chrono::high_resolution_clock ::now();
+            rng_generation_time += std::chrono::duration_cast<std::chrono::milliseconds>(
+                    rng_end - rng_start).count();
+        }
+
+        void set_functor_start() {
+            functor_start = chrono::high_resolution_clock ::now();
+        }
+
+        void set_functor_end() {
+            functor_end = chrono::high_resolution_clock ::now();
+            functor_time += std::chrono::duration_cast<std::chrono::milliseconds>(
+                    functor_end - functor_start).count();
+        }
+
+        ~constant_bath_timer() {
+            cout << "RNG took " << rng_generation_time << " ms" << endl;
+            cout << "Functor executions took " << functor_time << " ms" << endl;
+        }
+    };
+
+    constant_bath_timer timer = constant_bath_timer();
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -352,61 +409,29 @@ public:
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
+
+        timer.set_rng_start();
+        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
+        if(System<lat_dim>::step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
+            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
         }
 
         thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
+                          index_sequence_begin + System<lat_dim>::n,
+                          theta.begin() + System<lat_dim>::n,
                           rand(D));
+        timer.set_rng_end();
+        timer.set_functor_start();
 
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n,
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
-        step_nr++;
-        // cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        // cout << "dxdt[0] = " << dxdt[0] << endl;
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
+
+        this->universalStepOperations(x, dxdt, theta, t, functor);
+        timer.set_functor_end();
     }
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+            : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{
@@ -497,46 +522,8 @@ public:
                           theta.begin() + n,
                           rand(D));
 
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n,
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        thrust::for_each(start, start + n, coulomb_functor(eta, alpha, beta, J));
-        step_nr++;
-        // cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        // cout << "dxdt[0] = " << dxdt[0] << endl;
+        coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
+        this->universalStepOperations(x, dxdt, theta, functor);
     }
 public:
     coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
@@ -701,6 +688,8 @@ public:
         }
         return d2;
     }
+
+
 };
 
 

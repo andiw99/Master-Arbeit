@@ -26,8 +26,9 @@ public:
         }
     };
 
-    void universalOperation(Functor *functor) {
-        functor->operator()();
+    template <class FunctorType>
+    void universalOperation(FunctorType functor) {
+        functor();
     }
 
 
@@ -46,17 +47,18 @@ public:
 
     struct ChildFunctor : public Functor {
     public:
-        ChildFunctor() {}
+        int id;
+        ChildFunctor(int id) : id(id) {}
 
 
         void operator()(){
-            cout << "Child Functor is called" << endl;
+            cout << "Child Functor is called " << id <<  endl;
         }
     };
 
-    void specifiedOperation() {
-        ChildFunctor functor = ChildFunctor();
-        this->universalOperation(&functor);
+    void operator()() {
+        ChildFunctor functor = ChildFunctor(6);
+        this->universalOperation(functor);
     }
 };
 
@@ -67,7 +69,7 @@ int main() {
     Child<5> child;
 
     child.someMethod();
-    child.specifiedOperation();
+    child();
 
     return 0;
 }

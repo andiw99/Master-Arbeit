@@ -28,10 +28,9 @@ map<string, double> temp_scan_standard = {
         {"dt_max", 0.001},
         {"dt_start", 0.0001},
         {"t_relax", 50},
-        {"nr_temps", 40},
-        {"J", 2},
-        {"alpha", 1},
-        {"beta", 10},
+        {"J", 1},
+        {"alpha", 5},
+        {"beta", 20},
         {"tau", 10},
         {"eta", 0.2},
         {"N", 2},
@@ -39,7 +38,10 @@ map<string, double> temp_scan_standard = {
         {"x0", 8.0},
         {"p0", 8.0},
         {"repeat_nr", 5},
-        {"lattice_dim", 100}
+        {"lattice_dim", 100},
+        {"min_temp",10},
+        {"max_temp", 60},
+        {"nr_temps", 10},
 };
 
 
