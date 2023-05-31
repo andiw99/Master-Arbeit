@@ -302,8 +302,7 @@ struct timer {
     chrono::time_point<chrono::high_resolution_clock> starttime;
 public:
     timer() {
-        auto starttime = chrono::high_resolution_clock ::now();
-
+        starttime = chrono::high_resolution_clock::now();
     }
     ~timer() {
         auto endtime = chrono::high_resolution_clock::now();
@@ -314,8 +313,47 @@ public:
     }
 };
 
+struct constant_bath_timer : public timer {
+    long rng_generation_time = 0;
+    long functor_time = 0;
+    chrono::time_point<chrono::high_resolution_clock> rng_start;
+    chrono::time_point<chrono::high_resolution_clock> rng_end;
+    chrono::time_point<chrono::high_resolution_clock> functor_start;
+    chrono::time_point<chrono::high_resolution_clock> functor_end;
+public:
+    constant_bath_timer() : timer() {
+        cout << "timer is constructed" << endl;
+        rng_start = chrono::high_resolution_clock ::now();
+        rng_end = chrono::high_resolution_clock ::now();
+        functor_start = chrono::high_resolution_clock ::now();
+        functor_end = chrono::high_resolution_clock ::now();
+    }
 
+    void set_rng_start() {
+        rng_start = chrono::high_resolution_clock ::now();
+    }
 
+    void set_rng_end() {
+        rng_end = chrono::high_resolution_clock ::now();
+        rng_generation_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                rng_end - rng_start).count();
+    }
+
+    void set_functor_start() {
+        functor_start = chrono::high_resolution_clock ::now();
+    }
+
+    void set_functor_end() {
+        functor_end = chrono::high_resolution_clock ::now();
+        functor_time += std::chrono::duration_cast<std::chrono::milliseconds>(
+                functor_end - functor_start).count();
+    }
+
+    ~constant_bath_timer() {
+        cout << "RNG took " << rng_generation_time << " ms" << endl;
+        cout << "Functor executions took " << functor_time << " ms" << endl;
+    }
+};
 
 
 template <size_t lat_dim>
@@ -335,47 +373,7 @@ public:
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
-    struct constant_bath_timer : public timer {
-        long rng_generation_time = 0;
-        long functor_time = 0;
-        chrono::time_point<chrono::high_resolution_clock> rng_start;
-        chrono::time_point<chrono::high_resolution_clock> rng_end;
-        chrono::time_point<chrono::high_resolution_clock> functor_start;
-        chrono::time_point<chrono::high_resolution_clock> functor_end;
-    public:
-        constant_bath_timer() : timer() {
-            cout << "timer is constructed" << endl;
-            rng_start = chrono::high_resolution_clock ::now();
-            rng_end = chrono::high_resolution_clock ::now();
-            functor_start = chrono::high_resolution_clock ::now();
-            functor_end = chrono::high_resolution_clock ::now();
-        }
 
-        void set_rng_start() {
-            rng_start = chrono::high_resolution_clock ::now();
-        }
-
-        void set_rng_end() {
-            rng_end = chrono::high_resolution_clock ::now();
-            rng_generation_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    rng_end - rng_start).count();
-        }
-
-        void set_functor_start() {
-            functor_start = chrono::high_resolution_clock ::now();
-        }
-
-        void set_functor_end() {
-            functor_end = chrono::high_resolution_clock ::now();
-            functor_time += std::chrono::duration_cast<std::chrono::milliseconds>(
-                    functor_end - functor_start).count();
-        }
-
-        ~constant_bath_timer() {
-            // cout << "RNG took " << rng_generation_time << " ms" << endl;
-            // cout << "Functor executions took " << functor_time << " ms" << endl;
-        }
-    };
 
     constant_bath_timer timer;
     // parameters of the potential and of the Interaction
