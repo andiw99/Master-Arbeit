@@ -150,7 +150,7 @@ public:
     }
 
     template<class State, class System>
-    void operator()(const System sys, const State &x , double t ) {
+    void operator()(System &sys, const State &x , double t ) {
         // so i think if statements are not to costly on c++
         if (count % write_every == 0 || count == 1) {
             // now we write the state to the file
