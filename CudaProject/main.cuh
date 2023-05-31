@@ -387,8 +387,12 @@ struct rand_init_values
         rng.discard(ind);
 
         // dist * ampl zu returnen ist wie... aus dist mit std ampl zu ziehen: b * N(m, o) = N(m, b*o)
-
-        return ampl * dist(rng);
+        float rnr = dist(rng);
+        // if the drawn number is greater than 3 * sigma we cut it
+        if(abs(rnr) > 3.0 * sigma) {
+            rnr = (rnr < 0) ? (-1.0f) * 3.0f * (float)sigma : 3.0f * (float)sigma;
+        }
+        return (float)ampl * rnr;
     }
 };
 

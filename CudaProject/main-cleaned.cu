@@ -240,6 +240,41 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
     }
 }
 
+void simple_temps_scan() {
+    // we always need to specify the lattice dim
+    const size_t lattice_dim = 100;
+
+    string root = tempscan_root;
+
+    map<string, double> paras = temp_scan_standard;
+    // we do not use the fast forward here
+    paras["dt"] = temp_scan_standard["dt_start"];
+    paras["dt_max"] = paras["dt"];
+    double steps = (paras["end_t"] / paras["dt"]);
+    paras["steps"] = steps;
+
+    const vector<double> T = linspace(temp_scan_standard["min_temp"],
+                                      temp_scan_standard["max_temp"], (int)temp_scan_standard["nr_temps"] + 1);
+    // printing
+    {
+    print_vector(T);
+
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
+    cout << "Stepsize is dt = " << paras["dt"] << endl;
+    }
+
+    // now cycling
+    for(double temp : T) {
+        paras["T"] = temp;
+        // for every T we need to initalize a new system, but first i think we maybe should check our system?
+        // for every T we need another directory
+        string dirpath = root + "/" + to_string(temp);
+
+        cout << "Running repeat with following parameters:" << endl;
+        printMap(paras);
+        repeat<lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
+}}
+
 
 void convergence_check_oscillatorchain() {
     // We can reuse the temp scan here, we just do a scan with also multiple lattice sizes and stepsizes
@@ -270,10 +305,10 @@ void quadratic_chain_routine() {
 
 
 int main() {
-    scan_temps_routine();
+    // scan_temps_routine();
     // convergence_check_oscillatorchain();
     // quadratic_chain_routine();
-
+    simple_temps_scan();
 
     // single_calc_routine();
     // add to msd and mu
