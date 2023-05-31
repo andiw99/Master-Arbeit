@@ -197,7 +197,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const string& root_val = "", double mu = 0, double sigma=1) {
 
-    string root = "../../Generated content/Adaptive Stepsize 2/";
+    string root = tempscan_root;
     root = (root_val.empty()) ? root : root_val;
     create_dir(root);
 
@@ -233,6 +233,8 @@ void scan_temps_routine(const int steps_val = 0, const int end_t_val = 0, const 
         string dirpath = root + "/" + to_string(temp);
         // we could repeat?
         // we need a new observer with a file name
+        cout << "Running repeat with following parameters:" << endl;
+        printMap(paras);
         repeat<lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
         count++;
     }
