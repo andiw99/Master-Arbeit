@@ -71,9 +71,9 @@ int single_calc_routine(map<string, double> parameters, long seed = 0, string sy
         mu += x[i];
         msd += x[i] * x[i];
     }
-    cout << "Initial values:" << endl;
+/*    cout << "Initial values:" << endl;
     cout << mu / (n) << endl;
-    cout << msd / (n) << endl;
+    cout << msd / (n) << endl;*/
 
 
     auto start = chrono::high_resolution_clock::now();

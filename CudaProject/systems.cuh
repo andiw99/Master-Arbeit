@@ -345,13 +345,13 @@ public:
 
     void set_functor_end() {
         functor_end = chrono::high_resolution_clock ::now();
-        functor_time += std::chrono::duration_cast<std::chrono::milliseconds>(
+        functor_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                 functor_end - functor_start).count();
     }
 
     ~constant_bath_timer() {
-        cout << "RNG took " << rng_generation_time << " ms" << endl;
-        cout << "Functor executions took " << functor_time << " ms" << endl;
+        cout << "RNG took " << (double)rng_generation_time * 0.001 << " us" << endl;
+        cout << "Functor executions took " << (double)functor_time * 0.001 << " us" << endl;
     }
 };
 
