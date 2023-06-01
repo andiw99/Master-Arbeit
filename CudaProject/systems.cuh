@@ -104,7 +104,7 @@ public:
     };
 
     template<class State, class Deriv, class Stoch, class FunctorType>
-    void universalStepOperations(const State &x, Deriv &dxdt, Stoch &theta, double t, FunctorType functor) {
+    void universalStepOperations(const State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 x.begin() + n,
@@ -281,7 +281,7 @@ public:
         bath_functor functor = bath_functor(eta, alpha, beta, J);
 
         // call universal steps
-        this->universalStepOperations(x, dxdt, theta, t, functor);
+        this->universalStepOperations(x, dxdt, t, functor);
 
         /*
         cout << "theta[n-1] = " << theta[n-1] << endl;
@@ -393,9 +393,18 @@ public:
     };
 
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        timer.set_functor_start();
 
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
+
+        this->universalStepOperations(x, dxdt, t, functor);
+        timer.set_functor_end();
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
         timer.set_rng_start();
         thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
         if(System<lat_dim>::step_nr == 0) {
@@ -408,12 +417,6 @@ public:
                           theta.begin() + System<lat_dim>::n,
                           rand(D));
         timer.set_rng_end();
-        timer.set_functor_start();
-
-        bath_functor functor = bath_functor(eta, alpha, beta, J);
-
-        this->universalStepOperations(x, dxdt, theta, t, functor);
-        timer.set_functor_end();
     }
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)

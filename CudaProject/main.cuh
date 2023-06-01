@@ -70,6 +70,24 @@ struct thrust_algebra {
                         s1.end(), s2.end(), s3.end(), s4.begin())),
                 op);
     }
+    template<class S1, class S2, class S3, class Op>
+    static void for_each(S1 &s1, S2 &s2, S3 &s3, Op op) {
+        thrust::for_each(
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1.begin(), s2.begin(), s3.begin()) ),
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1.end(), s2.end(), s3.end())),
+                op);
+    }
+    template<class S1, class S2, class Op>
+    static void for_each(S1 &s1, S2 &s2, Op op) {
+        thrust::for_each(
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1.begin(), s2.begin()) ),
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1.end(), s2.end())),
+                op);
+    }
 };
 
 /*
@@ -135,8 +153,30 @@ struct thrust_operations {
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             // here we only have f(x_drift) and f(x)
+            //TODO  we just save the difference in the dx_drift_dt vector to save time? is this a good idea?
+            thrust::get<0>(tup) = abs(thrust::get<0>(tup) - thrust::get<1>(tup));
         }
+    };
 
+    struct sum {
+        sum() {}
+        template<class statetype, class value_type>
+        __host__ __device__ value_type operator()(statetype error) const {
+            return thrust::reduce(error.begin(), error.end(), (statetype) 0, thrust::plus<statetype>());
+        }
+    };
+
+    template<class time_type = double>
+    struct apply_diff {
+        const time_type dt;
+        apply_diff(time_type dt)
+                : dt(dt) { }
+        template< class Tuple >
+        __host__ __device__ void operator()(Tuple tup) const {
+            thrust::get<0>(tup) = thrust::get<1>(tup) +
+                                  sqrt(dt) * thrust::get<2>(tup);
+
+        }
     };
 };
 
@@ -301,6 +341,8 @@ public:
  * We also template the 'Algebra' that outsources the iteration through my lattice sites?
  * And the 'Operation' that performs the operation on the lattice sites
  */
+
+
 template<
         class state_type,
         class algebra,
@@ -308,7 +350,8 @@ template<
         class value_type = double,
         class time_type = value_type
 >
-class euler_mayurama_stepper {
+class euler_mayurama_stepper{
+    size_t step_nr;
     string system_name = "System";
     string applying_name = "Applying Euler";
     checkpoint_timer timer{{system_name, applying_name}};
@@ -318,6 +361,11 @@ public:
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
     // We also template our do_step method to work with any system that we feed into it
     // i think later the system is called to perform the operation on the state types
+
+    void fill_theta(double D, state_type &theta) {
+
+    }
+
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
         // okay we don't need this for_each3 stuff, we only need to apply x_(n+1) = x_n + k_1 dt + theta sqrt(dt)
@@ -329,7 +377,8 @@ public:
         // so we give the system the state and istruct it later to save its calculations in dxdt and theta so that we
         // can later iterate over the lattice and apply the operation, meaning the update
         timer.set_startpoint(system_name);
-        sys(x, dxdt, theta, t);
+        sys.calc_drift(x, dxdt, t);
+        sys.calc_diff(theta, t);
         timer.set_endpoint(system_name);
         // this should set the correct values for dxdt and theta so that they can be applied in apply_em
         // can we print them here?
@@ -358,7 +407,7 @@ public:
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N) : N(N), dxdt(N), theta(N) //, Observer(Obs)
+    euler_mayurama_stepper(size_t N, size_t step_nr) : N(N), dxdt(N), theta(N), step_nr(step_nr) //, Observer(Obs)
     {
     }
 
@@ -389,29 +438,53 @@ template<
 >
 class euler_simple_adaptive{
     int k;
-    double tol;
-    double error = 0;
+    value_type tol;
+    value_type error = 0;
+    time_type dt;
     typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::calc_error calc_error;
+    typedef typename operations::sum sum;
+    typedef typename operations::apply_diff apply_diff;
 public:
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
-    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
+    void do_step(Sys& sys, state_type& x, time_type dt_max, time_type t) {
+
+        // calc the stepsize with the current k
+        dt = 1.0 / pow(2, k) * dt_max;
+
         // good thing is that we already split the drift and the diffusion
         // we are at t and can easily apply the system operations without thinking of it for now
-        sys(x, dxdt, theta, t);
-
+        sys.calc_drift(x, dxdt, t);
         // Here i think we have to apply only dxdt for now to calculate f(x*) - f(x)
         // which means we need a new operations structure?
         algebra::for_each(x_drift, x, dxdt, apply_drift(dt));
 
         // we have x_drift now, now we need to calculate f(x_drift)
         // we really should not just call the system since the system will generate random numbers
-        // but using an extra function just to calculate the drift would lose some generality?
-        // why am i actually generating the random numbers in the system, that does not make to much sense, does it?
-
-        // now we need to calculate the difference between f(x_drift) and (x)
-
+        // so we just call again calc drift, but we need to store the result somewhere else than dxdt since
+        // dxdt= f(x)
+        sys.calc_drift(x_drift, dx_drift_dt, t);
+        // now we need to calculate the difference between dx_drift_dt = f(x_drift) and dxdt=f(x)
+        // how do we do that? we actually for a simple case just need to calc the difference for every
+        // entry of dxdt and dx_drift_dt and then sum it up / average it. this should actually be a very simple
+        // thrust operation
+        algebra::for_each(dx_drift_dt, dxdt, calc_error());
+        // now the error is in dx_drift_dt, now we got to sum and average it
+        error = sum()(dx_drift_dt) / N;
+        // now we have to check whether the error is small enough
+        if(error < tol) {
+            // if error is smaller than the tolerance we apply everything
+            algebra::for_each(x, x_drift, theta, apply_diff());
+            // and we reduce k for the next step
+            k--;
+        } else {
+            // if the error is to large, we have to do the step again with increased k
+            k++;
+            do_step(sys, x, dt_max, t);
+            // I thianak thats it?
+        }
 
     }
 
@@ -420,7 +493,7 @@ public:
 
 private:
     const size_t N;
-    state_type x_drift, dxdt, theta;
+    state_type x_drift, dxdt, dx_drift_dt, theta;
 };
 
 
