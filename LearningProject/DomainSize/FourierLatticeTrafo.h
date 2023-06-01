@@ -250,7 +250,6 @@ void latticeTrafo(const vector<vector<complex<double>>> &f, const vector<vector<
     // now i think we can start to loop?
     // we have to iterate over every lattice site, this will also take very long
     for(int i = 1 - K; i <= N-K; i++) {
-        cout << i << endl;
         for(int j = 1 - K; j <= N-K; j++) {
             // 250000 iterations for 500 x 500 lattice
             // i,j are the indexes to calculate the p_i, p_j
@@ -344,12 +343,7 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
             double p_i = 2 * M_PI * (double)i_ft / N / ax;
             double p_j = 2 * M_PI * (double)j_ft / N / ay;
             p[i][j] = array<double, 2>{p_i, p_j};
-            if (i == 0) {
-                cout << i << endl;
-                cout << "in loop" << p[j][i][0] << endl;
-            }
         }
-        cout << p[0][i][0] << endl;
     }
 }
 

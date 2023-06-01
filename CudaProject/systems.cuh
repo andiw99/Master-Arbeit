@@ -298,20 +298,7 @@ public:
 };
 
 
-struct timer {
-    chrono::time_point<chrono::high_resolution_clock> starttime;
-public:
-    timer() {
-        starttime = chrono::high_resolution_clock::now();
-    }
-    ~timer() {
-        auto endtime = chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                endtime - starttime);
-        auto duration_count = duration.count();
-        cout << "total execution took " << duration_count << "ms" << endl;
-    }
-};
+
 
 struct constant_bath_timer : public timer {
     long rng_generation_time = 0;

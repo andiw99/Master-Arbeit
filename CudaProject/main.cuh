@@ -18,7 +18,7 @@
 #include <thrust/random.h>
 #include <fstream>
 #include <filesystem>
-
+#include <map>
 
 
 using namespace std;
@@ -115,6 +115,28 @@ struct thrust_operations {
             // q2 = ...
             // p2 = ...
         }
+    };
+
+    template<class time_type = double>
+    struct apply_drift {
+        const time_type dt;
+        apply_drift(time_type dt)
+                : dt(dt) { }
+        template< class Tuple >
+        __host__ __device__ void operator()(Tuple tup) const {
+            thrust::get<0>(tup) = thrust::get<1>(tup) +
+                                  dt * thrust::get<2>(tup);
+
+        }
+    };
+
+    struct calc_error {
+        calc_error() {}
+        template< class Tuple >
+        __host__ __device__ void operator()(Tuple tup) const {
+            // here we only have f(x_drift) and f(x)
+        }
+
     };
 };
 
@@ -219,6 +241,61 @@ public:
     }
 };
 
+struct timer {
+    chrono::time_point<chrono::high_resolution_clock> starttime;
+public:
+    timer() {
+        starttime = chrono::high_resolution_clock::now();
+    }
+    ~timer() {
+        auto endtime = chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                endtime - starttime);
+        auto duration_count = duration.count();
+        cout << "total execution took " << duration_count << "ms" << endl;
+    }
+};
+// TODO this is basically the same as the system timer, we could implement a "Checkpoint timer" that would be universal
+// to use
+struct checkpoint_timer : public timer {
+    map<string, long> times;
+    map<string, chrono::time_point<chrono::high_resolution_clock>> startpoints;
+    map<string, chrono::time_point<chrono::high_resolution_clock>> endpoints;
+    int nr_checkpoints;
+public:
+    // we now make a function, that sets the startpoint of checkpoint i
+    void set_startpoint(const string& checkpoint) {
+        startpoints[checkpoint] = chrono::high_resolution_clock::now();
+    }
+
+    void set_endpoint(const string& checkpoint) {
+        endpoints[checkpoint] = chrono::high_resolution_clock::now();
+        // add the duration
+        times[checkpoint] += std::chrono::duration_cast<std::chrono::microseconds>(
+                endpoints[checkpoint] - startpoints[checkpoint]).count();
+    }
+
+    checkpoint_timer(const vector<string>& checkpoint_names) : timer() {
+        // constructor takes a list of names of the checkpoints
+        // TODO we could use a map that maps the names to the start and endpoints? Or is that slower than working
+        // with indices?
+        // initialize the maps
+        for(const string& name : checkpoint_names) {
+            startpoints[name] = chrono::high_resolution_clock::now();
+            endpoints[name] = chrono::high_resolution_clock::now();
+            times[name] = 0;
+        }
+    }
+
+    ~checkpoint_timer() {
+        // print the durations
+        for(const auto& timepair : times) {
+            cout << timepair.first << " took " << (double)timepair.second * 0.001 << " ms" << endl;
+        }
+    }
+
+};
+
 /*
  * We start with the stepper, this stepper has to be templated since we want to exchange the container for our state type
  * We also template the 'Algebra' that outsources the iteration through my lattice sites?
@@ -232,6 +309,9 @@ template<
         class time_type = value_type
 >
 class euler_mayurama_stepper {
+    string system_name = "System";
+    string applying_name = "Applying Euler";
+    checkpoint_timer timer{{system_name, applying_name}};
 public:
     // observer* Observer;
     // the stepper needs a do_step method
@@ -248,7 +328,9 @@ public:
         // No i would say we also calculate the stochastic part
         // so we give the system the state and istruct it later to save its calculations in dxdt and theta so that we
         // can later iterate over the lattice and apply the operation, meaning the update
+        timer.set_startpoint(system_name);
         sys(x, dxdt, theta, t);
+        timer.set_endpoint(system_name);
         // this should set the correct values for dxdt and theta so that they can be applied in apply_em
         // can we print them here?
 
@@ -259,9 +341,11 @@ public:
         // for the update we need to define a type of a function, but i don't really understand the syntax
         // okay so the plan is to have a new name for the templated struct apply_em that is a member of operations
         // so that we can later more clearly instantiate the struct apply_em with the correct template
+        timer.set_startpoint(applying_name);
         typedef typename operations::template apply_em<time_type> apply_em;
         // this is the operation that i want to apply on every lattice site
         algebra::for_each(x, x, dxdt, theta, apply_em(dt));
+        timer.set_endpoint(applying_name);
         // and that should already be it?
         // Observe? How much time does this take?
         // so i also want to write down the temperature of the step, but i don't want to give it to the observer
@@ -275,7 +359,8 @@ public:
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
     euler_mayurama_stepper(size_t N) : N(N), dxdt(N), theta(N) //, Observer(Obs)
-    {}
+    {
+    }
 
 /*    euler_mayurama_stepper(size_t N) : N(N) {
         Observer = new observer();
@@ -294,6 +379,50 @@ private:
     const size_t N;
     state_type dxdt, theta;
 };
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class value_type = double,
+        class time_type = value_type
+>
+class euler_simple_adaptive{
+    int k;
+    double tol;
+    double error = 0;
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+public:
+
+    // we now pass dt by reference, so that we can modify it
+    template<class Sys>
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
+        // good thing is that we already split the drift and the diffusion
+        // we are at t and can easily apply the system operations without thinking of it for now
+        sys(x, dxdt, theta, t);
+
+        // Here i think we have to apply only dxdt for now to calculate f(x*) - f(x)
+        // which means we need a new operations structure?
+        algebra::for_each(x_drift, x, dxdt, apply_drift(dt));
+
+        // we have x_drift now, now we need to calculate f(x_drift)
+        // we really should not just call the system since the system will generate random numbers
+        // but using an extra function just to calculate the drift would lose some generality?
+        // why am i actually generating the random numbers in the system, that does not make to much sense, does it?
+
+        // now we need to calculate the difference between f(x_drift) and (x)
+
+
+    }
+
+    euler_simple_adaptive(size_t N, int K, double tol) : N(N), dxdt(N), theta(N), k(K), tol(tol)
+    {}
+
+private:
+    const size_t N;
+    state_type x_drift, dxdt, theta;
+};
+
 
 
 // I don't know if this is so smart what i did here since i don't know whether this grid searching will work with
