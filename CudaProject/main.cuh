@@ -351,7 +351,6 @@ template<
         class time_type = value_type
 >
 class euler_mayurama_stepper{
-    size_t step_nr;
     string system_name = "System";
     string applying_name = "Applying Euler";
     checkpoint_timer timer{{system_name, applying_name}};
@@ -407,7 +406,7 @@ public:
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N, size_t step_nr) : N(N), dxdt(N), theta(N), step_nr(step_nr) //, Observer(Obs)
+    euler_mayurama_stepper(size_t N) : N(N), dxdt(N), theta(N) //, Observer(Obs)
     {
     }
 

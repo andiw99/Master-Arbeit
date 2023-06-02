@@ -103,7 +103,7 @@ public:
 
     };
 
-    template<class State, class Deriv, class Stoch, class FunctorType>
+    template<class State, class Deriv, class FunctorType>
     void universalStepOperations(const State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
@@ -255,8 +255,24 @@ public:
     }
 
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+
+        // init functor
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
+
+        // call universal steps
+        this->universalStepOperations(x, dxdt, t, functor);
+
+        /*
+        cout << "theta[n-1] = " << theta[n-1] << endl;
+        cout << "theta[n] = " << theta[n] << endl;
+        cout << "theta[n+1] = " << theta[n+1] << endl;
+        */
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
         thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
         if(System<lat_dim>::step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
@@ -277,19 +293,6 @@ public:
                           index_sequence_begin + System<lat_dim>::n,
                           theta.begin() + System<lat_dim>::n,
                           rand(D));
-        // init functor
-        bath_functor functor = bath_functor(eta, alpha, beta, J);
-
-        // call universal steps
-        this->universalStepOperations(x, dxdt, t, functor);
-
-        /*
-        cout << "theta[n-1] = " << theta[n-1] << endl;
-        cout << "theta[n] = " << theta[n] << endl;
-        cout << "theta[n+1] = " << theta[n+1] << endl;
-        */
-
-
     }
 public:
     gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
@@ -588,18 +591,9 @@ public:
     };
 
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
 
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
 
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
@@ -628,6 +622,21 @@ public:
         // somehow dxdt is not set but i dont really get why
         // cout << "dxdt[0] = " << dxdt[0] << endl;
     }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }
+
 public:
     quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
             : T(T), step_nr(init_step), n(lat_dim), eta(eta), J(J), D(sqrt(2 * T * eta)) {
