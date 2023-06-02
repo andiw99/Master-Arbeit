@@ -6,13 +6,12 @@
 #include "parameters.cuh"
 
 template <size_t lattice_dim>
-int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "") {
+int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
 //
 // Created by andi on 21.04.23.
     // But we can quickly write another system i guess
-    const int       steps = (int)parameters["steps"];
     double    dt_max = parameters["dt_max"];
     const double    T = parameters["T"];
     const double    J = parameters["J"];
@@ -25,14 +24,15 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // for the adaptive routine we have two new parameters, K_start and tol
     const int K = (int) parameters["K"];
     double tol = parameters["tol"];
+    double end_t = parameters["end_t"];
 
 
     const double x0 = parameters["x0"];
     const double p0 = parameters["p0"];
     const           size_t n = lattice_dim * lattice_dim;
 
-    size_t write_every = steps / nr_save_values;
-    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
+    double write_interval = parameters["end_t"] / nr_save_values;
+    cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice until" << end_t << endl;
 
     // last time i didnt have to specify the dimensionality i think (in terms of (x, p) )
     const double D = T / eta;
@@ -49,13 +49,13 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         // create directory?
         create_dir(dir_name);
     }
-    string name = dir_name + "/" + to_string(seed/steps);
+    string name = dir_name + "/" + to_string(count);
     ofstream file;
     ofstream parafile;
     file.open(name + ".csv");
     parafile.open(name + ".txt");
 
-    bath_observer Obs(file, write_every);
+    bath_observer Obs(file, write_interval);
 
     typedef thrust::device_vector<double> gpu_state_type;
 
@@ -74,25 +74,30 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         msd += x[i] * x[i];
     }
     double t = 0;
+    double write_timepoint = 0;
 
 
     // i THINK we will do the ugly way here until we understand polymorphism
     cout << "creating System " << system << endl;
     if (system == "constant") {
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
-        for( size_t i=0 ; i<steps ; ++i ) {
+        while(t < end_t) {
             // we need small stepsizes at the beginning to guarantee stability
             // but after some time, we can increase the stepsize
             // there should be a t that is equal to t_relax?
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
-            Obs(gpu_system, x, t);
+            if (t >= write_timepoint) {
+                Obs.write(gpu_system, x, t);
+                write_timepoint += write_interval;
+                cout << "current k = " << gpu_stepper.get_k() << endl;
+            }
         }
     }
     else if(system == "quadratic_chain") {
         cout << "creating quadratic chain obj" << endl;
         quadratic_chain<lattice_dim> gpu_system(T, eta, J, seed);
-        for( size_t i=0 ; i<steps ; ++i ) {
+        while(t < end_t) {
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             Obs(gpu_system, x, t);
         }
@@ -111,7 +116,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         }
     } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
-        for( size_t i=0 ; i<steps ; ++i ) {
+        while(t < end_t) {
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             Obs(gpu_system, x, t);
         }
@@ -134,12 +139,12 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         msd /= n;
 
         cout << "mu = " << mu << endl;
-        return steps;
+        return (int)(end_t/dt_max);
     }
 }
 
 template <size_t lattice_dim>
-void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="") {
+void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="", int count=0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
         return;
@@ -159,14 +164,11 @@ void simple_temps_scan() {
     // we always need to specify the lattice dim
     const size_t lattice_dim = 100;
 
-    string root = tempscan_root;
+    string root = adaptive_tempscan_root;
 
     map<string, double> paras = temp_scan_standard;
     // we do not use the fast forward here
-    paras["dt"] = temp_scan_standard["dt_start"];
-    paras["dt_max"] = paras["dt"];
-    double steps = (paras["end_t"] / paras["dt"]);
-    paras["steps"] = steps;
+    paras["dt"] = adaptive_temp_scan_standard["dt_start"];
 
     const vector<double> T = linspace(temp_scan_standard["min_temp"],
                                       temp_scan_standard["max_temp"], (int)temp_scan_standard["nr_temps"] + 1);
@@ -174,7 +176,7 @@ void simple_temps_scan() {
     {
         print_vector(T);
 
-        cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice for " << steps << " steps." << endl;
+        cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice unitl t = " << paras["end_t"] << endl;
         cout << "Stepsize is dt = " << paras["dt"] << endl;
     }
 

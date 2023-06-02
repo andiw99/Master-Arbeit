@@ -242,6 +242,24 @@ public:
         }
         count++;
     }
+    template<class State, class System>
+    void write(const System sys, const State &x , double t ) {
+        size_t lat_dim = sys.get_lattice_dim();
+        double T = sys.get_cur_T();
+
+        file << "t, " << t << ",";
+        for(int i = 0; i < lat_dim; i++) {
+            file << x[i] << ",";
+            // cout << x[i] << endl;
+
+        }
+        // for the last we write T? I mean thats how i did it, right?
+        // Temperatur saven
+        file << T;
+
+        // Zeilenumbruch
+        file << "\n";
+    }
 };
 
 // Observer for lattic on bath specific for gpu_bath system?
@@ -284,6 +302,26 @@ public:
         }
         count++;
     }
+
+    template<class State, class System>
+    void write(const System sys, const State &x , double t ) {
+        size_t lat_dim = sys.get_lattice_dim();
+        double T = sys.get_cur_T();
+
+        file << "t, " << t << ",";
+        for(int i = 0; i < lat_dim; i++) {
+            file << x[i] << ",";
+            // cout << x[i] << endl;
+
+        }
+        // for the last we write T? I mean thats how i did it, right?
+        // Temperatur saven
+        file << T;
+
+        // Zeilenumbruch
+        file << "\n";
+    }
+
 };
 
 struct timer {
@@ -481,7 +519,11 @@ public:
             // we also increase the time
             t += dt;
             // and we reduce k for the next step
-            k--;
+            // do we have to check that k does not get smaller than zero?
+            // TODO is there a faster way to do this than with if?
+            if (k > 0) {
+                k--;
+            }
         } else {
             // if the error is to large, we have to do the step again with increased k
             k++;
@@ -493,6 +535,10 @@ public:
 
     euler_simple_adaptive(size_t N, int K, double tol) : N(N), dxdt(N), theta(N), k(K), tol(tol)
     {}
+
+    int get_k() {
+        return k;
+    }
 
 private:
     const size_t N;

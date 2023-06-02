@@ -71,5 +71,11 @@ int main() {
     child.someMethod();
     child();
 
+    size_t k = 0;
+    unsigned int k2 = 0;
+    k--;
+    k2--;
+    cout << k << endl;
+    cout << k2 << endl;
     return 0;
 }
