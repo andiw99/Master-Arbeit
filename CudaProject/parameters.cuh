@@ -48,7 +48,6 @@ map<string, double> temp_scan_standard = {
 string adaptive_tempscan_root = "../../Generated content/Higher Temps/";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"steps", 100000.0},
         {"end_t", 25.0},
         {"dt_max", 0.001},
         {"J", 10.0},
@@ -64,6 +63,8 @@ map<string, double> adaptive_temp_scan_standard = {
         {"min_temp",10.0},
         {"max_temp", 60.0},
         {"nr_temps", 10.0},
+        {"K", 3.0},
+        {"tol", 0.01}
 };
 
 
