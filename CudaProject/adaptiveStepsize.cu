@@ -90,7 +90,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             if (t >= write_timepoint) {
                 Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
-                cout << "current k = " << gpu_stepper.get_k() << "at t = " << t << endl;
+                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
         }
     }
@@ -152,10 +152,10 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
     cout << runs << " runs left" << endl;
 
-    int steps = adaptive_routine<lattice_dim>(parameters, seed, system, dir_path);
+    int steps = adaptive_routine<lattice_dim>(parameters, seed, system, dir_path, count);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
-    repeat<lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path);
+    repeat<lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path, count+1);
 
 }
 
