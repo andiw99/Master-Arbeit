@@ -10,19 +10,20 @@
 				{
 					"includeDirectories" : 
 					[
-						"/usr/include/c++/8",
-						"/usr/include/x86_64-linux-gnu/c++/8",
-						"/usr/include/c++/8/backward",
-						"/usr/lib/gcc/x86_64-linux-gnu/8/include",
+						"/usr/include/c++/11",
+						"/usr/include/x86_64-linux-gnu/c++/11",
+						"/usr/include/c++/11/backward",
+						"/usr/lib/gcc/x86_64-linux-gnu/11/include",
 						"/usr/local/include",
 						"/usr/include/x86_64-linux-gnu",
 						"/usr/include"
 					],
 					"linkDirectories" : 
 					[
-						"/usr/lib/x86_64-linux-gnu/stubs",
+						"/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs",
+						"/usr/local/cuda-12.1/targets/x86_64-linux/lib",
+						"/usr/lib/gcc/x86_64-linux-gnu/11",
 						"/usr/lib/x86_64-linux-gnu",
-						"/usr/lib/gcc/x86_64-linux-gnu/8",
 						"/usr/lib",
 						"/lib/x86_64-linux-gnu",
 						"/lib"
@@ -39,8 +40,8 @@
 						"gcc"
 					]
 				},
-				"path" : "/usr/bin/nvcc",
-				"version" : "10.1.243"
+				"path" : "/usr/local/cuda-12.1/bin/nvcc",
+				"version" : "12.1.105"
 			},
 			"language" : "CUDA",
 			"sourceFileExtensions" : 

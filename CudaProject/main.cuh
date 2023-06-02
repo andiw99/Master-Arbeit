@@ -16,6 +16,9 @@
 #include <boost/typeof/typeof.hpp>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/random.h>
+#include <thrust/reduce.h>
+#include <thrust/sequence.h>
+#include <thrust/execution_policy.h>
 #include <fstream>
 #include <filesystem>
 #include <map>
@@ -158,11 +161,13 @@ struct thrust_operations {
         }
     };
 
+    // TODO somehow i have to specify thrust::host here since i am to dumb to get it working withoug
+    template <class valuetype = double>
     struct sum {
         sum() {}
-        template<class statetype, class value_type>
-        __host__ __device__ value_type operator()(statetype error) const {
-            return thrust::reduce(error.begin(), error.end(), (statetype) 0, thrust::plus<statetype>());
+        template <class statetype>
+        __host__ __device__ valuetype operator()(statetype &error)  {
+            return thrust::reduce(thrust::host, error.begin(), error.end(),  (valuetype) 0.0, thrust::plus<valuetype>());
         }
     };
 
@@ -361,9 +366,6 @@ public:
     // We also template our do_step method to work with any system that we feed into it
     // i think later the system is called to perform the operation on the state types
 
-    void fill_theta(double D, state_type &theta) {
-
-    }
 
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
@@ -442,13 +444,13 @@ class euler_simple_adaptive{
     time_type dt;
     typedef typename operations::template apply_drift<time_type> apply_drift;
     typedef typename operations::calc_error calc_error;
-    typedef typename operations::sum sum;
-    typedef typename operations::apply_diff apply_diff;
+    typedef typename operations::template sum<value_type> sum;
+    typedef typename operations::template apply_diff<time_type> apply_diff;
 public:
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
-    void do_step(Sys& sys, state_type& x, time_type dt_max, time_type t) {
+    void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
 
         // calc the stepsize with the current k
         dt = 1.0 / pow(2, k) * dt_max;
@@ -475,7 +477,9 @@ public:
         // now we have to check whether the error is small enough
         if(error < tol) {
             // if error is smaller than the tolerance we apply everything
-            algebra::for_each(x, x_drift, theta, apply_diff());
+            algebra::for_each(x, x_drift, theta, apply_diff(dt));
+            // we also increase the time
+            t += dt;
             // and we reduce k for the next step
             k--;
         } else {
@@ -588,12 +592,12 @@ struct rand_init_values
         rng.discard(ind);
 
         // dist * ampl zu returnen ist wie... aus dist mit std ampl zu ziehen: b * N(m, o) = N(m, b*o)
-        float rnr = dist(rng);
+        auto rnr = (double)dist(rng);
         // if the drawn number is greater than 3 * sigma we cut it
         if(abs(rnr) > 3.0 * sigma) {
-            rnr = (rnr < 0) ? (-1.0f) * 3.0f * (float)sigma : 3.0f * (float)sigma;
+            rnr = (rnr < 0) ? (-1.0) * 3.0 * sigma : 3.0 * sigma;
         }
-        return (float)ampl * rnr;
+        return (double)ampl * rnr;
     }
 };
 

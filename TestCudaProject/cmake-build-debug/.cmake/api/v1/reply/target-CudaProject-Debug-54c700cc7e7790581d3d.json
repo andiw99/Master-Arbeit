@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "TestCudaProject"
+			"path" : "CudaProject"
 		}
 	],
 	"backtrace" : 1,
@@ -24,7 +24,7 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 6,
+				"line" : 10,
 				"parent" : 0
 			}
 		]
@@ -35,7 +35,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g --generate-code=arch=compute_30,code=[compute_30,sm_30]"
+					"fragment" : "-g --generate-code=arch=compute_75,code=[compute_75,sm_75]"
+				},
+				{
+					"fragment" : "-std=c++20"
 				}
 			],
 			"language" : "CUDA",
@@ -53,13 +56,13 @@
 			]
 		}
 	],
-	"id" : "TestCudaProject::@6890427a1f51a3e7e1df",
+	"id" : "CudaProject::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
 		[
 			{
-				"fragment" : "-g --generate-code=arch=compute_30,code=[compute_30,sm_30]",
+				"fragment" : "-g --generate-code=arch=compute_75,code=[compute_75,sm_75]",
 				"role" : "flags"
 			},
 			{
@@ -89,8 +92,8 @@
 		],
 		"language" : "CUDA"
 	},
-	"name" : "TestCudaProject",
-	"nameOnDisk" : "TestCudaProject",
+	"name" : "CudaProject",
+	"nameOnDisk" : "CudaProject",
 	"paths" : 
 	{
 		"build" : ".",
