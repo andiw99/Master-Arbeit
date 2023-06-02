@@ -167,7 +167,7 @@ struct thrust_operations {
         sum() {}
         template <class statetype>
         __host__ __device__ valuetype operator()(statetype &error)  {
-            return thrust::reduce(thrust::host, error.begin(), error.end(),  (valuetype) 0.0, thrust::plus<valuetype>());
+            return thrust::reduce(error.begin(), error.end(),  (valuetype) 0.0, thrust::plus<valuetype>());
         }
     };
 
@@ -243,7 +243,7 @@ public:
         count++;
     }
     template<class State, class System>
-    void write(const System sys, const State &x , double t ) {
+    void write(System &sys, const State &x , double t ) {
         size_t lat_dim = sys.get_lattice_dim();
         double T = sys.get_cur_T();
 
@@ -515,6 +515,7 @@ public:
         // now we have to check whether the error is small enough
         if(error < tol) {
             // if error is smaller than the tolerance we apply everything
+            sys.calc_diff(theta, t);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time
             t += dt;
@@ -533,11 +534,15 @@ public:
 
     }
 
-    euler_simple_adaptive(size_t N, int K, double tol) : N(N), dxdt(N), theta(N), k(K), tol(tol)
+    euler_simple_adaptive(size_t N, int K, double tol) : N(N), dxdt(N), dx_drift_dt(N), x_drift(N), theta(N), k(K), tol(tol)
     {}
 
     int get_k() {
         return k;
+    }
+
+    double get_error() {
+        return error;
     }
 
 private:

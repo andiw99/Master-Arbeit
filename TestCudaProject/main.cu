@@ -165,7 +165,7 @@ int main() {
     // initialize X to 0,1,2,3, ....
     thrust::sequence(X.begin(), X.end());
 
-    int x = thrust::reduce(thrust::host, X.begin(), X.end(), (int) 0);
+    int x = thrust::reduce(X.begin(), X.end(), (int) 0);
 
     cout << x << endl;
     return 0;

@@ -90,7 +90,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             if (t >= write_timepoint) {
                 Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
-                cout << "current k = " << gpu_stepper.get_k() << endl;
+                cout << "current k = " << gpu_stepper.get_k() << "at t = " << t << endl;
             }
         }
     }
@@ -166,9 +166,8 @@ void simple_temps_scan() {
 
     string root = adaptive_tempscan_root;
 
-    map<string, double> paras = temp_scan_standard;
+    map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-    paras["dt"] = adaptive_temp_scan_standard["dt_start"];
 
     const vector<double> T = linspace(temp_scan_standard["min_temp"],
                                       temp_scan_standard["max_temp"], (int)temp_scan_standard["nr_temps"] + 1);
@@ -194,5 +193,6 @@ void simple_temps_scan() {
 }
 
 int main() {
+    simple_temps_scan();
     return 0;
 }
