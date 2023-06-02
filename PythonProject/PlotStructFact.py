@@ -99,7 +99,7 @@ def analyze(df, parameters=None):
 
 
 def main():
-    root = "../../Generated content/High Temp Approach/140-80/"
+    root = "../../Generated content/High Temp Approach/All/"
     name = "struct.fact"
     root_dirs = os.listdir(root)
 

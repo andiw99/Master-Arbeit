@@ -248,7 +248,7 @@ public:
         double T = sys.get_cur_T();
 
         file << "t, " << t << ",";
-        for(int i = 0; i < lat_dim; i++) {
+        for(int i = 0; i < lat_dim * lat_dim; i++) {
             file << x[i] << ",";
             // cout << x[i] << endl;
 
@@ -484,6 +484,10 @@ class euler_simple_adaptive{
     typedef typename operations::calc_error calc_error;
     typedef typename operations::template sum<value_type> sum;
     typedef typename operations::template apply_diff<time_type> apply_diff;
+    string drift_calc = "Second drift calc";
+    string error_calc = "Error Calculation";
+    string repetitions = "Repetitions";
+    checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
 public:
 
     // we now pass dt by reference, so that we can modify it
@@ -504,14 +508,18 @@ public:
         // we really should not just call the system since the system will generate random numbers
         // so we just call again calc drift, but we need to store the result somewhere else than dxdt since
         // dxdt= f(x)
+        timer.set_startpoint(drift_calc);
         sys.calc_drift(x_drift, dx_drift_dt, t);
+        timer.set_endpoint(drift_calc);
         // now we need to calculate the difference between dx_drift_dt = f(x_drift) and dxdt=f(x)
         // how do we do that? we actually for a simple case just need to calc the difference for every
         // entry of dxdt and dx_drift_dt and then sum it up / average it. this should actually be a very simple
         // thrust operation
+        timer.set_startpoint(error_calc);
         algebra::for_each(dx_drift_dt, dxdt, calc_error());
         // now the error is in dx_drift_dt, now we got to sum and average it
         error = sum()(dx_drift_dt) / N;
+        timer.set_endpoint(error_calc);
         // now we have to check whether the error is small enough
         if(error < tol) {
             // if error is smaller than the tolerance we apply everything
@@ -526,9 +534,13 @@ public:
                 k--;
             }
         } else {
+            // everytime we enter else we failed the error test, so if we time this, we now how long the repetitions
+            // took
+            timer.set_startpoint(repetitions);
             // if the error is to large, we have to do the step again with increased k
             k++;
             do_step(sys, x, dt_max, t);
+            timer.set_endpoint(repetitions);
             // I thianak thats it?
         }
 
