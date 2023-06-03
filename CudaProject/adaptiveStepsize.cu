@@ -5,7 +5,7 @@
 #include "systems.cuh"
 #include "parameters.cuh"
 
-template <size_t lattice_dim>
+template <template<class a, class b, class c> class stepper, size_t lattice_dim>
 int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
@@ -59,7 +59,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
     typedef thrust::device_vector<double> gpu_state_type;
 
-    euler_simple_adaptive<gpu_state_type, thrust_algebra, thrust_operations > gpu_stepper(N * n, K, tol);
+    stepper<gpu_state_type, thrust_algebra, thrust_operations> gpu_stepper(N * n, K, tol);
 
     // init and print initial state
 
@@ -148,7 +148,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     }
 }
 
-template <size_t lattice_dim>
+template <template<class a, class b, class c> class stepper, size_t lattice_dim>
 void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="", int count=0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
@@ -157,19 +157,20 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
     cout << runs << " runs left" << endl;
 
-    int steps = adaptive_routine<lattice_dim>(parameters, seed, system, dir_path, count);
+    int steps = adaptive_routine<stepper, lattice_dim>(parameters, seed, system, dir_path, count);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
-    repeat<lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path, count+1);
+    repeat<stepper, lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path, count+1);
 
 }
 
 
-void simple_temps_scan() {
+void simple_temps_scan(string stepper = "adaptive") {
     // we always need to specify the lattice dim
     const size_t lattice_dim = 100;
 
     string root = adaptive_tempscan_root;
+
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
@@ -193,11 +194,15 @@ void simple_temps_scan() {
 
         cout << "Running repeat with following parameters:" << endl;
         printMap(paras);
-        repeat<lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
+        if(stepper == "adaptive") {
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
+        } else {
+            repeat<euler_combined, lattice_dim>(paras, (int)temp_scan_standard["repeat_nr"], 0, "constant", dirpath);
+        }
     }
 }
 
 int main() {
-    simple_temps_scan();
+    simple_temps_scan("combined");
     return 0;
 }

@@ -457,7 +457,7 @@ public:
     // now for the memory allocation. I am not sure if this ever changes for me but the implementation should not harm
     // on the other hand, my class doesn't have any saved state_types that could potentially be resized
     // so we skip this for now
-private:
+protected:
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
     // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
@@ -562,7 +562,129 @@ private:
     state_type x_drift, dxdt, dx_drift_dt, theta;
 };
 
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class value_type = double,
+        class time_type = value_type
+>
+class euler_combined : public euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>{
+    int k;
+    int prev_accepted_k;
+    value_type tol;
+    value_type error = 0;
+    time_type dt;
+    int switch_counter;
+    int switch_count;
+    bool switched = false;
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::calc_error calc_error;
+    typedef typename operations::template sum<value_type> sum;
+    typedef typename operations::template apply_diff<time_type> apply_diff;
+    using euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type>::theta;
+    using euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type>::N;
+/*    using do_euler_step = euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type>::do_step;*/
+    string drift_calc = "Second drift calc";
+    string error_calc = "Error Calculation";
+    string repetitions = "Repetitions";
+    checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
+public:
 
+    template<class Sys>
+    void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
+        if(switch_counter > switch_count) {
+            euler_mayurama_stepper<state_type, algebra, operations,
+                    value_type, time_type>::do_step(sys, x, dt_max, t);
+        } else {
+            do_adaptive_step(sys, x, dt_max, t);
+        }
+    }
+
+    // we now pass dt by reference, so that we can modify it
+    template<class Sys>
+    void do_adaptive_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
+
+        // calc the stepsize with the current k
+        dt = 1.0 / pow(2, k) * dt_max;
+
+        // good thing is that we already split the drift and the diffusion
+        // we are at t and can easily apply the system operations without thinking of it for now
+        sys.calc_drift(x, dxdt, t);
+        // Here i think we have to apply only dxdt for now to calculate f(x*) - f(x)
+        // which means we need a new operations structure?
+        algebra::for_each(x_drift, x, dxdt, apply_drift(dt));
+
+        // we have x_drift now, now we need to calculate f(x_drift)
+        // we really should not just call the system since the system will generate random numbers
+        // so we just call again calc drift, but we need to store the result somewhere else than dxdt since
+        // dxdt= f(x)
+        timer.set_startpoint(drift_calc);
+        sys.calc_drift(x_drift, dx_drift_dt, t);
+        timer.set_endpoint(drift_calc);
+        // now we need to calculate the difference between dx_drift_dt = f(x_drift) and dxdt=f(x)
+        // how do we do that? we actually for a simple case just need to calc the difference for every
+        // entry of dxdt and dx_drift_dt and then sum it up / average it. this should actually be a very simple
+        // thrust operation
+        timer.set_startpoint(error_calc);
+        algebra::for_each(dx_drift_dt, dxdt, calc_error());
+        // now the error is in dx_drift_dt, now we got to sum and average it
+        error = sum()(dx_drift_dt) / N;
+        timer.set_endpoint(error_calc);
+        // now we have to check whether the error is small enough
+        if(error < tol) {
+            // if error is smaller than the tolerance we apply everything
+            sys.calc_diff(theta, t);
+            algebra::for_each(x, x_drift, theta, apply_diff(dt));
+            // we also increase the time
+            t += dt;
+            // and we reduce k for the next step
+            // do we have to check that k does not get smaller than zero?
+            // wo know that it was accepted, so if our accepted k is equal to the last accepted k, we increase the counter
+            if (k == prev_accepted_k) {
+                ++switch_count;
+            } else {
+                // if athe accepted k is not equal to the last accepted one, we set the new k and reset the counter
+                prev_accepted_k = k;
+                switch_count = 0;
+            }
+
+            // TODO is there a faster way to do this than with if?
+            if (k > 0) {
+                k--;
+            }
+        } else {
+            // everytime we enter else we failed the error test, so if we time this, we now how long the repetitions
+            // took
+            timer.set_startpoint(repetitions);
+            // if the error is to large, we have to do the step again with increased k
+            k++;
+            do_step(sys, x, dt_max, t);
+            timer.set_endpoint(repetitions);
+            // I thianak thats it?
+        }
+
+    }
+
+    euler_combined(size_t N, int K, double tol, int switch_count = 100) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
+             dx_drift_dt(N), x_drift(N),
+    k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
+    {}
+
+    int get_k() {
+        return k;
+    }
+
+    double get_error() {
+        return error;
+    }
+
+private:
+    state_type x_drift, dxdt, dx_drift_dt;
+};
 
 // I don't know if this is so smart what i did here since i don't know whether this grid searching will work with
 // this templated stuff. I mean we could probably write a shell script that compiles and executes the code for the
