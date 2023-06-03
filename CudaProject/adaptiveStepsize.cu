@@ -75,11 +75,14 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     }
     double t = 0;
     double write_timepoint = 0;
+    string obs_checkpoint = "Observing";
+
 
 
     // i THINK we will do the ugly way here until we understand polymorphism
     cout << "creating System " << system << endl;
     if (system == "constant") {
+        checkpoint_timer obs_timer({obs_checkpoint});
         constant_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
         while(t < end_t) {
             // we need small stepsizes at the beginning to guarantee stability
@@ -87,11 +90,13 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             // there should be a t that is equal to t_relax?
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
+            obs_timer.set_startpoint(obs_checkpoint);
             if (t >= write_timepoint) {
                 Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
+            obs_timer.set_endpoint(obs_checkpoint);
         }
     }
     else if(system == "quadratic_chain") {
