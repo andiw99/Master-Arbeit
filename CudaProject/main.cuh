@@ -586,6 +586,8 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
             value_type, time_type>::theta;
     using euler_mayurama_stepper<state_type, algebra, operations,
             value_type, time_type>::N;
+    using euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type>::dxdt;
 /*    using do_euler_step = euler_mayurama_stepper<state_type, algebra, operations,
             value_type, time_type>::do_step;*/
     string drift_calc = "Second drift calc";
@@ -683,7 +685,7 @@ public:
     }
 
 private:
-    state_type x_drift, dxdt, dx_drift_dt;
+    state_type x_drift, dx_drift_dt;
 };
 
 // I don't know if this is so smart what i did here since i don't know whether this grid searching will work with
