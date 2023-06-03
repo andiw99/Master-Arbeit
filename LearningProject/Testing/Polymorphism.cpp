@@ -4,6 +4,7 @@
 
 #include "Polymorphism.h"
 #include <iostream>
+#include <chrono>
 
 using namespace std;
 
@@ -62,6 +63,20 @@ public:
     }
 };
 
+struct timer {
+    chrono::time_point<chrono::high_resolution_clock> starttime;
+public:
+    timer() {
+        starttime = chrono::high_resolution_clock::now();
+    }
+    ~timer() {
+        auto endtime = chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                endtime - starttime);
+        auto duration_count = duration.count();
+        cout << "total execution took " << duration_count << "ms" << endl;
+    }
+};
 
 
 int main() {
@@ -77,5 +92,21 @@ int main() {
     k2--;
     cout << k << endl;
     cout << k2 << endl;
+
+
+    int count = 0;
+    {
+        timer timer;
+        for(int i = 0; i < 2000000; i++) {
+            if (count < i) {
+                count++;
+            } else {
+                count--;
+            }
+        }
+
+    }
+
+
     return 0;
 }

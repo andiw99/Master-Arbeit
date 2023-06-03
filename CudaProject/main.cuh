@@ -577,6 +577,7 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     time_type dt;
     int switch_counter;
     int switch_count;
+    double reduction_factor;
     bool switched = false;
     typedef typename operations::template apply_drift<time_type> apply_drift;
     typedef typename operations::calc_error calc_error;
@@ -593,16 +594,23 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     string drift_calc = "Second drift calc";
     string error_calc = "Error Calculation";
     string repetitions = "Repetitions";
-    checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
+    string euler_steps = "Euler-Mayurama Steps";
+    string adaptive_steps = "Adaptive Steps";
+    checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps}};
 public:
 
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         if(switch_counter > switch_count) {
+            timer.set_startpoint(euler_steps);
             euler_mayurama_stepper<state_type, algebra, operations,
-                    value_type, time_type>::do_step(sys, x, dt_max, t);
+                    value_type, time_type>::do_step(sys, x, dt, t);
+            t += dt;
+            timer.set_endpoint(euler_steps);
         } else {
+            timer.set_startpoint(adaptive_steps);
             do_adaptive_step(sys, x, dt_max, t);
+            timer.set_endpoint(adaptive_steps);
         }
     }
 
@@ -611,7 +619,7 @@ public:
     void do_adaptive_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
 
         // calc the stepsize with the current k
-        dt = 1.0 / pow(2, k) * dt_max;
+        dt = 1.0 / pow(reduction_factor, k) * dt_max;
 
         // good thing is that we already split the drift and the diffusion
         // we are at t and can easily apply the system operations without thinking of it for now
@@ -671,8 +679,8 @@ public:
 
     }
 
-    euler_combined(size_t N, int K, double tol, int switch_count = 100) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
-             dx_drift_dt(N), x_drift(N),
+    euler_combined(size_t N, int K, double tol, int switch_count = 100, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
+             dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor)
     k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
     {}
 
