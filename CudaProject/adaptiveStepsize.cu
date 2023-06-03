@@ -175,8 +175,8 @@ void simple_temps_scan(string stepper = "adaptive") {
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
 
-    const vector<double> T = linspace(temp_scan_standard["min_temp"],
-                                      temp_scan_standard["max_temp"], (int)temp_scan_standard["nr_temps"] + 1);
+    const vector<double> T = linspace(paras["min_temp"],
+                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
     // printing
     {
         print_vector(T);
