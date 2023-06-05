@@ -425,7 +425,6 @@ public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
             : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
                 cout << "Bath System is constructed" << endl;
-                timer = constant_bath_timer();
     }
 
     double get_cur_T() const{

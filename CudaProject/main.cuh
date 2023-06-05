@@ -601,8 +601,12 @@ public:
 
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
-        if(switch_counter > switch_count) {
+        if(switch_counter > switch_count * k) {
             timer.set_startpoint(euler_steps);
+            if (!switched) {
+                cout << "switched: k = " << k << " dt = " << dt << endl;
+                switched = true;
+            }
             euler_mayurama_stepper<state_type, algebra, operations,
                     value_type, time_type>::do_step(sys, x, dt, t);
             t += dt;
@@ -680,7 +684,7 @@ public:
     }
 
     euler_combined(size_t N, int K, double tol, int switch_count = 100, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
-             dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor)
+             dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
     k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
     {}
 
