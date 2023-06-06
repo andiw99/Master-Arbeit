@@ -66,13 +66,14 @@ struct curand_fast{
         curandState local_state;
         local_state = thrust::get<1>(tup);
         thrust::get<0>(tup) = curand_normal(&local_state);
+        thrust::get<1>(tup) = local_state;
     }
 };
 struct curand_fast_setup
 {
     using init_tuple = thrust::tuple<int, curandState &>;
     __device__
-    void operator()(init_tuple t){
+    void operator()(init_tuple t) const{
         curandState s;
         int id = thrust::get<0>(t);
         curand_init(0, id, 0, &s);
@@ -125,21 +126,20 @@ struct thrust_fast
 struct thrust_faster
 {
     float a, b;
+    thrust::normal_distribution<float> dist;
+    thrust::default_random_engine rng;
 
     __host__ __device__
-    thrust_faster(float _a = 0.f, float _b = 1.f) : a(_a), b(_b) {};
+    thrust_faster(float _a = 0.f, float _b = 1.f) : a(_a), b(_b) {
+        dist = thrust::normal_distribution<float>(a, b);
+    };
 
     template <class Elem>
     __device__
-    void operator()(Elem &entry) const
+    void operator()(Elem &entry)
     {
-        thrust::default_random_engine rng;
-        thrust::normal_distribution<float> dist(a, b);
-
         rng.discard(entry);
-
         entry = dist(rng);
-
     }
 };
 
@@ -235,20 +235,21 @@ int main() {
             timer.set_startpoint(name);
             thrust::for_each(start, end, curand_fast());
             timer.set_endpoint(name);
+            double mu = 0;
+            double msd = 0;
+            for(int i = 0; i < N; i++) {
+                mu += h_v6[i];
+                msd += h_v6[i] * h_v6[i];
+            }
+            cout << "mean: " << mu/N << endl;
+            cout << "msd: " << msd/N << endl;
         }
 
         cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
             cout << h_v6[i] << endl;
         }
-        double mu = 0;
-        double msd = 0;
-        for(int i = 0; i < N; i++) {
-            mu += h_v6[i];
-            msd += h_v6[i] * h_v6[i];
-        }
-        cout << "mean: " << mu/N << endl;
-        cout << "msd: " << msd/N << endl;
+
 
 
     }
@@ -256,10 +257,11 @@ int main() {
     {
         string name = "thrust fast";
         checkpoint_timer timer{{name}};
-        thrust::counting_iterator<unsigned int> index_sequence_begin(0);
-        auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v7.begin(), index_sequence_begin));
-        auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v7.end(), index_sequence_begin + N));
+
         for (int k = 0; k < numIters; k++) {
+            thrust::counting_iterator<unsigned int> index_sequence_begin(0);
+            auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v7.begin(), index_sequence_begin));
+            auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v7.end(), index_sequence_begin + N));
             timer.set_startpoint(name);
             thrust::for_each(start, end, thrust_fast());
             timer.set_endpoint(name);
@@ -283,10 +285,12 @@ int main() {
         string name = "thrust faster";
         checkpoint_timer timer{{name}};
 
+        thrust_faster engine;
+
         for (int k = 0; k < numIters; k++) {
             timer.set_startpoint(name);
             thrust::sequence(h_v8.begin(), h_v8.end(), 0);
-            thrust::for_each(h_v8.begin(), h_v8.end(), thrust_faster());
+            thrust::for_each(h_v8.begin(), h_v8.end(), engine);
             timer.set_endpoint(name);
         }
 
