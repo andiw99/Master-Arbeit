@@ -113,7 +113,7 @@ struct thrust_fast
     void operator()(Tuple tup) const
     {
         thrust::default_random_engine rng;
-        thrust::uniform_real_distribution<float> dist(a, b);
+        thrust::normal_distribution<float> dist(a, b);
 
         rng.discard(thrust::get<1>(tup));
 
@@ -131,10 +131,10 @@ struct thrust_faster
 
     template <class Elem>
     __device__
-    void operator()(Elem entry) const
+    void operator()(Elem &entry) const
     {
         thrust::default_random_engine rng;
-        thrust::uniform_real_distribution<float> dist(a, b);
+        thrust::normal_distribution<float> dist(a, b);
 
         rng.discard(entry);
 
@@ -166,15 +166,6 @@ int main() {
 
     printf("N = %d\n", N);
 
-    {
-        string name = "transform on host";
-        checkpoint_timer timer{{name}};
-        for (int k = 0; k < numIters; k++) {
-            timer.set_startpoint(name);
-            thrust::transform(thrust::host, h_v1.begin(), h_v1.end(), h_v1.begin(), rand_01<double>());
-            timer.set_endpoint(name);
-        }
-    }
 
     {
         string name = "transform on device";
@@ -204,16 +195,6 @@ int main() {
     //for (int k = 0; k < N; k++)
     //  std::cout << h_v3[k] << " : ";
     //std::cout << std::endl;
-    {
-        string name = "generate";
-        checkpoint_timer timer{{name}};
-        for (int k = 0; k < numIters; k++) {
-            timer.set_startpoint(name);
-            thrust::generate(h_v4.begin(), h_v4.end(), rand_01_fcn<double>);
-            timer.set_endpoint(name);
-        }
-
-    }
 
     {
         string name = "curand";
