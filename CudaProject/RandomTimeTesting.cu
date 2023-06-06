@@ -43,9 +43,9 @@ struct curand_slow{
     };
 
     __device__
-    float operator()()
+    float operator()(const unsigned int n)
     {
-        curand_init(seed, 0, 0, &s);
+        curand_init(seed, n, 0, &s);
         return curand_normal(&s);
     }
 };
@@ -176,7 +176,8 @@ int main() {
         checkpoint_timer timer{{name}};
         for (int k = 0; k < numIters; k++) {
             timer.set_startpoint(name);
-            thrust::transform( h_v5.begin(), h_v5.end(), h_v5.begin(), curand_slow());
+            thrust::counting_iterator<unsigned int> index_sequence_begin(0);
+            thrust::transform(index_sequence_begin, index_sequence_begin + N, h_v5.begin(), curand_slow());
             timer.set_endpoint(name);
         }
         cout << "Sample random values for " << name << endl;
@@ -185,9 +186,9 @@ int main() {
         }
         double mu = 0;
         double msd = 0;
-        for(int i = 0; i < N, i++) {
+        for(int i = 0; i < N; i++) {
             mu += h_v5[i];
-            msd += h_v5[i] * h_v5[i]
+            msd += h_v5[i] * h_v5[i];
         }
         cout << "mean: " << mu/N << endl;
         cout << "msd: " << msd/N << endl;
@@ -203,13 +204,27 @@ int main() {
 
         thrust::for_each(sInit, sInit + N, curand_fast_setup());
 
-        auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v5.begin(), s1.begin()));
-        auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v5.end(), s1.end()));
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v6.begin(), s1.begin()));
+        auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v6.end(), s1.end()));
         for (int k = 0; k < numIters; k++) {
             timer.set_startpoint(name);
             thrust::for_each(start, end, curand_fast());
             timer.set_endpoint(name);
         }
+
+        cout << "Sample random values for " << name << endl;
+        for(int i = 0; i < 20; i++) {
+            cout << h_v5[i] << endl;
+        }
+        double mu = 0;
+        double msd = 0;
+        for(int i = 0; i < N; i++) {
+            mu += h_v6[i];
+            msd += h_v6[i] * h_v6[i];
+        }
+        cout << "mean: " << mu/N << endl;
+        cout << "msd: " << msd/N << endl;
+
 
     }
     //std::cout << "Values generated: " << std::endl;

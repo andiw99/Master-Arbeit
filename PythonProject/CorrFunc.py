@@ -20,15 +20,15 @@ def fit_exp(r, C, func=exp):
 
 
 def main():
-    root = "../../Generated content/High Temp Approach/95-80/"
+    root = "../../Generated content/High Temp Approach/All/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
-    plot_fits = True
+    plot_fits = False
 
     # define a cutoff since the exponential decay is only correct for large distances
-    cutoff_range = [10]
-    cutoff_end = 70
+    cutoff_range = [0]
+    cutoff_end = -1
     for cutoff in cutoff_range:
 
 

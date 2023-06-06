@@ -64,7 +64,7 @@ public:
             return D * dist(rng);
         }
     };
-
+    /*
     __global__ curandState global_state;
     struct curand {
         float D;
@@ -77,7 +77,7 @@ public:
             return D;
         }
     };
-
+*/
 
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
@@ -214,7 +214,7 @@ public:
         const double alpha, beta, J, eta;
 
         cos_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+                    const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -240,7 +240,7 @@ public:
         const double alpha, beta, J, eta;
 
         bath_functor(const double eta, const double alpha,
-                    const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -399,8 +399,8 @@ public:
 
     string rng = "RNG";
     string theta_filling = "Filling of theta";
-    string functor = "Functor Calc";
-    checkpoint_timer timer {{rng, functor, theta_filling}};
+    string functor_point = "Functor Calc";
+    checkpoint_timer timer {{rng, functor_point, theta_filling}};
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -426,19 +426,19 @@ public:
 
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                      - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
+                                    - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
         }
     };
 
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        timer.set_startpoint(functor);
+        timer.set_startpoint(functor_point);
 
         bath_functor functor = bath_functor(eta, alpha, beta, J);
 
         this->universalStepOperations(x, dxdt, t, functor);
-        timer.set_endpoint(functor);
+        timer.set_endpoint(functor_point);
     }
 
     template<class Stoch>
@@ -460,7 +460,7 @@ public:
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
             : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
-                cout << "Bath System is constructed" << endl;
+        cout << "Bath System is constructed" << endl;
     }
 
     double get_cur_T() const{
@@ -507,7 +507,7 @@ public:
         const double alpha, beta, J, eta;
 
         coulomb_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+                        const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
 
         template<class Tup>
         __host__ __device__ double coulomb_interaction(Tup tup) {
@@ -608,7 +608,7 @@ public:
 
 
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                      - J * ((q - q_left) + (q - q_right));       // Interaction
+                                    - J * ((q - q_left) + (q - q_right));       // Interaction
         }
     };
 
@@ -692,7 +692,7 @@ public:
             // add potential energy
             E += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
             // add kinetic energy
-            E += 1/2 * x[i + n] * x[i + n];
+            E += 0.5 * x[i + n] * x[i + n];
         }
         return E;
     }
@@ -702,7 +702,7 @@ public:
         double Ekin = 0;
         for(int i = 0; i < lat_dim; i++) {
             // add kinetic energy
-            Ekin += 1/2 * x[i + n] * x[i + n];
+            Ekin += (0.5 * (x[i + n] * x[i + n]));
         }
         return Ekin;
     }
@@ -930,7 +930,7 @@ public:
                                                             //theta begin + n has all theta[1] values
                                                             // theta.begin() + n
                                                     )
-                   )
+        )
         );
         thrust::for_each(start, start + n, brownian_functor(eta, T));
         // this line also doesn't work

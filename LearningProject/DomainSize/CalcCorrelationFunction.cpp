@@ -59,7 +59,7 @@ int main() {
     // okay we need a system that calculates the correlation func for every file or at least for every directory
     // path of the root where we have multiple directories with multiple csv for every Temp
 
-    string rootpath = "../../Generated content/High Temp Approach/All";
+    string rootpath = "../../Generated content/High Temp Approach/Longer 95-85/";
 
     // now we need a function that returns the directories? but then we need to watch out that we dont have "plots"
     // directory there
