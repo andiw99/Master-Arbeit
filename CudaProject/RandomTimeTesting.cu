@@ -101,6 +101,48 @@ struct prg
     }
 };
 
+struct thrust_fast
+{
+    float a, b;
+
+    __host__ __device__
+    thrust_fast(float _a = 0.f, float _b = 1.f) : a(_a), b(_b) {};
+
+    template <class Tuple>
+    __device__
+    void operator()(Tuple tup) const
+    {
+        thrust::default_random_engine rng;
+        thrust::uniform_real_distribution<float> dist(a, b);
+
+        rng.discard(thrust::get<1>(tup));
+
+        thrust::get<0>(tup) = dist(rng);
+
+    }
+};
+
+struct thrust_faster
+{
+    float a, b;
+
+    __host__ __device__
+    thrust_faster(float _a = 0.f, float _b = 1.f) : a(_a), b(_b) {};
+
+    template <class Elem>
+    __device__
+    void operator()(Elem entry) const
+    {
+        thrust::default_random_engine rng;
+        thrust::uniform_real_distribution<float> dist(a, b);
+
+        rng.discard(entry);
+
+        entry = dist(rng);
+
+    }
+};
+
 /********/
 /* MAIN */
 /********/
@@ -119,6 +161,8 @@ int main() {
     thrust::host_vector<double>     h_v4(N);
     thrust::device_vector<double>     h_v5(N);
     thrust::device_vector<double>     h_v6(N);
+    thrust::device_vector<double>     h_v7(N);
+    thrust::device_vector<double>     h_v8(N);
 
     printf("N = %d\n", N);
 
@@ -135,9 +179,9 @@ int main() {
     {
         string name = "transform on device";
         checkpoint_timer timer{{name}};
+        thrust::counting_iterator<unsigned int> index_sequence_begin(0);
         for (int k = 0; k < numIters; k++) {
             timer.set_startpoint(name);
-            thrust::counting_iterator<unsigned int> index_sequence_begin(0);
             thrust::transform(index_sequence_begin,
                               index_sequence_begin + N,
                               h_v2.begin(),
@@ -214,7 +258,7 @@ int main() {
 
         cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
-            cout << h_v5[i] << endl;
+            cout << h_v6[i] << endl;
         }
         double mu = 0;
         double msd = 0;
@@ -226,6 +270,57 @@ int main() {
         cout << "msd: " << msd/N << endl;
 
 
+    }
+
+    {
+        string name = "thrust fast";
+        checkpoint_timer timer{{name}};
+        thrust::counting_iterator<unsigned int> index_sequence_begin(0);
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v7.begin(), index_sequence_begin));
+        auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v7.end(), index_sequence_begin + N));
+        for (int k = 0; k < numIters; k++) {
+            timer.set_startpoint(name);
+            thrust::for_each(start, end, thrust_fast());
+            timer.set_endpoint(name);
+        }
+
+        cout << "Sample random values for " << name << endl;
+        for(int i = 0; i < 20; i++) {
+            cout << h_v7[i] << endl;
+        }
+        double mu = 0;
+        double msd = 0;
+        for(int i = 0; i < N; i++) {
+            mu += h_v7[i];
+            msd += h_v7[i] * h_v7[i];
+        }
+        cout << "mean: " << mu/N << endl;
+        cout << "msd: " << msd/N << endl;
+    }
+
+    {
+        string name = "thrust faster";
+        checkpoint_timer timer{{name}};
+
+        for (int k = 0; k < numIters; k++) {
+            timer.set_startpoint(name);
+            thrust::sequence(h_v8.begin(), h_v8.end(), 0);
+            thrust::for_each(h_v8.begin(), h_v8.end(), thrust_faster());
+            timer.set_endpoint(name);
+        }
+
+        cout << "Sample random values for " << name << endl;
+        for(int i = 0; i < 20; i++) {
+            cout << h_v8[i] << endl;
+        }
+        double mu = 0;
+        double msd = 0;
+        for(int i = 0; i < N; i++) {
+            mu += h_v8[i];
+            msd += h_v8[i] * h_v8[i];
+        }
+        cout << "mean: " << mu/N << endl;
+        cout << "msd: " << msd/N << endl;
     }
     //std::cout << "Values generated: " << std::endl;
     //for (int k = 0; k < N; k++)
