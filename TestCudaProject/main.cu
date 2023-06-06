@@ -1,10 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include <thrust/device_vector.h>
+#include <thrust/sequence.h>
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+
 
 using namespace std;
 
-void single_calc_routine() {
+/*void single_calc_routine() {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
 //
@@ -44,7 +48,7 @@ void single_calc_routine() {
     ofstream parafile;
     file.open(name + ".csv");
     parafile.open(name + ".txt");
-/*    observer base_obs = observer();
+*//*    observer base_obs = observer();
 
     euler_mayurama_stepper<state_type, container_algebra, default_operations> stepper(2, &base_obs);
     brownian_particel system(eta2, T);
@@ -71,7 +75,7 @@ void single_calc_routine() {
     msd /= runs;
 
     cout << "mu = " << mu << endl;
-    cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;*/
+    cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;*//*
 
 
 
@@ -103,7 +107,7 @@ void single_calc_routine() {
     cout << msd / (n) << endl;
     mu = 0;
     msd = 0;
-    /*
+    *//*
 
 
     // We initialize a system of size 50000... what does that even mean?
@@ -111,7 +115,7 @@ void single_calc_routine() {
 
     // so this state type only has N=2 values, which are set to 0. Maybe we need to initialize N * n values?
     gpu_state_type x(N * n, 0.0);
-      */
+      *//*
 
     auto start = chrono::high_resolution_clock::now();
     double t = 0;
@@ -147,11 +151,22 @@ void single_calc_routine() {
 
     cout << "mu = " << mu << endl;
     cout << "msd = " << msd << "   theo value msd = " << theo_msd << endl;
-}
+}*/
 
 
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
+
+    thrust::device_vector<int> X(10);
+    thrust::device_vector<int> Y(10);
+    thrust::device_vector<int> Z(10);
+
+    // initialize X to 0,1,2,3, ....
+    thrust::sequence(X.begin(), X.end());
+
+    int x = thrust::reduce(X.begin(), X.end(), (int) 0);
+
+    cout << x << endl;
     return 0;
 }

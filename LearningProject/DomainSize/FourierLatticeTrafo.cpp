@@ -42,7 +42,7 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     ifstream file(filepath);
      // check if file is opened
     if(file.is_open()) {
-        cout << "File successfully opened" << endl;
+        // cout << "File successfully opened" << endl;
     } else {
         cout << "Failed to open file" << endl;
         // abort if file is not opened
@@ -76,16 +76,16 @@ int main() {
     // lattice dim
     const int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/Adaptive Stepsize 2/";
+    fs::path root = "../../../Generated content/High Temp Approach/All/";
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 
 
     for(auto path : temp_directories) {
         vector<fs::path> csv_files = list_csv_files(path);
-        print_vector(csv_files);
+        // print_vector(csv_files);
 
-        cout << filesystem::current_path() << endl;
+        // cout << filesystem::current_path() << endl;
         // we need running arrays for the averages over the lattices
         double ft_squared_y[lat_dim];
         double ft_squared_x[lat_dim];
@@ -112,7 +112,6 @@ int main() {
         ofstream ofile;
         ofile.open(writepath);
         ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
-        cout << lat_dim << endl;
         for(int j = 0; j<lat_dim; j++) {
             // so px(i) is just the p_x value of every entry of p of the i-th col
             // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
@@ -124,8 +123,9 @@ int main() {
 
 
             ofile <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i];
-            cout <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i] << endl;
+/*            cout <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i] << endl;
             cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
+            */
             if(j < lat_dim - 1) {
                 ofile << endl;
             }

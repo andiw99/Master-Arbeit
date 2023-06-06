@@ -88,6 +88,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
         min_pos = np.sqrt(beta/2)
         max_tick_nr = vmax // min_pos + 1
         # always 5 ticks
+        print(np.linspace(-max_tick_nr, max_tick_nr, 7))
         tick_labels = np.int32(np.linspace(-max_tick_nr, max_tick_nr, 7))
         # could be to long
 

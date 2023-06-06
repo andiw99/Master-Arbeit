@@ -58,7 +58,9 @@ int main() {
 
     // okay we need a system that calculates the correlation func for every file or at least for every directory
     // path of the root where we have multiple directories with multiple csv for every Temp
-    string rootpath = "../../Generated content/Full Scan/";
+
+    string rootpath = "../../Generated content/High Temp Approach/All";
+
     // now we need a function that returns the directories? but then we need to watch out that we dont have "plots"
     // directory there
     vector<fs::path> temp_directories = list_dir_paths(rootpath);
@@ -96,7 +98,7 @@ int main() {
             // wanna work with arrays or vectors? I think since we only calculate C_x and C_y, we can use vectors
             // initialize vectors for those
             int nr_dists = (int)f.size() / 2 + 1;
-            cout << "number of possible distances: " << nr_dists << endl;
+            // cout << "number of possible distances: " << nr_dists << endl;
             vector<double> C_x(nr_dists, 0.0);
             vector<double> C_y(nr_dists, 0.0);
             // calculate the corr func and save them into those vectors
@@ -105,6 +107,7 @@ int main() {
             C_x_avg = C_x_avg + C_x;
             C_y_avg = C_y_avg + C_y;
         }
+        // TODO forgot to average? But that should not be a problem since it is only a scaling
         write_corr_func(C_x_avg, C_y_avg, writepath);
     }
     exit(0);

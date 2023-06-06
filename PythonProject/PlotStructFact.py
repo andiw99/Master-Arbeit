@@ -82,14 +82,14 @@ def analyze(df, parameters=None):
     xi = 1 / 2 * (xix + xiy)
 
     # plotting
-    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
-    p = np.linspace(min(px), max(px), px.size)
-    lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
-    lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
-    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
-    axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
-    axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
+    # fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
+    # p = np.linspace(min(px), max(px), px.size)
+    # lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
+    # lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
+    # axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+    # axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+    # axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
+    # axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
 
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
@@ -99,7 +99,7 @@ def analyze(df, parameters=None):
 
 
 def main():
-    root = "../../Generated content/Adaptive Stepsize 2/"
+    root = "../../Generated content/High Temp Approach/All/"
     name = "struct.fact"
     root_dirs = os.listdir(root)
 
@@ -110,23 +110,24 @@ def main():
 
     # Loop through the directory contents and print the directories
     for item in root_dirs:
-        # Create the full path to the item
-        dir_path = os.path.join(root, item)
+        if item != "plots":
+            # Create the full path to the item
+            dir_path = os.path.join(root, item)
 
-        # Check if the item is a directory
-        if os.path.isdir(dir_path) & (dir_path != root + "plots"):
-            filename = dir_path + "/" + name
-            files = os.listdir(dir_path)
-            parameters = {}
-            for f in files:
-                # we take the first file to be the parameters
-                if(os.path.splitext(f)[1] == ".txt"):
-                    parameters = read_parameters_txt(os.path.join(dir_path, f))
-            print("reading: ", filename)
-            df = read_struct_func(filename)
-            xi, T = analyze(df, parameters)
-            T_arr.append(T)
-            xi_arr.append(xi)
+            # Check if the item is a directory
+            if os.path.isdir(dir_path) & (dir_path != root + "plots"):
+                filename = dir_path + "/" + name
+                print("reading: ", filename)
+                files = os.listdir(dir_path)
+                parameters = {}
+                for f in files:
+                    # we take the first file to be the parameters
+                    if(os.path.splitext(f)[1] == ".txt"):
+                        parameters = read_parameters_txt(os.path.join(dir_path, f))
+                df = read_struct_func(filename)
+                xi, T = analyze(df, parameters)
+                T_arr.append(T)
+                xi_arr.append(xi)
 
 
     xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]

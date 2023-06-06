@@ -16,12 +16,18 @@
 #include <thrust/random.h>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
+#include <curand_kernel.h>
+
 
 using namespace std;
 
 template <size_t lat_dim>
 struct System {
 public:
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
     const double T = 0;
 
     struct rand
@@ -41,6 +47,38 @@ public:
             return D * dist(rng);
         }
     };
+    struct rand_float
+    {
+        float mu, sigma, D;
+
+        __host__ __device__
+        rand_float(float D, float mu = 0.0f, float sigma = 1.0f) : D(D), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<float> dist(mu, sigma);
+            rng.discard(ind);
+
+            return D * dist(rng);
+        }
+    };
+
+    __global__ curandState global_state;
+    struct curand {
+        float D;
+        curand(float D) : D(D) {}
+
+        __host__ __device__
+        float operator()() const
+        {
+
+            return D;
+        }
+    };
+
+
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
@@ -91,6 +129,53 @@ public:
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {}
 
+    struct Functor {
+        Functor(){}
+
+        virtual void operator()() {}
+
+    };
+
+    template<class State, class Deriv, class FunctorType>
+    void universalStepOperations(const State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up()
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down()
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
     size_t get_lattice_dim() const{
         return lat_dim;
     }
@@ -99,6 +184,7 @@ public:
         return T;
     }
 
+    System(size_t step_nr) : step_nr(step_nr), n(lat_dim * lat_dim) {}
 
 };
 
@@ -106,6 +192,11 @@ public:
 
 template <size_t lat_dim>
 struct gpu_bath : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double T_start;
     const double alpha;
@@ -114,9 +205,6 @@ public:
     const double beta;
     const double J;
     // systemsize should probably be a template argument?
-    const size_t n;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
@@ -192,69 +280,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
-
     double linear_T(double t) {
         // parametrisierung für die Temperatur
         // linearer Abfall
@@ -263,12 +288,28 @@ public:
     }
 
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+
+        // init functor
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
+
+        // call universal steps
+        this->universalStepOperations(x, dxdt, t, functor);
+
+        /*
+        cout << "theta[n-1] = " << theta[n-1] << endl;
+        cout << "theta[n] = " << theta[n] << endl;
+        cout << "theta[n+1] = " << theta[n+1] << endl;
+        */
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
+        if(System<lat_dim>::step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
+            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
         }
         // One thing is that now T has to change, which we will realize like we have for the cpu case
         // In the cpu case i had a starting T and one that was changing, but why was that again?
@@ -282,83 +323,69 @@ public:
         // since the Temperature is the same for all lattice sites and so it is only one computation
         // generate the random values
         thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
+                          index_sequence_begin + System<lat_dim>::n,
+                          theta.begin() + System<lat_dim>::n,
                           rand(D));
-        /*
-        cout << "theta[n-1] = " << theta[n-1] << endl;
-        cout << "theta[n] = " << theta[n] << endl;
-        cout << "theta[n+1] = " << theta[n+1] << endl;
-        */
-
-        // Problem now is that i have to generate iterators that iterate over all neighbors
-        // We have an example of how to do this but i actually do not understand it
-        // the most reasonable thing to do would be to just do it analogous and hope that it works
-        // i only need the q values of the neighbors, so i get 4 additional iterators, one for each neighbor
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                // x begin has all q values
-                x.begin(),
-                // x begin + n has all p values
-                x.begin() + n,
-                // dxdt begin has all dqdt values
-                dxdt.begin(),
-                // dxdt begin + n has all dpdt values
-                dxdt.begin() + n,
-                // left neighbor q values
-                // TODO i don't know what exactly is happening here but
-                // i understand what effect it has or supposed to have
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                // right neighbor q values
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                // TODO this looks horibly bloated, but safest, fastest, easiest
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        // bath_functor(const double eta, const double alpha,
-        //                     const double beta, const double J)
-        // apply bath_functor()() for each tuple between start and start + n
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
-
-/*        cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        cout << "dxdt[0] = " << dxdt[0] << endl;*/
-
-        step_nr++;
     }
 public:
     gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
-            : T_start(T), step_nr(init_step), n(lat_dim * lat_dim), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+            : System<lat_dim>(init_step), T_start(T), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+    }
+};
+
+
+
+
+struct constant_bath_timer : public timer {
+    long rng_generation_time = 0;
+    long functor_time = 0;
+    chrono::time_point<chrono::high_resolution_clock> rng_start;
+    chrono::time_point<chrono::high_resolution_clock> rng_end;
+    chrono::time_point<chrono::high_resolution_clock> functor_start;
+    chrono::time_point<chrono::high_resolution_clock> functor_end;
+public:
+    constant_bath_timer() : timer() {
+        cout << "timer is constructed" << endl;
+        rng_start = chrono::high_resolution_clock ::now();
+        rng_end = chrono::high_resolution_clock ::now();
+        functor_start = chrono::high_resolution_clock ::now();
+        functor_end = chrono::high_resolution_clock ::now();
+    }
+
+    void set_rng_start() {
+        rng_start = chrono::high_resolution_clock ::now();
+    }
+
+    void set_rng_end() {
+        rng_end = chrono::high_resolution_clock ::now();
+        rng_generation_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                rng_end - rng_start).count();
+    }
+
+    void set_functor_start() {
+        functor_start = chrono::high_resolution_clock ::now();
+    }
+
+    void set_functor_end() {
+        functor_end = chrono::high_resolution_clock ::now();
+        functor_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                functor_end - functor_start).count();
+    }
+
+    ~constant_bath_timer() {
+        cout << "RNG took " << (double)rng_generation_time * 0.001 << " ms" << endl;
+        cout << "Functor executions took " << (double)functor_time * 0.001 << " ms" << endl;
     }
 };
 
 
 template <size_t lat_dim>
 struct constant_bath : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double eta;
@@ -366,12 +393,14 @@ public:
     const double J;
     const double D;
     // systemsize should probably be a template argument?
-    const size_t n;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
+
+    string rng = "RNG";
+    string theta_filling = "Filling of theta";
+    string functor = "Functor Calc";
+    checkpoint_timer timer {{rng, functor, theta_filling}};
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -401,126 +430,37 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
 
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        timer.set_startpoint(functor);
 
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
+        bath_functor functor = bath_functor(eta, alpha, beta, J);
 
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+        this->universalStepOperations(x, dxdt, t, functor);
+        timer.set_endpoint(functor);
+    }
 
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
-
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        timer.set_startpoint(theta_filling);
+        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
+        if(System<lat_dim>::step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
+            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
         }
-
+        timer.set_endpoint(theta_filling);
+        timer.set_startpoint(rng);
         thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
+                          index_sequence_begin + System<lat_dim>::n,
+                          theta.begin() + System<lat_dim>::n,
                           rand(D));
-
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n,
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
-        step_nr++;
-        // cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        // cout << "dxdt[0] = " << dxdt[0] << endl;
+        timer.set_endpoint(rng);
     }
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+            : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+                cout << "Bath System is constructed" << endl;
     }
 
     double get_cur_T() const{
@@ -530,11 +470,19 @@ public:
     size_t get_lattice_dim() const{
         return lat_dim;
     }
+    ~constant_bath() {
+        cout << "Bath System is destroyed" << endl;
+    }
 };
 
 
 template <size_t lat_dim>
 struct coulomb_interaction : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double eta;
@@ -592,68 +540,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
 
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
@@ -668,46 +554,8 @@ public:
                           theta.begin() + n,
                           rand(D));
 
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n,
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
-                )
-        )));
-        thrust::for_each(start, start + n, coulomb_functor(eta, alpha, beta, J));
-        step_nr++;
-        // cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        // cout << "dxdt[0] = " << dxdt[0] << endl;
+        coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
+        this->universalStepOperations(x, dxdt, theta, functor);
     }
 public:
     coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
@@ -726,6 +574,7 @@ public:
 
 template <size_t lat_dim>
 struct quadratic_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
     const double eta;
     const double J;
@@ -763,23 +612,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // if we are at the left end of our chain, we need to use the right end as left neighbor
@@ -794,18 +626,9 @@ public:
     };
 
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
 
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
 
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
@@ -834,6 +657,21 @@ public:
         // somehow dxdt is not set but i dont really get why
         // cout << "dxdt[0] = " << dxdt[0] << endl;
     }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }
+
 public:
     quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
             : T(T), step_nr(init_step), n(lat_dim), eta(eta), J(J), D(sqrt(2 * T * eta)) {
@@ -888,11 +726,14 @@ public:
         }
         return d2;
     }
+
+
 };
 
 
 template <size_t lat_dim>
 struct gpu_oscillator_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
     const double T;
     const double alpha;
@@ -920,24 +761,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    // no neighbors
 
 
     template<class State, class Deriv, class Stoch>
