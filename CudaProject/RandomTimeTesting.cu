@@ -42,8 +42,8 @@ struct curand_slow{
 
     };
 
-    __host__ __device__
-    float operator()(const unsigned int n)
+    __device__
+    float operator()()
     {
         curand_init(seed, 0, 0, &s);
         return curand_normal(&s);
@@ -65,7 +65,7 @@ struct curand_fast{
     {
         curandState local_state;
         local_state = thrust::get<1>(tup);
-        thrust::get<0>(tup) = curand(&local_state);
+        thrust::get<0>(tup) = curand_normal(&local_state);
     }
 };
 struct curand_fast_setup
@@ -179,6 +179,19 @@ int main() {
             thrust::transform( h_v5.begin(), h_v5.end(), h_v5.begin(), curand_slow());
             timer.set_endpoint(name);
         }
+        cout << "Sample random values for " << name << endl;
+        for(int i = 0; i < 20; i++) {
+            cout << h_v5[i] << endl;
+        }
+        double mu = 0;
+        double msd = 0;
+        for(int i = 0; i < N, i++) {
+            mu += h_v5[i];
+            msd += h_v5[i] * h_v5[i]
+        }
+        cout << "mean: " << mu/N << endl;
+        cout << "msd: " << msd/N << endl;
+
 
     }
 
