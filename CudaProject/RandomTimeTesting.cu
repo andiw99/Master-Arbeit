@@ -12,12 +12,72 @@
 /**************************************************/
 template<typename T>
 struct rand_01 {
-    __host__ T operator()(T& VecElem) const { return (T)rand() / RAND_MAX; }
+    __host__ T operator()(T& VecElem) const {
+
+
+        return (T)rand() / RAND_MAX; }
 };
 
 template<typename T>
 struct rand_01_for_each {
-    __host__ void operator()(T& VecElem) const { VecElem = (T)rand() / RAND_MAX; }
+    int n = 0;
+    __host__ __device__ void operator()(T& VecElem) {
+        thrust::default_random_engine rng;
+        thrust::uniform_real_distribution<float> dist(0, 1);
+        n++;
+        rng.discard(n);
+
+        VecElem = dist(rng) / RAND_MAX;
+
+    }
+};
+
+struct curand_slow{
+    float a, b;
+    curandState s;
+    int seed;
+
+    __host__ __device__
+    curand_slow(float _a = 0.f, float _b = 1.f, int seed=0) : a(_a), b(_b), seed(seed) {
+
+    };
+
+    __host__ __device__
+    float operator()(const unsigned int n)
+    {
+        curand_init(seed, 0, 0, &s);
+        return curand_normal(&s);
+    }
+};
+
+struct curand_fast{
+    float a, b;
+    curandState s;
+    int seed;
+
+    __host__ __device__
+    curand_fast(float _a = 0.f, float _b = 1.f, int seed=0) : a(_a), b(_b), seed(seed) {
+
+    };
+
+    template<class Tuple>
+    __device__ void operator()(Tuple tup) const
+    {
+        curandState local_state;
+        local_state = thrust::get<1>(tup);
+        thrust::get<0>(tup) = curand(&local_state);
+    }
+};
+struct curand_fast_setup
+{
+    using init_tuple = thrust::tuple<int, curandState &>;
+    __device__
+    void operator()(init_tuple t){
+        curandState s;
+        int id = thrust::get<0>(t);
+        curand_init(0, id, 0, &s);
+        thrust::get<1>(t) = s;
+    }
 };
 
 template<typename T>
@@ -53,10 +113,12 @@ int main() {
 
     const int numIters = 50;
 
-    thrust::device_vector<double>     h_v1(N);
+    thrust::host_vector<double>     h_v1(N);
     thrust::device_vector<double>     h_v2(N);
-    thrust::device_vector<double>     h_v3(N);
-    thrust::device_vector<double>     h_v4(N);
+    thrust::host_vector<double>     h_v3(N);
+    thrust::host_vector<double>     h_v4(N);
+    thrust::device_vector<double>     h_v5(N);
+    thrust::device_vector<double>     h_v6(N);
 
     printf("N = %d\n", N);
 
@@ -107,9 +169,36 @@ int main() {
             timer.set_endpoint(name);
         }
 
+    }
+
+    {
+        string name = "curand";
+        checkpoint_timer timer{{name}};
+        for (int k = 0; k < numIters; k++) {
+            timer.set_startpoint(name);
+            thrust::transform( h_v5.begin(), h_v5.end(), h_v5.begin(), curand_slow());
+            timer.set_endpoint(name);
+        }
 
     }
 
+    {
+        string name = "curand fast";
+        checkpoint_timer timer{{name}};
+        thrust::device_vector<curandState> s1(N);
+        auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), s1.begin()));
+
+        thrust::for_each(sInit, sInit + N, curand_fast_setup());
+
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(h_v5.begin(), s1.begin()));
+        auto end = thrust::make_zip_iterator(thrust::make_tuple(h_v5.end(), s1.end()));
+        for (int k = 0; k < numIters; k++) {
+            timer.set_startpoint(name);
+            thrust::for_each(start, end, curand_fast());
+            timer.set_endpoint(name);
+        }
+
+    }
     //std::cout << "Values generated: " << std::endl;
     //for (int k = 0; k < N; k++)
     //  std::cout << h_v4[k] << " : ";
