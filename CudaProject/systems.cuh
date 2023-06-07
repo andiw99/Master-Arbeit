@@ -557,7 +557,8 @@ public:
 };
 
 template <size_t lat_dim>
-class coulomb_constant : coulomb_interaction<lat_dim> {
+class coulomb_constant : public coulomb_interaction<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
     using coulomb_interaction<lat_dim>::step_nr;
     using coulomb_interaction<lat_dim>::n;
     using coulomb_interaction<lat_dim>::D;
@@ -567,8 +568,8 @@ public:
 
     }
 
-    template<class State, class Stoch>
-    void calc_diff(const State &x, Stoch &theta, double t) {
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
         thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
         if(step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
