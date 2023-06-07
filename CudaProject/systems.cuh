@@ -532,7 +532,12 @@ public:
 
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - coulomb_interaction(tup);       // Interaction
+                                    - J * (
+                    ((q - q_left) / pow(1.0 + (q - q_left) * (q - q_left), 1.5))
+                    +   ((q - q_right) / pow(1.0 + (q - q_right) * (q - q_right), 1.5))
+                    +   ((q - q_up) / pow(1.0 + (q - q_up) * (q - q_up), 1.5))
+                    +   ((q - q_down) / pow(1.0 + (q - q_down) * (q - q_down), 1.5))
+            );;       // Interaction
         }
     };
 

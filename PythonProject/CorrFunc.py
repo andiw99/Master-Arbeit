@@ -19,12 +19,40 @@ def fit_exp(r, C, func=exp):
     return popt
 
 
+def corr_scaling_right(T, Tc, nu, xi0):
+    eps = (Tc - T) / Tc         # so negative temps are above Tc
+    return xi0 / (-eps ** nu)
+
+def corr_scaling_left(T, Tc, nu, xi0):
+    eps = (Tc - T) / Tc         # so negative temps are above Tc
+    return xi0 / (eps ** nu)
+
+def fit_scaling(T, xi, func=corr_scaling_right):
+    popt, pcov = curve_fit(func, T, xi)
+    return popt
+
+def corr_eps_scaling(eps, nu, xi0):
+    return xi0 / (eps ** nu)
+
+
+def fit_eps_scaling(eps, xi):
+    popt, pcov = curve_fit(corr_eps_scaling, eps,  xi)
+    return popt
+
+def log_scaling(T, Tc, nu, xi0):
+    return np.log(xi0) + nu * (np.log(Tc) - np.log(Tc-T))
+
+def fit_log_scaling(T, lnxi):
+    popt, pcov = curve_fit(log_scaling, T,  lnxi)
+    return popt
+
 def main():
-    root = "../../Generated content/High Temp Approach/All/"
+    root = "../../Generated content/High Temp Approach/Fit left/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
     plot_fits = False
+    side_func = corr_scaling_left
 
     # define a cutoff since the exponential decay is only correct for large distances
     cutoff_range = [0]
@@ -98,14 +126,55 @@ def main():
 
     # sorting
 
-        xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]
-        T_arr = np.sort(T_arr)
+        detailed_T = np.linspace(0, 200, 201)
+
+        xi_sorted = np.append(np.array(xi_arr)[np.argsort(T_arr)], [])
+        T_arr = np.append(np.sort(T_arr), [])
+
 
         fig, ax = plt.subplots(1, 1)
         ax.plot(T_arr, xi_sorted, ls="", marker="o")
         ax.set_xlabel("T")
         ax.set_ylabel(r"$\xi(T)$")
         ax.set_title("Corr Length depending on T")
+
+        popt = fit_scaling(T_arr, xi_sorted, side_func)
+        fit = side_func(T_arr, *popt)
+        nu = popt[1]
+        Tc = popt[0]
+
+        print("critical exponent nu = ", nu)
+        print("critical temperature Tc = ", Tc)
+
+        T_c_guess = 85
+        eps_arr = (T_c_guess - T_arr) / T_c_guess
+        print(eps_arr)
+        print(xi_sorted)
+
+        popt2 = fit_eps_scaling(eps_arr, xi_sorted)
+        nu2 = popt[1]
+        Tc2 = popt[0]
+
+        eps_fit = corr_eps_scaling(eps_arr, nu2, Tc2)
+        print("critical exponent nu = ", nu2)
+        print("critical temperature Tc = ", Tc2)
+        ax.plot(T_arr, fit)
+        ax.plot(T_arr, eps_fit)
+
+        fig, ax = plt.subplots(1, 1)
+        popt2 = fit_log_scaling(T_arr, np.log(xi_sorted))
+        nu2 = popt[1]
+        Tc2 = popt[0]
+
+        log_fit = log_scaling(eps_arr, *popt2)
+        print("critical exponent nu = ", nu2)
+        print("critical temperature Tc = ", Tc2)
+
+        ax.plot(T_arr, log_fit)
+
+        ax.plot(T_arr, np.log(xi_sorted))
+
+
         plt.show()
 
 

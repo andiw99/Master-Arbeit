@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
         rootpath = argv[1];
     } else {
         cout << "Please provide file directory";
+        rootpath = "../../Generated content/High Temp Approach/Retry 115-120/";
     }
     cout << rootpath << endl;
 
