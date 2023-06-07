@@ -5,6 +5,7 @@
 #include "Polymorphism.h"
 #include <iostream>
 #include <chrono>
+#include <stdio.h>
 
 using namespace std;
 
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
         std::cout << "No arguments provided." << std::endl;
     }
 
+    double fckn_testdouble = 0.01;
+    printf("%f", fckn_testdouble);
 
     return 0;
 }

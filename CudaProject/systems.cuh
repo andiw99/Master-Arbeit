@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <chrono>
 #include <curand_kernel.h>
-#include <cstdio>
+#include <stdio.h>
 
 using namespace std;
 
@@ -424,7 +424,9 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
-            double printf(interaction);
+            printf(
+                    "%f", interaction
+                    );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
@@ -537,7 +539,9 @@ public:
                     +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
             );
 
-            double printf(interaction);
+            printf(
+                    "%f", interaction
+            );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
