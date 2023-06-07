@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <chrono>
 #include <curand_kernel.h>
-
+#include <cstdio>
 
 using namespace std;
 
@@ -423,10 +423,11 @@ public:
             double q_right = thrust::get<5>(tup);
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
-
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+            double printf(interaction);
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
+                                    - interaction;       // Interaction
         }
     };
 
@@ -529,15 +530,17 @@ public:
             double q_right = thrust::get<5>(tup);
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
+            double interaction = J * (
+                    ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  1.5))
+                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 1.5))
+                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
+                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
+            );
 
+            double printf(interaction);
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * (
-                    ((q - q_left) / pow(1.0 + (q - q_left) * (q - q_left), 1.5))
-                    +   ((q - q_right) / pow(1.0 + (q - q_right) * (q - q_right), 1.5))
-                    +   ((q - q_up) / pow(1.0 + (q - q_up) * (q - q_up), 1.5))
-                    +   ((q - q_down) / pow(1.0 + (q - q_down) * (q - q_down), 1.5))
-            );;       // Interaction
+                                    - interaction;       // Interaction
         }
     };
 
