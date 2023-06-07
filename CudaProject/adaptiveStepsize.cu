@@ -180,7 +180,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 }
 
 
-void simple_temps_scan(string stepper = "adaptive") {
+void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
     const size_t lattice_dim = 100;
 
@@ -210,9 +210,9 @@ void simple_temps_scan(string stepper = "adaptive") {
         cout << "Running repeat with following parameters:" << endl;
         printMap(paras);
         if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, "constant", dirpath);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, "constant", dirpath);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         }
     }
 
@@ -221,6 +221,6 @@ void simple_temps_scan(string stepper = "adaptive") {
 }
 
 int main() {
-    simple_temps_scan("combined");
+    simple_temps_scan("combined", "coulomb constant");
     return 0;
 }

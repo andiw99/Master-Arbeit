@@ -3,7 +3,6 @@
 //
 
 #include "../Header/Helpfunctions and Classes.h"
-#include <filesystem>
 
 void calc_corr(vector<vector<complex<double>>> &f, vector<double> &C_x, vector<double> &C_y) {
     // i guess we could also use just normal doubles, would also give some performance

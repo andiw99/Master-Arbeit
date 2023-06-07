@@ -11,8 +11,7 @@
 
 
 #include <iostream>
-#include <boost/numeric/odeint.hpp>
-#include <cmath>
+#include <complex>
 #include <random>
 #include <fstream>
 #include <filesystem>
@@ -21,7 +20,6 @@
 
 // using namespaces!
 using namespace std;
-using namespace boost::numeric::odeint;
 namespace fs = std::filesystem;
 // new state is composed of every
 typedef vector<double> entry_type;
