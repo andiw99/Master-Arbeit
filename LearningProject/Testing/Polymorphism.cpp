@@ -32,6 +32,9 @@ public:
         functor();
     }
 
+    void normalOp() {
+        cout << "Just a normal fucking funciton" << endl;
+    }
 
 };
 
@@ -85,6 +88,8 @@ int main(int argc, char* argv[]) {
 
     child.someMethod();
     child();
+
+    child.normalOp();
 
     size_t k = 0;
     unsigned int k2 = 0;

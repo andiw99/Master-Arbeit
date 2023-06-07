@@ -536,15 +536,15 @@ public:
         }
     };
 
-
-    template<class State, class Deriv, class Stoch>
+public:
+    template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
         coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
         this->universalStepOperations(x, dxdt, t, functor);
     }
 
 
-public:
+
     coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
             : System<lat_dim>(init_step), T(T), step_nr(init_step), n(lat_dim * lat_dim),
             eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
