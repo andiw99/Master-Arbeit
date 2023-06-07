@@ -10,7 +10,7 @@ g++ -I /home/weitze73/Code/boost_1_82_0 -std=c++17  $input_file -o $output_file
 # Check if the compilation was successful
 if [ $? -eq 0 ]; then
     echo "Compilation successful, starting..."
-    output=$(./$output_file test)
+    output=$(./$output_file test | tee /dev/tty)
     rootpath=$(echo "$output" | tail -1) 
     echo "$rootpath"
     

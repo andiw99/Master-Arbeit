@@ -19,7 +19,7 @@ if [ $? -eq 0 ]; then
     echo "Compilation successful"
     # run the simulation
     # save the output in variable output
-    output=$(./$output_file)
+    output=$(./$output_file | tee /dev/tty)
     # cut only the last line, which is the save path
     rootpath=$(echo "$output" | tail -1)
     # compile CalcCorrelationFunction if it isnt already
