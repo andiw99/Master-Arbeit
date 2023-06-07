@@ -614,6 +614,7 @@ public:
             timer.set_startpoint(euler_steps);
             if (!switched) {
                 cout << "switched: k = " << k << " dt = " << dt << endl;
+                cout << "or are we at prev_k? prev_k = " << prev_accepted_k << endl;
                 switched = true;
             }
             euler_mayurama_stepper<state_type, algebra, operations,

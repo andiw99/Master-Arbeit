@@ -19,51 +19,6 @@ using namespace std;
 namespace fs = std::filesystem;
 
 
-vector<fs::path> list_dir_paths(const fs::path& root)
-{
-    vector<fs::path> dir_paths;
-
-    if (fs::is_directory(root))
-    {
-        for (const auto& entry : fs::directory_iterator(root))
-        {
-            // if regular file, do nothing?
-            // if directory, add
-            if (fs::is_directory(entry.path()) && entry.path().filename() != "plots")
-            {
-                dir_paths.push_back(entry.path());
-                vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
-                dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
-            }
-        }
-    }
-    return dir_paths;
-}
-
-
-vector<fs::path> list_csv_files(const fs::path& root)
-{
-    vector<fs::path> csv_files;
-
-    if (fs::is_directory(root))
-    {
-        for (const auto& entry : fs::directory_iterator(root))
-        {
-            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
-            {
-                csv_files.push_back(entry.path());
-            }
-            else if (fs::is_directory(entry.path()))
-            {
-                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
-                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
-            }
-        }
-    }
-
-    return csv_files;
-}
-
 
 template<typename T>
 std::vector<double> linspace(T start_in, T end_in, int num_in)
@@ -146,62 +101,6 @@ void nanscan(const vector<vector<complex<double>>> (&f)) {
     cout << "nan scan done" << endl;
 }
 
-string readLastLine(std::ifstream& file) {
-    std::string line;
-    std::string lastLine;
-    while (std::getline(file, line))
-    {
-        lastLine = line;
-    }
-    return lastLine;
-}
-
-
-vector<complex<double>> readLastValues(ifstream& file, double& T) {
-    string lastline = readLastLine(file);
-    vector<complex<double>> values;
-
-    stringstream llss(lastline);
-    string token;
-    while (std::getline(llss, token, ',')) {
-        if(token != "t") {
-            complex<double> value = stod(token);
-            values.push_back(value);
-        }
-    }
-    // we delete the last value as it is the temperature
-    // or do we need the temperature?
-    // we might need it but we cannot really give it back
-    T = values.back().real();
-    values.pop_back();
-
-    // TODO we erase t for now
-    values.erase(values.begin());
-
-    return values;
-}
-
-
-vector<vector<complex<double>>> oneD_to_twoD(vector<complex<double>> &q) {
-    int N = q.size();
-    int lat_dim = (int)sqrt(q.size());
-
-
-    vector<vector<complex<double>>> q_2D = vector<vector<complex<double>>>( lat_dim, vector<complex<double>>(lat_dim, 0));
-    // now i fill it with values
-    // actually there was probably a function for this in some package...
-    int n;
-    int m;
-
-    for(int i = 0; i < N; i++) {
-        n = (i % lat_dim);
-        m = i / lat_dim;
-        // Zeile kreuz spalte?
-        q_2D[m][n] = q[i];
-    }
-
-    return q_2D;
-}
 
 complex<double> two_d_fourier(const vector<vector<complex<double>>> &f, const vector<vector<array<double, 2>>> &q,
                               double pi, double pj) {

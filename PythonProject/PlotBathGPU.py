@@ -25,7 +25,7 @@ def main():
     nr_plots_per_dimension = 4
     plot_all = False
     txt = True                  # whether the parameters are saved in a txt file
-    plot_root = root + "plots/"
+    plot_root = os.path.join(root, "plots/")
 
     # TODO very unefficient to read in all trajectories first and then plot
     filepaths = new_files_in_dir(root, root, plot_all=plot_all)
