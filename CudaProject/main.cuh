@@ -604,7 +604,8 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     string repetitions = "Repetitions";
     string euler_steps = "Euler-Mayurama Steps";
     string adaptive_steps = "Adaptive Steps";
-    checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps}};
+    string rng = "Random Number Generation";
+    checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps, rng}};
 public:
 
     template<class Sys>
@@ -659,7 +660,9 @@ public:
         // now we have to check whether the error is small enough
         if(error < tol) {
             // if error is smaller than the tolerance we apply everything
+            timer.set_startpoint(rng);
             sys.calc_diff(theta, t);
+            timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time
             t += dt;

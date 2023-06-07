@@ -176,6 +176,8 @@ public:
         step_nr++;
     }
 
+    System(size_t step_nr) : step_nr(step_nr), n(lat_dim * lat_dim) {}
+
     size_t get_lattice_dim() const{
         return lat_dim;
     }
@@ -183,8 +185,6 @@ public:
     double get_cur_T() const{
         return T;
     }
-
-    System(size_t step_nr) : step_nr(step_nr), n(lat_dim * lat_dim) {}
 
 };
 
@@ -466,10 +466,6 @@ public:
     double get_cur_T() const{
         return T;
     }
-
-    size_t get_lattice_dim() const{
-        return lat_dim;
-    }
     ~constant_bath() {
         cout << "Bath System is destroyed" << endl;
     }
@@ -542,7 +538,37 @@ public:
 
 
     template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
+        this->universalStepOperations(x, dxdt, t, functor);
+    }
+
+
+public:
+    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : System<lat_dim>(init_step), T(T), step_nr(init_step), n(lat_dim * lat_dim),
+            eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+    }
+
+    double get_cur_T() const{
+        return T;
+    }
+
+};
+
+template <size_t lat_dim>
+class coulomb_constant : coulomb_interaction<lat_dim> {
+    using coulomb_interaction<lat_dim>::step_nr;
+    using coulomb_interaction<lat_dim>::n;
+    using coulomb_interaction<lat_dim>::D;
+public:
+    coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+    : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step) {
+
+    }
+
+    template<class State, class Stoch>
+    void calc_diff(const State &x, Stoch &theta, double t) {
         thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
         if(step_nr == 0) {
             // TODO will this already be initialized to zero without this statement?
@@ -553,21 +579,6 @@ public:
                           index_sequence_begin + n,
                           theta.begin() + n,
                           rand(D));
-
-        coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
-        this->universalStepOperations(x, dxdt, theta, functor);
-    }
-public:
-    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
-    }
-
-    double get_cur_T() const{
-        return T;
-    }
-
-    size_t get_lattice_dim() const{
-        return lat_dim;
     }
 };
 

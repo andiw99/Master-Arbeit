@@ -119,7 +119,22 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             cout << "total squared dist: " << d2 << endl;
             cout << "theoretical total squared dist: " << (double) lattice_dim * T / J;
         }
-    } else {
+    } else if(system=="coulomb constant") {
+        coulomb_constant<lattice_dim> gpu_system(T, eta, alpha, beta, J, seed);
+        while(t < end_t) {
+            // we need small stepsizes at the beginning to guarantee stability
+            // but after some time, we can increase the stepsize
+            // there should be a t that is equal to t_relax?
+
+            gpu_stepper.do_step(gpu_system, x, dt_max, t);
+            if (t >= write_timepoint) {
+                Obs.write(gpu_system, x, t);
+                write_timepoint += write_interval;
+                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
+            }
+        }
+    }
+    else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         while(t < end_t) {
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
@@ -200,6 +215,9 @@ void simple_temps_scan(string stepper = "adaptive") {
             repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, "constant", dirpath);
         }
     }
+
+    // print the root
+    cout << root << endl;
 }
 
 int main() {

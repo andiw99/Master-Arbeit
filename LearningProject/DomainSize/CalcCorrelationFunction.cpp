@@ -50,7 +50,9 @@ void write_corr_func(vector<double> &C_x, vector<double> C_y, string writepath) 
 
 
 
-int main() {
+int main(int argc, char* argv[]) {
+    // run main with rootpath as first argument
+
     // We still need to read in the values
     string readpath = "../../Generated content/Quadratic/0.csv";
     string writepath = "../../Generated content/Quadratic/corr.func";
@@ -58,8 +60,13 @@ int main() {
 
     // okay we need a system that calculates the correlation func for every file or at least for every directory
     // path of the root where we have multiple directories with multiple csv for every Temp
-
-    string rootpath = "../../Generated content/High Temp Approach/Longer 95-85/";
+    string rootpath;
+    if(argc >= 2) {
+        rootpath = argv[1];
+    } else {
+        cout << "Please provide file directory";
+    }
+    cout << rootpath << endl;
 
     // now we need a function that returns the directories? but then we need to watch out that we dont have "plots"
     // directory there
