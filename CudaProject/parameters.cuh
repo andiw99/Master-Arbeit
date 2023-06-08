@@ -68,6 +68,12 @@ map<string, double> adaptive_temp_scan_standard = {
 };
 
 
+string quench_root = "";
+
+map<string, double> quench_paras = {
+
+};
+
 template <typename Key, typename Value>
 void printMap(const std::map<Key, Value>& myMap) {
     for (const auto& pair : myMap) {

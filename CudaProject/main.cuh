@@ -6,6 +6,7 @@
 #define CUDAPROJECT_MAIN_CUH
 //
 
+#include "../LearningProject/Header/Helpfunctions and Classes.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -22,6 +23,9 @@
 #include <fstream>
 #include <filesystem>
 #include <map>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <unsupported/Eigen/NonLinearOptimization>
 
 
 // timing stuff from stackoverflow
@@ -267,6 +271,106 @@ public:
 
         // Zeilenumbruch
         file << "\n";
+    }
+};
+
+template<typename scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
+struct Functor
+{
+    typedef scalar Scalar;
+    enum {
+        InputsAtCompileTime = NX,
+        ValuesAtCompileTime = NY
+    };
+    typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+
+    int m_inputs, m_values;
+
+    Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+    Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+
+    int inputs() const { return m_inputs; }
+    int values() const { return m_values; }
+
+};
+
+struct ExponentialDecayFunctor : Functor<double> {
+private:
+    // Observations for a sample.
+    Eigen::VectorXd C;
+    Eigen::VectorXd x;
+public:
+    ExponentialDecayFunctor(Eigen::VectorXd C, Eigen::VectorXd x): C(C), x(x) {}
+
+    int operator()(const Eigen::VectorXd &paras, Eigen::VectorXd &fvec) const {
+        // fvec is the vector with residuals
+        for(int i = 0; i < this->inputs(); i++) {
+            fvec(i) = C(i) - paras(0) * exp(- x(i) / paras(1));
+        }
+        return 0;
+    }
+};
+
+struct NumericalExpDecayDiffFunctor : Eigen::NumericalDiff<ExponentialDecayFunctor> {
+public:
+    NumericalExpDecayDiffFunctor(Eigen::VectorXd &C, Eigen::VectorXd &x) : Eigen::NumericalDiff<ExponentialDecayFunctor>(C, x)
+            {}
+};
+
+class Fitter {
+private:
+    int kNumObservations;
+public:
+    Fitter() {
+
+    }
+
+    template <class Residual>
+    vector<double> fit() {
+
+    }
+};
+
+class quench_observer : public bath_observer {
+    ofstream &xi_out;
+public:
+    quench_observer(ofstream& sys_out, ofstream& xi_out) : bath_observer(sys_out), xi_out(xi_out){}
+
+    template<class State, class System>
+    void write_xi(System &sys, const State &x, double t) {
+        // we need to calculate the correlation function and the correlation length
+        // correlation function is easy but length is hard, need to do fit
+        // the thing is, x is a gpu vector and to copy it to host to use my old corr_func might be slow
+        // rewriting in thrust will take some time tho...
+        // probably for now best to use slow variant since we probably switch to fftw sometime anyway?
+        // so we use thrust copy to do this
+        size_t lat_dim = sys.get_lattice_dim();
+        size_t n = lat_dim * lat_dim;
+        size_t nr_dists = lat_dim / 2 + 1;
+        vector<double> vals(n);         // init standard vector with size of x_values which is x.size()/2
+
+        // copy from x to f
+        thrust::copy(x.begin(), x.begin() + n, vals.begin());      // okay, should be copied, we have one d f
+        vector<vector<double>> f = oneD_to_twoD(vals);
+        // ready to calc corr func, need vectors to save it
+        Eigen::VectorXd C_x(nr_dists, 0.0);
+        Eigen::VectorXd C_y(nr_dists, 0.0);
+
+        calc_corr(f, C_x, C_y);
+        // now we need to do the fit
+
+        NumericalExpDecayDiffFunctor functor(C_x, C_y);
+        Eigen::LevenbergMarquardt<NumericalExpDecayDiffFunctor> lm(functor);
+        Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
+        std::cout << "status: " << status << std::endl;
+
+        //std::cout << "info: " << lm.info() << std::endl;
+
+        std::cout << "x that minimizes the function: " << std::endl << x << std::endl;
+
+        // now printing to file
     }
 };
 
@@ -712,44 +816,6 @@ private:
     state_type x_drift, dx_drift_dt;
 };
 
-// I don't know if this is so smart what i did here since i don't know whether this grid searching will work with
-// this templated stuff. I mean we could probably write a shell script that compiles and executes the code for the
-// different values but I doubt that it will be worth it
-string trunc_double(double a, int precision=2) {
-    stringstream stream;
-    stream << std::fixed << std::setprecision(precision) << a;
-    return stream.str();
-}
-
-void create_dir(const string dir_name) {
-    // check wheter the directory already exists, if not create it
-    if(!filesystem::is_directory(dir_name) || !filesystem::exists(dir_name)) {
-        filesystem::create_directories(dir_name);
-    }
-}
-
-string create_tree_name(double eta, double T, double dt, int n, double alpha, double beta, double J, double tau,
-                        const string root) {
-    string dir_name = root + "eta=" + trunc_double(eta)
-                      + "/T=" + trunc_double(T) + "/dt=" +
-                      trunc_double(dt, 4) + "/n="+ to_string(n) + "/alpha=" + trunc_double(alpha) + "/beta=" +
-                      trunc_double(beta) + "/J=" + trunc_double(J) + "/tau=" + trunc_double(tau);
-    create_dir(dir_name);
-    return dir_name;
-}
-
-void write_parameters(ofstream& file, double eta, double T, double dt, int n, double alpha, double beta, double J,
-                      double tau) {
-    // insert the parameters
-    file << "eta," << eta << ", \n";
-    file << "T," << T << ", \n";
-    file << "dt," << dt << ", \n";
-    file << "n," << n << ", \n";
-    file << "alpha," << alpha << ", \n";
-    file << "beta," << beta << ", \n";
-    file << "J," << J << ", \n";
-    file << "tau," << tau << ", \n";
-}
 
 template<typename T>
 std::vector<T> linspace(T start_in, T end_in, int num_in)
@@ -778,6 +844,35 @@ std::vector<T> linspace(T start_in, T end_in, int num_in)
     // are exactly the same as the input
     return linspaced;
 }
+
+template<typename T>
+std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
+{
+    std::vector<T> logspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double base = static_cast<double>(base);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return logspaced; }
+    if (num == 1)
+    {
+        logspaced.push_back((T)pow(base, start));
+        return logspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        logspaced.push_back((T)pow(base, start + delta * i));
+    }
+    logspaced.push_back(end); // I want to ensure that start and end
+    // are exactly the same as the input
+    return logspaced;
+}
+
 void print_vector(std::vector<double> vec)
 {
     std::cout << "size: " << vec.size() << std::endl;
@@ -785,8 +880,6 @@ void print_vector(std::vector<double> vec)
         std::cout << d << " ";
     std::cout << std::endl;
 }
-
-double testvariable = 2.0;
 
 struct rand_init_values
 {
@@ -812,8 +905,8 @@ struct rand_init_values
     }
 };
 
-template <size_t n>
-void fill_init_values(thrust::device_vector<double>& state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
+template <class State, size_t n>
+void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
 
     thrust::counting_iterator<size_t> index_sequence_begin(run * state.size());
     // thrust::fill(theta.begin(), theta.begin() + n, 0);

@@ -29,6 +29,63 @@ int pymod(int a, int b) {
     return ((b + (a % b)) % b);
 }
 
+void calc_corr(vector<vector<complex<double>>> &f, vector<double> &C_x, vector<double> &C_y) {
+    // i guess we could also use just normal doubles, would also give some performance
+    // but i actually really don't think that it will be very computationally difficult
+    int lat_dim = f.size();
+    // I don't think that we have to pay attention to the lattice spacings. If we set them one we are just measuring
+    // the distance in multiples of the lattice spacing
+    // because of PBC, the maximum distance is half the lat_dim
+    int d_max = lat_dim / 2;
+
+    // loop over the rows(cols)
+    for(int i = 0; i < lat_dim; i++) {
+        // for every row we loop over all possible distances, which are 0, 1, ..., d_max
+        for(int d = 0; d <= d_max; d++) {
+            // for every distance we loop over every lattice site, so over every col (row)
+            for(int j = 0; j < lat_dim; j++) {
+            // we only have to add up the +d terms since we have pbc?
+            C_x[d] += f[i][j].real() * f[i][(j + d) % lat_dim].real();
+            C_y[d] += f[j][i].real() * f[(j + d) % lat_dim][i].real();
+            }
+        }
+    }
+    // meaning now for C_x[d] we have had lat_dim(i) * lat_dim(j) additions, so normalization
+    for(int d = 0; d <= d_max; d++) {
+        C_x[d] /= (lat_dim * lat_dim);
+        C_y[d] /= (lat_dim * lat_dim);
+    }
+}
+
+template <class value_type, class result_type>
+void calc_corr(vector<vector<value_type>> &f, result_type &C_x, result_type &C_y) {
+    // i guess we could also use just normal doubles, would also give some performance
+    // but i actually really don't think that it will be very computationally difficult
+    int lat_dim = f.size();
+    // I don't think that we have to pay attention to the lattice spacings. If we set them one we are just measuring
+    // the distance in multiples of the lattice spacing
+    // because of PBC, the maximum distance is half the lat_dim
+    int d_max = lat_dim / 2;
+
+    // loop over the rows(cols)
+    for(int i = 0; i < lat_dim; i++) {
+        // for every row we loop over all possible distances, which are 0, 1, ..., d_max
+        for(int d = 0; d <= d_max; d++) {
+            // for every distance we loop over every lattice site, so over every col (row)
+            for(int j = 0; j < lat_dim; j++) {
+                // we only have to add up the +d terms since we have pbc?
+                C_x[d] += f[i][j] * f[i][(j + d) % lat_dim];
+                C_y[d] += f[j][i] * f[(j + d) % lat_dim][i];
+            }
+        }
+    }
+    // meaning now for C_x[d] we have had lat_dim(i) * lat_dim(j) additions, so normalization
+    for(int d = 0; d <= d_max; d++) {
+        C_x[d] /= (lat_dim * lat_dim);
+        C_y[d] /= (lat_dim * lat_dim);
+    }
+}
+
 
 vector<fs::path> list_dir_paths(const fs::path& root)
 {
@@ -110,13 +167,13 @@ vector<complex<double>> readLastValues(ifstream& file, double& T) {
     return values;
 }
 
-
-vector<vector<complex<double>>> oneD_to_twoD(vector<complex<double>> &q) {
+template <class value_type>
+vector<vector<value_type>> oneD_to_twoD(vector<value_type> &q) {
     int N = q.size();
     int lat_dim = (int)sqrt(q.size());
 
 
-    vector<vector<complex<double>>> q_2D = vector<vector<complex<double>>>( lat_dim, vector<complex<double>>(lat_dim, 0));
+    vector<vector<value_type>> q_2D = vector<vector<value_type>>( lat_dim, vector<value_type>(lat_dim, 0));
     // now i fill it with values
     // actually there was probably a function for this in some package...
     int n;
