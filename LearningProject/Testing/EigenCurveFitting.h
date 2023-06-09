@@ -1,0 +1,14 @@
+//
+// Created by weitze73 on 08.06.23.
+//
+
+#ifndef LEARNINGPROJECT_EIGENCURVEFITTING_H
+#define LEARNINGPROJECT_EIGENCURVEFITTING_H
+
+
+class EigenCurveFitting {
+
+};
+
+
+#endif //LEARNINGPROJECT_EIGENCURVEFITTING_H

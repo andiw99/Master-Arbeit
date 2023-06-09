@@ -67,7 +67,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    fill_init_values<n>(x, (float) x0, (float) p0);
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0);
 
     for (int i = 0; i < n; i++) {
         mu += x[i];

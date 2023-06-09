@@ -186,6 +186,24 @@ public:
         return T;
     }
 
+    double get_T(double t) {
+        return T;
+    }
+
+    template <class T>
+    struct square
+    {
+        __host__ __device__
+        T operator()(const T& x) const {
+            return x * x;
+        }
+    };
+
+    template<class State>
+    double calc_kinetic_energy(State &x) {
+        double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
+        return E_kin;
+    }
 };
 
 
@@ -199,6 +217,11 @@ struct gpu_bath : public System<lat_dim> {
     using down = typename System<lat_dim>::down;
 public:
     const double T_start;
+    const double T_end;
+    const double s_eq_t;
+    const double e_eq_t;
+    double t_quench;
+    double end_quench_t;
     const double alpha;
     const double eta;
     const double tau;
@@ -280,10 +303,19 @@ public:
         }
     };
 
-    double linear_T(double t) {
+    double simple_linear_T(double t) {
         // parametrisierung für die Temperatur
         // linearer Abfall
-        T = max(T_start - t/tau, 1.0);
+        T = max(T_start - t/tau, T_end);
+        return T;
+    }
+
+
+    double linear_T(double t) {
+        if(s_eq_t < t && t < end_quench_t) {
+            // if we are in the quench phase, we reduce T
+            T = T_start - (t - s_eq_t)/tau;
+        }
         return T;
     }
 
@@ -328,8 +360,26 @@ public:
                           rand(D));
     }
 public:
-    gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
-            : System<lat_dim>(init_step), T_start(T), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
+            : System<lat_dim>(init_step), T_start(T), T(T), eta(eta), alpha(alpha), beta(beta), J(J),
+            tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
+    }
+
+    double get_T(double t) {
+        return linear_T(t);
+    }
+
+    double get_quench_time() {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        return (T_start - T_end) * tau;
+    }
+
+    double get_end_t(){
+        // the total time are the two equilibriate times + the quench time
+        return s_eq_t + e_eq_t + t_quench;
     }
 };
 
@@ -826,7 +876,7 @@ public:
 
 
 
-typedef vector<double> state_type;
+
 
 struct brownian_particel {
     const double eta, T;
@@ -838,6 +888,7 @@ struct brownian_particel {
     /*
      * call of the system needs to take in the theta state type
      */
+    template <class state_type>
     void operator()(const state_type &x, state_type &dxdt, state_type &theta, double t)
     {
         dxdt[0] = x[1];

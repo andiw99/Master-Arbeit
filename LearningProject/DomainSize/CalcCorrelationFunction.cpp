@@ -4,35 +4,6 @@
 
 #include "../Header/Helpfunctions and Classes.h"
 
-void calc_corr(vector<vector<complex<double>>> &f, vector<double> &C_x, vector<double> &C_y) {
-    // i guess we could also use just normal doubles, would also give some performance
-    // but i actually really don't think that it will be very computationally difficult
-    int lat_dim = f.size();
-    // I don't think that we have to pay attention to the lattice spacings. If we set them one we are just measuring
-    // the distance in multiples of the lattice spacing
-    // because of PBC, the maximum distance is half the lat_dim
-    int d_max = lat_dim / 2;
-
-    // loop over the rows(cols)
-    for(int i = 0; i < lat_dim; i++) {
-        // for every row we loop over all possible distances, which are 0, 1, ..., d_max
-        for(int d = 0; d <= d_max; d++) {
-            // for every distance we loop over every lattice site, so over every col (row)
-            for(int j = 0; j < lat_dim; j++) {
-                // we only have to add up the +d terms since we have pbc?
-                C_x[d] += f[i][j].real() * f[i][(j + d) % lat_dim].real();
-                C_y[d] += f[j][i].real() * f[(j + d) % lat_dim][i].real();
-            }
-        }
-    }
-    // meaning now for C_x[d] we have had lat_dim(i) * lat_dim(j) additions, so normalization
-    for(int d = 0; d <= d_max; d++) {
-        C_x[d] /= (lat_dim * lat_dim);
-        C_y[d] /= (lat_dim * lat_dim);
-    }
-
-}
-
 
 void write_corr_func(vector<double> &C_x, vector<double> C_y, string writepath) {
     ofstream file;
