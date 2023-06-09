@@ -594,7 +594,9 @@ template<
 class euler_mayurama_stepper{
     string system_name = "System";
     string applying_name = "Applying Euler";
-    checkpoint_timer timer{{system_name, applying_name}};
+    string rng = "RNG during Euler";
+    string functor = "Functor during Euler";
+    checkpoint_timer timer{{system_name, applying_name, rng, functor}};
 public:
     // observer* Observer;
     // the stepper needs a do_step method
@@ -614,8 +616,12 @@ public:
         // so we give the system the state and istruct it later to save its calculations in dxdt and theta so that we
         // can later iterate over the lattice and apply the operation, meaning the update
         timer.set_startpoint(system_name);
+        timer.set_startpoint(functor);
         sys.calc_drift(x, dxdt, t);
+        timer.set_endpoint(functor);
+        timer.set_startpoint(rng);
         sys.calc_diff(theta, t);
+        timer.set_endpoint(rng);
         timer.set_endpoint(system_name);
         // this should set the correct values for dxdt and theta so that they can be applied in apply_em
         // can we print them here?

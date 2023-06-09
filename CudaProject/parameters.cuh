@@ -71,7 +71,23 @@ map<string, double> adaptive_temp_scan_standard = {
 string quench_root = "";
 
 map<string, double> quench_paras = {
-
+        {"starting_T", 120.0},
+        {"end_T", 40.0},
+        {"t_eq", 50},
+        {"dt", 0.002},
+        {"J", 10.0},
+        {"alpha", 5.0},
+        {"beta", 20.0},
+        {"eta", 0.8},
+        {"N", 2.0},
+        {"nr_save_values", 16.0},
+        {"nr_xis", 32.0},
+        {"repeat", 10.0},
+        {"min_tau_factor", 1.0},
+        {"max_tau_factor", 3.0},
+        {"nr_taus", 1.0},
+        {"K", 3.0},
+        {"tol", 0.01}
 };
 
 template <typename Key, typename Value>

@@ -40,7 +40,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
             );
     // it does not make sense to quench for a certain time
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice from " <<
-         paras["starting_T"] << " to " << paras["end_T"] << " for a time of " << paras["t"] << endl;
+         paras["starting_T"] << " to " << paras["end_T"] << " for a time of " << sys.get_end_t() << endl;
     // we should define a equilibrate_t for start and end
     // we dont need a general t now since the time of the simulation is determined by the
     // two equilibrate times and the quench time (which is defined by tau and start and endpoint)
@@ -125,7 +125,7 @@ void repeat(map<string, double> parameters, int runs, size_t seed = 0, fs::path 
             stepper,
             system,
             obsver
-            >(parameters, runs - 1, seed, dir_path);
+            >(parameters, runs - 1, 100000000 * rep, dir_path);    // TODO better seed
 }
 
 void scan() {
@@ -145,7 +145,12 @@ void scan() {
     // so i think we want to space the tau logarithmically, meaning we either
     // give in the minimum and maximum value and have to recalc here
     // or we just enter the factors and have to think while making parameters
-    const vector<double> taus = linspace(paras["min_tau_factor"],
+    // how long can a Quench take? 10000s should be an upper bound, when quenching for 100K this means
+    // 10000 / 100 = tau_max = 100
+    // logspace: tau = 2 ^ tau_factor, so max_tau_factor =  7
+    // maybe if we later know our system better we can go to quench for less temp, like 10K, 20K
+    // we just have to make sure we are outside the freezeout time?
+    const vector<double> taus = logspace(paras["min_tau_factor"],
                                       paras["max_tau_facotr"],
                                       (int)paras["nr_taus"] + 1);
     print_vector(taus);
