@@ -944,7 +944,7 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
 
     double start = static_cast<double>(start_in);
     double end = static_cast<double>(end_in);
-    double base = static_cast<double>(base);
+    double base = static_cast<double>(base_in);
     double num = static_cast<double>(num_in);
 
     if (num == 0) { return logspaced; }

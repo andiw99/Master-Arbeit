@@ -59,7 +59,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     stepper<state_type, alg, oper> Stepper(n * N, paras["K"], paras["tol"]);
     // initial state, we this time want it to have approximately the energy of the system in thermal equilibrium
     double x0 = 0;  // double well potential makes it hard to use it to init a state of certain energy
-    double p0 = sqrt(M_PI * paras["starting_T"] / 4);       // energy impuls relation makes it easy to init
+    double p0 = sqrt(M_PI * paras["starting_T"]);       // energy impuls relation makes it easy to init
     // init empty vector                                       // a state that has a certain energy expectation value
     state_type x(N * n);                                       // since we now the expectation value of |p|
     // fill it
@@ -175,5 +175,6 @@ void scan() {
 
 
 int main() {
+    scan();
     return 0;
 }
