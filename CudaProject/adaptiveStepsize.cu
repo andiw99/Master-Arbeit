@@ -27,8 +27,8 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     double end_t = parameters["end_t"];
 
 
-    const double x0 = parameters["x0"];
-    const double p0 = parameters["p0"];
+    const double x0 = parameters["x0"] * sqrt(beta / 2.0);
+    const double p0 = parameters["p0"] * sqrt(beta / 2.0);
     const           size_t n = lattice_dim * lattice_dim;
 
     double write_interval = parameters["end_t"] / nr_save_values;
