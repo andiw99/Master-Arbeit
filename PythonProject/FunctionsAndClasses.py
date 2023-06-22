@@ -28,7 +28,7 @@ def read_struct_func(filepath):
     df = pd.read_csv(filepath, delimiter=",", index_col=False)
     return df
 
-def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2):
+def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2, chess_board=False):
     """
     plots the dataframe as a colormesh
     :param df:
@@ -57,6 +57,9 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
     # for now i just want to know in which minimum i fall so i make this
     # projection
     z_values = np.array(z_values, dtype=float).reshape((n, n))
+    if(chess_board):
+        z_values = chess_board_trafo(z_values)
+
 
     x = np.arange(0.5, n+1, 1)
     y = np.arange(0.5, n + 1, 1)
@@ -108,7 +111,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
 
 
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -126,7 +129,7 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True)
             plot_colormesh(
                 df_rows.iloc[i], fig, ax,
                 title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
-                proj=proj, p=p, beta=beta)
+                proj=proj, p=p, beta=beta, chess_board=chess_board)
             i +=1
             # scale colormap in multiples of the position of the minimum
 
@@ -242,12 +245,15 @@ def chess_board_trafo(x):
     """
     # in place trafo vermutlich langsamer als neues array aber egal
 
-    for i in range(x.shape[0]//2):
-        for j in range(x.shape[1]//2):
+    for i in range(x.shape[0] // 2):
+        for j in range(x.shape[1] // 2):
             # we iterate over all even values with even i, j
-            x[i][j] *= (-1)
+            x[2 * i][2 * j] *= (-1)
             # we iterate over lattice sites with odd indices
-            x[2 * i + 1][2 * j + 1] += (-1)
+            x[2 * i + 1][2 * j + 1] *= (-1)
+
+    # Lol we have to return this since it is not in place
+    return x
 
 
 def pd_chess_board_trafo(x):

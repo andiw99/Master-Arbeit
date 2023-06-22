@@ -17,7 +17,6 @@
 #include <fstream>
 #include <filesystem>
 #include <chrono>
-#include <curand_kernel.h>
 #include <stdio.h>
 
 using namespace std;
@@ -28,7 +27,9 @@ public:
     const size_t n;
     // needed to "advance the random engine" and generate different random numbers for the different steps
     size_t step_nr;
-    const double T = 0;
+    double T;
+    const double eta;
+    double D;
 
     struct rand
     {
@@ -176,7 +177,19 @@ public:
         step_nr++;
     }
 
-    System(size_t step_nr) : step_nr(step_nr), n(lat_dim * lat_dim) {}
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }
+
+    System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {}
 
     size_t get_lattice_dim() const{
         return lat_dim;
@@ -223,14 +236,12 @@ public:
     double t_quench;
     double end_quench_t;
     const double alpha;
-    const double eta;
     const double tau;
     const double beta;
     const double J;
     // systemsize should probably be a template argument?
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
-    double T;
     // parameters of the potential and of the Interaction
     struct cos_functor {
         // Old functor with cos interaction
@@ -306,17 +317,17 @@ public:
     double simple_linear_T(double t) {
         // parametrisierung für die Temperatur
         // linearer Abfall
-        T = max(T_start - t/tau, T_end);
-        return T;
+        System<lat_dim>::T = max(T_start - t/tau, T_end);
+        return System<lat_dim>::T;
     }
 
 
     double linear_T(double t) {
         if(s_eq_t < t && t < end_quench_t) {
             // if we are in the quench phase, we reduce T
-            T = T_start - (t - s_eq_t)/tau;
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
         }
-        return T;
+        return System<lat_dim>::T;
     }
 
 
@@ -324,7 +335,7 @@ public:
     void calc_drift(const State &x, Deriv &dxdt, double t) {
 
         // init functor
-        bath_functor functor = bath_functor(eta, alpha, beta, J);
+        bath_functor functor = bath_functor(System<lat_dim>::eta, alpha, beta, J);
 
         // call universal steps
         this->universalStepOperations(x, dxdt, t, functor);
@@ -350,7 +361,7 @@ public:
         // We also have the step_nr but actually I think I will try to just decrement T in every step rn i don't see
         // the disadvantage
         // The disadvantage is that we don't have dt available here, so i will work with the cur_T attribute
-        double D = sqrt(2 * linear_T(t) * eta);
+        double D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
         // ok so this should be done again, the linear_T computation is performed on the cpu i think which is good
         // since the Temperature is the same for all lattice sites and so it is only one computation
         // generate the random values
@@ -361,7 +372,7 @@ public:
     }
 public:
     gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
-            : System<lat_dim>(init_step), T_start(T), T(T), eta(eta), alpha(alpha), beta(beta), J(J),
+            : System<lat_dim>(init_step, eta, T), T_start(T), alpha(alpha), beta(beta), J(J),
             tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
@@ -431,21 +442,18 @@ public:
 
 template <size_t lat_dim>
 struct constant_bath : public System<lat_dim> {
-    using rand = typename System<lat_dim>::rand;
     using left = typename System<lat_dim>::left;
     using right = typename System<lat_dim>::right;
     using up = typename System<lat_dim>::up;
     using down = typename System<lat_dim>::down;
 public:
     const double alpha;
-    const double eta;
     const double beta;
     const double J;
-    const double D;
     // systemsize should probably be a template argument?
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
-    double T;
+
 
     string rng = "RNG";
     string theta_filling = "Filling of theta";
@@ -474,9 +482,9 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
-            printf(
-                    "%f", interaction
-                    );
+//            printf(
+//                    "%f", interaction
+//                    );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
@@ -486,9 +494,10 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
+        // cout << "calc_drift is called" << endl;
         timer.set_startpoint(functor_point);
 
-        bath_functor functor = bath_functor(eta, alpha, beta, J);
+        bath_functor functor = bath_functor(System<lat_dim>::eta, alpha, beta, J);
 
         this->universalStepOperations(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
@@ -496,28 +505,19 @@ public:
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        timer.set_startpoint(theta_filling);
-        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
-        if(System<lat_dim>::step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
-        }
-        timer.set_endpoint(theta_filling);
+        // cout << "calc_diff is called" << endl;
         timer.set_startpoint(rng);
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + System<lat_dim>::n,
-                          theta.begin() + System<lat_dim>::n,
-                          rand(D));
+        System<lat_dim>::calc_diff(theta, t);
         timer.set_endpoint(rng);
     }
 public:
     constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : System<lat_dim>(init_step), T(T), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
-        cout << "Bath System is constructed" << endl;
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), beta(beta), J(J) {
+        cout << "constant Bath System is constructed" << endl;
     }
 
     double get_cur_T() const{
-        return T;
+        return System<lat_dim>::T;
     }
     ~constant_bath() {
         cout << "Bath System is destroyed" << endl;
@@ -534,7 +534,6 @@ struct coulomb_interaction : public System<lat_dim> {
     using down = typename System<lat_dim>::down;
 public:
     const double alpha;
-    const double eta;
     const double beta;
     const double J;
     const double D;
@@ -544,7 +543,6 @@ public:
     size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
-    double T;
     // parameters of the potential and of the Interaction
     struct coulomb_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -589,9 +587,9 @@ public:
                     +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
             );
 
-            printf(
-                    "%f", interaction
-            );
+//            printf(
+//                    "%f", interaction
+//            );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
@@ -601,19 +599,19 @@ public:
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        coulomb_functor functor = coulomb_functor(eta, alpha, beta, J);
+        coulomb_functor functor = coulomb_functor(System<lat_dim>::eta, alpha, beta, J);
         this->universalStepOperations(x, dxdt, t, functor);
     }
 
 
 
     coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : System<lat_dim>(init_step), T(T), step_nr(init_step), n(lat_dim * lat_dim),
-            eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+            : System<lat_dim>(init_step, eta, T), step_nr(init_step), n(lat_dim * lat_dim), alpha(alpha),
+            beta(beta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{
-        return T;
+        return System<lat_dim>::T;
     }
 
 };
@@ -643,6 +641,88 @@ public:
                           theta.begin() + n,
                           rand(D));
     }
+};
+
+
+template <size_t lat_dim>
+struct quadratic_trapped_lattice : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
+public:
+    const double alpha;
+    const double J;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    string rng = "RNG";
+    string theta_filling = "Filling of theta";
+    string functor_point = "Functor Calc";
+    checkpoint_timer timer {{rng, functor_point, theta_filling}};
+    // parameters of the potential and of the Interaction
+    struct harmonic_trap_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, J, eta;
+
+        harmonic_trap_functor(const double eta, const double alpha,
+                      const double J) : alpha(alpha), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q)                                                        // double well potential
+                                    + interaction;       // Interaction
+        }
+    };
+
+
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        timer.set_startpoint(functor_point);
+
+        harmonic_trap_functor functor = harmonic_trap_functor(System<lat_dim>::eta, alpha, J);
+
+        this->universalStepOperations(x, dxdt, t, functor);
+        timer.set_endpoint(functor_point);
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        timer.set_startpoint(rng);
+        System<lat_dim>::calc_diff(theta, t);
+        timer.set_endpoint(rng);
+    }
+
+public:
+    quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), J(J) {
+        cout << "Lattice quadratic Trap System is constructed" << endl;
+    }
+
+    double get_cur_T() const{
+        return System<lat_dim>::T;
+    }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
 };
 
 
