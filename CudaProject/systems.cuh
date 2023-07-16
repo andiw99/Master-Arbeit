@@ -581,10 +581,10 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             double interaction = J * (
-                    ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  1.5))
-                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 1.5))
-                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
-                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
+                        ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  0))
+                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 0))
+                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    0))
+                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  0))
             );
 
 //            printf(

@@ -45,26 +45,26 @@ map<string, double> temp_scan_standard = {
         {"nr_temps", 0.0},
 };
 
-string adaptive_tempscan_root = "../../Generated content/Harmonic Trap/a/J>8";
+string adaptive_tempscan_root = "../../Generated content/Quadratic test/";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"end_t", 1000.0},
+        {"end_t", 100.0},
         {"dt_max", 0.002},
-        {"J", 5.0},
-        {"alpha", 21.0},
-        {"beta", 20.0},
+        {"J", - 0.1},
+        {"alpha", 0.1},
+        {"beta", 0.5},
         {"tau", 10.0},
         {"eta", 0.8},
         {"N", 2.0},
         {"nr_save_values", 16.0},
-        {"x0", 1.5},
-        {"p0", 1.5},
+        {"x0", 1.6},
+        {"p0", 1.6},
         {"repeat_nr", 1.0},
-        {"min_temp", 0.0},
-        {"max_temp", 100.0},
+        {"min_temp", 0.00},
+        {"max_temp", 0.0001},
         {"nr_temps", 3.0},
         {"K", 10.0},
-        {"tol", 0.5}
+        {"tol", 1.0}
 };
 
 
