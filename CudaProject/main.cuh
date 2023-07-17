@@ -23,9 +23,9 @@
 #include <fstream>
 #include <filesystem>
 #include <map>
-#include <Eigen/Dense>
+/*#include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <Eigen/Core>
+#include <Eigen/Core>*/
 #include <unsupported/Eigen/NonLinearOptimization>
 
 
@@ -274,6 +274,7 @@ public:
     }
 };
 
+/*
 template<typename scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
 struct Functor
 {
@@ -457,6 +458,7 @@ public:
     }
 };
 
+*/
 
 
 // Observer for lattic on bath specific for gpu_bath system?
