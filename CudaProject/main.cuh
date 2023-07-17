@@ -874,6 +874,7 @@ public:
                 ++switch_counter;
             } else {
                 // if athe accepted k is not equal to the last accepted one, we set the new k and reset the counter
+                // cout << "Resetting because prev_accepted k:" << prev_accepted_k << " vs k: " << k << endl;
                 prev_accepted_k = k;
                 switch_counter = 0;
             }
@@ -895,10 +896,12 @@ public:
 
     }
 
-    euler_combined(size_t N, int K, double tol, int switch_count = 5000, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
+    euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
              dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
     k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
-    {}
+    {
+        cout << "creating euler combined stepper" << endl;
+    }
 
     int get_k() {
         return k;
@@ -967,6 +970,31 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
     logspaced.push_back(end); // I want to ensure that start and end
     // are exactly the same as the input
     return logspaced;
+}
+
+template <typename T>
+std::vector<T> geomspace(T start, T stop, int num, bool endpoint = true) {
+    std::vector<T> result;
+
+    if (num < 1) {
+        return result;
+    }
+
+    if (endpoint) {
+        T factor = std::pow(stop / start, 1.0 / (num - 1));
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    } else {
+        T factor = std::pow(stop / start, 1.0 / num);
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    }
+
+    return result;
 }
 
 void print_vector(std::vector<double> vec)

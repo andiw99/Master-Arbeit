@@ -581,10 +581,10 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             double interaction = J * (
-                        ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  0))
-                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 0))
-                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    0))
-                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  0))
+                        ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  1.5))
+                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 1.5))
+                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
+                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
             );
 
 //            printf(
@@ -627,8 +627,12 @@ public:
     : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step) {
 
     }
-
     template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // cout << "calc_diff is called" << endl;
+        System<lat_dim>::calc_diff(theta, t);
+    }
+/*    template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
         if(step_nr == 0) {
@@ -640,7 +644,7 @@ public:
                           index_sequence_begin + n,
                           theta.begin() + n,
                           rand(D));
-    }
+    }*/
 };
 
 

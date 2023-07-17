@@ -189,9 +189,14 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-
-    const vector<double> T = linspace(paras["min_temp"],
-                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
+    vector<double> T;
+    if(paras["logspace"] == 1.0) {
+        T = geomspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    } else {
+        T = linspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    }
     // printing
     {
         print_vector(T);
@@ -210,9 +215,9 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         cout << "Running repeat with following parameters:" << endl;
         printMap(paras);
         if(stepper == "adaptive") {
-            int steps = adaptive_routine<euler_combined, lattice_dim>(paras, 0, system, dirpath, 0);
-        } else {
             int steps = adaptive_routine<euler_simple_adaptive, lattice_dim>(paras, 0, system, dirpath, 0);
+        } else {
+            int steps = adaptive_routine<euler_combined, lattice_dim>(paras, 0, system, dirpath, 0);
         }
     }
 

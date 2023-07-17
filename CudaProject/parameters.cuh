@@ -45,26 +45,27 @@ map<string, double> temp_scan_standard = {
         {"nr_temps", 0.0},
 };
 
-string adaptive_tempscan_root = "../../Generated content/Quadratic test/";
+string adaptive_tempscan_root = "../../Generated content/Coulomb Constant/real coulomb/J5a10b1/stepsize05";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"end_t", 100.0},
-        {"dt_max", 0.002},
-        {"J", - 0.1},
-        {"alpha", 0.1},
-        {"beta", 0.5},
-        {"tau", 10.0},
+        {"end_t", 50.0},
+        {"dt_max", 0.0005},
+        {"J", 5},
+        {"alpha", 10},
+        {"beta", 1.0},
+        {"tau", 1},
         {"eta", 0.8},
         {"N", 2.0},
         {"nr_save_values", 16.0},
-        {"x0", 1.6},
-        {"p0", 1.6},
+        {"x0", 1.4},
+        {"p0", 1.4},
         {"repeat_nr", 1.0},
-        {"min_temp", 0.00},
-        {"max_temp", 0.0001},
-        {"nr_temps", 3.0},
+        {"min_temp", 0.01},
+        {"max_temp", 2},
+        {"nr_temps", 10.0},
         {"K", 10.0},
-        {"tol", 1.0}
+        {"tol", 0.5},
+        {"logspace", 0.0}
 };
 
 
