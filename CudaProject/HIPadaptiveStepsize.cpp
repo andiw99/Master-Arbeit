@@ -163,7 +163,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     }
 }
 
-template <template<class a, class b, class c> class stepper, size_t lattice_dim>
+template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
 void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="", int count=0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
@@ -215,9 +215,9 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         cout << "Running repeat with following parameters:" << endl;
         printMap(paras);
         if(stepper == "adaptive") {
-            int steps = adaptive_routine<euler_simple_adaptive, lattice_dim>(paras, 0, system, dirpath, 0);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         } else {
-            int steps = adaptive_routine<euler_combined, lattice_dim>(paras, 0, system, dirpath, 0);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         }
     }
 

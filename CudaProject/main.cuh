@@ -26,7 +26,7 @@
 /*#include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/Core>*/
-#include <unsupported/Eigen/NonLinearOptimization>
+// #include <unsupported/Eigen/NonLinearOptimization>
 
 
 // timing stuff from stackoverflow
