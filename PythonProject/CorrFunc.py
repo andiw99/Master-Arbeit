@@ -47,7 +47,7 @@ def fit_log_scaling(T, lnxi):
     return popt
 
 def main():
-    root = "../../Generated content/High Temp Approach/Fit left/"
+    root = "../../Generated content/Coulomb Constant/initial scan/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
