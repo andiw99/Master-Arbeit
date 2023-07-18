@@ -77,7 +77,7 @@ int main() {
     // lattice dim
     const int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/Coulomb Constant/Large and many";
+    fs::path root = "../../../Generated content/Coulomb Constant/Many";
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 

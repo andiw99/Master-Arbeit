@@ -99,7 +99,7 @@ def analyze(df, parameters=None, dirpath="./"):
 
 
 def main():
-    root = "../../Generated content/Coulomb Constant/initial scan/"
+    root = "../../Generated content/Coulomb Constant/Many/"
     name = "struct.fact"
     root_dirs = os.listdir(root)
 

@@ -72,7 +72,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             chrono::system_clock::now().time_since_epoch()
     );
 
-    cout << ms.count() % 100000 << endl;
     fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
 
     for (int i = 0; i < n; i++) {
