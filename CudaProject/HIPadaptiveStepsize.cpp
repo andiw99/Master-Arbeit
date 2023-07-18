@@ -67,7 +67,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, 0, 0, 1);
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0);
 
     for (int i = 0; i < n; i++) {
         mu += x[i];
@@ -97,17 +97,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
             obs_timer.set_endpoint(obs_checkpoint);
-        }
-    } else if(system == "harmonic trap") {
-        cout << "creating harmonic trap with quadratic interaction" << endl;
-        quadratic_trapped_lattice<lattice_dim> gpu_system(T, eta, alpha, J, 11234566);
-        while(t < end_t) {
-            gpu_stepper.do_step(gpu_system, x, dt_max, t);
-            if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
-                write_timepoint += write_interval;
-                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
-            }
         }
     }
     else if(system == "quadratic_chain") {
@@ -191,7 +180,7 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 }
 
 
-void simple_temps_scan(string stepper_name = "adaptive", string system="constant") {
+void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
     const size_t lattice_dim = 100;
 
@@ -200,9 +189,14 @@ void simple_temps_scan(string stepper_name = "adaptive", string system="constant
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-
-    const vector<double> T = linspace(paras["min_temp"],
-                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
+    vector<double> T;
+    if(paras["logspace"] == 1.0) {
+        T = geomspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    } else {
+        T = linspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    }
     // printing
     {
         print_vector(T);
@@ -220,7 +214,7 @@ void simple_temps_scan(string stepper_name = "adaptive", string system="constant
 
         cout << "Running repeat with following parameters:" << endl;
         printMap(paras);
-        if(stepper_name == "adaptive") {
+        if(stepper == "adaptive") {
             repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         } else {
             repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
@@ -232,6 +226,6 @@ void simple_temps_scan(string stepper_name = "adaptive", string system="constant
 }
 
 int main() {
-    simple_temps_scan("combined", "harmonic trap");
+    simple_temps_scan("combined", "coulomb constant");
     return 0;
 }

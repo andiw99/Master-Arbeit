@@ -23,14 +23,13 @@
 #include <fstream>
 #include <filesystem>
 #include <map>
-#include <Eigen/Dense>
+/*#include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <Eigen/Core>
-#include <unsupported/Eigen/NonLinearOptimization>
+#include <Eigen/Core>*/
+// #include <unsupported/Eigen/NonLinearOptimization>
 
 
 // timing stuff from stackoverflow
-#include <thrust/host_vector.h>
 #include <thrust/generate.h>
 #include <thrust/for_each.h>
 #include <thrust/execution_policy.h>
@@ -275,6 +274,7 @@ public:
     }
 };
 
+/*
 template<typename scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
 struct Functor
 {
@@ -458,6 +458,7 @@ public:
     }
 };
 
+*/
 
 
 // Observer for lattic on bath specific for gpu_bath system?
@@ -779,7 +780,7 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     value_type tol;
     value_type error = 0;
     time_type dt;
-    int switch_counter;
+    int switch_counter = 0;
     int switch_count;
     double reduction_factor;
     bool switched = false;
@@ -853,12 +854,17 @@ public:
         algebra::for_each(dx_drift_dt, dxdt, calc_error());
         // now the error is in dx_drift_dt, now we got to sum and average it
         error = sum()(dx_drift_dt) / N;
+//        cout << "Error: " << error << endl;
+//        cout << "x[0]: " << x[0] << endl;
+//        cout << "dxdt[0]: " << dxdt[0] << endl;
         timer.set_endpoint(error_calc);
         // now we have to check whether the error is small enough
         if(error < tol) {
             // if error is smaller than the tolerance we apply everything
             timer.set_startpoint(rng);
+            // cout << "calcing diff"<< endl;
             sys.calc_diff(theta, t);
+            // cout << "done calcing diff" << endl;
             timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time
@@ -867,11 +873,12 @@ public:
             // do we have to check that k does not get smaller than zero?
             // wo know that it was accepted, so if our accepted k is equal to the last accepted k, we increase the counter
             if (k == prev_accepted_k) {
-                ++switch_count;
+                ++switch_counter;
             } else {
                 // if athe accepted k is not equal to the last accepted one, we set the new k and reset the counter
+                // cout << "Resetting because prev_accepted k:" << prev_accepted_k << " vs k: " << k << endl;
                 prev_accepted_k = k;
-                switch_count = 0;
+                switch_counter = 0;
             }
 
             // TODO is there a faster way to do this than with if?
@@ -891,10 +898,12 @@ public:
 
     }
 
-    euler_combined(size_t N, int K, double tol, int switch_count = 100, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
+    euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
              dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
     k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
-    {}
+    {
+        cout << "creating euler combined stepper" << endl;
+    }
 
     int get_k() {
         return k;
@@ -965,6 +974,31 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
     return logspaced;
 }
 
+template <typename T>
+std::vector<T> geomspace(T start, T stop, int num, bool endpoint = true) {
+    std::vector<T> result;
+
+    if (num < 1) {
+        return result;
+    }
+
+    if (endpoint) {
+        T factor = std::pow(stop / start, 1.0 / (num - 1));
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    } else {
+        T factor = std::pow(stop / start, 1.0 / num);
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    }
+
+    return result;
+}
+
 void print_vector(std::vector<double> vec)
 {
     std::cout << "size: " << vec.size() << std::endl;
@@ -988,10 +1022,17 @@ struct rand_init_values
         rng.discard(ind);
 
         // dist * ampl zu returnen ist wie... aus dist mit std ampl zu ziehen: b * N(m, o) = N(m, b*o)
-        auto rnr = (double)dist(rng);
+        double rnr = (double)dist(rng);
         // if the drawn number is greater than 3 * sigma we cut it
-        if(abs(rnr) > 3.0 * sigma) {
-            rnr = (rnr < 0) ? (-1.0) * 3.0 * sigma : 3.0 * sigma;
+/*        printf(
+        "%f  ", rnr
+        );
+        printf("\n");*/
+        if(abs(rnr) > 2.0 * sigma) {
+            rnr = (rnr < 0) ? (-1.0) * 2.0 * sigma : 2.0 * sigma;
+/*            printf(
+                    "rnr changed to %f", rnr
+                    );*/
         }
         return (double)ampl * rnr;
     }
@@ -1008,11 +1049,16 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
                       index_sequence_begin + n,
                       state.begin(),
                       rand_init_values(x0, mu, sigma));
-    // fill starting impulses
+
+
+     // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
                       state.begin() + n,
                       rand_init_values(p0, mu, sigma));
+/*    for(int i = 0; i < state.size(); i++) {
+        cout << "x[" << i << "]=" << state[i] << endl;
+    }*/
 }
 
 

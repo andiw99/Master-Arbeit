@@ -1,9 +1,10 @@
 #include "FourierLatticeTrafo.h"
 #include "../Header/Helpfunctions and Classes.h"
+#include <filesystem>
 
 using namespace std;
-
 namespace fs = std::filesystem;
+using namespace fs;
 
 
 template <size_t N>

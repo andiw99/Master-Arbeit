@@ -22,7 +22,7 @@ map<string, double> single_calc_standard = {
         {"p0", 0}
 };
 
-string tempscan_root = "../../Generated content/Higher Temps/";
+string tempscan_root = "../../Generated content/ROCm/";
 
 map<string, double> temp_scan_standard = {
         {"steps", 100000.0},
@@ -36,35 +36,36 @@ map<string, double> temp_scan_standard = {
         {"tau", 10.0},
         {"eta", 0.8},
         {"N", 2.0},
-        {"nr_save_values", 200.0},
+        {"nr_save_values", 32.0},
         {"x0", 4.0},
         {"p0", 4.0},
         {"repeat_nr", 1.0},
-        {"min_temp",10.0},
-        {"max_temp", 60.0},
-        {"nr_temps", 10.0},
+        {"min_temp",100.0},
+        {"max_temp", 100.0},
+        {"nr_temps", 0.0},
 };
 
-string adaptive_tempscan_root = "../../Generated content/Higher Temps/";
+string adaptive_tempscan_root = "../../Generated content/Coulomb Constant/real coulomb/J5a10b1/stepsize05";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"end_t", 1000.0},
-        {"dt_max", 0.002},
-        {"J", 10.0},
-        {"alpha", 5.0},
-        {"beta", 20.0},
-        {"tau", 10.0},
+        {"end_t", 50.0},
+        {"dt_max", 0.0005},
+        {"J", 5},
+        {"alpha", 10},
+        {"beta", 1.0},
+        {"tau", 1},
         {"eta", 0.8},
         {"N", 2.0},
         {"nr_save_values", 16.0},
-        {"x0", 6.0},
-        {"p0", 6.0},
-        {"repeat_nr", 10.0},
-        {"min_temp", 75.0},
-        {"max_temp", 80.0},
-        {"nr_temps", 1.0},
-        {"K", 3.0},
-        {"tol", 0.01}
+        {"x0", 1.4},
+        {"p0", 1.4},
+        {"repeat_nr", 1.0},
+        {"min_temp", 0.01},
+        {"max_temp", 2},
+        {"nr_temps", 10.0},
+        {"K", 10.0},
+        {"tol", 0.5},
+        {"logspace", 0.0}
 };
 
 

@@ -98,17 +98,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             }
             obs_timer.set_endpoint(obs_checkpoint);
         }
-    } else if(system == "harmonic trap") {
-        cout << "creating harmonic trap with quadratic interaction" << endl;
-        quadratic_trapped_lattice<lattice_dim> gpu_system(T, eta, alpha, J, 11234566);
-        while(t < end_t) {
-            gpu_stepper.do_step(gpu_system, x, dt_max, t);
-            if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
-                write_timepoint += write_interval;
-                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
-            }
-        }
     }
     else if(system == "quadratic_chain") {
         cout << "creating quadratic chain obj" << endl;
@@ -232,6 +221,6 @@ void simple_temps_scan(string stepper_name = "adaptive", string system="constant
 }
 
 int main() {
-    simple_temps_scan("combined", "harmonic trap");
+    simple_temps_scan("combined", "constant");
     return 0;
 }

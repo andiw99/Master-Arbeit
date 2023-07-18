@@ -21,6 +21,7 @@
 // using namespaces!
 using namespace std;
 namespace fs = std::filesystem;
+using namespace fs;
 // new state is composed of every
 typedef vector<double> entry_type;
 typedef  vector<vector<entry_type>> state_type;
