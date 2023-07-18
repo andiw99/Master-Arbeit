@@ -77,7 +77,7 @@ int main() {
     // lattice dim
     const int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/Coulomb Constant/initial scan/testvalues";
+    fs::path root = "../../../Generated content/Coulomb Constant/Large and many";
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 
@@ -94,7 +94,6 @@ int main() {
 
         for(auto csv_path :csv_files) {
             trafo_routine(csv_path, ft_squared_y, ft_squared_x);
-            print_array(ft_squared_y);
         }
         // and now just average over the run size
         for(int i = 0; i < lat_dim; i++) {
