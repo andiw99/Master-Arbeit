@@ -75,9 +75,9 @@ int main() {
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
 
     // lattice dim
-    const int lat_dim = 100;
+    int lat_dim = 100;
 
-    fs::path root = "../../../Generated content/High Temp Approach/All/";
+    fs::path root = "../../../Generated content/Coulomb/Random Init Test";
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 
@@ -164,7 +164,7 @@ int main() {
     write_1d_real<nn>(ftu, pr, fu, r, root, name);
     exit(0);
 */
-    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
+/*    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
     double T;
     if(file.is_open()) {
         cout << "File successfully opened" << endl;
@@ -217,14 +217,14 @@ int main() {
     // first we need our data in an fftw_complex array
     // i guess for this the size has to be clear at compile time sadly
 
-    /*
+    *//*
      *
     fftw_complex *f_fftw, *ft_fftw;
     // best way is allocating memory with fftw_malloc but i don't now how I would use this to get an array
     // can only be one dimensional and i have to retransform it afterwars, but that is actually not a huge deal?
     f_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
     ft_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
-     */
+     *//*
 
     // initialize this plan, just a 1D trafo now, doesnt make sense. Get back static arrays
     fftw_plan plan2d;
@@ -234,7 +234,7 @@ int main() {
     nanscan(ft_fftw);
     cout << "plan executed " << ft_fftw[0][0] << endl;
     cout << ft_fftw[0][0][0] << endl;
-    average_and_write(ft_fftw, p);
+    average_and_write(ft_fftw, p);*/
     // average_and_write(ft, p);
 
 
