@@ -111,7 +111,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
 
 
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name=""):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -142,12 +142,17 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
     fig.text(0.02, 0.8, textstr, fontsize=14, bbox=props)
     plt.tight_layout()
     # if you want to save the pics somewhere else
+
+    if name == "":
+        name = plot_name_paras(paras)
+
     try:
-        plt.savefig(storage_root + plot_name_paras(paras), format="png")
+        plt.savefig(storage_root + name, format="png")
     except FileNotFoundError:
         os.makedirs(storage_root)
-        plt.savefig(storage_root + plot_name_paras(paras), format="png")
-    plt.show()
+        plt.savefig(storage_root + name, format="png")
+    if show:
+        plt.show()
 
 
 def make_dir(path):

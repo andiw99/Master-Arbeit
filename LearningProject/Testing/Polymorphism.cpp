@@ -124,6 +124,17 @@ int main(int argc, char* argv[]) {
 
     double fckn_testdouble = 0.01;
     printf("%f", fckn_testdouble);
+    cout << "hello?" << endl;
+    cout << time(NULL) % 10000 << endl;
+#include <chrono>
 
+// ...
+
+    using namespace std::chrono;
+    milliseconds ms = duration_cast< milliseconds >(
+            system_clock::now().time_since_epoch()
+    );
+
+    cout << ms.count() % 100000 << endl;
     return 0;
 }

@@ -61,4 +61,7 @@ int main()
     fftw_destroy_plan(p);
     fftw_free(in); fftw_free(out);
     cout << "Testing minimal 4" << endl;
+
+
+    cout << time(NULL) << endl;
 }

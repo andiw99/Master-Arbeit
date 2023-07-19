@@ -46,7 +46,7 @@ def plot_struct_func(px, py, fx, fy):
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None):
+def analyze(df, parameters=None, dirpath="./"):
 
     if not parameters:
         T = 0
@@ -63,10 +63,10 @@ def analyze(df, parameters=None):
 
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
+    #ft_avg_x = ft_avg_x[np.argsort(px)]
     #px = np.sort(px)
     #ft_avg_y = ft_avg_y[np.argsort(py)]
     #py = np.sort(py)
-
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
@@ -82,15 +82,15 @@ def analyze(df, parameters=None):
     xi = 1 / 2 * (xix + xiy)
 
     # plotting
-    # fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
-    # p = np.linspace(min(px), max(px), px.size)
-    # lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
-    # lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
-    # axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    # axes[1].plot(p, lorentz_y, label="Lorentzian fit")
-    # axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
-    # axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
-
+    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
+    p = np.linspace(min(px), max(px), px.size)
+    lorentz_x = lorentzian(p, popt_x[0], popt_x[1], popt_x[2])
+    lorentz_y = lorentzian(p, popt_y[0], popt_y[1], popt_y[2])
+    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+    axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
+    axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
+    save_plot(dirpath, "structfact.png")
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
@@ -99,7 +99,7 @@ def analyze(df, parameters=None):
 
 
 def main():
-    root = "../../Generated content/High Temp Approach/All/"
+    root = "../../Generated content/Coulomb Constant/Many/"
     name = "struct.fact"
     root_dirs = os.listdir(root)
 

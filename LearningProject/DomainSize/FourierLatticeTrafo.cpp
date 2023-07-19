@@ -78,6 +78,7 @@ int main() {
     int lat_dim = 100;
 
     fs::path root = "../../../Generated content/Coulomb/Random Init Test";
+
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 

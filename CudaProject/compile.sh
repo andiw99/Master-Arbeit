@@ -25,8 +25,10 @@ if [ $? -eq 0 ]; then
     # compile CalcCorrelationFunction if it isnt already
     # TODO just compile everytime for now? 10s compiling is not that long compared...
     g++ -I /home/weitze73/Code/boost_1_82_0 -std=c++17 ./../LearningProject/DomainSize/CalcCorrelationFunction.cpp -o calcCorrFuncStandard
+    g++ -I /home/weitze73/Code/boost_1_82_0 -std=c++17 ./../LearningProject/DomainSize/FourierLatticeTrafo.cpp -o fourierlatticeTraf.out -lfftw3
     # run calc correlation function with the path as input variable
     ./calcCorrFuncStandard "$rootpath"
+    ./fourierlatticeTraf "$rootpath"
     # make the plots
     python3 ./../PythonProject/PlotBathGPU.py "$rootpath"
 else
