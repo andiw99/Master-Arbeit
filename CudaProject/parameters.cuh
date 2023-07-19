@@ -24,7 +24,9 @@ map<string, double> single_calc_standard = {
 
 string tempscan_root = "../../Generated content/ROCm/";
 
-map<string, double> temp_scan_standard = {
+const size_t lattice_dim = 100;
+const static map<string, double> temp_scan_standard = {
+        {"lat_dim", 100},
         {"steps", 100000.0},
         {"end_t", 25.0},
         {"dt_max", 0.001},

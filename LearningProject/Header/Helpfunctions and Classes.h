@@ -244,6 +244,41 @@ string print_statetype(const state_type x) {
     return str;
 }
 
+template <typename T>
+void print2DVector(const std::vector<std::vector<T>>& vec) {
+    for (const auto& row : vec) {
+        for (const auto& element : row) {
+            std::cout << element << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+template <typename Container>
+void print2DContainer(const Container& container) {
+
+    for (const auto& row : container) {
+        for (const auto& element : row) {
+            std::cout << element << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+template <typename Container>
+void print_container(const Container& container) {
+    int i = 0;
+    for (const auto& element : container) {
+        if (i % 30 == 0) {
+            cout << endl;
+        }
+        std::cout << element << ", ";
+        i++;
+
+    }
+    cout << endl;
+}
+
+
 template <class T>
 void print_vector(vector<T> vec) {
     cout << vec.size() << endl;

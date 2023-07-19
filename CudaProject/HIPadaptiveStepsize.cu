@@ -187,8 +187,8 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
-    const size_t lattice_dim = 100;
-
+    // const size_t* lattice_dim = &(size_t)adaptive_temp_scan_standard["lat_dim"];
+    // const size_t lattice_dim = 100;
     string root = adaptive_tempscan_root;
 
 
