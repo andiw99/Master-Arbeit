@@ -46,19 +46,19 @@ void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             // cout << ft[j][i][0] << ", " << ft[i][j][1];
-            if(i == 0 & j == 0) {
+/*            if(i == 0 & j == 0) {
                 cout << *ft[i][j] <<  ", " << ft[i][j][0]<<  ", " << ft[i][j][1] << endl;
-            }
+            }*/
             ft_y[i][0] += ft[j][i][0];
             ft_y[i][1] += ft[j][i][1];
             ft_x[i][0] += ft[i][j][0];
             ft_x[i][1] += ft[i][j][1];
         }
         // actually N^8 i dont know really why but i think i probably knew what I was doing
-        if(i == 1) {
+/*        if(i == 1) {
             cout << "ft_y:" << endl;
             cout << ft_y[i][0] << ", " << ft_y[i][1]  << endl;
-        }
+        }*/
         ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0]) / pow((double) N, 4); // +  (ft_y[i][1] * ft_y[i][1]) / pow((double) N, 4);
         ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0]) / pow((double) N, 4); // +  (ft_x[i][1] * ft_x[i][1]) / pow((double) N, 4);
     }
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
         root = argv[1];
     } else {
         cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Coulomb/Large and many";
+        root = "../../../Generated content/Coulomb/Smaller J=1";
     }
     // I tried to implement matplotlib with the following flags
     // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
@@ -123,8 +123,8 @@ int main(int argc, char* argv[]) {
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
 
     // lattice dim
-    const int lat_dim = 500;
-    bool average = true;
+    const int lat_dim = lattice_dim;
+    bool average = false;
     cout << "Lattice dim = " << lat_dim << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);
@@ -142,12 +142,9 @@ int main(int argc, char* argv[]) {
         if(!average) {
             cout << "Fuck everything" << endl;
             for(auto csv_path :csv_files) {
-                cout << "???" << endl;
                 double ft_squared_y[lat_dim] = {};
                 double ft_squared_x[lat_dim] = {};
-                print_array(ft_squared_y);
                 trafo_routine(csv_path, ft_squared_y, ft_squared_x);
-                print_array(ft_squared_y);
                 string name = csv_path.stem().string() + "-struct.fact";
                 fs::path writepath = path / name;
                 cout << writepath << endl;
