@@ -11,7 +11,7 @@ import matplotlib
 
 
 def read_csv(filepath, nrows=None):
-    df = pd.read_csv(filepath, header=None, index_col=0)
+    df = pd.read_csv(filepath, header=None, index_col=None)
     return df.iloc[:nrows]
 
 
@@ -111,7 +111,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
 
 
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name=""):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -126,17 +126,22 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
     for axs in axes:
         for ax in axs:
             # plot with one row out of the row numbers
+
             plot_colormesh(
                 df_rows.iloc[i], fig, ax,
-                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
+                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, v1 * -1]}",
                 proj=proj, p=p, beta=beta, chess_board=chess_board)
             i +=1
             # scale colormap in multiples of the position of the minimum
 
     # insert parameters
     textstr = ''
-    for para in paras:
-        textstr += para + "=" + str(paras[para]) + "\n"
+    wanted_paras= ["dt", "J", "alpha", "beta", "eta", "tau"]
+    for para in wanted_paras:
+        try:
+            textstr += para + "=" + str(paras[para]) + "\n"
+        except:
+            pass
     textstr = textstr[:-1]
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
     fig.text(0.02, 0.8, textstr, fontsize=14, bbox=props)

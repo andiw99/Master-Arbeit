@@ -23,10 +23,6 @@
 #include <fstream>
 #include <filesystem>
 #include <map>
-/*#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/Core>*/
-// #include <unsupported/Eigen/NonLinearOptimization>
 
 
 // timing stuff from stackoverflow
@@ -272,135 +268,26 @@ public:
         // Zeilenumbruch
         file << "\n";
     }
-};
 
-/*
-template<typename scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
-struct Functor
-{
-    typedef scalar Scalar;
-    enum {
-        InputsAtCompileTime = NX,
-        ValuesAtCompileTime = NY
-    };
-    typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
-    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
-    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+    template<class State, class System>
+    void writev2(System &sys, const State &x , double t ) {
+        // Doing some refactoring, not putting t in every row and Temperature directly after T
+        size_t lat_dim = sys.get_lattice_dim();
+        double T = sys.get_cur_T();
 
-    int m_inputs, m_values;
+        file << t << "," << T << ",";
+        for(int i = 0; i < lat_dim * lat_dim; i++) {
+            file << x[i] << ",";
+            // cout << x[i] << endl;
 
-    Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
-    Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
-
-    int inputs() const { return m_inputs; }
-    int values() const { return m_values; }
-
-};
-
-struct ExponentialDecayFunctor : Functor<double> {
-private:
-    // Observations for a sample.
-    Eigen::MatrixXd C_x;
-public:
-    ExponentialDecayFunctor(const Eigen::MatrixXd &C_x): Functor(), C_x(C_x) {}
-
-    int operator()(const Eigen::VectorXd &paras, Eigen::VectorXd &fvec) const {
-        // fvec is the vector with residuals
-        for(int i = 0; i < this->values(); i++) {
-            fvec(i) = C_x(i, 1) - paras(0) * exp(- C_x(i, 0) / paras(1));
         }
-        return 0;
+        // Zeilenumbruch
+        file << "\n";
     }
 };
 
-struct NumericalExpDecayDiffFunctor : Eigen::NumericalDiff<ExponentialDecayFunctor> {
-public:
-    NumericalExpDecayDiffFunctor(const Eigen::MatrixXd &C_x) : Eigen::NumericalDiff<ExponentialDecayFunctor>(C_x)
-            {}
-};
 
-class Fitter {
-private:
-    int kNumObservations;
-public:
-    Fitter() {
-
-    }
-
-    template <class Residual>
-    vector<double> fit() {
-
-    }
-};
-
-template <template<class valuetype> class vec, class value_type>
-vec<value_type> average_two(const vec<value_type> &a, const vec<value_type> &b) {
-    // vec needs to be initializable like a vector
-    vec<value_type> result(a.size());
-
-    // averaging
-    for(int i = 0; i < a.size(); i++) {
-        result[i] = (a[i] + b[i]) / (value_type) 2.0;
-    }
-
-    return result;
-}
-
-template <class vec>
-vec average_two(const vec &a, const vec &b) {
-    // vec needs to be initializable like a vector
-    vec result(a.size());
-
-    // averaging
-    for(int i = 0; i < a.size(); i++) {
-        result[i] = (a[i] + b[i]) / 2.0;
-    }
-
-    return result;
-}
-
-template <template<typename valuetype> typename vec, typename value_type>
-Eigen::MatrixXd construct_matrix(const vec<value_type> &a, const vec<value_type> &b) {
-    Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd>(a.data(), a.size());
-    Eigen::VectorXd b_eigen = Eigen::Map<Eigen::VectorXd>(b.data(), b.size());
-
-    Eigen::MatrixXd result_matrix(a.size(), 2);
-    result_matrix << a_eigen, b_eigen;
-
-    return result_matrix;
-}
-
-template <typename vec>
-Eigen::MatrixXd construct_matrix(const vec &a, const vec &b) {
-    Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), a.size());
-    Eigen::VectorXd b_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(b.data(), b.size());
-
-    Eigen::MatrixXd result_matrix(a.size(), 2);
-    result_matrix << a_eigen, b_eigen;
-
-    return result_matrix;
-}
-
-Eigen::MatrixXd construct_matrix(vector<double> &a, vector<double> &b) {
-    Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), (long)a.size());
-    Eigen::VectorXd b_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(b.data(), (long)b.size());
-
-    Eigen::MatrixXd result_matrix(a.size(), 2);
-    result_matrix << a_eigen, b_eigen;
-
-    return result_matrix;
-}
-
-Eigen::MatrixXd construct_matrix(Eigen::VectorXd &a, Eigen::VectorXd &b) {
-
-    Eigen::MatrixXd result_matrix(a.size(), 2);
-    result_matrix << a, b;
-
-    return result_matrix;
-}
-
-
-class quench_observer : public bath_observer {
+/*class quench_observer : public bath_observer {
     ofstream &xi_out;
 public:
     quench_observer(ofstream& sys_out, ofstream& xi_out) : bath_observer(sys_out), xi_out(xi_out){
@@ -456,9 +343,7 @@ public:
         // params(1) is the correlation length that we want, so we write this to the file
         xi_out << t << "," << params(1) << endl;
     }
-};
-
-*/
+};*/
 
 
 // Observer for lattic on bath specific for gpu_bath system?
@@ -825,6 +710,13 @@ public:
         }
     }
 
+    template<class Sys>
+    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
+        while (t < end_time){
+            do_step(sys, x, dt_max, t);
+        }
+    }
+
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
     void do_adaptive_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
@@ -969,7 +861,7 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
     {
         logspaced.push_back((T)pow(base, start + delta * i));
     }
-    logspaced.push_back(end); // I want to ensure that start and end
+    logspaced.push_back((T)pow(base, end)); // I want to ensure that start and end
     // are exactly the same as the input
     return logspaced;
 }

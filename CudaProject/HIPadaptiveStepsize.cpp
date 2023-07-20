@@ -67,7 +67,12 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0);
+
+    chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+            chrono::system_clock::now().time_since_epoch()
+    );
+
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
 
     for (int i = 0; i < n; i++) {
         mu += x[i];
@@ -182,8 +187,8 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
-    const size_t lattice_dim = 100;
-
+    // const size_t* lattice_dim = &(size_t)adaptive_temp_scan_standard["lat_dim"];
+    // const size_t lattice_dim = 100;
     string root = adaptive_tempscan_root;
 
 

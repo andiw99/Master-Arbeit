@@ -68,4 +68,4 @@ add_executable(LearningProject
         Testing/Polymorphism.cpp
         Testing/Polymorphism.h
         TwoStepMethod/main.cpp
-        TwoStepMethod/main.h CurveFitting/Curvefitting.cpp CurveFitting/Curvefitting.h)
+        TwoStepMethod/main.h CurveFitting/Curvefitting.cpp CurveFitting/Curvefitting.h DomainSize/QuenchCorrLength.cpp DomainSize/QuenchCorrLength.h)

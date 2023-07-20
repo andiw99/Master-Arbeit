@@ -179,6 +179,8 @@ public:
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
+        // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
+        // as it will probably improve nothing
         thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
         if(step_nr == 0) {
             thrust::fill(theta.begin(), theta.begin() + n, 0);
@@ -196,6 +198,7 @@ public:
     }
 
     double get_cur_T() const{
+        // If we Quench, we just have to keep this T up to date and we do that I think, then we can reuse this function
         return T;
     }
 
@@ -218,183 +221,6 @@ public:
         return E_kin;
     }
 };
-
-
-
-template <size_t lat_dim>
-struct gpu_bath : public System<lat_dim> {
-    using rand = typename System<lat_dim>::rand;
-    using left = typename System<lat_dim>::left;
-    using right = typename System<lat_dim>::right;
-    using up = typename System<lat_dim>::up;
-    using down = typename System<lat_dim>::down;
-public:
-    const double T_start;
-    const double T_end;
-    const double s_eq_t;
-    const double e_eq_t;
-    double t_quench;
-    double end_quench_t;
-    const double alpha;
-    const double tau;
-    const double beta;
-    const double J;
-    // systemsize should probably be a template argument?
-    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
-    // the current temperature
-    // parameters of the potential and of the Interaction
-    struct cos_functor {
-        // Old functor with cos interaction
-        const double alpha, beta, J, eta;
-
-        cos_functor(const double eta, const double alpha,
-                    const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
-
-        template<class Tup>
-        __host__ __device__ void operator()(Tup tup) {
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            thrust::get<2>( tup ) = p;
-            double q_left = thrust::get<4>(tup);
-            double q_right = thrust::get<5>(tup);
-            double q_up = thrust::get<6>(tup);
-            double q_down = thrust::get<7>(tup);
-            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
-        }
-    };
-    struct bath_functor {
-        // I think also the potential and interaction parameters have to be set in the functor
-        // I mean i could template everything and this would probably also give a bit of potential but is it really
-        // worth it?
-        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
-        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
-        // could just template everything
-        const double alpha, beta, J, eta;
-
-        bath_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
-
-        template<class Tup>
-        __host__ __device__ void operator()(Tup tup) {
-            /*
-
-
-            // We now have 4 additional iterators in the tuple 4 -> 8
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            // this line has to be the dgl for x
-            // dqdt =
-            thrust::get<2>( tup ) = p;
-            // this the one for p
-            // dpdt=
-
-            // this is the one depending on the whole q stuff. We can use a normal calculation here right?
-            thrust::get<3>( tup ) = (-eta) * p - dVdq(q, q_left, q_right, q_up, q_down);
-            */
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            // this line has to be the dgl for x
-            // dqdt =
-            thrust::get<2>( tup ) = p;
-            // neighbors
-            double q_left = thrust::get<4>(tup);
-            double q_right = thrust::get<5>(tup);
-            double q_up = thrust::get<6>(tup);
-            double q_down = thrust::get<7>(tup);
-
-            // this the one for p
-            // dpdt=
-            // I think the problem is that we call another function and this is not legal
-            // i guess I will just use an inline implementation for my first implementation
-            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
-        }
-    };
-
-    double simple_linear_T(double t) {
-        // parametrisierung für die Temperatur
-        // linearer Abfall
-        System<lat_dim>::T = max(T_start - t/tau, T_end);
-        return System<lat_dim>::T;
-    }
-
-
-    double linear_T(double t) {
-        if(s_eq_t < t && t < end_quench_t) {
-            // if we are in the quench phase, we reduce T
-            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
-        }
-        return System<lat_dim>::T;
-    }
-
-
-    template<class State, class Deriv>
-    void calc_drift(const State &x, Deriv &dxdt, double t) {
-
-        // init functor
-        bath_functor functor = bath_functor(System<lat_dim>::eta, alpha, beta, J);
-
-        // call universal steps
-        this->universalStepOperations(x, dxdt, t, functor);
-
-        /*
-        cout << "theta[n-1] = " << theta[n-1] << endl;
-        cout << "theta[n] = " << theta[n] << endl;
-        cout << "theta[n+1] = " << theta[n+1] << endl;
-        */
-    }
-
-    template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(System<lat_dim>::step_nr * System<lat_dim>::n);
-        if(System<lat_dim>::step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + System<lat_dim>::n, 0);
-        }
-        // One thing is that now T has to change, which we will realize like we have for the cpu case
-        // In the cpu case i had a starting T and one that was changing, but why was that again?
-        // i think so that we were able to get T(t), because otherwise your only option is to decrease T in every step
-        // but then you don't know which time it is. But is that important?
-        // We also have the step_nr but actually I think I will try to just decrement T in every step rn i don't see
-        // the disadvantage
-        // The disadvantage is that we don't have dt available here, so i will work with the cur_T attribute
-        double D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
-        // ok so this should be done again, the linear_T computation is performed on the cpu i think which is good
-        // since the Temperature is the same for all lattice sites and so it is only one computation
-        // generate the random values
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + System<lat_dim>::n,
-                          theta.begin() + System<lat_dim>::n,
-                          rand(D));
-    }
-public:
-    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
-            : System<lat_dim>(init_step, eta, T), T_start(T), alpha(alpha), beta(beta), J(J),
-            tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
-        t_quench = (get_quench_time());
-        end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
-    }
-
-    double get_T(double t) {
-        return linear_T(t);
-    }
-
-    double get_quench_time() {
-        // returns the time it takes to do the quench
-        // in this system, we use a linear quench
-        return (T_start - T_end) * tau;
-    }
-
-    double get_end_t(){
-        // the total time are the two equilibriate times + the quench time
-        return s_eq_t + e_eq_t + t_quench;
-    }
-};
-
-
 
 
 struct constant_bath_timer : public timer {
@@ -527,7 +353,6 @@ public:
 
 template <size_t lat_dim>
 struct coulomb_interaction : public System<lat_dim> {
-    using rand = typename System<lat_dim>::rand;
     using left = typename System<lat_dim>::left;
     using right = typename System<lat_dim>::right;
     using up = typename System<lat_dim>::up;
@@ -609,11 +434,6 @@ public:
             : System<lat_dim>(init_step, eta, T), step_nr(init_step), n(lat_dim * lat_dim), alpha(alpha),
             beta(beta), J(J), D(sqrt(2 * T * eta)) {
     }
-
-    double get_cur_T() const{
-        return System<lat_dim>::T;
-    }
-
 };
 
 template <size_t lat_dim>
@@ -645,6 +465,68 @@ public:
                           theta.begin() + n,
                           rand(D));
     }*/
+};
+
+
+template <size_t lat_dim>
+struct gpu_bath : public coulomb_interaction<lat_dim> {
+    // actually I think we can write the gpu_bath as extension of coulomb or coulomb constant?
+public:
+    const double T_start;       // Start-Temperture of the Quenching For example: 10
+    const double T_end;         // End-Temperature of the Quencheing. For example: 1
+    const double s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
+    const double e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
+    double t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
+    double end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
+    const double tau;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    // parameters of the potential and of the Interaction
+
+    double simple_linear_T(double t) {
+        // parametrisierung für die Temperatur
+        // linearer Abfall
+        System<lat_dim>::T = max(T_start - t/tau, T_end);
+        return System<lat_dim>::T;
+    }
+
+    double linear_T(double t) {
+        if(s_eq_t < t && t < end_quench_t) {
+            // if we are in the quench phase, we reduce T
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
+        }
+        return System<lat_dim>::T;
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        System<lat_dim>::D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
+        System<lat_dim>::calc_diff(theta, t);
+    }
+public:
+    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
+            : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step), T_start(T),
+              tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
+    }
+
+    double get_quench_time() {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        return (T_start - T_end) * tau;
+    }
+
+    double get_end_t(){
+        // the total time are the two equilibriate times + the quench time
+        return s_eq_t + e_eq_t + t_quench;
+    }
+
+    double get_end_quench_time() {
+        return end_quench_t;
+    }
 };
 
 

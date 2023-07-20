@@ -37,6 +37,18 @@ int pymod(int a, int b) {
     return ((b + (a % b)) % b);
 }
 
+template <class T>
+void print_vector(vector<T> vec) {
+    cout << vec.size() << endl;
+    for(int i = 0; i < vec.size(); i++) {
+        if(i % 20 == 0) {
+            cout << "\n";
+        }
+        cout << vec[i] << ", ";
+    }
+}
+
+
 void calc_corr(vector<vector<complex<double>>> &f, vector<double> &C_x, vector<double> &C_y) {
     // i guess we could also use just normal doubles, would also give some performance
     // but i actually really don't think that it will be very computationally difficult
@@ -149,6 +161,44 @@ vector<fs::path> list_csv_files(const fs::path& root)
     return csv_files;
 }
 
+string readLineAt(std::ifstream& file, int i) {
+    std::string line;
+    std::string running_line;
+    int running = 0;
+    // Init the line to be first line
+    std::getline(file, running_line);
+    while (std::getline(file, line) && (running != i))
+    {
+        running++;
+        // overwrite if line number is found
+        running_line = line;
+    }
+    return running_line;
+}
+
+int getNrRowsFile(std::ifstream& file) {
+    std::string line;
+    int running = 0;
+    while (std::getline(file, line))
+    {
+        running++;
+    }
+    return running;
+}
+
+int getNrRows(fs::path csv_path) {
+    ifstream file(csv_path);
+    // check if file is opened
+    if(file.is_open()) {
+        // cout << "File successfully opened" << endl;
+    } else {
+        cout << "Failed to open file" << endl;
+        // abort if file is not opened
+        exit(0);
+    }
+    return getNrRowsFile(file);
+}
+
 string readLastLine(std::ifstream& file) {
     std::string line;
     std::string lastLine;
@@ -160,11 +210,11 @@ string readLastLine(std::ifstream& file) {
 }
 
 
-vector<complex<double>> readLastValues(ifstream& file, double& T) {
-    string lastline = readLastLine(file);
+vector<complex<double>> readValuesAt(ifstream& file, int ind, double& T, double& t) {
+    string line = readLineAt(file, ind);
     vector<complex<double>> values;
 
-    stringstream llss(lastline);
+    stringstream llss(line);
     string token;
     while (std::getline(llss, token, ',')) {
         if(token != "t") {
@@ -175,13 +225,18 @@ vector<complex<double>> readLastValues(ifstream& file, double& T) {
     // we delete the last value as it is the temperature
     // or do we need the temperature?
     // we might need it but we cannot really give it back
-    T = values.back().real();
-    values.pop_back();
-
-    // TODO we erase t for now
+    t = values[0].real();
+    values.erase(values.begin());
+    T = values[0].real();
     values.erase(values.begin());
 
     return values;
+}
+
+vector<complex<double>> readLastValues(ifstream& file, double& T) {
+    double t;
+    int ind = -1;
+    return readValuesAt(file, ind, T, t);
 }
 
 template <class value_type>
@@ -276,18 +331,6 @@ void print_container(const Container& container) {
 
     }
     cout << endl;
-}
-
-
-template <class T>
-void print_vector(vector<T> vec) {
-    cout << vec.size() << endl;
-    for(int i = 0; i < vec.size(); i++) {
-        if(i % 20 == 0) {
-            cout << "\n";
-        }
-        cout << vec[i] << ", ";
-    }
 }
 
 
