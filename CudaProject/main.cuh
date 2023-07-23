@@ -954,6 +954,9 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
 }
 
 int findHighestCSVNumber(const string& folderPath) {
+    if (!std::filesystem::is_directory(folderPath)) {
+        return -1;
+    }
     int highestNumber = -1;
 
     for (const auto& entry : fs::directory_iterator(folderPath)) {
