@@ -97,9 +97,9 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
         # calculate tick positions
         tick_positions = tick_labels * min_pos
         # make labels to strings
+
         tick_labels = [str(int(label)) for label in tick_labels]
-        cf = ax.pcolormesh(x, y, z_values, vmin=vmin,
-                           vmax=vmax)
+        cf = ax.pcolormesh(x, y, z_values / min_pos, vmin=-1, vmax=1, cmap="copper")
         cbar = fig.colorbar(cf, ax=ax, ticks=tick_positions)
         cbar.ax.set_yticklabels(tick_labels)
         """

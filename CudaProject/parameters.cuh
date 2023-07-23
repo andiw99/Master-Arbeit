@@ -49,10 +49,10 @@ const static map<string, double> temp_scan_standard = {
         {"nr_temps", 0.0},
 };
 
-string adaptive_tempscan_root = "../../Generated content/Coulomb/Detailed-100";
+string adaptive_tempscan_root = "../../Generated content/Coulomb/Detailed-100 longer";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"end_t", 250.0},
+        {"end_t", 1000.0},
         {"dt_max", 0.0005},
         {"J", 1},
         {"alpha", 10},
@@ -66,7 +66,7 @@ map<string, double> adaptive_temp_scan_standard = {
         {"repeat_nr", 10.0},
         {"min_temp", 0.35},
         {"max_temp", 0.4},
-        {"nr_temps", 5.0},
+        {"nr_temps", 10.0},
         {"K", 10.0},
         {"tol", 0.5},
         {"logspace", 0.0}

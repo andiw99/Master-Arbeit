@@ -9,9 +9,10 @@ def lorentzian(x, a, x0, gamma):
 
 def lorentz_ft(x, xi, a, b):
     return b + a * xi ** 2 / (1 + (x) ** 2 * xi ** 2)
-def fit_lorentz(p, ft, fitfunc=lorentzian):
+def fit_lorentz(p, ft, fitfunc=lorentzian, errors=None):
     try:
-        popt, pcov = curve_fit(fitfunc, p, ft)
+        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
+        perr = np.sqrt(np.diag(pcov))
 
     except RuntimeError:
         exit()
@@ -32,17 +33,17 @@ def fit_lorentz(p, ft, fitfunc=lorentzian):
         # maybe not cut off the maximum but insert values?
 
         return fit_lorentz(p, ft)
-    return popt
+    return popt, perr
 
-def plot_struct_func(px, py, fx, fy):
+def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([])):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     axx = axes[0]
     axy = axes[1]
 
-    axx.plot(px, fx, ls=" ", marker=".", label="Structure Func")
+    axx.errorbar(px, fx, yerr=error_x, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
     axx.set_xlabel(r"$p_x$")
     axx.set_ylabel(r"$S(p_x)$")
-    axy.plot(py, fy, ls=" ", marker=".", label="Structure Func")
+    axy.errorbar(py, fy, yerr=error_y, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
     axy.set_xlabel(r"$p_y$")
     axy.set_ylabel(r"$S(p_y)$")
     axx.legend()
@@ -61,12 +62,18 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
     # cutoff
     px = px[indices]
-    ft_avg_y = np.array(df.iloc[:, 1])[indices]
+    ft_avg_y = np.array(df["ft_avg_y"])[indices]
 
 
-    py = df.iloc[:, 2]
+    py = df["py"]
     py = np.array(py)[indices]
-    ft_avg_x = np.array(df.iloc[:, 3])[indices]
+    ft_avg_x = np.array(df["ft_avg_x"])[indices]
+    try:
+        y_error = np.array(df["stddev_y"])
+        x_error = np.array(df["stddev_x"])
+    except:
+        y_error = None
+        x_error = None
 
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -77,10 +84,10 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
-    print("Why fitting problem?")
-    popt_x = fit_lorentz(px, ft_avg_y, fitfunc)
-    popt_y = fit_lorentz(py, ft_avg_x, fitfunc)
-    print("Just why?")
+
+    popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
+    popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
+
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -89,11 +96,13 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # xix = 1 / (np.abs(popt_x[2]) * 2)
     # xiy = 1/ (np.abs(popt_y[2]) * 2)
     xix = np.abs(popt_x[0])
+    xix_err = perr_x[0]
     xiy = np.abs(popt_y[0])
+    xiy_err = perr_y[0]
     xi = np.abs(1 / 2 * (xix + xiy))
 
     # plotting
-    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x)
+    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     p = np.linspace(min(px), max(px), px.size)
     lorentz_x = fitfunc(p, popt_x[0], popt_x[1], popt_x[2])
     lorentz_y = fitfunc(p, popt_y[0], popt_y[1], popt_y[2])
@@ -107,11 +116,11 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
     #print("Corr Length y:", xiy)
-    return xi, T
+    return xix, xiy, T, xix_err, xiy_err
 
 
 def main():
-    root = "../../Generated content/Coulomb/system size test/Detailed-250"
+    root = "../../Generated content/Coulomb/system size test/Detailed-50"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -119,7 +128,10 @@ def main():
     # arrays to save the xi corrsponding to T
 
     T_arr = []
-    xi_arr = []
+    xix_arr = []
+    xix_err_arr = []
+    xiy_arr = []
+    xiy_err_arr = []
     cutoff =  np.pi
     fitfunc = lorentz_ft
     # Loop through the directory contents and print the directories
@@ -141,13 +153,19 @@ def main():
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
                 df = read_struct_func(filename)
 
-                xi, T = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
+                xix, xiy, T, xix_err, xiy_err = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
 
                 T_arr.append(T)
-                xi_arr.append(xi)
+                xix_arr.append(xix)
+                xiy_arr.append(xiy)
+                xix_err_arr.append(xix_err)
+                xiy_err_arr.append(xiy_err)
 
 
-    xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]
+    xix_sorted = np.array(xix_arr)[np.argsort(T_arr)]
+    xiy_sorted = np.array(xiy_arr)[np.argsort(T_arr)]
+    xix_err_sorted = np.array(xix_err_arr)[np.argsort(T_arr)]
+    xiy_err_sorted = np.array(xiy_err_arr)[np.argsort(T_arr)]
     T_arr = np.sort(T_arr)
     fig, ax = plt.subplots(1, 1)
 
@@ -163,7 +181,8 @@ def main():
     ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
-    ax.plot(T_arr, xi_sorted, ls="", marker="+")
+    ax.errorbar(T_arr, xix_sorted, yerr=xix_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
+    ax.errorbar(T_arr, xiy_sorted, yerr=xiy_err_sorted, ls="", marker="x", color="C1", ecolor="black", capsize=3)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$\xi(T)$")
     ax.set_title("Corr Length depending on T")

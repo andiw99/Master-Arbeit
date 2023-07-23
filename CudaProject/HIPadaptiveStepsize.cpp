@@ -220,11 +220,12 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         cout << "Running repeat with following parameters:" << endl;
         // need a function here that takes the dirpath, looks if there are already files inside and
         // retunrs the highest number so that i can adjust the count
+        int count = findHighestCSVNumber(dirpath) + 1;
         printMap(paras);
         if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
         }
     }
 
