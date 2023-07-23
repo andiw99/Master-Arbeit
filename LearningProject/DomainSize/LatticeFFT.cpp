@@ -131,11 +131,18 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 
-    const int N = 500;
-
-    fs::path root = "../../../Generated content/Coulomb/Detailed-500";
+    // We just read from the parameter file and compile this when we start the run, but we run when we have finished
+    // the run
+    const int N = 50;
+    fs::path root;
+    if(argc >= 2) {
+        // if we give some argument, doesnt even matter what argument, we take the parameter file values
+        root = "../" + adaptive_tempscan_root;
+    } else {
+        root = "../../../Generated content/Coulomb/system size test/Detailed-50";
+    }
 
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);

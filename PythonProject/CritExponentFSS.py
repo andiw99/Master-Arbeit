@@ -62,15 +62,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # cutoff
     px = px[indices]
     ft_avg_y = np.array(df.iloc[:, 1])[indices]
-
-
+    #print(px)
+    #print(ft_avg_y)
+    #plt.plot(px, ft_avg_y)
+    #plt.show()
     py = df.iloc[:, 2]
     py = np.array(py)[indices]
     ft_avg_x = np.array(df.iloc[:, 3])[indices]
-
+    print("cant be the fitting?")
     popt_x = fit_lorentz(px, ft_avg_y, fitfunc)
     popt_y = fit_lorentz(py, ft_avg_x, fitfunc)
-
+    print("why ist it the fitting...")
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -120,7 +122,9 @@ def main():
 
                     # Check if the item is a directory
                     if os.path.isdir(dir_path) & (dir_path != root + "plots"):
+                        print("Why you not doing anything")
                         filename = dir_path + "/" + name
+                        print(filename)
                         files = os.listdir(dir_path)
                         parameters = {}
                         for f in files:

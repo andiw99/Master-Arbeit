@@ -97,7 +97,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             obs_timer.set_startpoint(obs_checkpoint);
             if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
+                Obs.writev2(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -133,7 +133,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
+                Obs.writev2(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -218,6 +218,8 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         string dirpath = root + "/" + to_string(temp);
 
         cout << "Running repeat with following parameters:" << endl;
+        // need a function here that takes the dirpath, looks if there are already files inside and
+        // retunrs the highest number so that i can adjust the count
         printMap(paras);
         if(stepper == "adaptive") {
             repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);

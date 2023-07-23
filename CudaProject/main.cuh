@@ -953,5 +953,35 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
     }*/
 }
 
+int findHighestCSVNumber(const string& folderPath) {
+    int highestNumber = -1;
+
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (entry.is_regular_file()) {
+            const string& filename = entry.path().filename().string();
+
+            // Check if the file has the .csv extension
+            if (entry.path().extension() == ".csv") {
+                // Extract the numeric part of the filename (excluding the extension)
+                string numberPart = entry.path().stem().string();
+
+                try {
+                    // Convert the numeric part to an integer
+                    int number = stoi(numberPart);
+
+                    // Update the highest number if the current number is higher
+                    if (number > highestNumber) {
+                        highestNumber = number;
+                    }
+                } catch (const invalid_argument&) {
+                    // Ignore invalid filenames that cannot be converted to integers
+                }
+            }
+        }
+    }
+
+    return highestNumber;
+}
+
 
 #endif //CUDAPROJECT_MAIN_CUH
