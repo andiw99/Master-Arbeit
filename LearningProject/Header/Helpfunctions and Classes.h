@@ -233,6 +233,30 @@ vector<complex<double>> readValuesAt(ifstream& file, int ind, double& T, double&
     return values;
 }
 
+vector<double> readDoubleValuesAt(ifstream& file, int ind, double& T, double& t) {
+    string line = readLineAt(file, ind);
+    vector<double> values;
+
+    stringstream llss(line);
+    string token;
+    while (std::getline(llss, token, ',')) {
+        if(token != "t") {
+            double value = stod(token);
+
+            values.push_back(value);
+        }
+    }
+    // we delete the last value as it is the temperature
+    // or do we need the temperature?
+    // we might need it but we cannot really give it back
+    t = values[0];
+    values.erase(values.begin());
+    T = values[0];
+    values.erase(values.begin());
+
+    return values;
+}
+
 vector<complex<double>> readLastValues(ifstream& file, double& T) {
     double t;
     int ind = -1;
@@ -259,6 +283,55 @@ vector<vector<value_type>> oneD_to_twoD(vector<value_type> &q) {
     }
 
     return q_2D;
+}
+
+template <template<class> class container, class value_type>
+void printComplexMatrix(container<value_type>* arr) {
+    int size = sizeof(arr) / (sizeof(value_type) * 2);
+    int dimension = static_cast<int>(std::sqrt(size));
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
+
+template <class value_type>
+void printComplexMatrix(value_type* arr, int lat_dim) {
+    int dimension = lat_dim;
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
+template <class value_type, int size>
+void printComplexMatrix(value_type(&arr)[size]) {
+    cout << size << endl;
+    int dimension = static_cast<int>(std::sqrt(size));
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
 }
 
 string print_statetype(const state_type x) {

@@ -47,12 +47,13 @@ def fit_log_scaling(T, lnxi):
     return popt
 
 def main():
-    root = "../../Generated content/Coulomb/Smaller J=1/"
+    root = "../../Generated content/Coulomb/Detailed/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
-    plot_fits = False
+    plot_fits = True
     side_func = corr_scaling_left
+    ms = 5
 
     # define a cutoff since the exponential decay is only correct for large distances
     cutoff_range = [0]
@@ -102,16 +103,22 @@ def main():
                 if plot_fits:
                     fig, axes = plt.subplots(2, 1)
                     exp_fit = exp(dists, popt[0])
-                    ms=1.5
+
                     print(dists)
                     print(C_x)
-                    axes[0].plot(dists, C_x, label="x direction", ls="",    marker=".", ms=ms)
-                    axes[0].plot(dists, C_y, label="y direction", ls="",    marker=".", ms=ms)
-                    axes[0].plot(dists, C, label="averaged", ls="",         marker=".", ms=ms)
+                    axes[0].set_yscale('log')
+                    lower_y_lim = np.minimum(np.min(C_x), np.min(C_y))
+                    print("lower y lim: ", lower_y_lim)
+                    upper_y_lim = np.maximum(np.max(C_x), np.max(C_y))
+                    print("upper y lim: ", upper_y_lim)
+                    axes[0].set_ylim(0.00001, 3 )
+                    axes[0].plot(dists, C_x, label="x direction", ls="",    marker=".", linewidth=2, ms=ms)
+                    axes[0].plot(dists, C_y, label="y direction", ls="",    marker=".", linewidth=2, ms=ms)
+                    axes[0].plot(dists, C, label="averaged", ls="",         marker="+", linewidth=2, ms=2*ms)
                     axes[0].set_xlabel("r")
                     axes[0].set_ylabel("C(r)")
                     axes[0].set_title(rf"   $T = {T:.2f} \qquad \xi = {popt[0]:.2f}$")
-                    axes[0].plot(dists, exp_fit, label="fit")
+                    axes[0].plot(dists, exp_fit, label="fit", alpha=0.2)
                     axes[1].plot(k, S, label="Structure factor", ls="", marker=".")
                     axes[1].set_xlabel("k")
                     axes[1].set_ylabel("S(k)")
@@ -137,42 +144,37 @@ def main():
         ax.set_xlabel("T")
         ax.set_ylabel(r"$\xi(T)$")
         ax.set_title("Corr Length depending on T")
+        plt.savefig(root + "plots/corr/xi-corr-fit", format="png")
 
-        popt = fit_scaling(T_arr, xi_sorted, side_func)
-        fit = side_func(T_arr, *popt)
-        nu = popt[1]
-        Tc = popt[0]
-
-        print("critical exponent nu = ", nu)
-        print("critical temperature Tc = ", Tc)
-
-        T_c_guess = 85
-        eps_arr = (T_c_guess - T_arr) / T_c_guess
-        print(eps_arr)
-        print(xi_sorted)
-
-        popt2 = fit_eps_scaling(eps_arr, xi_sorted)
-        nu2 = popt[1]
-        Tc2 = popt[0]
-
-        eps_fit = corr_eps_scaling(eps_arr, nu2, Tc2)
-        print("critical exponent nu = ", nu2)
-        print("critical temperature Tc = ", Tc2)
-        ax.plot(T_arr, fit)
-        ax.plot(T_arr, eps_fit)
-
-        fig, ax = plt.subplots(1, 1)
-        popt2 = fit_log_scaling(T_arr, np.log(xi_sorted))
-        nu2 = popt[1]
-        Tc2 = popt[0]
-
-        log_fit = log_scaling(eps_arr, *popt2)
-        print("critical exponent nu = ", nu2)
-        print("critical temperature Tc = ", Tc2)
-
-        ax.plot(T_arr, log_fit)
-
-        ax.plot(T_arr, np.log(xi_sorted))
+        # popt = fit_scaling(T_arr, xi_sorted, side_func)
+        # fit = side_func(T_arr, *popt)
+        # nu = popt[1]
+        # Tc = popt[0]
+#
+        # print("critical exponent nu = ", nu)
+        # print("critical temperature Tc = ", Tc)
+#
+        # T_c_guess = 85
+        # eps_arr = (T_c_guess - T_arr) / T_c_guess
+        # print(eps_arr)
+        # print(xi_sorted)
+#
+        # popt2 = fit_eps_scaling(eps_arr, xi_sorted)
+        # nu2 = popt[1]
+        # Tc2 = popt[0]
+#
+        # eps_fit = corr_eps_scaling(eps_arr, nu2, Tc2)
+        # print("critical exponent nu = ", nu2)
+        # print("critical temperature Tc = ", Tc2)
+#
+#
+        # popt2 = fit_log_scaling(T_arr, np.log(xi_sorted))
+        # nu2 = popt[1]
+        # Tc2 = popt[0]
+#
+        # log_fit = log_scaling(eps_arr, *popt2)
+        # print("critical exponent nu = ", nu2)
+        # print("critical temperature Tc = ", Tc2)
 
 
         plt.show()

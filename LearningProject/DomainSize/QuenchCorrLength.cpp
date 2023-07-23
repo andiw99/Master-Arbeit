@@ -75,11 +75,29 @@ void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&
     // that should be it
 }
 
-template <size_t N>
-void fft_trafo_routine(int ind, string filepath, double (&ft_squared_y)[N], double (&ft_squared_x)[N], double& T, double& t) {
+void sum_and_add(const int N, fftw_complex const (*out), double (*ft_squared_k), double (*ft_squared_l)) {
+    for(int i = 0; i < N; i++) {
+        // i counts in x dimension?
+        for(int j = 0; j < N; j++) {
+            // if i want to average over l i need to sum over the rows, so determine row i
+            int k_ind = i * N + j;
+            // I sum over k the squared absolute value
+            // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
+            ft_squared_k[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
+            // if i want to average over k, i need to sum over the columns, so determine column by fixed +i, run over
+            // rows with j*N
+            int l_ind = j * N + i;
+            ft_squared_l[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
+
+        }
+    }
+}
+
+void fft_trafo_routine(const int N, int ind, fftw_complex (*in), fftw_complex const (*out), fftw_plan plan, double *ft_squared_k,
+                       double *ft_squared_l, fs::path csv_path, double &T, double& t) {
     // needs to take in the references to the ft_avg_y and ft_avg_x and add them up for several files
     // and now it needs to add up everytime for every file, so it needs to take in the filepath
-    cout << "reading: " << filepath << endl;
+/*    cout << "reading: " << filepath << endl;
     ifstream file(filepath);
     // check if file is opened
     if(file.is_open()) {
@@ -107,8 +125,24 @@ void fft_trafo_routine(int ind, string filepath, double (&ft_squared_y)[N], doub
     fftw_execute(plan2d);
 
     // now we got to calculate the avg abs squared for every row and col and add them to ft_avg_y and ft_avg_x
-    average_and_add(ft_fftw, ft_squared_y, ft_squared_x);
+    average_and_add(ft_fftw, ft_squared_y, ft_squared_x);*/
+    ifstream file = safe_read(csv_path);
+    auto data = readDoubleValuesAt(file, ind, T, t);
+    // copying the data to the in array
+// fftw_complex is just double[2].
+
+
+    for(int i = 0; i < N * N; i++) {
+        in[i][0] = data[i];
+        in[i][1] = 0;
+    }
+    fftw_execute(plan);
+
+    // printComplexMatrix(out, N-1);
+// sum and add
+    sum_and_add(N, out, ft_squared_k, ft_squared_l);
 }
+
 
 
 Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_values) {
@@ -146,10 +180,11 @@ int main(int argc, char* argv[]) {
         root = argv[1];
     } else {
         cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Fit testing";
+        root = "../../../Generated content/Quenching";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
+    const int N = lat_dim;
     cout << "Lattice dim = " << lat_dim << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);
@@ -161,6 +196,17 @@ int main(int argc, char* argv[]) {
     fill_p(q, p);
     auto k = p_to_vec(p);
 
+    fftw_complex *in, *out, *real_out;
+    double *real_in;
+
+    in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
+    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
+    real_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
+    real_in = (double*) fftw_malloc(sizeof(double) * N * N);
+
+    fftw_plan plan, p2;
+    plan = fftw_plan_dft_2d(N, N, in, out, FFTW_FORWARD, FFTW_MEASURE);
+
     for(auto path : temp_directories) {
         // so path corresponds to a directory containing multiple realizations for one tau.
         // We now want to calculate for every Temperature of those Quenches the correlation length
@@ -170,7 +216,7 @@ int main(int argc, char* argv[]) {
         // then we fit and extract xi_x and xi_y
         // save xi for every temperature (and time)
 
-        cout << endl << endl << "Dealing with tau path " << path << endl;
+        // cout << endl << endl << "Dealing with tau path " << path << endl;
         // those are the different realizations of the Quenches.
         vector<fs::path> csv_files = list_csv_files(path);
 
@@ -200,8 +246,7 @@ int main(int argc, char* argv[]) {
 
             for(auto csv_path :csv_files) {
                 // here i am going through line i on every realization and add up ft_squared_y
-                cout << "i guess it is after this?" << endl;
-                fft_trafo_routine(i, csv_path, ft_squared_y, ft_squared_x, T, t);
+                fft_trafo_routine(lat_dim, i, in, out, plan, ft_squared_y, ft_squared_x, csv_path, T, t);
             }
 
             // and now just average over the run size

@@ -2,12 +2,13 @@ from matplotlib import pyplot as plt
 from FunctionsAndClasses import *
 import numpy as np
 from scipy.optimize import curve_fit
+import matplotlib.ticker as ticker
 
 def lorentzian(x, a, x0, gamma):
     return a * (gamma**2 / ((x - x0)**2 + gamma**2))
 
 def lorentz_ft(x, xi, a, b):
-    return 0 + a * 2 * xi ** 2 / (1 + 4 * np.pi ** 2 *  (x) ** 2 * xi ** 2)
+    return b + a * xi ** 2 / (1 + (x) ** 2 * xi ** 2)
 def fit_lorentz(p, ft, fitfunc=lorentzian):
     try:
         popt, pcov = curve_fit(fitfunc, p, ft)
@@ -76,8 +77,10 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
+    print("Why fitting problem?")
     popt_x = fit_lorentz(px, ft_avg_y, fitfunc)
     popt_y = fit_lorentz(py, ft_avg_x, fitfunc)
+    print("Just why?")
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -108,11 +111,11 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 
 def main():
-    root = "../../Generated content/Coulomb/Smaller J=1/"
+    root = "../../Generated content/Coulomb/Detailed-500"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
-
+    print(root_dirs)
     # arrays to save the xi corrsponding to T
 
     T_arr = []
@@ -121,6 +124,7 @@ def main():
     fitfunc = lorentz_ft
     # Loop through the directory contents and print the directories
     for item in root_dirs:
+
         if (item != "plots"):
             # Create the full path to the item
             dir_path = os.path.join(root, item)
@@ -136,7 +140,9 @@ def main():
                     if(os.path.splitext(f)[1] == ".txt"):
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
                 df = read_struct_func(filename)
+
                 xi, T = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
+
                 T_arr.append(T)
                 xi_arr.append(xi)
 
@@ -144,7 +150,20 @@ def main():
     xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]
     T_arr = np.sort(T_arr)
     fig, ax = plt.subplots(1, 1)
-    ax.plot(T_arr, xi_sorted, ls="", marker="o")
+
+
+    # Setze Tickmarken und Labels
+    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
+    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=0.1))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=0.02))
+    # TODO minor locator muss
+    ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
+    # Füge Gitterlinien hinzu
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.plot(T_arr, xi_sorted, ls="", marker="+")
     ax.set_xlabel("T")
     ax.set_ylabel(r"$\xi(T)$")
     ax.set_title("Corr Length depending on T")

@@ -126,11 +126,17 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
     for axs in axes:
         for ax in axs:
             # plot with one row out of the row numbers
-
-            plot_colormesh(
+            try:
+                plot_colormesh(
                 df_rows.iloc[i], fig, ax,
                 title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, v1 * -1]}",
                 proj=proj, p=p, beta=beta, chess_board=chess_board)
+            except ValueError:
+                plot_colormesh(
+                df_rows.iloc[i][1: -1], fig, ax,
+                title=f"t = {df_rows.iloc[i, 1]:.2f}, T = {df_rows.iloc[i, -1]}",
+                proj=proj, p=p, beta=beta, chess_board=chess_board)
+
             i +=1
             # scale colormap in multiples of the position of the minimum
 

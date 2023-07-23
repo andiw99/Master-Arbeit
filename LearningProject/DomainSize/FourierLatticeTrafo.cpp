@@ -59,8 +59,8 @@ void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&
             cout << "ft_y:" << endl;
             cout << ft_y[i][0] << ", " << ft_y[i][1]  << endl;
         }*/
-        ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0]) / pow((double) N, 4); // +  (ft_y[i][1] * ft_y[i][1]) / pow((double) N, 4);
-        ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0]) / pow((double) N, 4); // +  (ft_x[i][1] * ft_x[i][1]) / pow((double) N, 4);
+        ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0]) / pow((double) N, 4) +  (ft_y[i][1] * ft_y[i][1]) / pow((double) N, 4);
+        ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0]) / pow((double) N, 4) +  (ft_x[i][1] * ft_x[i][1]) / pow((double) N, 4);
     }
     // now another loop that adds the now calculated squared absolute values to the running squared abs
     for(int i = 0; i < N; i++) {
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
         root = argv[1];
     } else {
         cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Coulomb/Smaller J=1";
+        root = "../../../Generated content/Coulomb/Detailed";
     }
     // I tried to implement matplotlib with the following flags
     // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
 
     // lattice dim
     const int lat_dim = lattice_dim;
-    bool average = false;
+    bool average = true;
     cout << "Lattice dim = " << lat_dim << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         rootpath = argv[1];
     } else {
         cout << "Please provide file directory";
-        rootpath = "../../Generated content/Coulomb/Smaller J=1/";
+        rootpath = "../../Generated content/Coulomb/Detailed/";
     }
     cout << rootpath << endl;
 
