@@ -49,8 +49,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject/cmake-build-debug",
-		"source" : "/home/andi/Studium/Master-Arbeit Code/Master-Arbeit/CudaProject"
+		"build" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject/cmake-build-debug",
+		"source" : "/home/andi/Documents/Master-Arbeit Code/Git/CudaProject"
 	},
 	"version" : 
 	{

@@ -18,7 +18,7 @@ def fit_exp(r, C, func=exp):
 
 
 def main():
-    root = "../../Generated content/Relax Scan Underdamped/detaileder/"
+    root = "../../Generated content/New Scan/"
     name = "corr.func"
     # get directories of detaileder
     root_dirs = os.listdir(root)
@@ -63,22 +63,22 @@ def main():
             xi_arr.append(xi)
             # plotting
 
-            #fig, axes = plt.subplots(2, 1)
-            #exp_fit = exp(dists, popt[0])
-            #ms=1.5
-            #axes[0].plot(dists, C_x, label="x direction", ls="",    marker=".", ms=ms)
-            #axes[0].plot(dists, C_y, label="y direction", ls="",    marker=".", ms=ms)
-            #axes[0].plot(dists, C, label="averaged", ls="",         marker=".", ms=ms)
-            #axes[0].set_xlabel("r")
-            #axes[0].set_ylabel("C(r)")
-            #axes[0].set_title(rf"   $T = {T:.2f} \qquad \xi = {popt[0]:.2f}$")
-            #axes[0].plot(dists, exp_fit, label="fit")
-            #axes[1].plot(k, S, label="Structure factor", ls="", marker=".")
-            #axes[1].set_xlabel("k")
-            #axes[1].set_ylabel("S(k)")
-            #axes[0].legend()
-            #axes[1].legend()
-            #plt.show()
+            fig, axes = plt.subplots(2, 1)
+            exp_fit = exp(dists, popt[0])
+            ms=1.5
+            axes[0].plot(dists, C_x, label="x direction", ls="",    marker=".", ms=ms)
+            axes[0].plot(dists, C_y, label="y direction", ls="",    marker=".", ms=ms)
+            axes[0].plot(dists, C, label="averaged", ls="",         marker=".", ms=ms)
+            axes[0].set_xlabel("r")
+            axes[0].set_ylabel("C(r)")
+            axes[0].set_title(rf"   $T = {T:.2f} \qquad \xi = {popt[0]:.2f}$")
+            axes[0].plot(dists, exp_fit, label="fit")
+            axes[1].plot(k, S, label="Structure factor", ls="", marker=".")
+            axes[1].set_xlabel("k")
+            axes[1].set_ylabel("S(k)")
+            axes[0].legend()
+            axes[1].legend()
+            plt.show()
 
 # sorting
     print(np.argsort(T_arr))
