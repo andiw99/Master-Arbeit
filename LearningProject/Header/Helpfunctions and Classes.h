@@ -11,8 +11,7 @@
 
 
 #include <iostream>
-#include <boost/numeric/odeint.hpp>
-#include <cmath>
+#include <complex>
 #include <random>
 #include <fstream>
 #include <filesystem>
@@ -21,15 +20,319 @@
 
 // using namespaces!
 using namespace std;
-using namespace boost::numeric::odeint;
+namespace fs = std::filesystem;
+using namespace fs;
 // new state is composed of every
 typedef vector<double> entry_type;
 typedef  vector<vector<entry_type>> state_type;
+
+template <class map_like>
+void write_parameters(ofstream& file, map_like paras) {
+    for(const auto& pair : paras) {
+        file << pair.first << "," << pair.second << endl;
+    }
+}
 
 int pymod(int a, int b) {
     return ((b + (a % b)) % b);
 }
 
+template <class T>
+void print_vector(vector<T> vec) {
+    cout << vec.size() << endl;
+    for(int i = 0; i < vec.size(); i++) {
+        if(i % 20 == 0) {
+            cout << "\n";
+        }
+        cout << vec[i] << ", ";
+    }
+}
+
+
+void calc_corr(vector<vector<complex<double>>> &f, vector<double> &C_x, vector<double> &C_y) {
+    // i guess we could also use just normal doubles, would also give some performance
+    // but i actually really don't think that it will be very computationally difficult
+    int lat_dim = f.size();
+    // I don't think that we have to pay attention to the lattice spacings. If we set them one we are just measuring
+    // the distance in multiples of the lattice spacing
+    // because of PBC, the maximum distance is half the lat_dim
+    int d_max = lat_dim / 2;
+
+    // loop over the rows(cols)
+    for(int i = 0; i < lat_dim; i++) {
+        // for every row we loop over all possible distances, which are 0, 1, ..., d_max
+        for(int d = 0; d <= d_max; d++) {
+            // for every distance we loop over every lattice site, so over every col (row)
+            for(int j = 0; j < lat_dim; j++) {
+            // we only have to add up the +d terms since we have pbc?
+            C_x[d] += f[i][j].real() * f[i][(j + d) % lat_dim].real();
+            C_y[d] += f[j][i].real() * f[(j + d) % lat_dim][i].real();
+            }
+        }
+    }
+    // meaning now for C_x[d] we have had lat_dim(i) * lat_dim(j) additions, so normalization
+    for(int d = 0; d <= d_max; d++) {
+        C_x[d] /= (lat_dim * lat_dim);
+        C_y[d] /= (lat_dim * lat_dim);
+    }
+}
+
+template <typename T, size_t N>
+void print_array(const T (&arr)[N]) {
+    for (size_t i = 0; i < N; ++i) {
+        std::cout << arr[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+
+template <class value_type, class result_type>
+void calc_corr(vector<vector<value_type>> &f, result_type &C_x, result_type &C_y) {
+    // i guess we could also use just normal doubles, would also give some performance
+    // but i actually really don't think that it will be very computationally difficult
+    int lat_dim = f.size();
+    // I don't think that we have to pay attention to the lattice spacings. If we set them one we are just measuring
+    // the distance in multiples of the lattice spacing
+    // because of PBC, the maximum distance is half the lat_dim
+    int d_max = lat_dim / 2;
+
+    // loop over the rows(cols)
+    for(int i = 0; i < lat_dim; i++) {
+        // for every row we loop over all possible distances, which are 0, 1, ..., d_max
+        for(int d = 0; d <= d_max; d++) {
+            // for every distance we loop over every lattice site, so over every col (row)
+            for(int j = 0; j < lat_dim; j++) {
+                // we only have to add up the +d terms since we have pbc?
+                C_x[d] += f[i][j] * f[i][(j + d) % lat_dim];
+                C_y[d] += f[j][i] * f[(j + d) % lat_dim][i];
+            }
+        }
+    }
+    // meaning now for C_x[d] we have had lat_dim(i) * lat_dim(j) additions, so normalization
+    for(int d = 0; d <= d_max; d++) {
+        C_x[d] /= (lat_dim * lat_dim);
+        C_y[d] /= (lat_dim * lat_dim);
+    }
+}
+
+
+vector<fs::path> list_dir_paths(const fs::path& root)
+{
+    vector<fs::path> dir_paths;
+
+    if (fs::is_directory(root))
+    {
+        for (const auto& entry : fs::directory_iterator(root))
+        {
+            // if regular file, do nothing?
+            // if directory, add
+            if (fs::is_directory(entry.path()) && entry.path().filename() != "plots")
+            {
+                dir_paths.push_back(entry.path());
+                vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
+                dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+            }
+        }
+    }
+    return dir_paths;
+}
+
+
+vector<fs::path> list_csv_files(const fs::path& root)
+{
+    vector<fs::path> csv_files;
+
+    if (fs::is_directory(root))
+    {
+        for (const auto& entry : fs::directory_iterator(root))
+        {
+            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
+            {
+                csv_files.push_back(entry.path());
+            }
+            else if (fs::is_directory(entry.path()))
+            {
+                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
+                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
+            }
+        }
+    }
+
+    return csv_files;
+}
+
+string readLineAt(std::ifstream& file, int i) {
+    std::string line;
+    std::string running_line;
+    int running = 0;
+    // Init the line to be first line
+    std::getline(file, running_line);
+    while (std::getline(file, line) && (running != i))
+    {
+        running++;
+        // overwrite if line number is found
+        running_line = line;
+    }
+    return running_line;
+}
+
+int getNrRowsFile(std::ifstream& file) {
+    std::string line;
+    int running = 0;
+    while (std::getline(file, line))
+    {
+        running++;
+    }
+    return running;
+}
+
+int getNrRows(fs::path csv_path) {
+    ifstream file(csv_path);
+    // check if file is opened
+    if(file.is_open()) {
+        // cout << "File successfully opened" << endl;
+    } else {
+        cout << "Failed to open file" << endl;
+        // abort if file is not opened
+        exit(0);
+    }
+    return getNrRowsFile(file);
+}
+
+string readLastLine(std::ifstream& file) {
+    std::string line;
+    std::string lastLine;
+    while (std::getline(file, line))
+    {
+        lastLine = line;
+    }
+    return lastLine;
+}
+
+
+vector<complex<double>> readValuesAt(ifstream& file, int ind, double& T, double& t) {
+    string line = readLineAt(file, ind);
+    vector<complex<double>> values;
+
+    stringstream llss(line);
+    string token;
+    while (std::getline(llss, token, ',')) {
+        if(token != "t") {
+            complex<double> value = stod(token);
+            values.push_back(value);
+        }
+    }
+    // we delete the last value as it is the temperature
+    // or do we need the temperature?
+    // we might need it but we cannot really give it back
+    t = values[0].real();
+    values.erase(values.begin());
+    T = values[0].real();
+    values.erase(values.begin());
+
+    return values;
+}
+
+vector<double> readDoubleValuesAt(ifstream& file, int ind, double& T, double& t) {
+    string line = readLineAt(file, ind);
+    vector<double> values;
+
+    stringstream llss(line);
+    string token;
+    while (std::getline(llss, token, ',')) {
+        if(token != "t") {
+            double value = stod(token);
+
+            values.push_back(value);
+        }
+    }
+    // we delete the last value as it is the temperature
+    // or do we need the temperature?
+    // we might need it but we cannot really give it back
+    t = values[0];
+    values.erase(values.begin());
+    T = values[0];
+    values.erase(values.begin());
+
+    return values;
+}
+
+vector<complex<double>> readLastValues(ifstream& file, double& T) {
+    double t;
+    int ind = -1;
+    return readValuesAt(file, ind, T, t);
+}
+
+template <class value_type>
+vector<vector<value_type>> oneD_to_twoD(vector<value_type> &q) {
+    int N = q.size();
+    int lat_dim = (int)sqrt(q.size());
+
+
+    vector<vector<value_type>> q_2D = vector<vector<value_type>>( lat_dim, vector<value_type>(lat_dim, 0));
+    // now i fill it with values
+    // actually there was probably a function for this in some package...
+    int n;
+    int m;
+
+    for(int i = 0; i < N; i++) {
+        n = (i % lat_dim);
+        m = i / lat_dim;
+        // Zeile kreuz spalte?
+        q_2D[m][n] = q[i];
+    }
+
+    return q_2D;
+}
+
+template <template<class> class container, class value_type>
+void printComplexMatrix(container<value_type>* arr) {
+    int size = sizeof(arr) / (sizeof(value_type) * 2);
+    int dimension = static_cast<int>(std::sqrt(size));
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
+
+template <class value_type>
+void printComplexMatrix(value_type* arr, int lat_dim) {
+    int dimension = lat_dim;
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
+template <class value_type, int size>
+void printComplexMatrix(value_type(&arr)[size]) {
+    cout << size << endl;
+    int dimension = static_cast<int>(std::sqrt(size));
+    for (int i = 0; i < dimension; i++) {
+        for (int j = 0; j < dimension; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * dimension + j][0];
+            double imagPart = arr[i * dimension + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
 
 string print_statetype(const state_type x) {
     string str = "";
@@ -69,15 +372,38 @@ string print_statetype(const state_type x) {
     return str;
 }
 
-template <class T>
-void print_vector(vector<T> vec) {
-    cout << vec.size() << endl;
-    for(int i = 0; i < vec.size(); i++) {
-        if(i % 20 == 0) {
-            cout << "\n";
+template <typename T>
+void print2DVector(const std::vector<std::vector<T>>& vec) {
+    for (const auto& row : vec) {
+        for (const auto& element : row) {
+            std::cout << element << " ";
         }
-        cout << vec[i] << ", ";
+        std::cout << std::endl;
     }
+}
+template <typename Container>
+void print2DContainer(const Container& container) {
+
+    for (const auto& row : container) {
+        for (const auto& element : row) {
+            std::cout << element << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+template <typename Container>
+void print_container(const Container& container) {
+    int i = 0;
+    for (const auto& element : container) {
+        if (i % 30 == 0) {
+            cout << endl;
+        }
+        std::cout << element << ", ";
+        i++;
+
+    }
+    cout << endl;
 }
 
 

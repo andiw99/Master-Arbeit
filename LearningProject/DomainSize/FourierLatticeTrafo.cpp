@@ -1,30 +1,66 @@
 #include "FourierLatticeTrafo.h"
 #include "../Header/Helpfunctions and Classes.h"
+#include "../../CudaProject/parameters.cuh"
+#include <filesystem>
+
+void write_to_file(const int lat_dim, const vector<vector<array<double, 2>>> &p, const double *ft_squared_y,
+         const double *ft_squared_x, const fs::path &writepath) {
+    ofstream ofile;
+    ofile.open(writepath);
+    ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
+    for(int j = 0; j<lat_dim; j++) {
+        // so px(i) is just the p_x value of every entry of p of the i-th col
+        // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
+        // px = p[0][i][0]
+        // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
+        // py = p[i][0][1]
+        int K = lat_dim/2;
+        int i = (j + K < lat_dim) ? j + K : j - K;
+
+
+        ofile <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i];
+/*            cout <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i] << endl;
+        cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
+        */
+        if(j < lat_dim - 1) {
+            ofile << endl;
+        }
+    }
+}
 
 using namespace std;
-
 namespace fs = std::filesystem;
+using namespace fs;
 
 
-
+template <size_t N>
 void average_and_add(fftw_complex ft[N][N], double (&ft_squared_y)[N], double (&ft_squared_x)[N]) {
     // supposed to calculate ft_avg_y for one lattice and add it to ft_avg_y
 
-    array<array<double, 2>, N> ft_y{};
-    array<array<double, 2>, N> ft_x{};
-    array<double, N> ft_avg_x{};
-    array<double, N> ft_avg_y{};
+    array<array<double, 2>, N> ft_y = {};
+    array<array<double, 2>, N> ft_x = {};
 
+    array<double, N> ft_avg_x = {};
+    array<double, N> ft_avg_y = {};
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
+            // cout << ft[j][i][0] << ", " << ft[i][j][1];
+/*            if(i == 0 & j == 0) {
+                cout << *ft[i][j] <<  ", " << ft[i][j][0]<<  ", " << ft[i][j][1] << endl;
+            }*/
             ft_y[i][0] += ft[j][i][0];
             ft_y[i][1] += ft[j][i][1];
             ft_x[i][0] += ft[i][j][0];
             ft_x[i][1] += ft[i][j][1];
         }
-        ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0] + ft_y[i][1] * ft_y[i][1]) / pow((double) N, 8);
-        ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0] + ft_x[i][1] * ft_x[i][1]) / pow((double) N, 8);
+        // actually N^8 i dont know really why but i think i probably knew what I was doing
+/*        if(i == 1) {
+            cout << "ft_y:" << endl;
+            cout << ft_y[i][0] << ", " << ft_y[i][1]  << endl;
+        }*/
+        ft_avg_y[i] = (ft_y[i][0] * ft_y[i][0]) / pow((double) N, 4) +  (ft_y[i][1] * ft_y[i][1]) / pow((double) N, 4);
+        ft_avg_x[i] = (ft_x[i][0] * ft_x[i][0]) / pow((double) N, 4) +  (ft_x[i][1] * ft_x[i][1]) / pow((double) N, 4);
     }
     // now another loop that adds the now calculated squared absolute values to the running squared abs
     for(int i = 0; i < N; i++) {
@@ -42,7 +78,7 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     ifstream file(filepath);
      // check if file is opened
     if(file.is_open()) {
-        cout << "File successfully opened" << endl;
+        // cout << "File successfully opened" << endl;
     } else {
         cout << "Failed to open file" << endl;
         // abort if file is not opened
@@ -54,10 +90,13 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     vector<complex<double>> values = readLastValues(file, T);
     vector<vector<complex<double>>> f = oneD_to_twoD(values);
 
+
     // init the empty arrays for the fftw
-    fftw_complex f_fftw[N][N], ft_fftw[N][N];
+    fftw_complex f_fftw[N][N] = {};
+    fftw_complex ft_fftw[N][N] = {};
     // copy the values from f to f_fftw
     copy_values2D<N>(f, f_fftw);
+    // print2DContainer(f_fftw);
     // do the trafo
     fftw_plan plan2d;
     plan2d = fftw_plan_dft_2d(N, N, &f_fftw[0][0], &ft_fftw[0][0], FFTW_FORWARD, FFTW_ESTIMATE);
@@ -67,63 +106,91 @@ void trafo_routine(string filepath, double (&ft_squared_y)[N], double (&ft_squar
     average_and_add(ft_fftw, ft_squared_y, ft_squared_x);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    // okay we need a system that calculates the correlation func for every file or at least for every directory
+    // path of the root where we have multiple directories with multiple csv for every Temp
+    fs::path root;
+
+    if(argc >= 2) {
+        root = argv[1];
+    } else {
+        cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
+        root = "../../../Generated content/Coulomb/Detailed";
+    }
     // I tried to implement matplotlib with the following flags
     // -I/usr/include/python3.10 -lpython3.10 -Xlinker -export-dynamic -lpthread -lutil -ldl
     // okay so first things firs, we need to read in the csv
     // /home/andi/Documents/Master-Arbeit Code/Generated content/DomainSize/eta=5.00/T=70.00/dt=0.0050/n=62500/alpha=5.00/beta=10.00/J=50.00
 
     // lattice dim
-    int lat_dim = 250;
+    const int lat_dim = lattice_dim;
+    bool average = true;
+    cout << "Lattice dim = " << lat_dim << endl;
 
-    fs::path root = "../../../Generated content/Quadratic/Average/";
-    vector<fs::path> csv_files = list_csv_files(root);
-    print_vector(csv_files);
+    vector<fs::path> temp_directories = list_dir_paths(root);
+    print_vector(temp_directories);
+
+    auto q = init_q(lat_dim);
+    auto p = vector<vector<array<double, 2>>>(
+            lat_dim, vector<array<double, 2>>(lat_dim, array<double, 2>()));
+    fill_p(q, p);
+
+    for(auto path : temp_directories) {
+        cout << endl << endl << "Dealing with temp path " << path << endl;
+
+        vector<fs::path> csv_files = list_csv_files(path);
+        if(!average) {
+            cout << "Fuck everything" << endl;
+            for(auto csv_path :csv_files) {
+                double ft_squared_y[lat_dim] = {};
+                double ft_squared_x[lat_dim] = {};
+                trafo_routine(csv_path, ft_squared_y, ft_squared_x);
+                string name = csv_path.stem().string() + "-struct.fact";
+                fs::path writepath = path / name;
+                cout << writepath << endl;
+                write_to_file(lat_dim, p, ft_squared_y, ft_squared_x, writepath);
+                //exit(0);
+            }
+        } else {
+            // print_vector(csv_files);
+
+            // cout << filesystem::current_path() << endl;
+            // we need running arrays for the averages over the lattices
+            double ft_squared_y[lat_dim] = {};
+            double ft_squared_x[lat_dim] = {};
+
+
+            for(auto csv_path :csv_files) {
+                trafo_routine(csv_path, ft_squared_y, ft_squared_x);
+            }
+
+            // and now just average over the run size
+            for(int i = 0; i < lat_dim; i++) {
+                ft_squared_x[i] /= (double)csv_files.size();
+                ft_squared_y[i] /= (double)csv_files.size();
+            }
 
 
 
-    cout << filesystem::current_path() << endl;
-    // we need running arrays for the averages over the lattices
-    double ft_squared_y[N];
-    double ft_squared_x[N];
 
+            // write it
 
-    for(auto path :csv_files) {
-        trafo_routine(path, ft_squared_y, ft_squared_x);
+            fs::path writepath = path / "struct.fact";
+            write_to_file(lat_dim, p, ft_squared_y, ft_squared_x, writepath);
+        }
+
     }
-    // and now just average over the run size
-    for(int i = 0; i < N; i++) {
-        ft_squared_x[i] /= (double)csv_files.size();
-        ft_squared_y[i] /= (double)csv_files.size();
-    }
+
+
+    exit(0);
+
+/*
+    const int N = lat_dim;
 
     auto q = init_q(N);
     auto p = vector<vector<array<double, 2>>>(
             N, vector<array<double, 2>>(N, array<double, 2>()));
-    fill_p(q, p);
-
-
-    // write it
-
-    string path = "../../../Generated content/Quadratic/structfunc.average";
-    ofstream ofile;
-    ofile.open(path);
-    ofile << "px, " << "ft_avg_y, " << "py, " << "ft_avg_x \n";
-    cout << N << endl;
-    for(int i = 0; i<N; i++) {
-        // so px(i) is just the p_x value of every entry of p of the i-th col
-        // p[0] is first row, p[0][i] is i-th entry of the first row, and p[0][i][0] is px value of the entry
-        // px = p[0][i][0]
-        // p[i] is the ith-row, p[i][0] is the first entry of the i-th row, which has all the same py values
-        // py = p[i][0][1]
-        ofile <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i];
-        cout <<  p[0][i][0] << ", " << ft_squared_y[i] << ", " << p[i][0][1] << ", " << ft_squared_x[i] << endl;
-        cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
-        if(i < N - 1) {
-            ofile << endl;
-        }
-    }
-    exit(0);
+*/
 
     /*
      *
@@ -147,7 +214,7 @@ int main() {
     write_1d_real<nn>(ftu, pr, fu, r, root, name);
     exit(0);
 */
-    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
+/*    ifstream file("/home/weitze73/Documents/Master-Arbeit/Code/Generated content/SCP/0.csv");
     double T;
     if(file.is_open()) {
         cout << "File successfully opened" << endl;
@@ -200,14 +267,14 @@ int main() {
     // first we need our data in an fftw_complex array
     // i guess for this the size has to be clear at compile time sadly
 
-    /*
+    *//*
      *
     fftw_complex *f_fftw, *ft_fftw;
     // best way is allocating memory with fftw_malloc but i don't now how I would use this to get an array
     // can only be one dimensional and i have to retransform it afterwars, but that is actually not a huge deal?
     f_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
     ft_fftw = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N * N);
-     */
+     *//*
 
     // initialize this plan, just a 1D trafo now, doesnt make sense. Get back static arrays
     fftw_plan plan2d;
@@ -217,7 +284,7 @@ int main() {
     nanscan(ft_fftw);
     cout << "plan executed " << ft_fftw[0][0] << endl;
     cout << ft_fftw[0][0][0] << endl;
-    average_and_write(ft_fftw, p);
+    average_and_write(ft_fftw, p);*/
     // average_and_write(ft, p);
 
 
@@ -239,3 +306,5 @@ int main() {
     }
 */
 }
+
+

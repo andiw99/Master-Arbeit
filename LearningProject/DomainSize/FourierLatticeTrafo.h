@@ -17,30 +17,8 @@
 
 using namespace std;
 namespace fs = std::filesystem;
+using namespace fs;
 
-
-vector<fs::path> list_csv_files(const fs::path& root)
-{
-    vector<fs::path> csv_files;
-
-    if (fs::is_directory(root))
-    {
-        for (const auto& entry : fs::directory_iterator(root))
-        {
-            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".csv")
-            {
-                csv_files.push_back(entry.path());
-            }
-            else if (fs::is_directory(entry.path()))
-            {
-                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
-                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
-            }
-        }
-    }
-
-    return csv_files;
-}
 
 
 template<typename T>
@@ -124,62 +102,6 @@ void nanscan(const vector<vector<complex<double>>> (&f)) {
     cout << "nan scan done" << endl;
 }
 
-string readLastLine(std::ifstream& file) {
-    std::string line;
-    std::string lastLine;
-    while (std::getline(file, line))
-    {
-        lastLine = line;
-    }
-    return lastLine;
-}
-
-
-vector<complex<double>> readLastValues(ifstream& file, double& T) {
-    string lastline = readLastLine(file);
-    vector<complex<double>> values;
-
-    stringstream llss(lastline);
-    string token;
-    while (std::getline(llss, token, ',')) {
-        if(token != "t") {
-            complex<double> value = stod(token);
-            values.push_back(value);
-        }
-    }
-    // we delete the last value as it is the temperature
-    // or do we need the temperature?
-    // we might need it but we cannot really give it back
-    T = values.back().real();
-    values.pop_back();
-
-    // TODO we erase t for now
-    values.erase(values.begin());
-
-    return values;
-}
-
-
-vector<vector<complex<double>>> oneD_to_twoD(vector<complex<double>> &q) {
-    int N = q.size();
-    int lat_dim = (int)sqrt(q.size());
-
-
-    vector<vector<complex<double>>> q_2D = vector<vector<complex<double>>>( lat_dim, vector<complex<double>>(lat_dim, 0));
-    // now i fill it with values
-    // actually there was probably a function for this in some package...
-    int n;
-    int m;
-
-    for(int i = 0; i < N; i++) {
-        n = (i % lat_dim);
-        m = i / lat_dim;
-        // Zeile kreuz spalte?
-        q_2D[m][n] = q[i];
-    }
-
-    return q_2D;
-}
 
 complex<double> two_d_fourier(const vector<vector<complex<double>>> &f, const vector<vector<array<double, 2>>> &q,
                               double pi, double pj) {
@@ -228,7 +150,6 @@ void latticeTrafo(const vector<vector<complex<double>>> &f, const vector<vector<
     // now i think we can start to loop?
     // we have to iterate over every lattice site, this will also take very long
     for(int i = 1 - K; i <= N-K; i++) {
-        cout << i << endl;
         for(int j = 1 - K; j <= N-K; j++) {
             // 250000 iterations for 500 x 500 lattice
             // i,j are the indexes to calculate the p_i, p_j
@@ -315,13 +236,13 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
     // find out the lattice spacings a_x = x_1 - x_0
     double ax = q[0][1][0] - q[0][0][0];
     double ay = q[1][0][1] - q[0][0][1];
-    for(int i = 1 - K; i <= N-K; i++) {
-        for(int j = 1 - K; j <= N-K; j++) {
-            int i_ind = i + K - 1;
-            int j_ind = j + K - 1;
-            double p_i = 2 * M_PI * i / N / ax;
-            double p_j = 2 * M_PI * j / N / ay;
-            p[j_ind][i_ind] = array<double, 2>{p_i, p_j};
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            int i_ft = i < K ? i : i - N;
+            int j_ft = j < K ? j : j - N;
+            double p_i = 2 * M_PI * (double)i_ft / N / ax;
+            double p_j = 2 * M_PI * (double)j_ft / N / ay;
+            p[i][j] = array<double, 2>{p_i, p_j};
         }
     }
 }
@@ -462,7 +383,8 @@ void average_and_write(vector<vector<complex<double>>>& ft, vector<vector<array<
         }
     }
 }
-const size_t N = 250;
+
+template <size_t N>
 void average_and_write(fftw_complex ft[N][N], vector<vector<array<double, 2>>> &p,
                        string filename = "./../../../Generated content/structfunc.fftw") {
     // lat dim

@@ -11,7 +11,7 @@ import matplotlib
 
 
 def read_csv(filepath, nrows=None):
-    df = pd.read_csv(filepath, header=None, index_col=0)
+    df = pd.read_csv(filepath, header=None, index_col=None)
     return df.iloc[:nrows]
 
 
@@ -26,10 +26,9 @@ def read_multiple_csv(filepaths, nrows=None):
 
 def read_struct_func(filepath):
     df = pd.read_csv(filepath, delimiter=",", index_col=False)
-    print(df)
     return df
 
-def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2):
+def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2, chess_board=False):
     """
     plots the dataframe as a colormesh
     :param df:
@@ -58,6 +57,9 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
     # for now i just want to know in which minimum i fall so i make this
     # projection
     z_values = np.array(z_values, dtype=float).reshape((n, n))
+    if(chess_board):
+        z_values = chess_board_trafo(z_values)
+
 
     x = np.arange(0.5, n+1, 1)
     y = np.arange(0.5, n + 1, 1)
@@ -109,7 +111,7 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
 
 
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -124,28 +126,44 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True)
     for axs in axes:
         for ax in axs:
             # plot with one row out of the row numbers
-            plot_colormesh(
+            try:
+                plot_colormesh(
                 df_rows.iloc[i], fig, ax,
-                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, -1]}",
-                proj=proj, p=p, beta=beta)
+                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, v1 * -1]}",
+                proj=proj, p=p, beta=beta, chess_board=chess_board)
+            except ValueError:
+                plot_colormesh(
+                df_rows.iloc[i][1: -1], fig, ax,
+                title=f"t = {df_rows.iloc[i, 1]:.2f}, T = {df_rows.iloc[i, -1]}",
+                proj=proj, p=p, beta=beta, chess_board=chess_board)
+
             i +=1
             # scale colormap in multiples of the position of the minimum
 
     # insert parameters
     textstr = ''
-    for para in paras:
-        textstr += para + "=" + str(paras[para]) + "\n"
+    wanted_paras= ["dt", "J", "alpha", "beta", "eta", "tau"]
+    for para in wanted_paras:
+        try:
+            textstr += para + "=" + str(paras[para]) + "\n"
+        except:
+            pass
     textstr = textstr[:-1]
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
     fig.text(0.02, 0.8, textstr, fontsize=14, bbox=props)
     plt.tight_layout()
     # if you want to save the pics somewhere else
+
+    if name == "":
+        name = plot_name_paras(paras)
+
     try:
-        plt.savefig(storage_root + plot_name_paras(paras), format="png")
+        plt.savefig(storage_root + name, format="png")
     except FileNotFoundError:
         os.makedirs(storage_root)
-        plt.savefig(storage_root + plot_name_paras(paras), format="png")
-    plt.show()
+        plt.savefig(storage_root + name, format="png")
+    if show:
+        plt.show()
 
 
 def make_dir(path):
@@ -243,12 +261,15 @@ def chess_board_trafo(x):
     """
     # in place trafo vermutlich langsamer als neues array aber egal
 
-    for i in range(x.shape[0]//2):
-        for j in range(x.shape[1]//2):
+    for i in range(x.shape[0] // 2):
+        for j in range(x.shape[1] // 2):
             # we iterate over all even values with even i, j
-            x[i][j] *= (-1)
+            x[2 * i][2 * j] *= (-1)
             # we iterate over lattice sites with odd indices
-            x[2 * i + 1][2 * j + 1] += (-1)
+            x[2 * i + 1][2 * j + 1] *= (-1)
+
+    # Lol we have to return this since it is not in place
+    return x
 
 
 def pd_chess_board_trafo(x):

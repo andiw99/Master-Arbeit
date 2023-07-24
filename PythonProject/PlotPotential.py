@@ -4,7 +4,16 @@ from matplotlib import pyplot as plt
 def double_well(x, alpha, beta):
     return 1/2 * alpha*  (x ** 4 - beta * x **2)
 
-
+def coulomb_potential(J, q, qNN):
+    if(len(qNN) == 1):
+        return J / np.sqrt(1 + (q - qNN) ** 2)
+    else:
+        V = np.zeros(len(q))
+        for i, x in enumerate(q):
+            print(qNN)
+            print(J / np.sqrt(1 + (x - qNN) ** 2))
+            V[i] = np.sum(J / np.sqrt(1 + (x - qNN) ** 2))
+        return V
 def kos():
     icks_frequency = 1
 
@@ -63,14 +72,14 @@ def plot_potential(alpha, beta):
     plt.tight_layout()
 
 
-def plot_potential_interaction(alpha, beta, J):
+def plot_potential_interaction(alpha, beta, J, qNN=np.array([]), interaction=coulomb_potential):
     xmin = np.sqrt(beta / 2)
     Vmin = - 1/8 * alpha * beta ** 2
 
     x = np.linspace(-1.7 * xmin, 1.7 * xmin, 500)
 
-    V = double_well(x, alpha, beta) + 2 * J * (x - xmin) ** 2
-
+    # V = double_well(x, alpha, beta) + 2 * J * (x - xmin) ** 2
+    V = double_well(x, alpha, beta) - coulomb_potential(J, x, qNN)
     # Enter x and y coordinates of points and colors
 
 
@@ -108,16 +117,21 @@ def plot_transformation(a):
 
 
 def main():
-    alpha = 10
-    beta = 1
+    alpha = 500
+    beta = 0.1
     a = 1
     J = alpha * beta / 17
+    J =10
+    qNN = np.array([np.sqrt(beta/2), -np.sqrt(beta/2), np.sqrt(beta/2), np.sqrt(beta/2)])
     #plot_potential(alpha, beta)
     #plot_transformation(a)
-    plot_potential_interaction(alpha, beta, J)
+    plot_potential_interaction(alpha, beta, J, qNN)
 
     plt.tight_layout()
     plt.show()
+
+
+
 
 
 if __name__ == "__main__":

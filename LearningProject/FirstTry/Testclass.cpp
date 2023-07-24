@@ -60,10 +60,13 @@ public:
 int main() {
     child c;
     pointer_container a{&c};
+    c.foo();
     a.b = &c; // assigning the address of c to the pointer to B in A
     a.b->foo(); // calls C::foo() due to dynamic binding
 
-    parent c2;
+    parent* c2;
+
+    c2.foo();
     pointer_container a2{&c2};
     a2.b->foo();
 

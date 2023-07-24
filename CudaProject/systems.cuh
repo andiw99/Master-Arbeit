@@ -16,13 +16,20 @@
 #include <thrust/random.h>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
+#include <stdio.h>
 
 using namespace std;
 
 template <size_t lat_dim>
 struct System {
 public:
-    const double T = 0;
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
+    double T;
+    const double eta;
+    double D;
 
     struct rand
     {
@@ -41,6 +48,38 @@ public:
             return D * dist(rng);
         }
     };
+    struct rand_float
+    {
+        float mu, sigma, D;
+
+        __host__ __device__
+        rand_float(float D, float mu = 0.0f, float sigma = 1.0f) : D(D), mu(mu), sigma(sigma) {};
+
+        __host__ __device__
+        float operator()(const unsigned int ind) const
+        {
+            thrust::default_random_engine rng;
+            thrust::normal_distribution<float> dist(mu, sigma);
+            rng.discard(ind);
+
+            return D * dist(rng);
+        }
+    };
+    /*
+    __global__ curandState global_state;
+    struct curand {
+        float D;
+        curand(float D) : D(D) {}
+
+        __host__ __device__
+        float operator()() const
+        {
+
+            return D;
+        }
+    };
+*/
+
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
@@ -91,222 +130,20 @@ public:
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {}
 
-    size_t get_lattice_dim() const{
-        return lat_dim;
-    }
+    struct Functor {
+        Functor(){}
 
-    double get_cur_T() const{
-        return T;
-    }
+        virtual void operator()() {}
 
-
-};
-
-
-
-template <size_t lat_dim>
-struct gpu_bath : public System<lat_dim> {
-public:
-    const double T_start;
-    const double alpha;
-    const double eta;
-    const double tau;
-    const double beta;
-    const double J;
-    // systemsize should probably be a template argument?
-    const size_t n;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
-    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
-    // the current temperature
-    double T;
-    // parameters of the potential and of the Interaction
-    struct cos_functor {
-        // Old functor with cos interaction
-        const double alpha, beta, J, eta;
-
-        cos_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
-
-        template<class Tup>
-        __host__ __device__ void operator()(Tup tup) {
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            thrust::get<2>( tup ) = p;
-            double q_left = thrust::get<4>(tup);
-            double q_right = thrust::get<5>(tup);
-            double q_up = thrust::get<6>(tup);
-            double q_down = thrust::get<7>(tup);
-            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * (sin(q - q_left) + sin(q - q_right) + sin(q - q_up) + sin(q - q_down));       // Interaction
-        }
-    };
-    struct bath_functor {
-        // I think also the potential and interaction parameters have to be set in the functor
-        // I mean i could template everything and this would probably also give a bit of potential but is it really
-        // worth it?
-        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
-        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
-        // could just template everything
-        const double alpha, beta, J, eta;
-
-        bath_functor(const double eta, const double alpha,
-                    const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
-
-        template<class Tup>
-        __host__ __device__ void operator()(Tup tup) {
-            /*
-
-
-            // We now have 4 additional iterators in the tuple 4 -> 8
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            // this line has to be the dgl for x
-            // dqdt =
-            thrust::get<2>( tup ) = p;
-            // this the one for p
-            // dpdt=
-
-            // this is the one depending on the whole q stuff. We can use a normal calculation here right?
-            thrust::get<3>( tup ) = (-eta) * p - dVdq(q, q_left, q_right, q_up, q_down);
-            */
-            double q = thrust::get<0>( tup );
-            double p = thrust::get<1>( tup );
-            // this line has to be the dgl for x
-            // dqdt =
-            thrust::get<2>( tup ) = p;
-            // neighbors
-            double q_left = thrust::get<4>(tup);
-            double q_right = thrust::get<5>(tup);
-            double q_up = thrust::get<6>(tup);
-            double q_down = thrust::get<7>(tup);
-
-            // this the one for p
-            // dpdt=
-            // I think the problem is that we call another function and this is not legal
-            // i guess I will just use an inline implementation for my first implementation
-            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                    - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
-        }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    struct left : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-        }
-    };
-
-    struct right : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
-        }
-    };
-
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
-
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
-
-    double linear_T(double t) {
-        // parametrisierung für die Temperatur
-        // linearer Abfall
-        T = max(T_start - t/tau, 1.0);
-        return T;
-    }
-
-
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
-        // One thing is that now T has to change, which we will realize like we have for the cpu case
-        // In the cpu case i had a starting T and one that was changing, but why was that again?
-        // i think so that we were able to get T(t), because otherwise your only option is to decrease T in every step
-        // but then you don't know which time it is. But is that important?
-        // We also have the step_nr but actually I think I will try to just decrement T in every step rn i don't see
-        // the disadvantage
-        // The disadvantage is that we don't have dt available here, so i will work with the cur_T attribute
-        double D = sqrt(2 * linear_T(t) * eta);
-        // ok so this should be done again, the linear_T computation is performed on the cpu i think which is good
-        // since the Temperature is the same for all lattice sites and so it is only one computation
-        // generate the random values
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
-        /*
-        cout << "theta[n-1] = " << theta[n-1] << endl;
-        cout << "theta[n] = " << theta[n] << endl;
-        cout << "theta[n+1] = " << theta[n+1] << endl;
-        */
-
-        // Problem now is that i have to generate iterators that iterate over all neighbors
-        // We have an example of how to do this but i actually do not understand it
-        // the most reasonable thing to do would be to just do it analogous and hope that it works
-        // i only need the q values of the neighbors, so i get 4 additional iterators, one for each neighbor
+    template<class State, class Deriv, class FunctorType>
+    void universalStepOperations(const State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                // x begin has all q values
                 x.begin(),
-                // x begin + n has all p values
                 x.begin() + n,
-                // dxdt begin has all dqdt values
                 dxdt.begin(),
-                // dxdt begin + n has all dpdt values
                 dxdt.begin() + n,
-                // left neighbor q values
-                // TODO i don't know what exactly is happening here but
-                // i understand what effect it has or supposed to have
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
@@ -314,7 +151,6 @@ public:
                                 left()
                         )
                 ),
-                // right neighbor q values
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
@@ -322,7 +158,6 @@ public:
                                 right()
                         )
                 ),
-                // TODO this looks horibly bloated, but safest, fastest, easiest
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
@@ -338,31 +173,450 @@ public:
                         )
                 )
         )));
-        // bath_functor(const double eta, const double alpha,
-        //                     const double beta, const double J)
-        // apply bath_functor()() for each tuple between start and start + n
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
-
-/*        cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        cout << "dxdt[0] = " << dxdt[0] << endl;*/
-
+        thrust::for_each(start, start + n, functor);
         step_nr++;
     }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
+        // as it will probably improve nothing
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }
+
+    System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {}
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
+    double get_cur_T() const{
+        // If we Quench, we just have to keep this T up to date and we do that I think, then we can reuse this function
+        return T;
+    }
+
+    double get_T(double t) {
+        return T;
+    }
+
+    template <class T>
+    struct square
+    {
+        __host__ __device__
+        T operator()(const T& x) const {
+            return x * x;
+        }
+    };
+
+    template<class State>
+    double calc_kinetic_energy(State &x) {
+        double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
+        return E_kin;
+    }
+};
+
+
+struct constant_bath_timer : public timer {
+    long rng_generation_time = 0;
+    long functor_time = 0;
+    chrono::time_point<chrono::high_resolution_clock> rng_start;
+    chrono::time_point<chrono::high_resolution_clock> rng_end;
+    chrono::time_point<chrono::high_resolution_clock> functor_start;
+    chrono::time_point<chrono::high_resolution_clock> functor_end;
 public:
-    gpu_bath(const double T, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0)
-            : T_start(T), step_nr(init_step), n(lat_dim * lat_dim), T(T), eta(eta), alpha(alpha), beta(beta), J(J), tau(tau) {
+    constant_bath_timer() : timer() {
+        cout << "timer is constructed" << endl;
+        rng_start = chrono::high_resolution_clock ::now();
+        rng_end = chrono::high_resolution_clock ::now();
+        functor_start = chrono::high_resolution_clock ::now();
+        functor_end = chrono::high_resolution_clock ::now();
+    }
+
+    void set_rng_start() {
+        rng_start = chrono::high_resolution_clock ::now();
+    }
+
+    void set_rng_end() {
+        rng_end = chrono::high_resolution_clock ::now();
+        rng_generation_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                rng_end - rng_start).count();
+    }
+
+    void set_functor_start() {
+        functor_start = chrono::high_resolution_clock ::now();
+    }
+
+    void set_functor_end() {
+        functor_end = chrono::high_resolution_clock ::now();
+        functor_time += std::chrono::duration_cast<std::chrono::microseconds>(
+                functor_end - functor_start).count();
+    }
+
+    ~constant_bath_timer() {
+        cout << "RNG took " << (double)rng_generation_time * 0.001 << " ms" << endl;
+        cout << "Functor executions took " << (double)functor_time * 0.001 << " ms" << endl;
     }
 };
 
 
 template <size_t lat_dim>
 struct constant_bath : public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
-    const double eta;
     const double beta;
+    const double J;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+
+
+    string rng = "RNG";
+    string theta_filling = "Filling of theta";
+    string functor_point = "Functor Calc";
+    checkpoint_timer timer {{rng, functor_point, theta_filling}};
+    // parameters of the potential and of the Interaction
+    struct bath_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, beta, J, eta;
+
+        bath_functor(const double eta, const double alpha,
+                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+//            printf(
+//                    "%f", interaction
+//                    );
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
+                                    - interaction;       // Interaction
+        }
+    };
+
+
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        // cout << "calc_drift is called" << endl;
+        timer.set_startpoint(functor_point);
+
+        bath_functor functor = bath_functor(System<lat_dim>::eta, alpha, beta, J);
+
+        this->universalStepOperations(x, dxdt, t, functor);
+        timer.set_endpoint(functor_point);
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // cout << "calc_diff is called" << endl;
+        timer.set_startpoint(rng);
+        System<lat_dim>::calc_diff(theta, t);
+        timer.set_endpoint(rng);
+    }
+public:
+    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), beta(beta), J(J) {
+        cout << "constant Bath System is constructed" << endl;
+    }
+
+    double get_cur_T() const{
+        return System<lat_dim>::T;
+    }
+    ~constant_bath() {
+        cout << "Bath System is destroyed" << endl;
+    }
+};
+
+
+template <size_t lat_dim>
+struct coulomb_interaction : public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
+public:
+    const double alpha;
+    const double beta;
+    const double J;
+    const double D;
+    // systemsize should probably be a template argument?
+    const size_t n;
+    // needed to "advance the random engine" and generate different random numbers for the different steps
+    size_t step_nr;
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    // parameters of the potential and of the Interaction
+    struct coulomb_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, beta, J, eta;
+
+        coulomb_functor(const double eta, const double alpha,
+                        const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ double coulomb_interaction(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+
+            return J * (
+                    ((q - q_left) / pow(1.0 + (q - q_left) * (q - q_left), 1.5))
+                    +   ((q - q_right) / pow(1.0 + (q - q_right) * (q - q_right), 1.5))
+                    +   ((q - q_up) / pow(1.0 + (q - q_up) * (q - q_up), 1.5))
+                    +   ((q - q_down) / pow(1.0 + (q - q_down) * (q - q_down), 1.5))
+            );
+        }
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction = J * (
+                        ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  1.5))
+                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 1.5))
+                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
+                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
+            );
+
+//            printf(
+//                    "%f", interaction
+//            );
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
+                                    - interaction;       // Interaction
+        }
+    };
+
+public:
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        coulomb_functor functor = coulomb_functor(System<lat_dim>::eta, alpha, beta, J);
+        this->universalStepOperations(x, dxdt, t, functor);
+    }
+
+
+
+    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), step_nr(init_step), n(lat_dim * lat_dim), alpha(alpha),
+            beta(beta), J(J), D(sqrt(2 * T * eta)) {
+    }
+};
+
+template <size_t lat_dim>
+class coulomb_constant : public coulomb_interaction<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using coulomb_interaction<lat_dim>::step_nr;
+    using coulomb_interaction<lat_dim>::n;
+    using coulomb_interaction<lat_dim>::D;
+public:
+    coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+    : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step) {
+
+    }
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // cout << "calc_diff is called" << endl;
+        System<lat_dim>::calc_diff(theta, t);
+    }
+/*    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }*/
+};
+
+
+template <size_t lat_dim>
+struct gpu_bath : public coulomb_interaction<lat_dim> {
+    // actually I think we can write the gpu_bath as extension of coulomb or coulomb constant?
+public:
+    const double T_start;       // Start-Temperture of the Quenching For example: 10
+    const double T_end;         // End-Temperature of the Quencheing. For example: 1
+    const double s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
+    const double e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
+    double t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
+    double end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
+    const double tau;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    // parameters of the potential and of the Interaction
+
+    double simple_linear_T(double t) {
+        // parametrisierung für die Temperatur
+        // linearer Abfall
+        System<lat_dim>::T = max(T_start - t/tau, T_end);
+        return System<lat_dim>::T;
+    }
+
+    double linear_T(double t) {
+        if(s_eq_t < t && t < end_quench_t) {
+            // if we are in the quench phase, we reduce T
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
+        }
+        return System<lat_dim>::T;
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        System<lat_dim>::D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
+        System<lat_dim>::calc_diff(theta, t);
+    }
+public:
+    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
+            : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step), T_start(T),
+              tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
+    }
+
+    double get_quench_time() {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        return (T_start - T_end) * tau;
+    }
+
+    double get_end_t(){
+        // the total time are the two equilibriate times + the quench time
+        return s_eq_t + e_eq_t + t_quench;
+    }
+
+    double get_end_quench_time() {
+        return end_quench_t;
+    }
+};
+
+
+template <size_t lat_dim>
+struct quadratic_trapped_lattice : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
+public:
+    const double alpha;
+    const double J;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    string rng = "RNG";
+    string theta_filling = "Filling of theta";
+    string functor_point = "Functor Calc";
+    checkpoint_timer timer {{rng, functor_point, theta_filling}};
+    // parameters of the potential and of the Interaction
+    struct harmonic_trap_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, J, eta;
+
+        harmonic_trap_functor(const double eta, const double alpha,
+                      const double J) : alpha(alpha), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q)                                                        // double well potential
+                                    + interaction;       // Interaction
+        }
+    };
+
+
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        timer.set_startpoint(functor_point);
+
+        harmonic_trap_functor functor = harmonic_trap_functor(System<lat_dim>::eta, alpha, J);
+
+        this->universalStepOperations(x, dxdt, t, functor);
+        timer.set_endpoint(functor_point);
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        timer.set_startpoint(rng);
+        System<lat_dim>::calc_diff(theta, t);
+        timer.set_endpoint(rng);
+    }
+
+public:
+    quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), J(J) {
+        cout << "Lattice quadratic Trap System is constructed" << endl;
+    }
+
+    double get_cur_T() const{
+        return System<lat_dim>::T;
+    }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
+};
+
+
+template <size_t lat_dim>
+struct quadratic_chain {
+    using rand = typename System<lat_dim>::rand;
+public:
+    const double eta;
     const double J;
     const double D;
     // systemsize should probably be a template argument?
@@ -373,17 +627,16 @@ public:
     // the current temperature
     double T;
     // parameters of the potential and of the Interaction
-    struct bath_functor {
+    struct functor {
         // I think also the potential and interaction parameters have to be set in the functor
         // I mean i could template everything and this would probably also give a bit of potential but is it really
         // worth it?
         // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
         // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
         // could just template everything
-        const double alpha, beta, J, eta;
+        const double J, eta;
 
-        bath_functor(const double eta, const double alpha,
-                     const double beta, const double J) : alpha(alpha), beta(beta), J(J), eta(eta) { }
+        functor(const double eta, const double J) : J(J), eta(eta) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -392,90 +645,30 @@ public:
             thrust::get<2>( tup ) = p;
             double q_left = thrust::get<4>(tup);
             double q_right = thrust::get<5>(tup);
-            double q_up = thrust::get<6>(tup);
-            double q_down = thrust::get<7>(tup);
+
 
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
-                                      - J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));       // Interaction
+                                    - J * ((q - q_left) + (q - q_right));       // Interaction
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
     struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
-            // Here we implement logic that return the index of the left neighbor
-            // we have to think about that we are actually in 2D and i guess we want to use PBC?
-            // so we have to know the system size
-            // would we do that with a template oder with a attribute?
-            // Another thing is how to implement the logic
-            // with modulo we don't need any logic but will this be faster?
-            // lat_dim is the sqrt of n
-            // size_t j;
-            // j is always just i-1, except when it is on the left side of the lattice, then it is i + lat_dim (-1?)
-            // if i is on the left side of the lattice, i % lat_dim = 0
-            // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
-
-            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
+            // if we are at the left end of our chain, we need to use the right end as left neighbor
+            return (i == 0) ? i + lat_dim - 1 : i - 1;
         }
     };
 
     struct right : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i+1, expect when i is on the right side of the lattice
-            // if i is on the right side of the lattice, j is i - (d - 1)
-            // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
-
-            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
+            return (i == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
         }
     };
 
-    struct up : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i - d, except when i is on the upper bound of the lattice
-            // if it is on the upper bound, j will be i + d(d-1)
-            // if i is on the upper bound, i will be smaller than d
-            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
-        }
-    };
 
-    struct down : thrust::unary_function<size_t, size_t> {
-        __host__ __device__ size_t operator()(size_t i) const {
-            // j is always i + d, except when i is on the lower bound of the lattice
-            // if it is on the lower bound, j will be i - d(d-1)
-            // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
-        }
-    };
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
 
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
-
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
 
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
@@ -495,32 +688,33 @@ public:
                                 thrust::counting_iterator<size_t>(0),
                                 right()
                         )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up()
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down()
-                        )
                 )
         )));
-        thrust::for_each(start, start + n, bath_functor(eta, alpha, beta, J));
+        thrust::for_each(start, start + n, functor(eta, J));
         step_nr++;
         // cout << "x[1] = " << x[1] << endl;
         // the problem is here, actually dxdt[0] = x[1] should be
         // somehow dxdt is not set but i dont really get why
         // cout << "dxdt[0] = " << dxdt[0] << endl;
     }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        if(step_nr == 0) {
+            // TODO will this already be initialized to zero without this statement?
+            thrust::fill(theta.begin(), theta.begin() + n, 0);
+        }
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(D));
+    }
+
 public:
-    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : T(T), step_nr(init_step), n(lat_dim * lat_dim), eta(eta), alpha(alpha), beta(beta), J(J), D(sqrt(2 * T * eta)) {
+    quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
+            : T(T), step_nr(init_step), n(lat_dim), eta(eta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{
@@ -530,11 +724,56 @@ public:
     size_t get_lattice_dim() const{
         return lat_dim;
     }
+
+    template<class State>
+    double calc_energy(const State &x) {
+        double E = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add potential energy
+            E += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
+            // add kinetic energy
+            E += 0.5 * x[i + n] * x[i + n];
+        }
+        return E;
+    }
+
+    template<class State>
+    double calc_kinetic_energy(const State &x) {
+        double Ekin = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add kinetic energy
+            Ekin += (0.5 * (x[i + n] * x[i + n]));
+        }
+        return Ekin;
+    }
+
+    template<class State>
+    double calc_potential_energy(const State &x) {
+        double Epot = 0;
+        for(int i = 0; i < lat_dim; i++) {
+            // add kinetic energy
+            Epot += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
+
+        }
+        return Epot;
+    }
+    template<class State>
+    double calc_total_squared_dist(const State &x) {
+        double d2 = 0;
+        for(int i = 0; i < lat_dim - 1; i++) {
+            // add kinetic energy
+            d2 += (x[i] - x[i + 1]) * (x[i] - x[i + 1]);
+        }
+        return d2;
+    }
+
+
 };
 
 
 template <size_t lat_dim>
 struct gpu_oscillator_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
     const double T;
     const double alpha;
@@ -562,24 +801,6 @@ public:
         }
     };
 
-    struct rand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        rand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        __host__ __device__
-        float operator()(const unsigned int ind) const
-        {
-            thrust::default_random_engine rng;
-            thrust::normal_distribution<double> dist(mu, sigma);
-            rng.discard(ind);
-
-            return D * dist(rng);
-        }
-    };
-    // no neighbors
 
 
     template<class State, class Deriv, class Stoch>
@@ -621,7 +842,7 @@ public:
 
 
 
-typedef vector<double> state_type;
+
 
 struct brownian_particel {
     const double eta, T;
@@ -633,6 +854,7 @@ struct brownian_particel {
     /*
      * call of the system needs to take in the theta state type
      */
+    template <class state_type>
     void operator()(const state_type &x, state_type &dxdt, state_type &theta, double t)
     {
         dxdt[0] = x[1];
@@ -749,7 +971,7 @@ public:
                                                             //theta begin + n has all theta[1] values
                                                             // theta.begin() + n
                                                     )
-                   )
+        )
         );
         thrust::for_each(start, start + n, brownian_functor(eta, T));
         // this line also doesn't work
