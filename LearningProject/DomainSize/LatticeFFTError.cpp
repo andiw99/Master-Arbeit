@@ -144,7 +144,8 @@ int main(int argc, char* argv[]) {
     fs::path root;
     if(argc >= 2) {
         // if we give some argument, doesnt even matter what argument, we take the parameter file values
-        root = "../" + adaptive_tempscan_root;
+        // It is called in the same directory as the run itself, so why would you need the ../ in front
+        root = adaptive_tempscan_root;
     } else {
         root = "../../../Generated content/Coulomb/Detailed-250 longer";
     }

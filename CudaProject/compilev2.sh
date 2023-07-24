@@ -24,7 +24,7 @@ if [ $? -eq 0 ]; then
     # save the output in variable output
     output=$(./$output_file | tee /dev/tty)
     # cut only the last line, which is the save path
-
+    rootpath=$(echo "$output" | tail -1)
     # run calc correlation function with the path as input variable
     ./fourierlatticeTraf.out
     # make the plots
