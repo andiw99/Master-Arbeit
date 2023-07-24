@@ -85,8 +85,8 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
 
-    popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
-    popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
+    popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
+    popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
 
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
@@ -100,7 +100,9 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     xiy = np.abs(popt_y[0])
     xiy_err = perr_y[0]
     xi = np.abs(1 / 2 * (xix + xiy))
-
+    # TODO I think gaussian error propagation just yields for the
+    # error of xi:
+    xi_err = 1/2 * (xix_err + xiy_err)
     # plotting
     fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     p = np.linspace(min(px), max(px), px.size)
@@ -116,11 +118,11 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
     #print("Corr Length y:", xiy)
-    return xix, xiy, T, xix_err, xiy_err
+    return xix, xiy, T, xix_err, xiy_err, xi, xi_err
 
 
 def main():
-    root = "../../Generated content/Coulomb/system size test/Detailed-50"
+    root = "../../Generated content/Coulomb/Detailed-250 longer"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -132,6 +134,8 @@ def main():
     xix_err_arr = []
     xiy_arr = []
     xiy_err_arr = []
+    xi_arr = []
+    xi_err_arr = []
     cutoff =  np.pi
     fitfunc = lorentz_ft
     # Loop through the directory contents and print the directories
@@ -153,36 +157,59 @@ def main():
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
                 df = read_struct_func(filename)
 
-                xix, xiy, T, xix_err, xiy_err = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
+                xix, xiy, T, xix_err, xiy_err, xi, xi_err = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
 
                 T_arr.append(T)
                 xix_arr.append(xix)
                 xiy_arr.append(xiy)
                 xix_err_arr.append(xix_err)
                 xiy_err_arr.append(xiy_err)
+                xi_arr.append(xi)
+                xi_err_arr.append(xi_err)
 
 
     xix_sorted = np.array(xix_arr)[np.argsort(T_arr)]
     xiy_sorted = np.array(xiy_arr)[np.argsort(T_arr)]
+    xi_sorted = np.array(xi_arr)[np.argsort(T_arr)]
     xix_err_sorted = np.array(xix_err_arr)[np.argsort(T_arr)]
     xiy_err_sorted = np.array(xiy_err_arr)[np.argsort(T_arr)]
+    xi_err_sorted = np.array(xi_err_arr)[np.argsort(T_arr)]
     T_arr = np.sort(T_arr)
+
+    # plotting
     fig, ax = plt.subplots(1, 1)
-
-
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
 
-
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=0.1))
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=0.02))
+    span = np.max(T_arr) - np.min(T_arr)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
     # TODO minor locator muss
     ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(T_arr, xix_sorted, yerr=xix_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
     ax.errorbar(T_arr, xiy_sorted, yerr=xiy_err_sorted, ls="", marker="x", color="C1", ecolor="black", capsize=3)
+    ax.set_xlabel("T")
+    ax.set_ylabel(r"$\xi(T)$")
+    ax.set_title("Corr Length depending on T")
+    save_plot(root, "/xix-xiy.png")
+
+    # plotting xi
+    fig, ax = plt.subplots(1, 1)
+    # Setze Tickmarken und Labels
+    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
+    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+
+    span = np.max(T_arr) - np.min(T_arr)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
+    # TODO minor locator muss
+    ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
+    # Füge Gitterlinien hinzu
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.errorbar(T_arr, xi_sorted, yerr=xi_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$\xi(T)$")
     ax.set_title("Corr Length depending on T")

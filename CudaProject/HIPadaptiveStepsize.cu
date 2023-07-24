@@ -221,11 +221,12 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         // need a function here that takes the dirpath, looks if there are already files inside and
         // retunrs the highest number so that i can adjust the count
         int count = findHighestCSVNumber(dirpath) + 1;
+        cout << count << " Files already in Folder" << endl;
         printMap(paras);
         if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath, count);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath, count);
         }
     }
 

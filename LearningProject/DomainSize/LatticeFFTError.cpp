@@ -140,13 +140,13 @@ int main(int argc, char* argv[]) {
 
     // We just read from the parameter file and compile this when we start the run, but we run when we have finished
     // the run
-    const int N = 50;
+    const int N = 250;
     fs::path root;
     if(argc >= 2) {
         // if we give some argument, doesnt even matter what argument, we take the parameter file values
         root = "../" + adaptive_tempscan_root;
     } else {
-        root = "../../../Generated content/Coulomb/system size test/Detailed-50";
+        root = "../../../Generated content/Coulomb/Detailed-250 longer";
     }
 
     vector<fs::path> temp_directories = list_dir_paths(root);
