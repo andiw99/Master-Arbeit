@@ -9,6 +9,10 @@ def lorentzian(x, a, x0, gamma):
 
 def lorentz_ft(x, xi, a, b):
     return b + a * xi ** 2 / (1 + (x) ** 2 * xi ** 2)
+
+def MF_lorentz(x, xi, a):
+    return a * xi / (1 + (x) ** 2 * xi ** 2)
+
 def fit_lorentz(p, ft, fitfunc=lorentzian, errors=None):
     try:
         popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
@@ -50,7 +54,7 @@ def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([]))
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian):
+def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True):
 
     if not parameters:
         T = 0
@@ -84,10 +88,12 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
 
-
-    popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
-    popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
-
+    if errors_for_fit:
+        popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
+        popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
+    else:
+        popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
+        popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -106,8 +112,8 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # plotting
     fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     p = np.linspace(min(px), max(px), px.size)
-    lorentz_x = fitfunc(p, popt_x[0], popt_x[1], popt_x[2])
-    lorentz_y = fitfunc(p, popt_y[0], popt_y[1], popt_y[2])
+    lorentz_x = fitfunc(p, *popt_x)
+    lorentz_y = fitfunc(p, *popt_y)
     axes[0].plot(p, lorentz_x, label="Lorentzian fit")
     axes[1].plot(p, lorentz_y, label="Lorentzian fit")
     axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
@@ -122,13 +128,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 
 def main():
-    root = "../../Generated content/Coulomb/Detailed-250 longer"
+    # parameters
+    root = "../../Generated content/Coulomb/J=2/70"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
+    cutoff =  np.pi
+    fitfunc = MF_lorentz
+    errors_for_fit=False
+
     print(root_dirs)
     # arrays to save the xi corrsponding to T
-
     T_arr = []
     xix_arr = []
     xix_err_arr = []
@@ -136,8 +146,6 @@ def main():
     xiy_err_arr = []
     xi_arr = []
     xi_err_arr = []
-    cutoff =  np.pi
-    fitfunc = lorentz_ft
     # Loop through the directory contents and print the directories
     for item in root_dirs:
 
@@ -157,7 +165,11 @@ def main():
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
                 df = read_struct_func(filename)
 
-                xix, xiy, T, xix_err, xiy_err, xi, xi_err = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
+                xix, xiy, T, xix_err,\
+                    xiy_err, xi, xi_err = analyze(df, parameters,
+                                                  savepath=dir_path + png_name,
+                                                  cutoff=cutoff, fitfunc=fitfunc,
+                                                  errors_for_fit=errors_for_fit)
 
                 T_arr.append(T)
                 xix_arr.append(xix)
@@ -167,6 +179,7 @@ def main():
                 xi_arr.append(xi)
                 xi_err_arr.append(xi_err)
 
+    print("Where ticks")
 
     xix_sorted = np.array(xix_arr)[np.argsort(T_arr)]
     xiy_sorted = np.array(xiy_arr)[np.argsort(T_arr)]
@@ -181,12 +194,15 @@ def main():
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-
+    print("Where")
     span = np.max(T_arr) - np.min(T_arr)
+    print(span)
+    print(np.max(xix_sorted))
+    print(np.max(xiy_sorted))
     ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
     # TODO minor locator muss
-    ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
+    #ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(T_arr, xix_sorted, yerr=xix_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
@@ -195,7 +211,7 @@ def main():
     ax.set_ylabel(r"$\xi(T)$")
     ax.set_title("Corr Length depending on T")
     save_plot(root, "/xix-xiy.png")
-
+    print("just where and why")
     # plotting xi
     fig, ax = plt.subplots(1, 1)
     # Setze Tickmarken und Labels
@@ -206,7 +222,7 @@ def main():
     ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
     # TODO minor locator muss
-    ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
+    # ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(T_arr, xi_sorted, yerr=xi_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)

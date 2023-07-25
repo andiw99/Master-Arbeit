@@ -16,7 +16,7 @@ output_file=${2:-"main_script"}
 # Compile the cuda file with nvcc
 nvcc -I /home/weitze73/Code/boost_1_82_0 -std=c++17  $input_file -o $output_file
 # compile everything else for calcing correlation function and stuff
-g++ -I /home/weitze73/Code/boost_1_82_0 -std=c++17 ./../LearningProject/DomainSize/LatticeFFT.cpp -o fourierlatticeTraf.out -lfftw3 -lm
+g++ -I /home/weitze73/Code/boost_1_82_0 -std=c++17 ./../LearningProject/DomainSize/LatticeFFTError.cpp -o fourierlatticeTraf.out -lfftw3 -lm
 # Check if the compilation was successful
 if [ $? -eq 0 ]; then
     echo "Compilation successful"
