@@ -26,7 +26,8 @@ if [ $? -eq 0 ]; then
     # cut only the last line, which is the save path
     rootpath=$(echo "$output" | tail -1)
     # run calc correlation function with the path as input variable
-    ./fourierlatticeTraf.out
+    # remember to call it with argument since otherwise the hardcoded path is used
+    ./fourierlatticeTraf.out "need to call with argument"
     # make the plots
     python3 ./../PythonProject/PlotBathGPU.py "$rootpath"
 else
