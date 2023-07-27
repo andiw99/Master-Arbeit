@@ -9,9 +9,13 @@ def lorentzian(x, a, x0, gamma):
 
 def lorentz_ft(x, xi, a, b):
     return b + a * xi ** 2 / (1 +  (x) ** 2 * xi ** 2)
-def fit_lorentz(p, ft, fitfunc=lorentzian):
+
+def MF_lorentz(x, xi, a):
+    return a * xi / (1 + (x) ** 2 * xi ** 2)
+def fit_lorentz(p, ft, fitfunc=lorentzian, errors=None):
     try:
-        popt, pcov = curve_fit(fitfunc, p, ft)
+        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
+        perr = np.sqrt(np.diag(pcov))
 
     except RuntimeError:
         exit()
@@ -32,7 +36,7 @@ def fit_lorentz(p, ft, fitfunc=lorentzian):
         # maybe not cut off the maximum but insert values?
 
         return fit_lorentz(p, ft)
-    return popt
+    return popt, perr
 
 def plot_struct_func(px, py, fx, fy):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
@@ -49,7 +53,8 @@ def plot_struct_func(px, py, fx, fy):
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian):
+def analyze(df, parameters=None, savepath="./structfact.png",
+            cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=False):
 
     if not parameters:
         T = 0
@@ -61,18 +66,34 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
     # cutoff
     px = px[indices]
-    ft_avg_y = np.array(df.iloc[:, 1])[indices]
-    #print(px)
-    #print(ft_avg_y)
-    #plt.plot(px, ft_avg_y)
-    #plt.show()
-    py = df.iloc[:, 2]
+    ft_avg_y = np.array(df["ft_avg_y"])[indices]
+
+
+    py = df["py"]
     py = np.array(py)[indices]
-    ft_avg_x = np.array(df.iloc[:, 3])[indices]
-    print("cant be the fitting?")
-    popt_x = fit_lorentz(px, ft_avg_y, fitfunc)
-    popt_y = fit_lorentz(py, ft_avg_x, fitfunc)
-    print("why ist it the fitting...")
+    ft_avg_x = np.array(df["ft_avg_x"])[indices]
+    try:
+        y_error = np.array(df["stddev_y"])
+        x_error = np.array(df["stddev_x"])
+    except:
+        y_error = None
+        x_error = None
+
+    # sorting
+    #ft_avg_x = ft_avg_x[np.argsort(px)]
+    #ft_avg_x = ft_avg_x[np.argsort(px)]
+    #px = np.sort(px)
+    #ft_avg_y = ft_avg_y[np.argsort(py)]
+    #py = np.sort(py)
+    #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
+    #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
+
+    if errors_for_fit:
+        popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
+        popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
+    else:
+        popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
+        popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -88,19 +109,19 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 
 def main():
-    root = "../../Generated content/Coulomb/system size test/"
+    root = "../../Generated content/Coulomb/J=2/J=2/FSS"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
     print(root_dirs)
-
+    errors_for_fit = False
     # arrays to save the xi corrsponding to T
 
     T_dic = {}
     xi_dic = {}
     L_xi_dic = {}
     cutoff =  np.pi
-    fitfunc = lorentz_ft
+    fitfunc = MF_lorentz
     # Loop through the directory contents and print the directories
     for size_dir in root_dirs:
         size_path = os.path.join(root, size_dir)
@@ -133,7 +154,10 @@ def main():
                                 parameters = read_parameters_txt(os.path.join(dir_path, f))
                         df = read_struct_func(filename)
 
-                        xi, T = analyze(df, parameters, savepath=dir_path + png_name, cutoff=cutoff, fitfunc=fitfunc)
+                        xi, T = analyze(df, parameters,
+                                        savepath=dir_path + png_name,
+                                        cutoff=cutoff, fitfunc=fitfunc,
+                                        errors_for_fit=errors_for_fit)
                         # append the values to the arrays for size n
                         T_dic[n].append(T)
                         xi_dic[n].append(xi)
