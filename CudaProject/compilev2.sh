@@ -6,6 +6,7 @@
 # module load gcc/9.2.0
 # module load gcc/10.2.0
 # module load nvidia/21.7
+module load cuda/12.1
 module load openmpi/4.1.1
 module load fftw/3.3.10-ompi411
 
