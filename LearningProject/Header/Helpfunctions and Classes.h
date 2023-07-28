@@ -407,12 +407,16 @@ void print_container(const Container& container) {
 }
 
 
-ifstream safe_read(string readpath) {
-    cout << "reading: " << readpath << endl;
+ifstream safe_read(string readpath, bool verbose=true) {
+    if(verbose) {
+        cout << "reading: " << readpath << endl;
+    }
     ifstream file(readpath);
     // check if file is opened
     if(file.is_open()) {
-        cout << "File successfully opened" << endl;
+        if(verbose) {
+            cout << "File successfully opened" << endl;
+        }
     } else {
         cout << "Failed to open file" << endl;
         // abort if file is not opened

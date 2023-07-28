@@ -129,7 +129,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Coulomb/J=2/J=2/90 larger stepsize"
+    root = "../../Generated content/Coulomb/J=2/J=2/70 larger stepsize"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)

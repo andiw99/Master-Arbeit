@@ -61,20 +61,20 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
     stepper<gpu_state_type, thrust_algebra, thrust_operations, double, double> gpu_stepper(N * n, K, tol);
 
-    // init and print initial state
+    // init and print initial state, we start in an equilibrium position, in the positive minimum
+    gpu_state_type x(N * n, sqrt(beta / 2.0));
 
-    gpu_state_type x(N * n, x0);
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-
-    chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
-            chrono::system_clock::now().time_since_epoch()
-    );
-
-    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
-
     for (int i = 0; i < n; i++) {
+        if(parameters["random"] == 1.0) {
+                // if random parameter is true we initialize high temperature random initial state
+            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+            fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
+        }
         mu += x[i];
         msd += x[i] * x[i];
     }
