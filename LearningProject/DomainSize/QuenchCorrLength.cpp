@@ -185,14 +185,14 @@ int main(int argc, char* argv[]) {
     // lattice dim
     const int lat_dim = lattice_dim;
     const int N = 100;
-    cout << "Lattice dim = " << lat_dim << endl;
+    cout << "Lattice dim = " << N << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
 
-    auto q = init_q(lat_dim);
+    auto q = init_q(N);
     auto p = vector<vector<array<double, 2>>>(
-            lat_dim, vector<array<double, 2>>(lat_dim, array<double, 2>()));
+            N, vector<array<double, 2>>(N, array<double, 2>()));
     fill_p(q, p);
     auto k = p_to_vec(p);
 
@@ -239,18 +239,18 @@ int main(int argc, char* argv[]) {
             // Now we do everything we always did but for every line
             // we need running arrays for the averages over the lattices
             // those have to be reset for every temperature
-            double ft_squared_y[lat_dim] = {};
-            double ft_squared_x[lat_dim] = {};
+            double ft_squared_y[N] = {};
+            double ft_squared_x[N] = {};
             double T;
             double t;
 
             for(auto csv_path :csv_files) {
                 // here i am going through line i on every realization and add up ft_squared_y
-                fft_trafo_routine(lat_dim, i, in, out, plan, ft_squared_y, ft_squared_x, csv_path, T, t);
+                fft_trafo_routine(N, i, in, out, plan, ft_squared_y, ft_squared_x, csv_path, T, t);
             }
 
             // and now just average over the run size
-            for(int i = 0; i < lat_dim; i++) {
+            for(int i = 0; i < N; i++) {
                 ft_squared_x[i] /= (double)csv_files.size();
                 ft_squared_y[i] /= (double)csv_files.size();
             }
