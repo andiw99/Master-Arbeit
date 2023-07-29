@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
     }
     // lattice dim
     const int lat_dim = lattice_dim;
-    const int N = lat_dim;
+    const int N = 100;
     cout << "Lattice dim = " << lat_dim << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);

@@ -102,6 +102,20 @@ void printMap(const std::map<Key, Value>& myMap) {
     }
 }
 
+template<typename key, typename value_type>
+void printMapOfVectors(const std::map<key, std::vector<value_type>>& myMap) {
+    for (const auto& entry : myMap) {
+        std::cout << "Key: " << entry.first << ", Value: [";
+        for (size_t i = 0; i < entry.second.size(); ++i) {
+            std::cout << entry.second[i];
+            if (i < entry.second.size() - 1) {
+                std::cout << ", ";
+            }
+        }
+        std::cout << "]" << std::endl;
+    }
+}
+
 
 
 /*

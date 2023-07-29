@@ -6,6 +6,8 @@
 #include <iostream>
 #include <chrono>
 #include <stdio.h>
+#include <vector>
+#include <numeric>
 
 using namespace std;
 
@@ -136,5 +138,30 @@ int main(int argc, char* argv[]) {
     );
 
     cout << ms.count() % 100000 << endl;
+    int a = 5;
+    int b = 2;
+    cout << "integer division" << endl;
+    cout << a / b << endl;
+
+
+
+    std::vector<int> input = {1, 2, 3, 4, 5};
+
+    int sumOfSquares = std::transform_reduce(input.begin(), input.end(),
+
+                                             0, // initial value for the reduction (sum)
+                                              std::plus<int>(), // transformation (square)
+                                             [](int b) { return b * b; }); // reduction (sum)
+    std::vector<double> input2 = {1, 2, 3, 4, 5};
+
+    double dsumOfSquares = std::transform_reduce(input2.begin(), input2.end(),
+
+                                             0, // initial value for the reduction (sum)
+                                             std::plus<int>(), // transformation (square)
+                                             [](int b) { return b * b; }); // reduction (sum)
+
+    std::cout << "Sum of squares: " << sumOfSquares << std::endl;
+
     return 0;
+
 }

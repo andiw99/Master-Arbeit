@@ -25,6 +25,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     // only some important values:
     size_t n = lattice_dim * lattice_dim;
     size_t N = (size_t)paras["N"];
+    paras["n"] = lattice_dim * lattice_dim;
     double dt_max = paras["dt"];
     // we initialize the system
     system<lattice_dim> sys(

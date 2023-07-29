@@ -140,14 +140,14 @@ int main(int argc, char* argv[]) {
 
     // We just read from the parameter file and compile this when we start the run, but we run when we have finished
     // the run
-    const int N = 90;
+    const int N = 100;
     fs::path root;
     if(argc >= 2) {
         // if we give some argument, doesnt even matter what argument, we take the parameter file values
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../../Generated content/Coulomb/J=2/J=2/90 larger stepsize";
+        root = "../../../Generated content/Quenching/";
     }
     cout << "root in lattice FFTError:" << endl;
     cout << root << endl;

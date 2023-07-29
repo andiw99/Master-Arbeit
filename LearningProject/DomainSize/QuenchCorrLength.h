@@ -51,7 +51,7 @@ public:
         // fvec is the vector with residuals
         for(int i = 0; i < this->values(); i++) {
             fvec(i) = X_Y(i, 1) - paras(0) * 2 * paras(1) /
-                                  (1 + 4 * M_PI * M_PI * X_Y(i, 0) * X_Y(i,0) * paras(1) * paras(1));
+                                  (1 + X_Y(i, 0) * X_Y(i,0) * paras(1) * paras(1));
         }
         return 0;
     }

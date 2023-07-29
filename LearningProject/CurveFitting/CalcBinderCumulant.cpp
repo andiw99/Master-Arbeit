@@ -22,6 +22,24 @@ value_type mean(vector<value_type> vec) {
     return m;
 }
 
+template <class value_type>
+value_type isotropic_rms(vector<value_type> vec) {
+    // get lattice dimension for looping and averaging
+    auto n = vec.size();
+    double m2 = 0;
+    // okay this time we have somehow correlations between the lattice sites,
+    // we add up q[i] * q[j]
+    for(int i=0; i < n; i++) {
+        for (int j=1; j < n; j++) {
+            m2 += (vec[i] * vec[j]);
+        }
+    }
+
+    // we have added everything up for one lattice, but we still need to average
+    // this function reduced to returning the mean value of a vector
+    return m2;
+}
+
 
 int main(int argc, char* argv[]) {
     // We want to calculate the binder cumulant which is the ratio of <m^4> to <m^2>^2
@@ -35,7 +53,7 @@ int main(int argc, char* argv[]) {
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../Generated content/Coulomb/Binder";
+        root = "../../Generated content/Coulomb/Binder2";
     }
     cout << "root in CalcBinderCumulant" << endl;
     cout << root << endl;
@@ -45,7 +63,7 @@ int main(int argc, char* argv[]) {
 
     ofstream cumsList;
     cumsList.open(root/"binder.cumulants");
-    cumsList << "T,U" << endl;
+    cumsList << "T,U,m" << endl;
     for(auto path : temp_directories) {
         // We need to read in every csv file and then the last file to calculate Binder and at last we have to average
         // We might should program this with error calculation in the hinterkopf
@@ -65,34 +83,46 @@ int main(int argc, char* argv[]) {
         // when cycling we can already add the value of this run to the running value for the average
         double m4 = 0;
         double m2 = 0;
+        double m1 = 0;
+        double m2_rms = 0;
         double T, t;
+        size_t n = 1;
         for(int i = 0; i < nr_csv_files; i++) {
-            ifstream file = safe_read(csv_files[i], false);
+            ifstream file = safe_read(csv_files[i], true);
 
             auto lat_q = readDoubleValuesAt(file, -1,  T, t);
+            if (i == 0) {
+                n = lat_q.size();
+            }
             // now calcing the magnetization for this run/csv_file
             m[i] = mean(lat_q);
-            cout << m[i] << ", ";
-            if ((i + 1) % 20 == 0) {
-                cout << endl;
-            }
             m4 += pow(m[i], 4);
             m2 += pow(m[i], 2);
+            m1 += m[i];
+            m2_rms += isotropic_rms(lat_q);
         }
+        print_vector(m);
         // okay we have every m, so now we can calc the mean of m^4 and the mean of m^2 squared
         // average over the number of runs
         m4 /= nr_csv_files;
         m2 /= nr_csv_files;
+        m1 /= nr_csv_files;
+        // ''thermal average''
+        m2_rms /= nr_csv_files;
+        // root and average over number of lattice sites
+        double m_rms = sqrt(m2_rms) / (double)n;
 
         double cum = m4 / (m2 * m2);
-        cout << "cumulant value = " << cum << endl;
 
+        cout << "Temperature " << T << endl;
+        cout << "cumulant value = " << cum << endl;
+        cout << "magnetization value = " << m1 << endl;
         cout << endl << endl;
 
         ofstream ofile;
         ofile.open(path/ "binder.cumulant");
         ofile << cum;
-        cumsList << T << "," << cum << endl;
+        cumsList << T << "," << cum << "," << m1 << endl;
     }
 
     return 0;

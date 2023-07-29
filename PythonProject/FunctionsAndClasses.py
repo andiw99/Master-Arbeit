@@ -280,6 +280,11 @@ def pd_chess_board_trafo(x):
             # we iterate over lattice sites with odd indices
             x.iloc[2 * i + 1, 2 * j + 1] += (-1)
 
+def linear_fit(x, m, a):
+    return a + m*x
+def poly(x, exp, ampl):
+    return ampl * x ** exp
+
 
 def main():
     print("This file is made to import, not to execute")
