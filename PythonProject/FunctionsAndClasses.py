@@ -173,9 +173,9 @@ def make_dir(path):
         pass
 
 
-def save_plot(path, name):
+def save_plot(path, name, format="png"):
     make_dir(path)
-    plt.savefig(path + name, format="png")
+    plt.savefig(path + name, format=format)
 
 def plot_name_paras(paras):
     fname = ""
@@ -285,7 +285,8 @@ def linear_fit(x, m, a):
 def poly(x, exp, ampl):
     return ampl * x ** exp
 
-
+def linear_corr(x, m, a, b):
+    return a + m * x + b * np.exp(-x)
 def main():
     print("This file is made to import, not to execute")
 
