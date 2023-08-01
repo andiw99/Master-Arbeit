@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <filesystem>
+#include <map>
 
 using namespace std;
 
@@ -64,4 +65,43 @@ int main()
 
 
     cout << time(NULL) << endl;
+
+    std::map<int, fftw_plan> fftwPlans;
+    map<int, fftw_complex*> in_map = {};
+    map<int, fftw_complex*> out_map = {};
+
+    // Create and store FFTW plans for different N values
+    for (int i = 0; i < 5; i++) {
+        int key = i + 1; // Use i+1 as the key for simplicity+
+        int N2 = 2 * (i+2);
+        in_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2);
+        out_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2);
+
+        // Create the FFTW plan
+        fftwPlans[key] = fftw_plan_dft_1d(N2, in_map[key], out_map[key], FFTW_FORWARD, FFTW_ESTIMATE);
+
+    }
+    for (int i = 1; i <= 5; i++) {
+        int key = i;
+        int N2 = 2 * (i+2);
+        for(int j = 0; j < N2; j++) {
+            in_map[key][j][0] = j;
+            in_map[key][j][1] = 0;
+            out_map[key][j][0] = 0;
+            out_map[key][j][1] = 0;
+        }
+    }
+    cout << "already here?" << endl;
+    // Example loop using the stored FFTW plans
+    for (int i = 1; i <= 5; i++) {
+        int key = i;
+        int N2 = 2 * (i+2);
+        fftw_execute(fftwPlans[key]);
+        std::cout << "FFT for N=" << N2 << " completed." << std::endl;
+    }
+
+    // Free the memory and destroy the FFTW plans
+    for (auto& it : fftwPlans) {
+        fftw_destroy_plan(it.second);
+    }
 }

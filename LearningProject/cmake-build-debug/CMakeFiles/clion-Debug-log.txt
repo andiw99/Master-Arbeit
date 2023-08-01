@@ -1,22 +1,4 @@
-/snap/clion/248/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/248/bin/ninja/linux/x64/ninja -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.1/bin/nvcc -G Ninja -S "/home/andi/Documents/Master-Arbeit Code/Git/LearningProject" -B "/home/andi/Documents/Master-Arbeit Code/Git/LearningProject/cmake-build-debug"
--- The C compiler identification is GNU 11.3.0
--- The CXX compiler identification is GNU 11.3.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: /usr/bin/c++ - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Configuring done (0.9s)
+/snap/clion/248/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/andi/Studium/Code/Master-Arbeit/LearningProject -B /home/andi/Studium/Code/Master-Arbeit/LearningProject/cmake-build-debug
+-- Configuring done (0.0s)
 -- Generating done (0.0s)
-CMake Warning:
-  Manually-specified variables were not used by the project:
-
-    CMAKE_CUDA_COMPILER
-
-
--- Build files have been written to: /home/andi/Documents/Master-Arbeit Code/Git/LearningProject/cmake-build-debug
+-- Build files have been written to: /home/andi/Studium/Code/Master-Arbeit/LearningProject/cmake-build-debug

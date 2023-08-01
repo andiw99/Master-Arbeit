@@ -109,7 +109,13 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
         fig.colorbar(cf, ax=ax)
         """
 
+def corr_scaling_right(T, Tc, nu, xi0):
+    eps = (Tc - T) / Tc         # so negative temps are above Tc
+    return xi0 / ((-eps) ** nu)
 
+def corr_scaling_left(T, Tc, nu, xi0):
+    eps = (Tc - T) / Tc         # so negative temps are above Tc
+    return xi0 / (eps ** nu)
 
 def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1):
     # find out number of rows

@@ -19,13 +19,7 @@ def fit_exp(r, C, func=exp):
     return popt
 
 
-def corr_scaling_right(T, Tc, nu, xi0):
-    eps = (Tc - T) / Tc         # so negative temps are above Tc
-    return xi0 / (-eps ** nu)
 
-def corr_scaling_left(T, Tc, nu, xi0):
-    eps = (Tc - T) / Tc         # so negative temps are above Tc
-    return xi0 / (eps ** nu)
 
 def fit_scaling(T, xi, func=corr_scaling_right):
     popt, pcov = curve_fit(func, T, xi)

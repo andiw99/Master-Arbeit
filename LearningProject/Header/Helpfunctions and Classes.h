@@ -507,4 +507,38 @@ vector<T>& operator+ (vector<T> &a, vector<T> &b) {
     return a;
 }
 
+template <class value_type>
+void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cell_nr, int L) {
+    // okay so the vector is 1D
+    // numbering the cells from left to right, top to bottom, we should be able to extract the
+    // indices we need just from the cell nr
+    //                   n
+    //       ________________________
+    //      |            |           |
+    //      |     1      |     2     |
+    //      |            |           |
+    //      |____________|___________|
+    //      |            |           |
+    //   L  |     3      |      4    |
+    //      |            |           |
+    //      |____________|___________|
+    //             L
+    // first cell has the indices 1 : L, n : n + L, 2n : 2n +L, ...., n*(L-1) : n * L
+    // second cell has the indices L : 2L, n + L: n + 2L, 2n +L : 2n +2L, ...., n*(L1) : n * L + L
+    // third cell has the indices n * (row_nr * L)
+    // kth cell has the indices kL : (k +1)L, n + kL
+    int n = sqrt(lattice.size());
+    int cells_per_row = n / L;
+    int cell_in_row = cell_nr % cells_per_row;
+    // determine in which rom number we are
+    int row = cell_nr / cells_per_row;
+    for(int j = 0; j < L; j++) {
+        // extract values of j-th row
+        for(int i = 0; i < L; i++) {
+            int ind = n * (row * L + j) + i + cell_in_row * L;
+            cell[j * L + i] = lattice[ind % lattice.size()];
+        }
+    }
+}
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H
