@@ -67,6 +67,39 @@ Eigen::MatrixXd construct_matrix(const vec &a, const vec &b) {
     return result_matrix;
 }
 
+template <class value_type>
+Eigen::MatrixXd construct_matrix(const value_type* a, const value_type *b, const int size) {
+    Eigen::Map<Eigen::VectorXd> a_eigen(a, size);
+    Eigen::Map<Eigen::VectorXd> b_eigen(b, size);
+
+    Eigen::MatrixXd result_matrix(size, 2);
+    result_matrix << a_eigen, b_eigen;
+
+    return result_matrix;
+}
+
+template <class value_type>
+Eigen::MatrixXd construct_matrix(vector<double> &a, value_type *b, const int size) {
+    Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), (long)a.size());
+    Eigen::Map<Eigen::VectorXd> b_eigen(b, size);
+
+    Eigen::MatrixXd result_matrix(size, 2);
+    result_matrix << a_eigen, b_eigen;
+
+    return result_matrix;
+}
+
+Eigen::MatrixXd construct_matrix(vector<double> &a, double *b, const int size) {
+    Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), (long)a.size());
+    Eigen::Map<Eigen::VectorXd> b_eigen(b, size);
+
+    Eigen::MatrixXd result_matrix(size, 2);
+    result_matrix << a_eigen, b_eigen;
+
+    return result_matrix;
+}
+
+
 Eigen::MatrixXd construct_matrix(vector<double> &a, vector<double> &b) {
     Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), (long)a.size());
     Eigen::VectorXd b_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(b.data(), (long)b.size());

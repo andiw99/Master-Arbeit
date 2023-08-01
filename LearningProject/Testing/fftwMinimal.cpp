@@ -71,20 +71,22 @@ int main()
     map<int, fftw_complex*> out_map = {};
 
     // Create and store FFTW plans for different N values
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i <= 5; i++) {
         int key = i + 1; // Use i+1 as the key for simplicity+
         int N2 = 2 * (i+2);
-        in_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2);
-        out_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2);
+        in_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2* N2);
+        out_map[key] = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2 * N2);
 
         // Create the FFTW plan
-        fftwPlans[key] = fftw_plan_dft_1d(N2, in_map[key], out_map[key], FFTW_FORWARD, FFTW_ESTIMATE);
+        fftwPlans[key] = fftw_plan_dft_2d(N2, N2, in_map[key], out_map[key], FFTW_FORWARD, FFTW_ESTIMATE);
 
     }
-    for (int i = 1; i <= 5; i++) {
-        int key = i;
+    for (int i = 0; i <= 5; i++) {
+        int key = i+1;
         int N2 = 2 * (i+2);
-        for(int j = 0; j < N2; j++) {
+        cout << "N2 = " << N2 << endl;
+        for(int j = 0; j < N2 * N2; j++) {
+            cout << j << endl;
             in_map[key][j][0] = j;
             in_map[key][j][1] = 0;
             out_map[key][j][0] = 0;
@@ -93,11 +95,18 @@ int main()
     }
     cout << "already here?" << endl;
     // Example loop using the stored FFTW plans
-    for (int i = 1; i <= 5; i++) {
-        int key = i;
+    for (int i = 0; i <= 5; i++) {
+        int key = i+1;
         int N2 = 2 * (i+2);
+        for(int j = 0; j < N2* N2; j++) {
+            in_map[key][j][0] = 2* j;
+            in_map[key][j][1] = 0;
+            out_map[key][j][0] = 0;
+            out_map[key][j][1] = 0;
+        }
         fftw_execute(fftwPlans[key]);
-        std::cout << "FFT for N=" << N2 << " completed." << std::endl;
+        std::cout << "FFT for N=" << N2* N2 << " completed." << std::endl;
+        cout << out_map[key][0][0] << endl;
     }
 
     // Free the memory and destroy the FFTW plans

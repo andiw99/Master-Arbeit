@@ -1,0 +1,14 @@
+//
+// Created by weitze73 on 01.08.23.
+//
+
+#ifndef LEARNINGPROJECT_RESIDUALXIWORKAROUND_H
+#define LEARNINGPROJECT_RESIDUALXIWORKAROUND_H
+
+
+class ResidualXiWorkaround {
+
+};
+
+
+#endif //LEARNINGPROJECT_RESIDUALXIWORKAROUND_H

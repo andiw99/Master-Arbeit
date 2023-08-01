@@ -293,6 +293,30 @@ def poly(x, exp, ampl):
 
 def linear_corr(x, m, a, b):
     return a + m * x + b * np.exp(-x)
+
+def linear_corr(x, m, a, b):
+    return a + m * x - b * x
+
+def crit_poly_fit_corr(L, nu, A, B, omega):
+    return A * L ** (1 / nu) * (1 + B * L **(-omega))
+
+def crit_poly_fit(L, nu, A):
+    return A * L ** (1/nu)
+
+def find_nearest_value_and_index(x_arr, x_star):
+    nearest_value = x_arr[0]
+    nearest_index = 0
+    min_diff = abs(x_star - x_arr[0])
+
+    for i, x in enumerate(x_arr):
+        diff = abs(x_star - x)
+        if diff < min_diff:
+            nearest_value = x
+            nearest_index = i
+            min_diff = diff
+
+    return nearest_value, nearest_index
+
 def main():
     print("This file is made to import, not to execute")
 

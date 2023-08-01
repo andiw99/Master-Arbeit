@@ -196,8 +196,7 @@ int main(int argc, char* argv[]) {
             // We divide our lattice into blocks of Dimension L and calculate a local magnetization
             // for every block. And the <m^2> is not <(1/ N sum s_i)^2>, but <(1/N² sum s_i s_j)> which
             // is completely different.
-            // But I think the important part is that we oe20
-nly look at relatively small cells
+            // But I think the important part is that we oenly look at relatively small cells
             // we know n, how do we decide for the different Ls?
             // We want to have L = n/2^k to ensure I think that our blocks don't overlap
             // even though it probably won't make a difference anyway

@@ -26,6 +26,7 @@ def det_intersection(x, y_dic):
 def main():
     root = "../../Generated content/Coulomb/Critical Exponent/"
     name = "binder.cumulants"
+    name2 = "corr.lengths"
     root_dirs = os.listdir(root)
     print(root_dirs)
     errors_for_fit = False
@@ -33,10 +34,12 @@ def main():
 
     T_dic = {}
     cum_dic = {}
+    xix_dic = {}
+    xiy_dic = {}
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    exclude_dists = 1
+    exclude_dists = 0
     r = 2
 
 
@@ -62,19 +65,31 @@ def main():
     # m_dic[n] = m
 
     cum_path = root + "/" + name
+    xi_path = root + "/" + name2
     n = get_size(root, temp_dirs=os.listdir(root))
 
     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
+    df_xi = pd.read_csv(xi_path, delimiter=",", index_col=False)
     print(df)
     labels = df.columns.delete(0)[2*exclude_dists:]
+    xi_labels = df_xi.columns.delete(0)[2*exclude_dists:]
     print(labels)
     T = df["T"]
     for size in labels[::2]:
         print(size)
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
+    for size in xi_labels[::2]:
+        print(size)
+        xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
+        xiy_dic[size] = np.array(df_xi[size + "_y"])[np.argsort(T)]
     T = np.sort(T)
+    fig, ax = plt.subplots(1, 1)
+    for size in xi_labels[::2]:
+        ax.plot(T, int(size) / (0.5 * (xix_dic[size] + xiy_dic[size])), ls="", marker="+")
 
+    plt.show()
+    exit()
     fig, ax = plt.subplots(1, 1)
 
     # Setze Tickmarken und Labels
@@ -115,42 +130,56 @@ def main():
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
     ax.legend()
-    save_plot(root, "/cum.svg", format="svg")
+    save_plot(root, "/cum.pdf", format="pdf")
 
-    # Now we got to make a numerical diff at Tc
+    # Now we got to make a numerical diff for the reduced temp at Tc
+    eps = (T_inter_arr - T_inter) / T_inter
     size_arr = []
     diff_arr = []
     beta_inter_arr = 1 / T_inter_arr
     diff_beta_arr = []
+    num_diff_arr = []
     for size in cum_dic.keys():
-        dU_dT = np.gradient(interpol_dic[size], T_inter_arr)
+        # okay we now think of a better method for numerical differentiation
+        # first we look for the data point that is the closest to the intersection
+        nearest_T_for_size, index_nearest_T = \
+            find_nearest_value_and_index(T, T_inter)
+        # now we calculate a central difference with the nearest value
+        # being in the center
+        num_diff = (cum_dic[size][index_nearest_T + 1] -
+                    cum_dic[size][index_nearest_T - 1]) \
+                   / (2 * T[index_nearest_T + 1] - T[index_nearest_T])
         dU_dB = np.gradient(interpol_dic[size],  beta_inter_arr)
-        print(beta_inter_arr)
-        print(dU_dB)
-
+        dU_dT = np.gradient(interpol_dic[size], eps)
+        dU_dT = np.gradient(interpol_dic[size], T_inter_arr)
         diff = dU_dT[i_inter]
         diff_beta = dU_dB[i_inter]
-
+        num_diff_arr.append(100 * num_diff)
         size_arr.append(int(size))
         diff_arr.append(diff)
         diff_beta_arr.append(diff_beta)
         print(size, diff)
     diff_arr = np.array(diff_arr)[np.argsort(size_arr)]
+    num_diff_arr = np.array(num_diff_arr)[np.argsort(size_arr)]
     size_arr = np.sort(size_arr)
-    fig, ax = plt.subplots(1, 1)
-    ax.plot(size_arr, diff_beta_arr)
+    # fig, ax = plt.subplots(1, 1)
+    # ax.plot(size_arr, diff_beta_arr)
     plt.show()
-    exit()
+
 
 
     # fitting
     popt, _ = curve_fit(linear_fit, np.log(size_arr), np.log(diff_arr))
     nu = 1 / popt[0]
     popt_with_corr, _ = curve_fit(linear_corr, np.log(size_arr), np.log(diff_arr))
+    print(size_arr)
+    popt_poly_corr, _ = curve_fit(crit_poly_fit, size_arr[3:], diff_arr[3:], p0=(1, 1))
     nu_corr = 1 / popt_with_corr[0]
+    nu_poly = popt_poly_corr[0]
     print("FITTING RESULTS:")
     print("nu = ", nu)
     print("nu_corr = ", nu_corr)
+    print("nu_poly = ", nu_poly)
     fig, ax = plt.subplots(1, 1)
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
@@ -165,22 +194,25 @@ def main():
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(size_arr, diff_arr, linestyle="", marker="+")
+    ax.plot(size_arr, num_diff_arr, linestyle="", marker="x")
     ax.plot(size_arr, poly(size_arr, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$")
     ax.plot(size_arr, np.exp(linear_fit(np.log(size_arr), *popt)), label=r"$\nu_{corr} = $" + f"{nu_corr:.2f}")
     print(size_arr)
-    ax.plot(size_arr, np.exp(linear_corr(np.log(size_arr), *popt_with_corr)))
+    ax.plot(size_arr, np.exp(linear_corr(np.log(size_arr), *popt_with_corr)), c="black")
+    ax.plot(size_arr, crit_poly_fit(size_arr, *popt_poly_corr), c="blue")
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d }$")
     ax.legend()
+    save_plot(root, "/critical_exponent.pdf", format="pdf")
     plt.show()
 
 
-#
+    #
     ## Setze Tickmarken und Labels
     #ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     #ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-#
-#
+    #
+    #
     #ax.xaxis.set_major_locator(ticker.MultipleLocator(base=0.2))
     #ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=0.04))
     ## TODO minor locator muss
