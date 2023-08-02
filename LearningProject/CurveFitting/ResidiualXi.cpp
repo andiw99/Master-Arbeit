@@ -85,25 +85,6 @@ void trafo_routine(const int N, fftw_complex (*in), fftw_complex const (*out), f
 }
 
 
-
-Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_values) {
-    // constrtuct the matrix that holds the k and ft values
-    Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
-    X_Y_vals = construct_matrix(k_values, ft_values);
-    printMatrixXd(X_Y_vals);
-
-    Eigen::VectorXd params(2);
-    // the params of the fit are the scaling and the correlation length? params(0) = amplitude params(1) = xi
-    params << 1.0, 1.0;
-    LorentzianPeakFunctor functor(X_Y_vals);
-    Eigen::NumericalDiff<LorentzianPeakFunctor> numericalDiff(functor);
-    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LorentzianPeakFunctor>> lm(numericalDiff);
-
-    Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(params);
-    std::cout << "status: " << status << std::endl;
-    return params;
-}
-
 vector<double> p_to_vec(vector<vector<array<double, 2>>>& p) {
     vector<double> k;
     for(int j = 0; j<p.size(); j++) {
@@ -113,9 +94,9 @@ vector<double> p_to_vec(vector<vector<array<double, 2>>>& p) {
 }
 
 vector<int> generate_L(int starting_k, int n, int nr_Ls) {
-    vector<int> L = {(int)sqrt(n) / (2*starting_k)};
+    vector<int> L = {(int)sqrt(n) / (starting_k)};
     for (int k = starting_k + 1; k < starting_k + nr_Ls; k++) {
-        int L_val = (int)sqrt(n) / (2*k);
+        int L_val = (int)sqrt(n) / (k);
         if (L.back() - L_val < 2) {
             L_val = L.back() - 2;
         }
@@ -133,13 +114,13 @@ int main(int argc, char* argv[]) {
         root = argv[1];
     } else {
         cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Coulomb/Critical Exponent";
+        root = "../../../Generated content/New/Coulomb/Critical Exponent";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
-    const int N = 150;
-    const int starting_k = 1;
-    const int nr_Ls = 3;
+    const int N = 250;
+    const int starting_k = 2;
+    const int nr_Ls = 14;
     cout << "Lattice dim = " << N << endl;
     const vector<int> L_vec = generate_L(starting_k, N*N, nr_Ls);
 
@@ -154,8 +135,6 @@ int main(int argc, char* argv[]) {
     fill_p(q, p);
     auto k = p_to_vec(p);
 
-    fftw_complex *in, *out, *real_out;
-    double *real_in;
 
     // We need plans and arrays for every size
     map<int, fftw_complex*> in_map = {};
@@ -168,17 +147,15 @@ int main(int argc, char* argv[]) {
 
     // initializing
     for(int L : L_vec) {
-        in_map[L] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * L * L);
-        out_map[L] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * L * L);
-        // in_map[L] = new fftw_complex[L*L];
-        // out_map[L] = new fftw_complex[L*L];
-        cout << in_map[L] << endl;
-        cout << out_map[L] << endl;
-        plan_map[L] = fftw_plan_dft_2d(L, L, in_map[L], out_map[L], FFTW_FORWARD, FFTW_MEASURE);
+        // in_map[L] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * L * L);
+        // out_map[L] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * L * L);
+        fftw_complex *in, *out;
+        in = new fftw_complex[L*L];
+        out = new fftw_complex[L*L];
+        in_map[L] = in;
+        out_map[L] = out;
+        plan_map[L] = fftw_plan_dft_2d(L, L, in, out, FFTW_FORWARD, FFTW_MEASURE);
         corrList << "," << L << "," << L << "_y";
-        cout << "map adresses:" << endl;
-        cout << "out " << L << out_map[L] << endl;
-        cout << "in " << L <<in_map[L] << endl;
         for(int i = 0; i < L * L; i++){
             out_map[L][i][0] = 0;
             out_map[L][i][1] = 0;
@@ -202,12 +179,16 @@ int main(int argc, char* argv[]) {
         // allocate memory for the maps
         for (int L : L_vec) {
             // I have L values for the fourier transform i think
-            cout << L << endl;
             // ft_k_map[L] = new double[L];
             // ft_l_map[L] = new double[L];
-            ft_k_map[L] = (double*) malloc(sizeof(double) * L * L);
-            ft_l_map[L] = (double*) malloc(sizeof(double) * L * L);
-
+            double* ft_k = new double[L];
+            double* ft_l = new double[L];
+            for(int l = 0; l < L; l++) {
+                ft_k[l] = 0;
+                ft_l[l] = 0;
+            }
+            ft_k_map[L] = ft_k;
+            ft_l_map[L] = ft_l;
         }
 
 
@@ -225,45 +206,28 @@ int main(int argc, char* argv[]) {
         // we loop over every csv file to
         for(int i = 0; i < nr_csv_files; i++) {
             // read file
+            // cout << csv_files[i] << endl;
             ifstream file = safe_read(csv_files[i], false);
             auto lat_q = readDoubleValuesAt(file, -1,  T, t);
 
             // fourier trafo for every size
             for(int L : L_vec) {
-                cout << L << endl;
                 // enumerate subsystems
                 int nr_cells = (int)(N * N/ (L * L));
                 // loop over cell and extract fourier trafo of the subsystem
                 for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
                     // extract cell
-                    vector<double> cell = vector<double>(N, 0);
+                    vector<double> cell = vector<double>(L * L, 0);
                     extract_cell(lat_q, cell, cell_nr, L);
                     // copy data into array
-                    cout << "here?" << endl;
-                    cout << "map adresses:" << endl;
-                    cout << "out " << L << out_map[L] << endl;
-                    cout << "in " << L << in_map[L] << endl;
                     for(int l = 0; l < L * L; l++) {
                         in_map[L][l][0] = cell[l];
+                        in_map[L][l][1] = 0;
                     }
-                    for(int ij = 0; ij < L * L; ij++){
-                        cout << in_map[L][ij][0] << endl;
-                        cout << in_map[L][ij][1] << endl;
-                        cout << out_map[L][ij][0] << endl;
-                        cout << out_map[L][ij][1] << endl;
-                    }
-                    cout << &plan_map[L] << endl;
 
-                    cout << "or here?" << endl;
-                    cout << in_map[L][L * L -1][0] << endl;
-                    cout << out_map[L][L * L -1][0] << endl;
-                    cout << in_map[L] << endl;
-                    cout << out_map[L] << endl;
-                    cout << "or fdsahere?" << endl;
                     // fourier trafo
                     fftw_execute(plan_map[L]);
                     // add to running fourier trafo
-                    cout << "or even here?" << endl;
                     sum_and_add(L, out_map[L], ft_k_map[L], ft_l_map[L]);
                 }
 
@@ -274,9 +238,9 @@ int main(int argc, char* argv[]) {
         }
         // okay here we should have add up everything and want to average now
         for(int L : L_vec) {
-            for(int l = 0; l < L * L; l++) {
-                ft_l_map[L][l] /= nr_csv_files * (pow(L, 2));
-                ft_k_map[L][l] /= nr_csv_files * (pow(L, 2));
+            for(int l = 0; l < L; l++) {
+                ft_l_map[L][l] /= nr_csv_files * (pow(L, 4));
+                ft_k_map[L][l] /= nr_csv_files * (pow(L, 4));
             }
         }
 
@@ -284,14 +248,15 @@ int main(int argc, char* argv[]) {
         // we now need to fit and write for every L
         corrList << endl << T;
         for (int L : L_vec) {
-            // We do the fit with vectors...
-            vector<double> ft_vec_k = vector<double>(ft_k_map[L], ft_k_map[L] + sizeof(ft_k_map[L]) / (sizeof ft_k_map[L][0]));
-            vector<double> ft_vec_l = vector<double>(ft_l_map[L], ft_l_map[L] + sizeof(ft_l_map[L]) / (sizeof ft_l_map[L][0]));
+            auto q = init_q(L);
+            auto p = vector<vector<array<double, 2>>>(
+                    L, vector<array<double, 2>>(L, array<double, 2>()));
+            fill_p(q, p);
+            auto k = p_to_vec(p);
 
-            // fitting
-            // vectors for the parameters
-            Eigen::VectorXd paras_x = fit_lorentz_peak(k, ft_vec_k);
-            Eigen::VectorXd paras_y = fit_lorentz_peak(k, ft_vec_l);
+            // print_array(ft_k_map[L], L);
+            Eigen::VectorXd paras_x = fit_lorentz_peak(k, ft_k_map[L], L);
+            Eigen::VectorXd paras_y = fit_lorentz_peak(k, ft_l_map[L], L);
             // index one is the correlation length
             // we now have the correlation length for one temperature for one L
             // We add it to a file that looks like

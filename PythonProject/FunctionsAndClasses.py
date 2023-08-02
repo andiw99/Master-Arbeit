@@ -300,6 +300,10 @@ def linear_corr(x, m, a, b):
 def crit_poly_fit_corr(L, nu, A, B, omega):
     return A * L ** (1 / nu) * (1 + B * L **(-omega))
 
+def ising_corr_poly_fit(L, A, B, omega):
+    return A * L * (1 + B * L ** (-omega))
+
+
 def crit_poly_fit(L, nu, A):
     return A * L ** (1/nu)
 

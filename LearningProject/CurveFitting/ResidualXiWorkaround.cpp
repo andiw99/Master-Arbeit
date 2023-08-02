@@ -84,36 +84,9 @@ void trafo_routine(const int N, fftw_complex (*in), fftw_complex const (*out), f
     sum_and_add(N, out, ft_squared_k, ft_squared_l);
 }
 
-template <class Functor>
-Eigen::VectorXd fit_matrix(Eigen::MatrixXd X_Y_vals) {
-    printMatrixXd(X_Y_vals);
-
-    Eigen::VectorXd params(2);
-    // the params of the fit are the scaling and the correlation length? params(0) = amplitude params(1) = xi
-    params << 1.0, 1.0;
-    Functor functor(X_Y_vals);
-    Eigen::NumericalDiff<Functor> numericalDiff(functor);
-    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<Functor>> lm(numericalDiff);
-
-    Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(params);
-    std::cout << "status: " << status << std::endl;
-    return params;
-}
 
 
-Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_values) {
-    // constrtuct the matrix that holds the k and ft values
-    Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
-    X_Y_vals = construct_matrix(k_values, ft_values);
-    return fit_matrix<LorentzianPeakFunctor>(X_Y_vals);
-}
 
-Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, double* ft_values, int L) {
-    // constrtuct the matrix that holds the k and ft values
-    Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
-    X_Y_vals = construct_matrix(k_values, ft_values, L);
-    return fit_matrix<LorentzianPeakFunctor>(X_Y_vals);
-}
 
 vector<double> p_to_vec(vector<vector<array<double, 2>>>& p) {
     vector<double> k;
@@ -144,11 +117,11 @@ int main(int argc, char* argv[]) {
         root = argv[1];
     } else {
         cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Coulomb/Critical Exponent";
+        root = "../../../Generated content/New/Coulomb/Critical Exponent";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
-    const int N = 150;
+    const int N = 250;
     const int starting_k = 1;
     const int nr_Ls = 5;
     cout << "Lattice dim = " << N << endl;
