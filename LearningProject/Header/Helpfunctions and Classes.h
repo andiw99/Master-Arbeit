@@ -270,6 +270,54 @@ vector<complex<double>> readLastValues(ifstream& file, double& T) {
     return readValuesAt(file, ind, T, t);
 }
 
+
+double stringToDouble(const std::string& str) {
+    try {
+        return std::stod(str);
+    } catch (const std::invalid_argument&) {
+        return std::nan(""); // Return NaN if conversion fails
+    }
+}
+
+template <typename T>
+std::string findClosestStem(const std::vector<fs::path>& folders, const T& targetValue) {
+    std::string closestFolder = "None";
+    double minDifference = std::numeric_limits<double>::max();
+
+    for (const auto& folder : folders) {
+        double folderValue = stringToDouble(folder.stem().string());
+        cout << "folder stem:" << folder.stem().string() << endl;
+        cout << "folder value:" << folderValue << endl;
+        double difference = std::abs(folderValue - static_cast<double>(targetValue));
+        if (difference < minDifference && difference > 0.0001) {
+            minDifference = difference;
+            closestFolder = folder.string();
+        }
+    }
+
+    return closestFolder;
+}
+
+template <typename T>
+std::string findClosestDir(const std::vector<fs::path>& folders, const T& targetValue) {
+    std::string closestFolder = "None";
+    double minDifference = std::numeric_limits<double>::max();
+
+    for (const auto& folder : folders) {
+        double folderValue = stringToDouble(folder.filename().string());
+        cout << "folder stem:" << folder.filename().string() << endl;
+        cout << "folder value:" << folderValue << endl;
+        double difference = std::abs(folderValue - static_cast<double>(targetValue));
+        if (difference < minDifference && difference > 0.0001) {
+            minDifference = difference;
+            closestFolder = folder.string();
+        }
+    }
+
+    return closestFolder;
+}
+
+
 template <class value_type>
 vector<vector<value_type>> oneD_to_twoD(vector<value_type> &q) {
     int N = q.size();

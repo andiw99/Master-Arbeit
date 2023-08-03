@@ -69,16 +69,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    if(pre_T < 0.0) {
-        // if pre_T is smaller than zero that means that we didn't have a previous T so wi initialize random.
-        if(parameters["random"] == 1.0) {
-            // if random parameter is true we initialize high temperature random initial state
-            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
-                    chrono::system_clock::now().time_since_epoch()
-            );
-            fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
-        }
-    } else {
+    if (pre_T >= 0) {
         // else we need to read in the previous state
         string pre_dir_name = root + "/" + to_string(pre_T);
         string pre_name = pre_dir_name + "/" + to_string(count) + ".csv";
@@ -91,6 +82,42 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         // just for loop?
         for(int i = 0; i < n; i++) {
             x[i] = pre_lattice[i];
+        }
+    } else if(pre_T < 0.0) {
+        // if pre_T is smaller than zero that means that we didn't have a previous T so wi initialize random.
+        if(parameters["random"] == 1.0) {
+            // if random parameter is true we initialize high temperature random initial state
+            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                    chrono::system_clock::now().time_since_epoch()
+            );
+            fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
+        } else if (parameters["random"] == -1.0) {
+            // this is now code to check for runs that are already there
+            cout << "checking for initial state in folder..." << endl;
+            // listing the temp folders that are already inside
+            vector<fs::path> temp_paths = list_dir_paths(root);
+            // we check every folder name for the value and use the one that is closest to our actual temp
+            string closest_T = findClosestDir(temp_paths, T);
+            cout << "clostest folder to " << T << " already existing is " << closest_T << endl;
+            if(closest_T != "None") {
+                // now we list every csv file and take the one that is closest to i
+                vector<fs::path> csv_files = list_csv_files(closest_T);
+                print_vector(csv_files);
+                string closest_i = findClosestStem(csv_files, count);
+                cout << "clostest index to " << count << " already existing is " << closest_i << endl;
+                if(closest_i != "None") {
+                    fs::path pre_name = closest_i;
+                    cout << "Trying to read " << pre_name << endl;
+                    ifstream pre_file = safe_read(pre_name, true);
+                    // and we are ready to read in the last file?
+                    double prev_T;
+                    double prev_t;
+                    vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
+                    for(int i = 0; i < n; i++) {
+                        x[i] = pre_lattice[i];
+                    }
+                }
+            }
         }
     }
     for (int i = 0; i < n; i++) {
@@ -248,11 +275,13 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         // retunrs the highest number so that i can adjust the count
         int count = findHighestCSVNumber(root + "/" + to_string(temp)) + 1;
         cout << count << " Files already in Folder" << endl;
+        int runs = (int)paras["repeat_nr"] - count;
+        cout << "We fill the folder up to " << count << " + " << runs << " = " << count + runs << " realizations";
         printMap(paras);
         if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, root, count, pre_T);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, runs, 0, system, root, count, pre_T);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, root, count, pre_T);
+            repeat<euler_combined, lattice_dim>(paras, runs, 0, system, root, count, pre_T);
         }
         i++;
     }

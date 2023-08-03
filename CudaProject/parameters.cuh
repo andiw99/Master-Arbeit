@@ -63,13 +63,14 @@ map<string, double> adaptive_temp_scan_standard = {
         {"nr_save_values", 16.0},
         {"x0", 1.4},
         {"p0", 1.4},
-        {"repeat_nr", 1.0},
+        {"repeat_nr", 5.0},
         {"min_temp", 0.65},
         {"max_temp", 0.7},
         {"nr_temps", 2.0},
         {"K", 10.0},
         {"tol", 0.5},
-        {"logspace", 0.0}
+        {"logspace", 0.0},
+        {"random", -1.0}
 };
 
 
