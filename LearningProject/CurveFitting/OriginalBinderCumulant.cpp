@@ -139,12 +139,12 @@ int main(int argc, char* argv[]) {
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../Generated content/New/Coulomb/Critical Exponent";
+        root = "../../Generated content/Coulomb/Crit2";
     }
     cout << "root in CalcBinderCumulant" << endl;
     cout << root << endl;
-    int nr_Ls = 11;
-    int starting_k = 4;
+    int nr_Ls = 18;
+    int starting_k = 2;
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
     cout << endl;

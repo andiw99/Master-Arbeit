@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/New/Coulomb/Critical Exponent/"
+    root = "../../Generated content/Coulomb/Crit2/"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,9 +43,9 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 3
+    exclude_large_dists = 0
     exclude_small_dists = 0
-    xi_exclude_large_dists = 4
+    xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     r = 2
 
@@ -143,13 +143,14 @@ def main():
 
 
 
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=2))
     # TODO minor locator muss
     span = np.max(diff_arr) - np.min(diff_arr)
     print(diff_arr)
     print(span)
     ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
     ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
+    x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(size_arr, diff_arr, linestyle="", marker="+")

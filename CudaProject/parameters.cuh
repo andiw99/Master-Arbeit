@@ -7,7 +7,7 @@
 
 #include <map>
 
-const size_t lattice_dim = 100;
+const size_t lattice_dim = 150;
 
 map<string, double> single_calc_standard = {
         {"steps", 100000.0},
@@ -49,12 +49,13 @@ const static map<string, double> temp_scan_standard = {
         {"nr_temps", 0.0},
 };
 
-string adaptive_tempscan_root = "../../Generated content/Coulomb/Prev T test";
+string adaptive_tempscan_root = "../../Generated content/Anisotropic/Antisymmetric";
 
 map<string, double> adaptive_temp_scan_standard = {
-        {"end_t", 20.0},
+        {"end_t", 200.0},
         {"dt_max", 0.0005},
-        {"J", 1},
+        {"J", -1},
+        {"Jy", -3},
         {"alpha", 10},
         {"beta", 1.0},
         {"tau", 1},
@@ -63,14 +64,14 @@ map<string, double> adaptive_temp_scan_standard = {
         {"nr_save_values", 16.0},
         {"x0", 1.4},
         {"p0", 1.4},
-        {"repeat_nr", 5.0},
-        {"min_temp", 0.65},
-        {"max_temp", 0.7},
-        {"nr_temps", 2.0},
+        {"repeat_nr", 1.0},
+        {"min_temp", 0.6},
+        {"max_temp", 0.75},
+        {"nr_temps", 1.0},
         {"K", 10.0},
         {"tol", 0.5},
         {"logspace", 0.0},
-        {"random", -1.0}
+        {"random", 1.0}
 };
 
 

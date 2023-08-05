@@ -46,6 +46,7 @@ void print_vector(vector<T> vec) {
         }
         cout << vec[i] << ", ";
     }
+    cout << endl;
 }
 
 

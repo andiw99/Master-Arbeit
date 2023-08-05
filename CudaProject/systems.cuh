@@ -308,9 +308,6 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
-//            printf(
-//                    "%f", interaction
-//                    );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
@@ -361,11 +358,8 @@ public:
     const double alpha;
     const double beta;
     const double J;
-    const double D;
     // systemsize should probably be a template argument?
-    const size_t n;
     // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     // parameters of the potential and of the Interaction
@@ -411,10 +405,6 @@ public:
                     +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
                     +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
             );
-
-//            printf(
-//                    "%f", interaction
-//            );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
@@ -431,17 +421,13 @@ public:
 
 
     coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
-            : System<lat_dim>(init_step, eta, T), step_nr(init_step), n(lat_dim * lat_dim), alpha(alpha),
-            beta(beta), J(J), D(sqrt(2 * T * eta)) {
+            : System<lat_dim>(init_step, eta, T), alpha(alpha),
+            beta(beta), J(J) {
     }
 };
 
 template <size_t lat_dim>
 class coulomb_constant : public coulomb_interaction<lat_dim> {
-    using rand = typename System<lat_dim>::rand;
-    using coulomb_interaction<lat_dim>::step_nr;
-    using coulomb_interaction<lat_dim>::n;
-    using coulomb_interaction<lat_dim>::D;
 public:
     coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
     : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step) {
@@ -452,19 +438,6 @@ public:
         // cout << "calc_diff is called" << endl;
         System<lat_dim>::calc_diff(theta, t);
     }
-/*    template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
-
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
-    }*/
 };
 
 
@@ -526,6 +499,72 @@ public:
 
     double get_end_quench_time() {
         return end_quench_t;
+    }
+};
+
+template <size_t lat_dim>
+struct anisotropic_coulomb_interaction : public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
+public:
+    const double alpha;
+    const double beta;
+    const double Jx, Jy;
+    struct ani_coulomb_functor {
+        const double alpha, beta, Jx, Jy, eta;
+
+        ani_coulomb_functor(const double eta, const double alpha,
+                        const double beta, const double Jx, const double Jy) : alpha(alpha), beta(beta), Jx(Jx), Jy(Jy), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction_x = Jx * (
+                    ((q - q_left)   / pow(1.0 + (q - q_left)    * (q - q_left),  1.5))
+                    +   ((q - q_right)  / pow(1.0 + (q - q_right)   * (q - q_right), 1.5)));
+            double interaction_y = Jy * (
+                    +   ((q - q_up)     / pow(1.0 + (q - q_up)      * (q - q_up),    1.5))
+                    +   ((q - q_down)   / pow(1.0 + (q - q_down)    * (q - q_down),  1.5))
+            );
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
+                                    - interaction_x - interaction_y;       // Interaction
+        }
+    };
+
+public:
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        ani_coulomb_functor functor = ani_coulomb_functor(System<lat_dim>::eta, alpha, beta, Jx, Jy);
+        this->universalStepOperations(x, dxdt, t, functor);
+    }
+
+    anisotropic_coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha),
+              beta(beta), Jx(Jx), Jy(Jy) {
+    }
+};
+
+
+template <size_t lat_dim>
+class anisotropic_coulomb_constant : public anisotropic_coulomb_interaction<lat_dim> {
+public:
+    anisotropic_coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const int init_step=0)
+            : anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step) {
+
+    }
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // cout << "calc_diff is called" << endl;
+        System<lat_dim>::calc_diff(theta, t);
     }
 };
 
