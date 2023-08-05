@@ -1,4 +1,4 @@
-# Install script for directory: /home/andi/Studium/Code/Master-Arbeit/CudaProject
+# Install script for directory: /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/andi/Studium/Code/Master-Arbeit/CudaProject/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

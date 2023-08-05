@@ -234,7 +234,7 @@ template <template<class, class, class, class, class> class stepper, size_t latt
 void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default",
             string root="", int count=0, double pre_T = -1.0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
-    if(runs == 0) {
+    if(runs <= 0) {
         return;
     }
 
