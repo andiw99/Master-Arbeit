@@ -75,26 +75,27 @@ map<string, double> adaptive_temp_scan_standard = {
 };
 
 
-string quench_root = "../../Generated content/Fit testing";
+string quench_root = "../../Generated content/Quench Video";
 
 map<string, double> quench_paras = {
-        {"starting_T", 0.75},
-        {"end_T", 0.1},
+        {"starting_T", 1},
+        {"end_T", 0.05},
         {"t_eq", 100},
-        {"dt", 0.0005},
+        {"dt", 0.001},
         {"J", 1.0},
         {"alpha", 10.0},
         {"beta", 1.0},
-        {"eta", 0.8},
+        {"eta", 1.5},
         {"N", 2.0},
-        {"nr_save_values", 32.0},
+        {"nr_save_values", 1200.0},
         {"nr_xis", 32.0},
-        {"repeat", 20.0},
-        {"min_tau_factor", 8.0},
-        {"max_tau_factor", 8.0},
-        {"nr_taus", 0.0},
+        {"repeat", 1.0},
+        {"min_tau_factor", 4.0},
+        {"max_tau_factor", 10.0},
+        {"nr_taus", 6.0},
         {"K", 3.0},
-        {"tol", 0.01}
+        {"tol", 0.01},
+        {"video", 1.0}
 };
 
 template <typename Key, typename Value>

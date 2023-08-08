@@ -32,11 +32,14 @@ void sum_and_add(fftw_complex const (*out), vector<array<double, N>> &ft_squared
 
 template <size_t N>
 void trafo_routine(fftw_complex (*in), fftw_complex const (*out), fftw_plan plan, vector<array<double, N>> &ft_squared_k,
-                   vector<array<double, N>> &ft_squared_l, fs::path csv_path, int file_nr) {
+                   vector<array<double, N>> &ft_squared_l, fs::path csv_path, int file_nr, bool chess_traf=false) {
     ifstream file = safe_read(csv_path);
     double T = 0;
     double t = 0;
-    auto data = readDoubleValuesAt(file, -1, T, t);
+    vector<double> data = readDoubleValuesAt(file, -1, T, t);
+    if(chess_traf) {
+        chess_trafo(data);
+    }
     // copying the data to the in array
 // fftw_complex is just double[2].
 
@@ -148,7 +151,7 @@ int main(int argc, char* argv[]) {
         root = adaptive_tempscan_root;
         cout << "called with argument" << endl;
     } else {
-        root = "../../../Generated content/Coulomb/J=2/J=2/70 larger stepsize";
+        root = "../../../Generated content/Antisymmetric/Anisotropic";
     }
     cout << "root in lattice FFTError:" << endl;
     cout << root << endl;

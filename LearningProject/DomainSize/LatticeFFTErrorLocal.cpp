@@ -32,11 +32,14 @@ void sum_and_add(fftw_complex const (*out), vector<array<double, N>> &ft_squared
 
 template <size_t N>
 void trafo_routine(fftw_complex (*in), fftw_complex const (*out), fftw_plan plan, vector<array<double, N>> &ft_squared_k,
-                   vector<array<double, N>> &ft_squared_l, fs::path csv_path, int file_nr) {
+                   vector<array<double, N>> &ft_squared_l, fs::path csv_path, int file_nr, bool chess_traf=false) {
     ifstream file = safe_read(csv_path);
     double T = 0;
     double t = 0;
-    auto data = readDoubleValuesAt(file, -1, T, t);
+    vector<double> data = readDoubleValuesAt(file, -1, T, t);
+    if(chess_traf) {
+        chess_trafo(data);
+    }
     // copying the data to the in array
 // fftw_complex is just double[2].
 
@@ -147,8 +150,11 @@ int main(int argc, char* argv[]) {
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../../Generated content/New/Coulomb/Binder";
+        root = "../../../Generated content/Antisymmetric/Anisotropic";
     }
+
+    bool chess_traf = true;
+
     cout << "root in lattice FFTError:" << endl;
     cout << root << endl;
 
@@ -192,7 +198,7 @@ int main(int argc, char* argv[]) {
         for(auto csv_path :csv_files) {
             // so trafo routine opens the file, fills 'in' in, does the FT of the lattice
             // adds to ft_squared_k
-            trafo_routine<N>(in, out, plan, ft_squared_k, ft_squared_l, csv_path, file_nr);
+            trafo_routine<N>(in, out, plan, ft_squared_k, ft_squared_l, csv_path, file_nr, chess_traf);
             file_nr++;
         }
         // summing over every csv file to calc the average:

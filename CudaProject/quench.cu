@@ -89,23 +89,38 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     // for the initial state, then two during start equilibrating, including the timepoint s_eq_t
     // then 11 of the quench, and then again two for the end equilibration
 
-    obs.writev2(sys, x, t);
-    Stepper.step_until(s_eq_t/2, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
-    Stepper.step_until(s_eq_t, sys, x, dt_max, t);
-    while(t < end_quench_t) {
-        // we step until sys_timepoint, write and increment for the next sys_timepoint
-        Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+    if(paras["video"] == 1.0) {
+        // here we want to save equidistant values so the write interval is just the end time divided by the number
+        // of save values
+        sys_timepoint = 0;
+        write_interval_sys = end_t / paras["nr_save_values"];
+        while(t < end_t) {
+            // we step until sys_timepoint, write and increment for the next sys_timepoint
+            Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+            obs.writev2(sys, x, t);
+            sys_timepoint += write_interval_sys;
+        }
+    } else {
         obs.writev2(sys, x, t);
-        sys_timepoint += write_interval_sys;
+        Stepper.step_until(s_eq_t/2, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
+        Stepper.step_until(s_eq_t, sys, x, dt_max, t);
+        while(t < end_quench_t) {
+            // we step until sys_timepoint, write and increment for the next sys_timepoint
+            Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+            obs.writev2(sys, x, t);
+            sys_timepoint += write_interval_sys;
+        }
+        cout << end_quench_t + e_eq_t/2 << endl;
+        Stepper.step_until(end_quench_t + e_eq_t/2, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
+        Stepper.step_until(end_t, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
     }
-    cout << end_quench_t + e_eq_t/2 << endl;
-    Stepper.step_until(end_quench_t + e_eq_t/2, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
-    Stepper.step_until(end_t, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
+
 
     // are we done now? no write parameters
+    paras["n"] = lattice_dim * lattice_dim;
     write_parameters(parafile, paras);
 }
 

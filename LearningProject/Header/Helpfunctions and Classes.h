@@ -271,6 +271,16 @@ vector<complex<double>> readLastValues(ifstream& file, double& T) {
     return readValuesAt(file, ind, T, t);
 }
 
+template <class value_type, template<class, class> class container>
+void chess_trafo(container<value_type, std::allocator<value_type>>& vec) {
+    int lat_dim = sqrt(vec.size());
+    for (int i = 0; i < lat_dim/2; i++) {
+        for (int j = 0; j < lat_dim/2; j++) {
+            vec[2*i * lat_dim + 2 * j] *= (-1);
+            vec[(2*i+1) * lat_dim + 2 * j + 1] *= (-1);
+        }
+    }
+}
 
 double stringToDouble(const std::string& str) {
     try {
