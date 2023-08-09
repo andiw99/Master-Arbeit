@@ -70,4 +70,6 @@ add_executable(LearningProject
         TwoStepMethod/main.cpp
         TwoStepMethod/main.h CurveFitting/Curvefitting.cpp CurveFitting/Curvefitting.h DomainSize/QuenchCorrLength.cpp DomainSize/QuenchCorrLength.h DomainSize/LatticeFFT.cpp DomainSize/LatticeFFT.h DomainSize/LatticeFFTError.cpp
         CurveFitting/ResidiualXi.cpp
-        CurveFitting/ResidiualXi.h)
+        CurveFitting/ResidiualXi.h
+        Testing/Factory.cpp
+        Testing/Factory.h)

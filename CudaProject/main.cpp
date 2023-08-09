@@ -27,8 +27,12 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     size_t N = (size_t)paras["N"];
     paras["n"] = lattice_dim * lattice_dim;
     double dt_max = paras["dt"];
+    paras["seed"] = seed;
     // we initialize the system
-    system<lattice_dim> sys(
+    // how can we dynamically call the fitting construcotrs?
+    system<lattice_dim> sys = create<lattice_dim, system>(paras);
+
+    /*(
                 paras["starting_T"],
                 paras["end_T"],
                 paras["eta"],
@@ -38,7 +42,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
                 paras["tau"],
                 seed,
                 paras["t_eq"]
-            );
+            );*/
     // it does not make sense to quench for a certain time
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice from " <<
          paras["starting_T"] << " to " << paras["end_T"] << " for a time of " << sys.get_end_t() << endl;
@@ -120,6 +124,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
 
 
     // are we done now? no write parameters
+    paras["n"] = lattice_dim * lattice_dim;
     write_parameters(parafile, paras);
 }
 
@@ -200,7 +205,7 @@ void scan() {
         repeat< lattice_dim,
                 state_type, algebra, operations,
                 euler_combined,
-                gpu_bath,
+                anisotropic_coulomb_quench,
                 observer
                 >(paras, (int)paras["repeat"], 0, dirpath);
     }

@@ -191,7 +191,12 @@ public:
                           rand(D));
     }
 
-    System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {}
+    System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
+        cout << "System constructor is called with eta = " << eta << "  T = " << T << endl;
+    }
+    System() {
+        cout << "Probably wrong system constructor called" << endl;
+    }
 
     size_t get_lattice_dim() const{
         return lat_dim;
@@ -503,7 +508,55 @@ public:
 };
 
 template <size_t lat_dim>
-struct anisotropic_coulomb_interaction : public System<lat_dim> {
+struct quench : virtual public System<lat_dim> {
+    const double T_start;       // Start-Temperture of the Quenching For example: 10
+    const double T_end;         // End-Temperature of the Quencheing. For example: 1
+    const double s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
+    const double e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
+    double t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
+    double end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
+    const double tau;
+
+    double linear_T(double t) {
+        if(s_eq_t < t && t < end_quench_t) {
+            // if we are in the quench phase, we reduce T
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
+        }
+        return System<lat_dim>::T;
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        System<lat_dim>::D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
+        System<lat_dim>::calc_diff(theta, t);
+    }
+
+public:
+   quench(const double T, const double T_end, const double eta, const double tau, size_t init_step = 0, double eq_t = 30)
+            : System<lat_dim>(init_step, eta, T), T_start(T), tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
+    }
+
+    double get_quench_time() {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        return (T_start - T_end) * tau;
+    }
+
+    double get_end_t(){
+        // the total time are the two equilibriate times + the quench time
+        return s_eq_t + e_eq_t + t_quench;
+    }
+
+    double get_end_quench_time() {
+        return end_quench_t;
+    }
+};
+
+template <size_t lat_dim>
+struct anisotropic_coulomb_interaction : virtual public System<lat_dim> {
     using left = typename System<lat_dim>::left;
     using right = typename System<lat_dim>::right;
     using up = typename System<lat_dim>::up;
@@ -568,6 +621,125 @@ public:
     }
 };
 
+template <size_t lat_dim>
+class anisotropic_coulomb_quench: public anisotropic_coulomb_interaction<lat_dim>, public quench<lat_dim> {
+public:
+    anisotropic_coulomb_quench(const double T, const double T_end, const double eta, const double alpha,
+                               const double beta, const double Jx,const double Jy, const double tau,
+                               size_t init_step = 0, double eq_t = 30)
+            : anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step),
+                    quench<lat_dim>(T, T_end, eta, tau, init_step, eq_t),
+                            System<lat_dim>(init_step, eta, T){
+
+    }
+};
+
+template <size_t lat_dim>
+struct sys_factory {
+public:
+    template<template<class> class sys>
+    sys<size_t> init_sys(map<string, double> &paras) {
+    }
+
+    template<>
+    anisotropic_coulomb_quench<lat_dim> init_sys<anisotropic_coulomb_quench<lat_dim >>(map<string, double> &paras) {
+        return anisotropic_coulomb_quench<lat_dim>(paras["starting_T"],
+                                                   paras["end_T"],
+                                                   paras["eta"],
+                                                   paras["alpha"],
+                                                   paras["beta"],
+                                                   paras["J"],
+                                                   paras["Jy"],
+                                                   paras["tau"],
+                                                   paras["seed"],
+                                                   paras["t_eq"]);
+    }
+
+    template<>
+    gpu_bath<lat_dim> init_sys<gpu_bath<lat_dim>>(map<string, double> &paras) {
+        return gpu_bath<lat_dim>(paras["starting_T"],
+                                 paras["end_T"],
+                                 paras["eta"],
+                                 paras["alpha"],
+                                 paras["beta"],
+                                 paras["J"],
+                                 paras["tau"],
+                                 paras["seed"],
+                                 paras["t_eq"]);
+    }
+};
+
+template<size_t lat_dim, template<size_t> class sys>
+sys<lat_dim> create(map<string, double> &paras){
+      if(std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value) {
+          cout << "Create function for anisotropic_coulomb_quench called" << endl;
+        return sys<lat_dim>(paras["starting_T"],
+                   paras["end_T"],
+                   paras["eta"],
+                   paras["alpha"],
+                   paras["beta"],
+                   paras["J"],
+                   paras["Jy"],
+                   paras["tau"],
+                   paras["seed"],
+                   paras["t_eq"]);
+    } else if(std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value) {
+          cout << "Create function for gpu_bath called" << endl;
+          return sys<lat_dim>(paras["starting_T"],
+                              paras["end_T"],
+                              paras["eta"],
+                              paras["alpha"],
+                              paras["beta"],
+                              paras["J"],
+                              paras["tau"],
+                              paras["seed"],
+                              paras["t_eq"]);
+      }
+};
+/*
+
+template <template <class> class sys>
+sys<size_t> create()
+{
+    sys<size_t>* object = new sys<size_t>();
+
+    // Do some generic initialization after construction.
+
+    return *object;
+};
+*/
+
+/*template<class sys>
+sys init_sys(map<string, double> &paras) {
+    return NULL;
+}
+
+template<>
+anisotropic_coulomb_quench init_sys<anisotropic_coulomb_interaction>(map<string, double> &paras) {
+    return anisotropic_coulomb_quench<lat_dim>(paras["starting_T"],
+                                      paras["end_T"],
+                                      paras["eta"],
+                                      paras["alpha"],
+                                      paras["beta"],
+                                      paras["J"],
+                                      paras["Jy"],
+                                      paras["tau"],
+                                      paras["seed"],
+                                      paras["t_eq"]);
+}
+
+template <size_t lat_dim>
+gpu_bath<lat_dim> init_sys(map<string, double> &paras) {
+    return gpu_bath<lat_dim>(paras["starting_T"],
+                                               paras["end_T"],
+                                               paras["eta"],
+                                               paras["alpha"],
+                                               paras["beta"],
+                                               paras["J"],
+                                               paras["tau"],
+                                               paras["seed"],
+                                               paras["t_eq"]);
+}*/
 
 template <size_t lat_dim>
 struct quadratic_trapped_lattice : public System<lat_dim> {
