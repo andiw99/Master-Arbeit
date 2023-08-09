@@ -65,10 +65,14 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     stepper<gpu_state_type, thrust_algebra, thrust_operations, double, double> gpu_stepper(N * n, K, tol);
 
     // init and print initial state, we start in an equilibrium position, in the positive minimum
+    // if we are in the antisymmetric case, we have to chessboard trafo the initial state
     gpu_state_type x(N * n, sqrt(beta / 2.0));
-
+    if (J < 0) {
+        chess_trafo(x, lattice_dim);
+    }
+    cout << "Chess trafo is fine" << endl;
     // set the impulses to be zero
-    thrust::fill(x.begin() + n, x.begin() + N * n, p0);
+    thrust::fill(x.begin() + n, x.begin() + N * n, 0);
     // okay we overwrite this here
     if(parameters["random"] == 1.0) {
         // if random parameter is true we initialize high temperature random initial state
@@ -120,7 +124,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
                 }
             }
         }
-
+        // only if we found old runs we do something, otherwise it is just initialized in equilibrium position
     }
 
     for (int i = 0; i < n; i++) {

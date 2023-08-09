@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Coulomb/Crit2/"
+    root = "../../Generated content/AA Binder"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -45,7 +45,7 @@ def main():
     interpol_L_xi_dic = {}
     exclude_large_dists = 0
     exclude_small_dists = 0
-    xi_exclude_large_dists = 0
+    xi_exclude_large_dists = 2
     xi_exclude_small_dists = 0
     r = 2
 
@@ -117,6 +117,7 @@ def main():
 
     # Now we got to make a numerical diff for the reduced temp at Tc
     eps = (T_inter_arr - T_inter) / T_inter
+    exit()
     diff_arr, size_arr = calc_diff_at(T_inter, T, cum_dic)
     xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
     # fig, ax = plt.subplots(1, 1)
@@ -159,7 +160,7 @@ def main():
     ax.plot(L_fit, crit_poly_fit_corr(L_fit, *popt_poly_corr), label=rf"$\nu = {nu_poly_corr:.2f}$")
     ax.plot(L_fit, ising_corr_poly_fit(L_fit, *popt_ising), label=rf"$\omega = {popt_ising[2]:.2f}$", linestyle="-.")
     ax.set_xlabel("L")
-    ax.set_ylabel(r"$\frac{d U_L}{d }$")
+    ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
     save_plot(root, "/critical_exponent.pdf", format="pdf")
     plt.show()

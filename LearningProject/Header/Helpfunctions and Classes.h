@@ -282,6 +282,16 @@ void chess_trafo(container<value_type, std::allocator<value_type>>& vec) {
     }
 }
 
+template <class container>
+void chess_trafo(container& vec, int lat_dim) {
+    for (int i = 0; i < lat_dim/2; i++) {
+        for (int j = 0; j < lat_dim/2; j++) {
+            vec[2*i * lat_dim + 2 * j] *= (-1);
+            vec[(2*i+1) * lat_dim + 2 * j + 1] *= (-1);
+        }
+    }
+}
+
 double stringToDouble(const std::string& str) {
     try {
         return std::stod(str);

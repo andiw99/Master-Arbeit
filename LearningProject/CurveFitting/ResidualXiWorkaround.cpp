@@ -116,14 +116,14 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Coulomb/Crit2";
+        root = "../../../Generated content/AA Binder";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
     int N;
     const int starting_k = 2;
-    const int nr_Ls = 18;
+    const int nr_Ls = 10;
+    bool chessTrafo = true;
     vector<int> L_vec;
 
 
@@ -171,7 +171,9 @@ int main(int argc, char* argv[]) {
             // read file
             ifstream file = safe_read(csv_files[i], false);
             auto lat_q = readDoubleValuesAt(file, -1,  T, t);
-
+            if(chessTrafo) {
+                chess_trafo(lat_q);
+            }
             if(running == 0) {
                 N = (int)sqrt(lat_q.size());
                 cout << endl << "Lattice dim = " << N << endl;

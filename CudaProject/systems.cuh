@@ -611,7 +611,7 @@ template <size_t lat_dim>
 class anisotropic_coulomb_constant : public anisotropic_coulomb_interaction<lat_dim> {
 public:
     anisotropic_coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const int init_step=0)
-            : anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step) {
+            : System<lat_dim>(init_step, eta, T), anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step) {
 
     }
     template<class Stoch>
