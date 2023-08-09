@@ -634,7 +634,7 @@ public:
     }
 };
 
-template <size_t lat_dim>
+/*template <size_t lat_dim>
 struct sys_factory {
 public:
     template<template<class> class sys>
@@ -667,7 +667,7 @@ public:
                                  paras["seed"],
                                  paras["t_eq"]);
     }
-};
+};*/
 
 template<size_t lat_dim, template<size_t> class sys>
 sys<lat_dim> create(map<string, double> &paras){

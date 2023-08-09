@@ -73,3 +73,5 @@
 /LearningProject/cmake-build-debug
 /Pythonproject/__pycache__
 /Pythonproject/__pycache__/
+/CudaProject/parameters.cuh
+CudaProject/parameters.cuh
