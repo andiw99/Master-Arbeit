@@ -124,7 +124,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
                     }
                 }
             }
-        }
         // only if we found old runs we do something, otherwise it is just initialized in equilibrium position
     }
 

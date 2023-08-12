@@ -137,7 +137,7 @@ vector<fs::path> list_dir_paths(const fs::path& root)
             if (fs::is_directory(entry.path()) && entry.path().filename() != "plots")
             {
                 // check for the fucking .ipynb folders
-                if(entry.path().filename().string()[0] != ".") {
+                if(entry.path().filename().string()[0] != '.') {
                     dir_paths.push_back(entry.path());
                     vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
                     dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
