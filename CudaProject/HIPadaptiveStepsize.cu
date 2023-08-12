@@ -81,6 +81,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
         );
         fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
     } else if (parameters["random"] == -1.0) {
+/*        vector<double> pre_lattice;
         if (pre_T >= 0) {
             // else we need to read in the previous state
             string pre_dir_name = root + "/" + to_string(pre_T);
@@ -89,14 +90,14 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             // and we are ready to read in the last file?
             double prev_T;
             double prev_t;
-            vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
+            pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
             // we need to copy them into the gpu state type
             // just for loop?
             for(int i = 0; i < n; i++) {
                 x[i] = pre_lattice[i];
             }
-        } else if(pre_T < 0.0) {
-            // if pre_T is smaller than zero that means that we didn't have a previous T so wi initialize random.
+        } else if(pre_T < 0.0) {*/
+            // if pre_T is smaller than zero that means that we didn't have a previous T so we initialize random.
             // this is now code to check for runs that are already there
             cout << "checking for initial state in folder..." << endl;
             // listing the temp folders that are already inside
