@@ -11,27 +11,6 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include "../Header/Helpfunctions and Classes.h"
 
-template <class value_type>
-value_type mean(vector<value_type> vec) {
-    // get lattice dimension for looping and averaging
-    auto n = vec.size();
-    double m = 0;
-    // add everything up
-    // for the cumulant it is not important which q value is next to each other
-    // so we just leave the vector 1D and only sum over one index
-    for(int i=0; i < n; i++) {
-/*        cout << vec[i] <<", ";
-        if (i % 20 == 0) {
-            cout << endl;
-        }*/
-        m += vec[i];
-    }
-
-    // we have added everything up for one lattice, but we still need to average
-    m /= n;
-    // this function reduced to returning the mean value of a vector
-    return m;
-}
 
 template <class value_type>
 value_type isotropic_rms(vector<value_type> vec) {
@@ -63,6 +42,44 @@ value_type calc_s2(vector<value_type>& cell) {
         }
     }
     return s2;
+}
+
+void calc_write_cum (map<int, vector<double>> m_map, ofstream& cumsList) {
+    for(auto pair : boost::adaptors::reverse(m_map)){
+        double m_L2 = std::transform_reduce(pair.second.begin(), pair.second.end(),
+                                            0.0, // initial value for the reduction (sum)
+                                            std::plus<double>(), // transformation (square)
+                                            [](double b) { return b * b; });
+        m_L2 /= pair.second.size();
+        double m_L2_err = std::transform_reduce(pair.second.begin(), pair.second.end(),
+                                                0.0, // initial value for the reduction (sum)
+                                                std::plus<double>(), // transformation (square)
+                                                [&m_L2](double b) { return pow((b * b - m_L2), 2)  ; });
+        m_L2_err /= (double)pow(pair.second.size(), 2);
+        m_L2_err = sqrt(m_L2_err);
+        double m_L4 = std::transform_reduce(pair.second.begin(), pair.second.end(),
+                                            0.0, // initial value for the reduction (sum)
+                                            std::plus<>(), // transformation (square)
+                                            [](double b) { return (pow(b, 4)); });
+        m_L4 /= pair.second.size();
+        double m_L4_err = std::transform_reduce(pair.second.begin(), pair.second.end(),
+                                                0.0, // initial value for the reduction (sum)
+                                                std::plus<>(), // transformation (square)
+                                                [&m_L4](double b) { return pow(pow(b, 4) - m_L4, 2); });
+        m_L4_err /= (double)pow(pair.second.size(), 2);
+        m_L4_err = sqrt(m_L4_err);
+
+        // we write it directly to a file?
+        // we now have the binder cumulant for one temperature for different sizes.
+        // nice would be a large file with the layout
+        // T     L1        L2       ...
+        // 0.1   1          1       ...
+        // ...  ...        ...
+        // 1     3          3       ...
+        double cum = m_L4 / (m_L2 * m_L2);
+        double cum_error = sqrt(pow(1 / m_L2 / m_L2 * m_L4_err, 2) + pow(2 * m_L4 / pow(m_L2, 3) * m_L2_err, 2));
+        cumsList << "," << cum << "," << cum_error;
+    }
 }
 
 template <class value_type>
@@ -139,7 +156,7 @@ int main(int argc, char* argv[]) {
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../Generated content/AA Binder/";
+        root = "../../Generated content/Binder Chess Init/";
     }
     cout << "root in CalcBinderCumulant" << endl;
     cout << root << endl;
@@ -157,8 +174,6 @@ int main(int argc, char* argv[]) {
     // I think i will use a map that maps the different L's to vectors with the s2, s4, values for
     // the different csv files
 
-    map<int, vector<double>> S2_map = {};
-    map<int, vector<double>> S4_map = {};
     int running = 0;
     size_t n = 1;
     vector<int> L_vec;
@@ -176,7 +191,6 @@ int main(int argc, char* argv[]) {
         // Since we get one value for the magnetization for every realization
         // WAIT: You only need the magnetization m for every lattice you idiot, everything else
         // happens when averaging over the different runs
-        vector<double> m = vector<double>(nr_csv_files, 0);
         // checking that binder vec only consits of zeros
         // now we cycle over every csv file, calc <m^4> / <m^2> and fill one space of the binder_vec
         // when cycling we can already add the value of this run to the running value for the average
@@ -211,8 +225,6 @@ int main(int argc, char* argv[]) {
             // vectors to save the value for this csv file for s2, s4
 
             for(int L : L_vec) {
-                double s2_L = 0;
-                double s4_L = 0;
                 // okay we now switch to calculating just m for every cell and then summing m_L ** 4
                 // calculating the lattice dimension for this
                 // the higher k is the more cells we "have to" deal with
@@ -247,48 +259,14 @@ int main(int argc, char* argv[]) {
         // we now do the thermal average by calcing the powers of m, adding them and averaging
         cumsList << T;
 
-        for(auto pair : boost::adaptors::reverse(m_map)){
-            double m_L2 = std::transform_reduce(pair.second.begin(), pair.second.end(),
-                                                0.0, // initial value for the reduction (sum)
-                                                std::plus<double>(), // transformation (square)
-                                                [](double b) { return b * b; });
-            m_L2 /= pair.second.size();
-            double m_L2_err = std::transform_reduce(pair.second.begin(), pair.second.end(),
-                                                    0.0, // initial value for the reduction (sum)
-                                                    std::plus<double>(), // transformation (square)
-                                                    [&m_L2](double b) { return pow((b * b - m_L2), 2)  ; });
-            m_L2_err /= (double)pow(pair.second.size(), 2);
-            m_L2_err = sqrt(m_L2_err);
-            double m_L4 = std::transform_reduce(pair.second.begin(), pair.second.end(),
-                                                0.0, // initial value for the reduction (sum)
-                                                std::plus<>(), // transformation (square)
-                                                [](double b) { return (pow(b, 4)); });
-            m_L4 /= pair.second.size();
-            double m_L4_err = std::transform_reduce(pair.second.begin(), pair.second.end(),
-                                                    0.0, // initial value for the reduction (sum)
-                                                    std::plus<>(), // transformation (square)
-                                                    [&m_L4](double b) { return pow(pow(b, 4) - m_L4, 2); });
-            m_L4_err /= (double)pow(pair.second.size(), 2);
-            m_L4_err = sqrt(m_L4_err);
-
-            // we write it directly to a file?
-            // we now have the binder cumulant for one temperature for different sizes.
-            // nice would be a large file with the layout
-            // T     L1        L2       ...
-            // 0.1   1          1       ...
-            // ...  ...        ...
-            // 1     3          3       ...
-            double cum = m_L4 / (m_L2 * m_L2);
-            double cum_error = sqrt(pow(1 / m_L2 / m_L2 * m_L4_err, 2) + pow(2 * m_L4 / pow(m_L2, 3) * m_L2_err, 2));
-            cumsList << "," << cum << "," << cum_error;
-        }
+        calc_write_cum(m_map, cumsList);
 
         cumsList << endl;
         cout << "Temperature " << T << endl;
         cout << endl << endl;
 
-        ofstream ofile;
-        ofile.open(path/ "binder.cumulant");
+/*        ofstream ofile;
+        ofile.open(path/ "binder.cumulant");*/
 
         // okay we have every m, so now we can calc the mean of m^4 and the mean of m^2 squared
         // average over the number of runs

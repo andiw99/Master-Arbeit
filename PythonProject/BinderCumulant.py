@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/AA Binder"
+    root = "../../Generated content/Trash/Large Stepsize"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,8 +43,9 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 0
+    exclude_large_dists = 2
     exclude_small_dists = 0
+    min_temp = 0.7
     xi_exclude_large_dists = 2
     xi_exclude_small_dists = 0
     r = 2
@@ -66,6 +67,7 @@ def main():
     for size in labels[::2]:
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
+
     for size in xi_labels[::2]:
 
         xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
@@ -73,7 +75,11 @@ def main():
     T = np.sort(T)
 
     T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
-
+    # sort out temps
+    for size in labels[::2]:
+        cum_dic[size] = cum_dic[size][T > min_temp]
+        cum_err_dic[size] = cum_err_dic[size][T > min_temp]
+    T = T[T > min_temp]
     plt.show()
     fig, ax = plt.subplots(1, 1)
 
@@ -117,7 +123,6 @@ def main():
 
     # Now we got to make a numerical diff for the reduced temp at Tc
     eps = (T_inter_arr - T_inter) / T_inter
-    exit()
     diff_arr, size_arr = calc_diff_at(T_inter, T, cum_dic)
     xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
     # fig, ax = plt.subplots(1, 1)

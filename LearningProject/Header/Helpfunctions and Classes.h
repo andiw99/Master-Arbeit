@@ -617,4 +617,78 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
     }
 }
 
+fs::path findCsvFile(const fs::path& directory) {
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".csv") {
+            return entry.path();
+        }
+    }
+    return ""; // Return an empty path if no .csv file is found
+}
+
+size_t get_sim_size(const fs::path& root) {
+    // TODO its a bit lost that i have to read in a csv file to get the size but it takes like 0.1 seconds
+    // so i don't care
+    string csv_path = findCsvFile(root);
+    ifstream csv_file = safe_read(csv_path);
+    double dummy_T, dummy_t;
+    vector<double> lattice = readDoubleValuesAt(csv_file, -1,  dummy_T, dummy_t);
+    return (size_t) sqrt(lattice.size());
+}
+
+template <class value_type>
+value_type mean(vector<value_type> vec) {
+    // get lattice dimension for looping and averaging
+    auto n = vec.size();
+    double m = 0;
+    // add everything up
+    // for the cumulant it is not important which q value is next to each other
+    // so we just leave the vector 1D and only sum over one index
+    for(int i=0; i < n; i++) {
+/*        cout << vec[i] <<", ";
+        if (i % 20 == 0) {
+            cout << endl;
+        }*/
+        m += vec[i];
+    }
+
+    // we have added everything up for one lattice, but we still need to average
+    m /= n;
+    // this function reduced to returning the mean value of a vector
+    return m;
+}
+
+int ind_to_1D(int row, int col, int lat_dim) {
+    return row * lat_dim + col;
+}
+
+fs::path findFirstTxtFile(const fs::path& directory) {
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+            return entry.path();
+        }
+    }
+
+    return {}; // Return an empty path if no .txt file is found
+}
+
+double extractTauValue(const fs::path& filePath) {
+    ifstream inputFile = safe_read(filePath);
+
+    string line;
+    while (std::getline(inputFile, line)) {
+        size_t pos = line.find(",");
+        if (pos != std::string::npos) {
+            std::string parameter = line.substr(0, pos);
+            if (parameter == "tau") {
+                cout << line.substr(pos + 1);
+                double tauValue = std::stod(line.substr(pos + 1));
+                return tauValue;
+            }
+        }
+    }
+
+    return 0.0; // Return a default value if 'tau' is not found
+}
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

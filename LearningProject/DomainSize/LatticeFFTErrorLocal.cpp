@@ -6,6 +6,7 @@
 #include <fftw3.h>
 #include "../Header/Helpfunctions and Classes.h"
 #include "../../CudaProject/parameters.cuh"
+#include <stdexcept>
 
 
 using namespace std;
@@ -37,6 +38,10 @@ void trafo_routine(fftw_complex (*in), fftw_complex const (*out), fftw_plan plan
     double T = 0;
     double t = 0;
     vector<double> data = readDoubleValuesAt(file, -1, T, t);
+    // checking if we entered the correct lattice size
+    if (N * N != data.size()) {
+        throw std::runtime_error("Wrong lattice dim! " + to_string(N) + " vs " + to_string((int) sqrt(data.size())));
+    }
     if(chess_traf) {
         chess_trafo(data);
     }
@@ -143,14 +148,14 @@ int main(int argc, char* argv[]) {
 
     // We just read from the parameter file and compile this when we start the run, but we run when we have finished
     // the run
-    const int N = 150;
+    const int N = 160;
     fs::path root;
     if(argc >= 2) {
         // if we give some argument, doesnt even matter what argument, we take the parameter file values
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../../Generated content/Antisymmetric/Anisotropic";
+        root = "../../../Generated content/AA/AA Quench";
     }
 
     bool chess_traf = true;
