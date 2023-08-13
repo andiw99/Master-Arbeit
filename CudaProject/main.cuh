@@ -746,6 +746,14 @@ public:
             do_step(sys, x, dt_max, t);
         }
     }
+    template<class Sys>
+    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, observer obs) {
+        obs(sys, x, t);
+        while (t < end_time){
+            do_step(sys, x, dt_max, t);
+            obs(sys, x, t);     // I think the new plan is to observe after every step and let the observer decide whether to do something or not
+        }
+    }
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>

@@ -321,18 +321,26 @@ std::string findClosestStem(const std::vector<fs::path>& folders, const T& targe
 }
 
 template <typename T>
-std::string findClosestDir(const std::vector<fs::path>& folders, const T& targetValue) {
+std::string findClosestDir(const std::vector<fs::path>& folders, const T& targetValue, bool lowerTemp = true) {
     std::string closestFolder = "None";
     double minDifference = std::numeric_limits<double>::max();
 
     for (const auto& folder : folders) {
         double folderValue = stringToDouble(folder.filename().string());
-        cout << "folder stem:" << folder.filename().string() << endl;
-        cout << "folder value:" << folderValue << endl;
         double difference = std::abs(folderValue - static_cast<double>(targetValue));
         if (difference < minDifference && difference > 0.0001) {
-            minDifference = difference;
-            closestFolder = folder.string();
+            if(lowerTemp) {
+                // if lowerTemp is true, we only accept that this is the closest folder of the folder value is
+                // smaller than the target value, this is important for example for binder cum calculations
+                if(folderValue < targetValue) {
+                    minDifference = difference;
+                    closestFolder = folder.string();
+                }
+            } else {
+                // else we set it anyway
+                minDifference = difference;
+                closestFolder = folder.string();
+            }
         }
     }
 

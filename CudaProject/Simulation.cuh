@@ -103,6 +103,15 @@ class QuenchSimulation : public Simulation<lat_dim> {
         step_nr += sys.get_step_nr();
     }
 
+    void simulate() {
+        // runs the whole simulation, the sequence depends on the type of simulation we do
+        for(auto tau : taus) {
+            // update the parameters so we create the correct systems and stuff
+            paras["tau"] = tau;
+            this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
+        }
+    }
+
 public:
     QuenchSimulation(map<string, double> &paras, fs::path& simulation_path) :
     Simulation<lat_dim>(paras, simulation_path) {
