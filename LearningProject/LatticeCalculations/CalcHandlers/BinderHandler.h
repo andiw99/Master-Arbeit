@@ -21,7 +21,7 @@ class BinderHandler : public calcHandler {
 public:
 
     void pre_routine() override {
-        calcFile.open(root / "binder.cumulant");
+        calcFile.open(root / "binder.cumulants");
         // Generating the vector of Ls
         L_vec = generate_L(starting_k, lat_dim * lat_dim, nr_Ls);
         init_file_header(calcFile, L_vec);

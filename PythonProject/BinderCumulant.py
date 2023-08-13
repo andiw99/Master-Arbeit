@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Trash/Large Stepsize"
+    root = "../../Generated content/AA/Binder Underdamped"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -114,7 +114,7 @@ def main():
     plt.xticks(list(plt.xticks()[0]) + [T_inter])
 
     ax.set_xlim(np.min(T) - 0.02 * np.mean(T), np.max(T) + 0.02 * np.mean(T))
-    ax.set_ylim(0.95, 2.5)
+    # ax.set_ylim(0.95, 2.5)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")

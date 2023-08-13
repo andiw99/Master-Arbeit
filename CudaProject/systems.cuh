@@ -225,6 +225,10 @@ public:
         double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
         return E_kin;
     }
+
+    size_t get_step_nr() {
+        return step_nr;
+    }
 };
 
 
@@ -670,7 +674,8 @@ public:
 };*/
 
 template<size_t lat_dim, template<size_t> class sys>
-sys<lat_dim> create(map<string, double> &paras){
+sys<lat_dim> create(map<string, double> &paras, size_t seed){
+    size_t seed_val = seed;
       if(std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value) {
           cout << "Create function for anisotropic_coulomb_quench called" << endl;
         return sys<lat_dim>(paras["starting_T"],
@@ -681,7 +686,7 @@ sys<lat_dim> create(map<string, double> &paras){
                    paras["J"],
                    paras["Jy"],
                    paras["tau"],
-                   paras["seed"],
+                   seed_val,
                    paras["t_eq"]);
     } else if(std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value) {
           cout << "Create function for gpu_bath called" << endl;
@@ -692,10 +697,15 @@ sys<lat_dim> create(map<string, double> &paras){
                               paras["beta"],
                               paras["J"],
                               paras["tau"],
-                              paras["seed"],
+                              seed_val,
                               paras["t_eq"]);
       }
 };
+
+template<size_t lat_dim, template<size_t> class sys>
+sys<lat_dim> create(map<string, double> &paras){
+    return create<lat_dim, sys>(paras, paras["seed"]);
+}
 /*
 
 template <template <class> class sys>

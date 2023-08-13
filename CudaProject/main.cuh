@@ -491,6 +491,11 @@ public:
     // the state of the whole system? In the former, N would correspond with the dimensionality of my DGL system
     // in the latter i would not really know how to initialize the initial states independent of the dimensionality
     // of my problem
+
+    virtual void reste() {
+        //supposed to reset some variables, nothing to do here
+    }
+
     const size_t N;
     state_type dxdt, theta;
 };
@@ -686,6 +691,7 @@ template<
 class euler_combined : public euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>{
     int k;
     int prev_accepted_k;
+    const int first_k;
     value_type tol;
     value_type error = 0;
     time_type dt;
@@ -816,7 +822,7 @@ public:
 
     euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
              dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
-    k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count)
+    k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count), first_k(K)
     {
         cout << "creating euler combined stepper" << endl;
     }
@@ -827,6 +833,15 @@ public:
 
     double get_error() {
         return error;
+    }
+
+    void reset() {
+        // resetting the stepper for another use, the switch counter at least should be set to zero again
+        switch_counter = 0;
+        // TODO i think dxdt, theta etc don't have to be reset as they get overwritten every step anyway
+        // TODO i think we don't have to reset prev_accepted k, but the normal one
+        k = first_k;
+        // something else?
     }
 
 private:
@@ -1010,5 +1025,108 @@ int findHighestCSVNumber(const string& folderPath) {
     return highestNumber;
 }
 
+class state_initializer {
+public:
+    map<string, double> paras;
+    state_initializer(map<string, double>& paras): paras(paras) {
+
+    }
+    template <class state_type>
+    void init_state(state_type& x) {}
+
+};
+
+class random_initializer : public state_initializer {
+    double x0;
+    double p0;
+public:
+    random_initializer(map<string, double>& paras): state_initializer(paras) {
+        const double beta = paras["beta"];
+        x0 = paras["x0"] * sqrt(beta / 2.0);
+        p0 = paras["p0"] * sqrt(beta / 2.0);
+    }
+    template <size_t lattice_dim, class state_type>
+    void init_state(state_type& x) {
+        chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+        fill_init_values<state_type, lattice_dim * lattice_dim>(x, (float) x0, (float) p0, ms.count() % 10000);
+    }
+};
+
+class memory_initializer : public state_initializer {
+    fs::path root;
+    int count = 0;
+public:
+    memory_initializer(map<string, double>& paras, fs::path& root): state_initializer(paras), root(root) {
+    }
+    template <size_t lattice_dim, class state_type>
+    void init_state(state_type& x) {
+        // since the initialization sometimes depend on the parameters
+        // like here T, i have to create the initializer everytime i call repeat for the first time
+        double T = paras["T"];
+        size_t n = lattice_dim * lattice_dim;
+        cout << "checking for initial state in folder..." << endl;
+        // listing the temp folders that are already inside
+        vector<fs::path> temp_paths = list_dir_paths(root);
+        // we check every folder name for the value and use the one that is closest to our actual temp
+        string closest_T = findClosestDir(temp_paths, T);
+        cout << "clostest folder to " << T << " already existing is " << closest_T << endl;
+        if(closest_T != "None") {
+            // now we list every csv file and take the one that is closest to i
+            vector<fs::path> csv_files = list_csv_files(closest_T);
+            string closest_i = findClosestStem(csv_files, count);
+            cout << "clostest index to " << count << " already existing is " << closest_i << endl;
+            if(closest_i != "None") {
+                fs::path pre_name = closest_i;
+                cout << "Trying to read " << pre_name << endl;
+                ifstream pre_file = safe_read(pre_name, true);
+                // and we are ready to read in the last file?
+                double prev_T;
+                double prev_t;
+                vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
+                for(int i = 0; i < n; i++) {
+                    x[i] = pre_lattice[i];
+                }
+            }
+        }
+
+        // increment count
+        count++;
+    }
+};
+
+state_initializer* create_state_initializer(int random, map<string, double>& paras, fs::path& root) {
+    // again some fishy function to create different derived classes based on the value of an parameter
+    // don't know better, dont care...
+    if(random == -1) {
+        // memory initializer case
+        return new memory_initializer(paras, root);
+    } else if (random == 1) {
+        // case for the random initializer
+        return new random_initializer(paras);
+    } else if (random == 0) {
+
+    }
+}
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class value_type = double,
+        class time_type = value_type,
+        template<class, class, class, class, class> class stepper_type
+>
+stepper<state_type, algebra, operations, value_type, time_type> create_stepper(map<string, double>& paras, int n) {
+    if(is_same<stepper_type<state_type, algebra, operations, value_type, time_type>,
+            euler_combined<state_type, algebra, operations, value_type, time_type>>::value){
+        // damn tahts ugly
+        int N = (int) paras["N"];
+        double K = paras["K"];
+        double tol = paras["tol"];
+        return euler_combined<state_type, algebra, operations, value_type, time_type>(N * n, K ,tol);
+    } // TODO other steppers
+}
 
 #endif //CUDAPROJECT_MAIN_CUH

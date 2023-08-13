@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        root = "../../../Generated content/Binder Chess Init";
+        root = "../../../Generated content/AA/Binder Overdamped";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
