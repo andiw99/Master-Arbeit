@@ -36,6 +36,8 @@ public:
     void realization_routine(vector<double> &lat_q, double temp, double t) override {
         // starting with m... we calculate m for every row, that will be mx
         // we iterate over rows(cols)
+        print_vector(lat_q);
+        exit(0);
         for(int i = 0; i < lat_dim; i++) {
             double mx = 0;
             double my = 0;
@@ -74,10 +76,12 @@ public:
         cout << mu_0_x.size() << endl;
         print_vector(mu_0_x);
         print_vector(mu_2_x);
+        double chi_x_check = mean(mu_0_x) * (double) lat_dim;
         double chi_x = (double)lat_dim / (double) mu_0_x.size()  *  std::reduce(mu_0_x.begin(), mu_0_x.end(),
                                            0.0, // initial value for the reduction (sum)
                                            std::plus<double>());
         // TODO need to look for error, to tired for that shit
+        cout << "chi_x = " << chi_x << " vs chi_x_check =" << chi_x_check << endl;
         double chi_x_err = std::transform_reduce(mu_0_x.begin(), mu_0_x.end(),
                                                  0.0, // initial value for the reduction (sum)
                                                  std::plus<double>(), // transformation (square)
@@ -85,10 +89,11 @@ public:
         double chi_y = (double)lat_dim / (double) mu_0_x.size() *  std::reduce(mu_0_y.begin(), mu_0_y.end(),
                                                                 0.0, // initial value for the reduction (sum)
                                                                 std::plus<double>());
-
+        double mu2_x_check = mean(mu_2_x) / (double) lat_dim;
         double mu2_x = std::reduce(mu_2_x.begin(), mu_2_x.end(),
                                    0.0, // initial value for the reduction (sum)
                                    std::plus<double>()) / (double) lat_dim / (double) mu_0_x.size();
+        cout << "mu2_x = " << mu2_x << " vs mu2_x_check =" << mu2_x_check << endl;
 
         double mu2_y = std::reduce(mu_2_y.begin(), mu_2_y.end(),
                                    0.0, // initial value for the reduction (sum)
@@ -97,6 +102,7 @@ public:
         cout << endl << "mu_2_x = " << mu2_x << endl;
         double xix = sqrt(mu2_x / (4 * chi_x));
         double xiy = sqrt(mu2_y / (4 * chi_y));
+        exit(0);
 
 
         calcFile << xix << "," << xiy << "," << endl;

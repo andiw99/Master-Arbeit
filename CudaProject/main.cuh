@@ -469,6 +469,33 @@ public:
  * And the 'Operation' that performs the operation on the lattice sites
  */
 
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class value_type = double,
+        class time_type = value_type
+>
+class stepper {
+public:
+
+    template<class Sys>
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
+
+    }
+
+   stepper(size_t N) : N(N), dxdt(N), theta(N) {}
+    // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
+    // values for all sites? not just by "stat_type(N)"
+    // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
+    // the state of the whole system? In the former, N would correspond with the dimensionality of my DGL system
+    // in the latter i would not really know how to initialize the initial states independent of the dimensionality
+    // of my problem
+    const size_t N;
+    state_type dxdt, theta;
+};
+
+
 
 template<
         class state_type,
@@ -477,13 +504,17 @@ template<
         class value_type = double,
         class time_type = value_type
 >
-class euler_mayurama_stepper{
+class euler_mayurama_stepper : public stepper<state_type, algebra, operations, value_type, time_type> {
     string system_name = "System";
     string applying_name = "Applying Euler";
     string rng = "RNG during Euler";
     string functor = "Functor during Euler";
     checkpoint_timer timer{{system_name, applying_name, rng, functor}};
 public:
+
+    using stepper<state_type, algebra, operations, value_type, time_type>::dxdt;
+    using stepper<state_type, algebra, operations, value_type, time_type>::theta;
+    using stepper<state_type, algebra, operations, value_type, time_type>::N;
     // observer* Observer;
     // the stepper needs a do_step method
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
@@ -536,7 +567,7 @@ public:
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N) : N(N), dxdt(N), theta(N) //, Observer(Obs)
+    euler_mayurama_stepper(size_t N) : stepper<state_type, algebra, operations, value_type, time_type>(N) //, Observer(Obs)
     {
     }
 
@@ -547,15 +578,6 @@ public:
     // now for the memory allocation. I am not sure if this ever changes for me but the implementation should not harm
     // on the other hand, my class doesn't have any saved state_types that could potentially be resized
     // so we skip this for now
-protected:
-    // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
-    // values for all sites? not just by "stat_type(N)"
-    // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
-    // the state of the whole system? In the former, N would correspond with the dimensionality of my DGL system
-    // in the latter i would not really know how to initialize the initial states independent of the dimensionality
-    // of my problem
-    const size_t N;
-    state_type dxdt, theta;
 };
 
 template<
@@ -565,7 +587,7 @@ template<
         class value_type = double,
         class time_type = value_type
 >
-class euler_simple_adaptive{
+class euler_simple_adaptive : public stepper<state_type, algebra, operations, value_type, time_type>{
     int k;
     value_type tol;
     value_type error = 0;
@@ -579,6 +601,9 @@ class euler_simple_adaptive{
     string repetitions = "Repetitions";
     checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
 public:
+    using stepper<state_type, algebra, operations, value_type, time_type>::dxdt;
+    using stepper<state_type, algebra, operations, value_type, time_type>::theta;
+    using stepper<state_type, algebra, operations, value_type, time_type>::N;
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
@@ -636,8 +661,8 @@ public:
 
     }
 
-    euler_simple_adaptive(size_t N, int K, double tol) : N(N), dxdt(N), dx_drift_dt(N), x_drift(N), theta(N), k(K), tol(tol)
-    {}
+    euler_simple_adaptive(size_t N, int K, double tol) : dx_drift_dt(N), x_drift(N), k(K), tol(tol),
+    stepper<state_type, algebra, operations, value_type, time_type>(N){}
 
     int get_k() {
         return k;
@@ -648,8 +673,7 @@ public:
     }
 
 private:
-    const size_t N;
-    state_type x_drift, dxdt, dx_drift_dt, theta;
+    state_type x_drift, dx_drift_dt;
 };
 
 template<

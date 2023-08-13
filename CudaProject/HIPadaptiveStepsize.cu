@@ -108,7 +108,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             if(closest_T != "None") {
                 // now we list every csv file and take the one that is closest to i
                 vector<fs::path> csv_files = list_csv_files(closest_T);
-                print_vector(csv_files);
                 string closest_i = findClosestStem(csv_files, count);
                 cout << "clostest index to " << count << " already existing is " << closest_i << endl;
                 if(closest_i != "None") {

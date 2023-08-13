@@ -85,6 +85,22 @@ public:
 };
 
 
+class A{
+public:
+    virtual void run() {
+        cout << "running the virutal function?" << endl;
+    }
+    void repeat() {
+        this->run();
+    }
+};
+
+class B : public A {
+    void run() override {
+        cout << "calling the right shit fam" << endl;
+    }
+};
+
 int main(int argc, char* argv[]) {
 
     Child<5> child;
@@ -161,6 +177,9 @@ int main(int argc, char* argv[]) {
                                              [](int b) { return b * b; }); // reduction (sum)
 
     std::cout << "Sum of squares: " << sumOfSquares << std::endl;
+
+    B B_class{};
+    B_class.repeat();
 
     return 0;
 
