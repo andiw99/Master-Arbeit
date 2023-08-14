@@ -582,12 +582,12 @@ public:
     template<class Sys>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         for(auto obs : obsvers) {
-            obs(sys, x, t); // Observing before anything happens
+            obs->(sys, x, t); // Observing before anything happens
         }
         while (t < end_time){
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
-                obs(sys, x, t); // Observing before anything happens
+                obs->(sys, x, t); // Observing before anything happens
             }
         }
     }
