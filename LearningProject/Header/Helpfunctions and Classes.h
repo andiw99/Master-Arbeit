@@ -286,10 +286,8 @@ std::string findClosestStem(const std::vector<fs::path>& folders, const T& targe
 
     for (const auto& folder : folders) {
         double folderValue = stringToDouble(folder.stem().string());
-        cout << "folder stem:" << folder.stem().string() << endl;
-        cout << "folder value:" << folderValue << endl;
         double difference = std::abs(folderValue - static_cast<double>(targetValue));
-        if (difference < minDifference && difference > 0.0001) {
+        if (difference < minDifference) {
             minDifference = difference;
             closestFolder = folder.string();
         }
@@ -305,8 +303,6 @@ std::string findClosestDir(const std::vector<fs::path>& folders, const T& target
 
     for (const auto& folder : folders) {
         double folderValue = stringToDouble(folder.filename().string());
-        cout << "folder stem:" << folder.filename().string() << endl;
-        cout << "folder value:" << folderValue << endl;
         double difference = std::abs(folderValue - static_cast<double>(targetValue));
         if (difference < minDifference && difference > 0.0001) {
             minDifference = difference;
