@@ -1,9 +1,9 @@
 //
 // Created by andi on 14.05.23.
 //
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 #include <numeric>
 #include <chrono>
 #include <map>

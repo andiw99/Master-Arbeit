@@ -1,5 +1,5 @@
-#include "main.cuh"
-#include "systems.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
 #include <numeric>
 #include <chrono>
 

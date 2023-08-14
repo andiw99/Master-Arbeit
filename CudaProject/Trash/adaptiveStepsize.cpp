@@ -1,9 +1,9 @@
 //
 // Created by andi on 02.06.23.
 //
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 
 template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
 int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {

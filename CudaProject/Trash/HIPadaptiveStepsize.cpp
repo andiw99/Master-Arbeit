@@ -1,11 +1,11 @@
 //
 // Created by andi on 02.06.23.
 //
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 
-template <size_t lattice_dim>
+template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
 int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
@@ -59,7 +59,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
     typedef thrust::device_vector<double> gpu_state_type;
 
-    euler_combined<gpu_state_type, thrust_algebra, thrust_operations> gpu_stepper(N * n, K, tol);
+    stepper<gpu_state_type, thrust_algebra, thrust_operations, double, double> gpu_stepper(N * n, K, tol);
 
     // init and print initial state
 
@@ -67,7 +67,12 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0);
+
+    chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+            chrono::system_clock::now().time_since_epoch()
+    );
+
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
 
     for (int i = 0; i < n; i++) {
         mu += x[i];
@@ -92,7 +97,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             obs_timer.set_startpoint(obs_checkpoint);
             if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
+                Obs.writev2(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -128,7 +133,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             if (t >= write_timepoint) {
-                Obs.write(gpu_system, x, t);
+                Obs.writev2(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -163,7 +168,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     }
 }
 
-template <template<class a, class b, class c> class stepper, size_t lattice_dim>
+template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
 void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="", int count=0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
@@ -182,16 +187,21 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
 void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
-    const size_t lattice_dim = 100;
-
+    // const size_t* lattice_dim = &(size_t)adaptive_temp_scan_standard["lat_dim"];
+    // const size_t lattice_dim = 100;
     string root = adaptive_tempscan_root;
 
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-
-    const vector<double> T = linspace(paras["min_temp"],
-                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
+    vector<double> T;
+    if(paras["logspace"] == 1.0) {
+        T = geomspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    } else {
+        T = linspace(paras["min_temp"],
+                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
+    }
     // printing
     {
         print_vector(T);
@@ -208,11 +218,14 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         string dirpath = root + "/" + to_string(temp);
 
         cout << "Running repeat with following parameters:" << endl;
+        // need a function here that takes the dirpath, looks if there are already files inside and
+        // retunrs the highest number so that i can adjust the count
+        int count = findHighestCSVNumber(dirpath) + 1;
         printMap(paras);
         if(stepper == "adaptive") {
-            int steps = adaptive_routine<lattice_dim>(paras, 0, system, dirpath, 0);
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
         } else {
-            int steps = adaptive_routine<lattice_dim>(paras, 0, system, dirpath, 0);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
         }
     }
 

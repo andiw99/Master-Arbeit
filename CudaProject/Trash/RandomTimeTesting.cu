@@ -2,9 +2,9 @@
 // Created by weitze73 on 06.06.23.
 //
 #include <iostream>
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 
 
 /**************************************************/

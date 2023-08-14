@@ -46,6 +46,7 @@ void print_vector(vector<T> vec) {
         }
         cout << vec[i] << ", ";
     }
+    cout << endl;
 }
 
 
@@ -135,9 +136,12 @@ vector<fs::path> list_dir_paths(const fs::path& root)
             // if directory, add
             if (fs::is_directory(entry.path()) && entry.path().filename() != "plots")
             {
-                dir_paths.push_back(entry.path());
-                vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
-                dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+                // check for the fucking .ipynb folders
+                if(entry.path().filename().string()[0] != '.') {
+                    dir_paths.push_back(entry.path());
+                    vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
+                    dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+                }
             }
         }
     }
@@ -270,6 +274,26 @@ vector<complex<double>> readLastValues(ifstream& file, double& T) {
     return readValuesAt(file, ind, T, t);
 }
 
+template <class value_type, template<class, class> class container>
+void chess_trafo(container<value_type, std::allocator<value_type>>& vec) {
+    int lat_dim = sqrt(vec.size());
+    for (int i = 0; i < lat_dim/2; i++) {
+        for (int j = 0; j < lat_dim/2; j++) {
+            vec[2*i * lat_dim + 2 * j] *= (-1);
+            vec[(2*i+1) * lat_dim + 2 * j + 1] *= (-1);
+        }
+    }
+}
+
+template <class container>
+void chess_trafo(container& vec, int lat_dim) {
+    for (int i = 0; i < lat_dim/2; i++) {
+        for (int j = 0; j < lat_dim/2; j++) {
+            vec[2*i * lat_dim + 2 * j] *= (-1);
+            vec[(2*i+1) * lat_dim + 2 * j + 1] *= (-1);
+        }
+    }
+}
 
 double stringToDouble(const std::string& str) {
     try {
@@ -297,7 +321,7 @@ std::string findClosestStem(const std::vector<fs::path>& folders, const T& targe
 }
 
 template <typename T>
-std::string findClosestDir(const std::vector<fs::path>& folders, const T& targetValue) {
+std::string findClosestDir(const std::vector<fs::path>& folders, const T& targetValue, bool lowerTemp = true) {
     std::string closestFolder = "None";
     double minDifference = std::numeric_limits<double>::max();
 
@@ -305,8 +329,18 @@ std::string findClosestDir(const std::vector<fs::path>& folders, const T& target
         double folderValue = stringToDouble(folder.filename().string());
         double difference = std::abs(folderValue - static_cast<double>(targetValue));
         if (difference < minDifference && difference > 0.0001) {
-            minDifference = difference;
-            closestFolder = folder.string();
+            if(lowerTemp) {
+                // if lowerTemp is true, we only accept that this is the closest folder of the folder value is
+                // smaller than the target value, this is important for example for binder cum calculations
+                if(folderValue < targetValue) {
+                    minDifference = difference;
+                    closestFolder = folder.string();
+                }
+            } else {
+                // else we set it anyway
+                minDifference = difference;
+                closestFolder = folder.string();
+            }
         }
     }
 
@@ -590,6 +624,80 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
             cell[j * L + i] = lattice[ind % lattice.size()];
         }
     }
+}
+
+fs::path findCsvFile(const fs::path& directory) {
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".csv") {
+            return entry.path();
+        }
+    }
+    return ""; // Return an empty path if no .csv file is found
+}
+
+size_t get_sim_size(const fs::path& root) {
+    // TODO its a bit lost that i have to read in a csv file to get the size but it takes like 0.1 seconds
+    // so i don't care
+    string csv_path = findCsvFile(root);
+    ifstream csv_file = safe_read(csv_path);
+    double dummy_T, dummy_t;
+    vector<double> lattice = readDoubleValuesAt(csv_file, -1,  dummy_T, dummy_t);
+    return (size_t) sqrt(lattice.size());
+}
+
+template <class value_type>
+value_type mean(vector<value_type> vec) {
+    // get lattice dimension for looping and averaging
+    auto n = vec.size();
+    double m = 0;
+    // add everything up
+    // for the cumulant it is not important which q value is next to each other
+    // so we just leave the vector 1D and only sum over one index
+    for(int i=0; i < n; i++) {
+/*        cout << vec[i] <<", ";
+        if (i % 20 == 0) {
+            cout << endl;
+        }*/
+        m += vec[i];
+    }
+
+    // we have added everything up for one lattice, but we still need to average
+    m /= n;
+    // this function reduced to returning the mean value of a vector
+    return m;
+}
+
+int ind_to_1D(int row, int col, int lat_dim) {
+    return row * lat_dim + col;
+}
+
+fs::path findFirstTxtFile(const fs::path& directory) {
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+            return entry.path();
+        }
+    }
+
+    return {}; // Return an empty path if no .txt file is found
+}
+
+double extractTauValue(const fs::path& filePath) {
+    ifstream inputFile = safe_read(filePath);
+
+    string line;
+    while (std::getline(inputFile, line)) {
+        size_t pos = line.find(",");
+        if (pos != std::string::npos) {
+            std::string parameter = line.substr(0, pos);
+            if (parameter == "tau") {
+                cout << line.substr(pos + 1);
+                double tauValue = std::stod(line.substr(pos + 1));
+                return tauValue;
+            }
+        }
+    }
+
+    return 0.0; // Return a default value if 'tau' is not found
 }
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

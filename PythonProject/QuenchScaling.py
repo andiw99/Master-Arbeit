@@ -132,13 +132,13 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Quenching/"
+    root = "../../Generated content/AA/AA Quench"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
-    cutoff =  np.pi
+    cutoff = np.pi
     fitfunc = MF_lorentz
-    errors_for_fit=True
+    errors_for_fit = False
 
     print(root_dirs)
     # arrays to save the xi corrsponding to T

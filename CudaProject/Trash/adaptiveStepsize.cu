@@ -1,9 +1,9 @@
 //
 // Created by andi on 02.06.23.
 //
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 
 template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
 int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {
@@ -67,12 +67,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-
-    chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
-            chrono::system_clock::now().time_since_epoch()
-    );
-
-    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, 0, 0, 1);
 
     for (int i = 0; i < n; i++) {
         mu += x[i];
@@ -97,11 +92,22 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             obs_timer.set_startpoint(obs_checkpoint);
             if (t >= write_timepoint) {
-                Obs.writev2(gpu_system, x, t);
+                Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
             obs_timer.set_endpoint(obs_checkpoint);
+        }
+    } else if(system == "harmonic trap") {
+        cout << "creating harmonic trap with quadratic interaction" << endl;
+        quadratic_trapped_lattice<lattice_dim> gpu_system(T, eta, alpha, J, 11234566);
+        while(t < end_t) {
+            gpu_stepper.do_step(gpu_system, x, dt_max, t);
+            if (t >= write_timepoint) {
+                Obs.write(gpu_system, x, t);
+                write_timepoint += write_interval;
+                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
+            }
         }
     }
     else if(system == "quadratic_chain") {
@@ -133,7 +139,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             if (t >= write_timepoint) {
-                Obs.writev2(gpu_system, x, t);
+                Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -185,23 +191,18 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 }
 
 
-void simple_temps_scan(string stepper = "adaptive", string system="constant") {
+void simple_temps_scan(string stepper_name = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
-    // const size_t* lattice_dim = &(size_t)adaptive_temp_scan_standard["lat_dim"];
-    // const size_t lattice_dim = 100;
+    const size_t lattice_dim = 100;
+
     string root = adaptive_tempscan_root;
 
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-    vector<double> T;
-    if(paras["logspace"] == 1.0) {
-        T = geomspace(paras["min_temp"],
-                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
-    } else {
-        T = linspace(paras["min_temp"],
-                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
-    }
+
+    const vector<double> T = linspace(paras["min_temp"],
+                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
     // printing
     {
         print_vector(T);
@@ -218,14 +219,11 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
         string dirpath = root + "/" + to_string(temp);
 
         cout << "Running repeat with following parameters:" << endl;
-        // need a function here that takes the dirpath, looks if there are already files inside and
-        // retunrs the highest number so that i can adjust the count
-        int count = findHighestCSVNumber(dirpath) + 1;
         printMap(paras);
-        if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
+        if(stepper_name == "adaptive") {
+            repeat<euler_simple_adaptive, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], count, system, dirpath);
+            repeat<euler_combined, lattice_dim>(paras, (int)paras["repeat_nr"], 0, system, dirpath);
         }
     }
 
@@ -234,6 +232,6 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
 }
 
 int main() {
-    simple_temps_scan("combined", "coulomb constant");
+    simple_temps_scan("combined", "harmonic trap");
     return 0;
 }

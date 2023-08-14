@@ -94,7 +94,7 @@ void sum_and_add(const int N, fftw_complex const (*out), double (*ft_squared_k),
 }
 
 void fft_trafo_routine(const int N, int ind, fftw_complex (*in), fftw_complex const (*out), fftw_plan plan, double *ft_squared_k,
-                       double *ft_squared_l, fs::path csv_path, double &T, double& t) {
+                       double *ft_squared_l, fs::path csv_path, double &T, double& t, bool chessTrafo=true) {
     // needs to take in the references to the ft_avg_y and ft_avg_x and add them up for several files
     // and now it needs to add up everytime for every file, so it needs to take in the filepath
 /*    cout << "reading: " << filepath << endl;
@@ -126,8 +126,11 @@ void fft_trafo_routine(const int N, int ind, fftw_complex (*in), fftw_complex co
 
     // now we got to calculate the avg abs squared for every row and col and add them to ft_avg_y and ft_avg_x
     average_and_add(ft_fftw, ft_squared_y, ft_squared_x);*/
-    ifstream file = safe_read(csv_path);
+    ifstream file = safe_read(csv_path, false);
     auto data = readDoubleValuesAt(file, ind, T, t);
+    if(chessTrafo) {
+        chess_trafo(data);
+    }
     // copying the data to the in array
 // fftw_complex is just double[2].
 
@@ -145,6 +148,7 @@ void fft_trafo_routine(const int N, int ind, fftw_complex (*in), fftw_complex co
 
 
 
+/*
 Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_values) {
     // constrtuct the matrix that holds the k and ft values
     Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
@@ -162,6 +166,7 @@ Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_va
     std::cout << "status: " << status << std::endl;
     return params;
 }
+*/
 
 vector<double> p_to_vec(vector<vector<array<double, 2>>>& p) {
     vector<double> k;
@@ -179,12 +184,13 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/Quenching";
+        cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM AND TURN CHESS TRAFO ON/OFF" << endl;
+        root = "../../../Generated content/AA/AA Quench";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
-    const int N = 100;
+    const int N = 160;
+    bool chessTrafo = true;
     cout << "Lattice dim = " << N << endl;
 
     vector<fs::path> temp_directories = list_dir_paths(root);
@@ -246,7 +252,7 @@ int main(int argc, char* argv[]) {
 
             for(auto csv_path :csv_files) {
                 // here i am going through line i on every realization and add up ft_squared_y
-                fft_trafo_routine(N, i, in, out, plan, ft_squared_y, ft_squared_x, csv_path, T, t);
+                fft_trafo_routine(N, i, in, out, plan, ft_squared_y, ft_squared_x, csv_path, T, t, chessTrafo);
             }
 
             // and now just average over the run size
@@ -260,13 +266,13 @@ int main(int argc, char* argv[]) {
             // time at the beginning
             vector<double> ft_vec_x = vector<double>(ft_squared_x, ft_squared_x + sizeof(ft_squared_x) / (sizeof ft_squared_x[0]));
             Eigen::VectorXd paras_X = fit_lorentz_peak(k, ft_vec_x);
-            cout << paras_X << endl;
+            // cout << paras_X << endl;
 
             corr_lengths_x.push_back(paras_X(1));
 
             vector<double> ft_vec_y = vector<double>(ft_squared_y, ft_squared_y + sizeof(ft_squared_y) / (sizeof ft_squared_y[0]));
             Eigen::VectorXd paras_y = fit_lorentz_peak(k, ft_vec_y);
-            cout << paras_y << endl;
+            // cout << paras_y << endl;
 
             corr_lengths_y.push_back(paras_y(1));
             times.push_back(t);

@@ -116,18 +116,16 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        cout << "PLEASE MAKE SURE TO ADJUST LATTICE DIM" << endl;
-        root = "../../../Generated content/New/Coulomb/Critical Exponent";
+        root = "../../../Generated content/AA/Binder Overdamped";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
-    const int N = 250;
-    const int starting_k = 1;
-    const int nr_Ls = 5;
-    cout << "Lattice dim = " << N << endl;
-    const vector<int> L_vec = generate_L(starting_k, N*N, nr_Ls);
+    int N;
+    const int starting_k = 2;
+    const int nr_Ls = 10;
+    bool chessTrafo = true;
+    vector<int> L_vec;
 
-    print_vector(L_vec);
 
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
@@ -139,10 +137,9 @@ int main(int argc, char* argv[]) {
     ofstream corrList;
     corrList.open(root/"corr.lengths");
     corrList << "T";
-    for (int L : L_vec) {
-        corrList << "," << L << "," << L << "_y";
-    }
 
+
+    int running = 0;
 
     for(auto path : temp_directories) {
         // so what do we want to do here? path is temp folder
@@ -152,26 +149,10 @@ int main(int argc, char* argv[]) {
         // But maybe we can try using only larger sublattices.
         // After we have averaged the fourier transform of every sublattice, we do the fit
         // and get one value for the size and temp
-
         // for every temp i need a map that maps the system size to its running lattice fourier trafo
         map<int, double*> ft_k_map;
         map<int, double*> ft_l_map;
-        // allocate memory for the maps
-        for (int L : L_vec) {
-            // I have L values for the fourier transform i think
-            cout << L << endl;
-            double* ft_k = new double[L];
-            double* ft_l = new double[L];
-            for(int l = 0; l < L; l++) {
-                ft_k[l] = 0;
-                ft_l[l] = 0;
-            }
 
-            // ft_k_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
-            // ft_l_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
-            ft_k_map[L] = ft_k;
-            ft_l_map[L] = ft_l;
-        }
 
 
         vector<fs::path> csv_files = list_csv_files(path);
@@ -190,12 +171,38 @@ int main(int argc, char* argv[]) {
             // read file
             ifstream file = safe_read(csv_files[i], false);
             auto lat_q = readDoubleValuesAt(file, -1,  T, t);
+            if(chessTrafo) {
+                chess_trafo(lat_q);
+            }
+            if(running == 0) {
+                N = (int)sqrt(lat_q.size());
+                cout << endl << "Lattice dim = " << N << endl;
+                L_vec = generate_L(starting_k, N * N, nr_Ls);
+                print_vector(L_vec);
+                running++;
+                for (int L : L_vec) {
+                    corrList << "," << L << "," << L << "_y";
+                }
+                // allocate memory for the maps
 
+            }
+            for (int L : L_vec) {
+                // I have L values for the fourier transform i think
+                double* ft_k = new double[L];
+                double* ft_l = new double[L];
+                for(int l = 0; l < L; l++) {
+                    ft_k[l] = 0;
+                    ft_l[l] = 0;
+                }
+
+                // ft_k_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
+                // ft_l_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
+                ft_k_map[L] = ft_k;
+                ft_l_map[L] = ft_l;
+            }
             // fourier trafo for every size
             for(int L : L_vec) {
                 cout << L << endl;
-
-
                 // enumerate subsystems
                 int nr_cells = (int)(N * N/ (L * L));
                 fftw_complex *in, *out;
@@ -262,8 +269,6 @@ int main(int argc, char* argv[]) {
             fill_p(q, p);
             auto k = p_to_vec(p);
 
-            print_array(ft_k_map[L], L);
-            cout << endl;
             Eigen::VectorXd paras_x = fit_lorentz_peak(k, ft_k_map[L], L);
             Eigen::VectorXd paras_y = fit_lorentz_peak(k, ft_l_map[L], L);
             cout << paras_x(0) << ", " << paras_x(1);

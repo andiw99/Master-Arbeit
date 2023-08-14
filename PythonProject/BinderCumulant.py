@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/New/Coulomb/Critical Exponent/"
+    root = "../../Generated content/AA/Binder Underdamped"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,9 +43,10 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 3
+    exclude_large_dists = 2
     exclude_small_dists = 0
-    xi_exclude_large_dists = 4
+    min_temp = 0.7
+    xi_exclude_large_dists = 2
     xi_exclude_small_dists = 0
     r = 2
 
@@ -66,6 +67,7 @@ def main():
     for size in labels[::2]:
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
+
     for size in xi_labels[::2]:
 
         xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
@@ -73,7 +75,11 @@ def main():
     T = np.sort(T)
 
     T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
-
+    # sort out temps
+    for size in labels[::2]:
+        cum_dic[size] = cum_dic[size][T > min_temp]
+        cum_err_dic[size] = cum_err_dic[size][T > min_temp]
+    T = T[T > min_temp]
     plt.show()
     fig, ax = plt.subplots(1, 1)
 
@@ -108,7 +114,7 @@ def main():
     plt.xticks(list(plt.xticks()[0]) + [T_inter])
 
     ax.set_xlim(np.min(T) - 0.02 * np.mean(T), np.max(T) + 0.02 * np.mean(T))
-    ax.set_ylim(0.95, 2.5)
+    # ax.set_ylim(0.95, 2.5)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
@@ -143,13 +149,14 @@ def main():
 
 
 
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=2))
     # TODO minor locator muss
     span = np.max(diff_arr) - np.min(diff_arr)
     print(diff_arr)
     print(span)
     ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
     ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
+    x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(size_arr, diff_arr, linestyle="", marker="+")
@@ -158,7 +165,7 @@ def main():
     ax.plot(L_fit, crit_poly_fit_corr(L_fit, *popt_poly_corr), label=rf"$\nu = {nu_poly_corr:.2f}$")
     ax.plot(L_fit, ising_corr_poly_fit(L_fit, *popt_ising), label=rf"$\omega = {popt_ising[2]:.2f}$", linestyle="-.")
     ax.set_xlabel("L")
-    ax.set_ylabel(r"$\frac{d U_L}{d }$")
+    ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
     save_plot(root, "/critical_exponent.pdf", format="pdf")
     plt.show()

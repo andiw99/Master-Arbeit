@@ -1,13 +1,12 @@
 //
 // Created by andi on 02.06.23.
 //
-#include "main.cuh"
-#include "systems.cuh"
-#include "parameters.cuh"
+#include "../main.cuh"
+#include "../systems.cuh"
+#include "../parameters.cuh"
 
-template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
-int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default",
-                     string root = "", int count=0, double pre_T = -1.0) {
+template <size_t lattice_dim>
+int adaptive_routine(map<string, double> parameters, long seed = 0, string system="default", string save_dir = "", int count=0) {
     // We try out the code for the brownian motion i would say
     // But we cannot use our old class system I think because there the whole system is already on a lattice
 //
@@ -40,7 +39,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     double mu = 0;
     double msd = 0;
     // file stuff
-    string save_dir = root + "/" + to_string(parameters["T"]);
     string dir_name;
     if(save_dir.empty()) {
         string storage_root = "../../../Generated content/Default/";
@@ -61,65 +59,16 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
     typedef thrust::device_vector<double> gpu_state_type;
 
-    stepper<gpu_state_type, thrust_algebra, thrust_operations, double, double> gpu_stepper(N * n, K, tol);
+    euler_combined<gpu_state_type, thrust_algebra, thrust_operations> gpu_stepper(N * n, K, tol);
 
-    // init and print initial state, we start in an equilibrium position, in the positive minimum
-    gpu_state_type x(N * n, sqrt(beta / 2.0));
+    // init and print initial state
 
+    gpu_state_type x(N * n, x0);
     // set the impulses to be zero
     thrust::fill(x.begin() + n, x.begin() + N * n, p0);
     // okay we overwrite this here
-    if (pre_T >= 0) {
-        // else we need to read in the previous state
-        string pre_dir_name = root + "/" + to_string(pre_T);
-        string pre_name = pre_dir_name + "/" + to_string(count) + ".csv";
-        ifstream pre_file = safe_read(pre_name, true);
-        // and we are ready to read in the last file?
-        double prev_T;
-        double prev_t;
-        vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
-        // we need to copy them into the gpu state type
-        // just for loop?
-        for(int i = 0; i < n; i++) {
-            x[i] = pre_lattice[i];
-        }
-    } else if(pre_T < 0.0) {
-        // if pre_T is smaller than zero that means that we didn't have a previous T so wi initialize random.
-        if(parameters["random"] == 1.0) {
-            // if random parameter is true we initialize high temperature random initial state
-            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
-                    chrono::system_clock::now().time_since_epoch()
-            );
-            fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
-        } else if (parameters["random"] == -1.0) {
-            // this is now code to check for runs that are already there
-            cout << "checking for initial state in folder..." << endl;
-            // listing the temp folders that are already inside
-            vector<fs::path> temp_paths = list_dir_paths(root);
-            // we check every folder name for the value and use the one that is closest to our actual temp
-            string closest_T = findClosestDir(temp_paths, T);
-            cout << "clostest folder to " << T << " already existing is " << closest_T << endl;
-            if(closest_T != "None") {
-                // now we list every csv file and take the one that is closest to i
-                vector<fs::path> csv_files = list_csv_files(closest_T);
-                print_vector(csv_files);
-                string closest_i = findClosestStem(csv_files, count);
-                cout << "clostest index to " << count << " already existing is " << closest_i << endl;
-                if(closest_i != "None") {
-                    fs::path pre_name = closest_i;
-                    cout << "Trying to read " << pre_name << endl;
-                    ifstream pre_file = safe_read(pre_name, true);
-                    // and we are ready to read in the last file?
-                    double prev_T;
-                    double prev_t;
-                    vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
-                    for(int i = 0; i < n; i++) {
-                        x[i] = pre_lattice[i];
-                    }
-                }
-            }
-        }
-    }
+    fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0);
+
     for (int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
@@ -143,7 +92,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             obs_timer.set_startpoint(obs_checkpoint);
             if (t >= write_timepoint) {
-                Obs.writev2(gpu_system, x, t);
+                Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -179,7 +128,7 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
 
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
             if (t >= write_timepoint) {
-                Obs.writev2(gpu_system, x, t);
+                Obs.write(gpu_system, x, t);
                 write_timepoint += write_interval;
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
@@ -214,9 +163,8 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     }
 }
 
-template <template<class, class, class, class, class> class stepper, size_t lattice_dim>
-void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default",
-            string root="", int count=0, double pre_T = -1.0) {
+template <template<class a, class b, class c> class stepper, size_t lattice_dim>
+void repeat(map<string, double> parameters, int runs, long seed = 0, string system="default", string dir_path="", int count=0) {
     // seed is the seed for the random numbers so that we can have different random numbers per run
     if(runs == 0) {
         return;
@@ -224,31 +172,26 @@ void repeat(map<string, double> parameters, int runs, long seed = 0, string syst
 
     cout << runs << " runs left" << endl;
 
-    int steps = adaptive_routine<stepper, lattice_dim>(parameters, seed, system, root, count, pre_T);
+    int steps = adaptive_routine<stepper, lattice_dim>(parameters, seed, system, dir_path, count);
     // how to get the number of steps that were done? let single calc routine return it?
     // or put it also into repeat
-    repeat<stepper, lattice_dim>(parameters, runs - 1, seed + steps, system, root, count+1, pre_T);
+    repeat<stepper, lattice_dim>(parameters, runs - 1, seed + steps, system, dir_path, count+1);
 
 }
 
 
 void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     // we always need to specify the lattice dim
-    // const size_t* lattice_dim = &(size_t)adaptive_temp_scan_standard["lat_dim"];
-    // const size_t lattice_dim = 100;
+    const size_t lattice_dim = 100;
+
     string root = adaptive_tempscan_root;
 
 
     map<string, double> paras = adaptive_temp_scan_standard;
     // we do not use the fast forward here
-    vector<double> T;
-    if(paras["logspace"] == 1.0) {
-        T = geomspace(paras["min_temp"],
-                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
-    } else {
-        T = linspace(paras["min_temp"],
-                                          paras["max_temp"], (int)paras["nr_temps"] + 1);
-    }
+
+    const vector<double> T = linspace(paras["min_temp"],
+                                      paras["max_temp"], (int)paras["nr_temps"] + 1);
     // printing
     {
         print_vector(T);
@@ -258,32 +201,19 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
     }
 
     // now cycling
-    int i = 0;
     for(double temp : T) {
         paras["T"] = temp;
         // for every T we need to initalize a new system, but first i think we maybe should check our system?
         // for every T we need another directory
-
-        double pre_T = -1.0;
-        if(i > 0) {
-            // if we already did a sim, eg if i >0, the previous temp can be obtained
-            pre_T = T[i - 1];
-        }
+        string dirpath = root + "/" + to_string(temp);
 
         cout << "Running repeat with following parameters:" << endl;
-        // need a function here that takes the dirpath, looks if there are already files inside and
-        // retunrs the highest number so that i can adjust the count
-        int count = findHighestCSVNumber(root + "/" + to_string(temp)) + 1;
-        cout << count << " Files already in Folder" << endl;
-        int runs = (int)paras["repeat_nr"] - count;
-        cout << "We fill the folder up to " << count << " + " << runs << " = " << count + runs << " realizations";
         printMap(paras);
         if(stepper == "adaptive") {
-            repeat<euler_simple_adaptive, lattice_dim>(paras, runs, 0, system, root, count, pre_T);
+            int steps = adaptive_routine<lattice_dim>(paras, 0, system, dirpath, 0);
         } else {
-            repeat<euler_combined, lattice_dim>(paras, runs, 0, system, root, count, pre_T);
+            int steps = adaptive_routine<lattice_dim>(paras, 0, system, dirpath, 0);
         }
-        i++;
     }
 
     // print the root

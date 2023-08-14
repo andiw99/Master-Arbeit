@@ -15,7 +15,8 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     // But we can quickly write another system i guess
     double    dt_max = parameters["dt_max"];
     const double    T = parameters["T"];
-    const double    J = parameters["J"];
+    const double    J = parameters["J"];            // in anisotropic case Jx
+    const double    Jy= parameters["Jy"];            // in anisotropic case Jy
     const double    alpha = parameters["alpha"];
     const double    beta = parameters["beta"];
     const double    tau = parameters["tau"];
@@ -64,34 +65,39 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
     stepper<gpu_state_type, thrust_algebra, thrust_operations, double, double> gpu_stepper(N * n, K, tol);
 
     // init and print initial state, we start in an equilibrium position, in the positive minimum
+    // if we are in the antisymmetric case, we have to chessboard trafo the initial state
     gpu_state_type x(N * n, sqrt(beta / 2.0));
-
+    if (J < 0) {
+        chess_trafo(x, lattice_dim);
+    }
+    cout << "Chess trafo is fine" << endl;
     // set the impulses to be zero
-    thrust::fill(x.begin() + n, x.begin() + N * n, p0);
+    thrust::fill(x.begin() + n, x.begin() + N * n, 0);
     // okay we overwrite this here
-    if (pre_T >= 0) {
-        // else we need to read in the previous state
-        string pre_dir_name = root + "/" + to_string(pre_T);
-        string pre_name = pre_dir_name + "/" + to_string(count) + ".csv";
-        ifstream pre_file = safe_read(pre_name, true);
-        // and we are ready to read in the last file?
-        double prev_T;
-        double prev_t;
-        vector<double> pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
-        // we need to copy them into the gpu state type
-        // just for loop?
-        for(int i = 0; i < n; i++) {
-            x[i] = pre_lattice[i];
-        }
-    } else if(pre_T < 0.0) {
-        // if pre_T is smaller than zero that means that we didn't have a previous T so wi initialize random.
-        if(parameters["random"] == 1.0) {
-            // if random parameter is true we initialize high temperature random initial state
-            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
-                    chrono::system_clock::now().time_since_epoch()
-            );
-            fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
-        } else if (parameters["random"] == -1.0) {
+    if(parameters["random"] == 1.0) {
+        // if random parameter is true we initialize high temperature random initial state
+        chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+        fill_init_values<gpu_state_type, n>(x, (float) x0, (float) p0, ms.count() % 10000);
+    } else if (parameters["random"] == -1.0) {
+/*        vector<double> pre_lattice;
+        if (pre_T >= 0) {
+            // else we need to read in the previous state
+            string pre_dir_name = root + "/" + to_string(pre_T);
+            string pre_name = pre_dir_name + "/" + to_string(count) + ".csv";
+            ifstream pre_file = safe_read(pre_name, true);
+            // and we are ready to read in the last file?
+            double prev_T;
+            double prev_t;
+            pre_lattice = readDoubleValuesAt(pre_file, -1, prev_T, prev_t);
+            // we need to copy them into the gpu state type
+            // just for loop?
+            for(int i = 0; i < n; i++) {
+                x[i] = pre_lattice[i];
+            }
+        } else if(pre_T < 0.0) {*/
+            // if pre_T is smaller than zero that means that we didn't have a previous T so we initialize random.
             // this is now code to check for runs that are already there
             cout << "checking for initial state in folder..." << endl;
             // listing the temp folders that are already inside
@@ -102,7 +108,6 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
             if(closest_T != "None") {
                 // now we list every csv file and take the one that is closest to i
                 vector<fs::path> csv_files = list_csv_files(closest_T);
-                print_vector(csv_files);
                 string closest_i = findClosestStem(csv_files, count);
                 cout << "clostest index to " << count << " already existing is " << closest_i << endl;
                 if(closest_i != "None") {
@@ -118,8 +123,9 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
                     }
                 }
             }
-        }
+        // only if we found old runs we do something, otherwise it is just initialized in equilibrium position
     }
+
     for (int i = 0; i < n; i++) {
         mu += x[i];
         msd += x[i] * x[i];
@@ -184,8 +190,21 @@ int adaptive_routine(map<string, double> parameters, long seed = 0, string syste
                 cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
             }
         }
-    }
-    else {
+    } else if(system=="anisotropic coulomb constant") {
+        anisotropic_coulomb_constant<lattice_dim> ani_coulomb(T, eta, alpha, beta, J, Jy, seed);
+        while(t < end_t) {
+            // we need small stepsizes at the beginning to guarantee stability
+            // but after some time, we can increase the stepsize
+            // there should be a t that is equal to t_relax?
+
+            gpu_stepper.do_step(ani_coulomb, x, dt_max, t);
+            if (t >= write_timepoint) {
+                Obs.writev2(ani_coulomb, x, t);
+                write_timepoint += write_interval;
+                cout << "current k = " << gpu_stepper.get_k() << " at t = " << t << endl;
+            }
+        }
+    } else {
         gpu_bath<lattice_dim> gpu_system(T, eta, alpha, beta, J, tau, seed);
         while(t < end_t) {
             gpu_stepper.do_step(gpu_system, x, dt_max, t);
@@ -291,6 +310,6 @@ void simple_temps_scan(string stepper = "adaptive", string system="constant") {
 }
 
 int main() {
-    simple_temps_scan("combined", "coulomb constant");
+    simple_temps_scan("combined", "anisotropic coulomb constant");
     return 0;
 }

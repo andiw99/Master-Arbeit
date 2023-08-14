@@ -5,7 +5,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Overdamped Quenching/"
+    root = "../../Generated content/AA/AA Quench"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -45,7 +45,7 @@ def main():
                 xi_x = np.array(df["xi_x"][1:])
                 xi_y = np.array(df["xi_y"][1:])
                 xi = 1/2 * (xi_x + xi_y)
-                xi_y +=  1/4 * np.max(xi_x)     # for plotting
+                #xi_y +=  1/4 * np.max(xi_x)     # for plotting
 
                 fig, axes = plt.subplots(1, 1)
                 axes.plot(t_tau[1:], xi_x, ls="", marker=".", label=r"$\xi_x$", ms=2.5)
@@ -59,7 +59,9 @@ def main():
                 axes.xaxis.set_major_locator(ticker.MultipleLocator(base=maxt_tau / 4))
                 axes.xaxis.set_minor_locator(ticker.MultipleLocator(base=maxt_tau / 4 / 5))
                 # TODO minor locator muss
-                axes.yaxis.set_minor_locator((plt.MultipleLocator(0.01)))
+                xi_span = round(np.maximum(np.max(xi_x), np.max(xi_y)) - np.minimum(np.min(xi_x), np.min(xi_y)), 1)
+                axes.yaxis.set_major_locator((plt.MultipleLocator(xi_span / 4)))
+                axes.yaxis.set_minor_locator((plt.MultipleLocator(xi_span / 4 / 5)))
                 # Füge Gitterlinien hinzu
                 axes.grid(which='major', linestyle='--', alpha=0.5)
                 # second x axis for the temperature
