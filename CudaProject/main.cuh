@@ -200,6 +200,7 @@ struct thrust_operations {
 // We need those observers that do stuff like writing the values to a file
 class observer {
 public:
+    ofstream ofile;
     template<class State, class System>
     void operator()(const System sys, const State &x , double t ) {
         cout << "Base Observer gets called" << endl;
@@ -208,6 +209,73 @@ public:
     observer() {
     }
 
+    template<class State, class System>
+    void write(System &sys, const State &x , double t ) {
+
+    }
+
+    void open_stream(fs::path filepath) {
+        ofile.open(filepath);
+    }
+
+    void close_stream(fs::path filepath) {
+        ofile.close();
+    }
+    template <class System>
+    void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+        cout << "dummy init is called" << endl;
+    }
+};
+
+class quench_observer : public observer {
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    double write_interval = 1;
+    int nr_values;
+    double timepoint = 0;
+public:
+    quench_observer(int nr_values): nr_values(nr_values) {
+        // should this be the observer that only writes a few values for the equilibrium process?
+        // I am not sure at the moment, I think i am just going to write the simplest one for now, so
+        // just equidistant saving values.
+        // We try to initialize the observer outside the class since it probably needs
+        // multiple unique-to-observer parameters
+        // problem is it still might depend on system parameters. and i don't want another if for every step
+        // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
+    }
+    template<class State, class System>
+    void operator()(const System &sys, const State &x , double t ) {
+        if(t > timepoint) {
+            // write
+            // Doing some refactoring, not putting t in every row and Temperature directly after T
+            size_t lat_dim = sys.get_lattice_dim();
+            double T = sys.get_cur_T();
+
+            ofile << t << "," << T << ",";
+            for(int i = 0; i < lat_dim * lat_dim; i++) {
+                ofile << x[i] << ",";
+                // cout << x[i] << endl;
+
+            }
+            // Zeilenumbruch
+            ofile << "\n";
+            // advance timeoint
+            timepoint += write_interval;
+        }
+    }
+    template<class System>
+    void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_T = sys.get_end_t();
+        write_interval = end_T / (double)nr_values;
+        timepoint = 0.0;
+
+        // open the file to write the info to, in this case it will be just run_nr.csv
+        // I think we will add the run number to the paras of the run
+        int run_nr = (int)paras["run_nr"];
+        open_stream(folderpath / (to_string(run_nr) + ".csv"));
+    }
 };
 
 // Observer for lattic on bath specific for gpu_bath system?
@@ -223,6 +291,9 @@ public:
     bath_observer(ofstream& out, size_t write_every = 1000) : file(out), write_every(write_every) {
         count = 1;
     }
+
+/*    bath_observer(size_t write_every = 1000) : write_every(write_every) {
+    }*/
 
     template<class State, class System>
     void operator()(System &sys, const State &x , double t ) {
@@ -481,10 +552,9 @@ public:
 
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
-
     }
-
-   stepper(size_t N) : N(N), dxdt(N), theta(N) {}
+    stepper() {}
+    stepper(size_t N) : N(N), dxdt(N), theta(N) {}
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
     // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
@@ -492,12 +562,35 @@ public:
     // in the latter i would not really know how to initialize the initial states independent of the dimensionality
     // of my problem
 
-    virtual void reste() {
+    virtual void reset() {
         //supposed to reset some variables, nothing to do here
     }
 
     const size_t N;
     state_type dxdt, theta;
+    vector<observer*> obsvers = {};               // new, we can register an observer to a stepper
+
+    void register_observer(observer* obs) {
+        obsvers.push_back(obs);
+    }
+
+    template<class Sys>
+    void do_step(Sys& sys, state_type& x, time_type dt_max, time_type& t) {
+        cout << "dummy do step is called" << endl;
+    }
+
+    template<class Sys>
+    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
+        for(auto obs : obsvers) {
+            obs(sys, x, t); // Observing before anything happens
+        }
+        while (t < end_time){
+            this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
+            for(auto obs : obsvers) {
+                obs(sys, x, t); // Observing before anything happens
+            }
+        }
+    }
 };
 
 
@@ -520,6 +613,7 @@ public:
     using stepper<state_type, algebra, operations, value_type, time_type>::dxdt;
     using stepper<state_type, algebra, operations, value_type, time_type>::theta;
     using stepper<state_type, algebra, operations, value_type, time_type>::N;
+    using stepper<state_type, algebra, operations, value_type, time_type>::stepper;
     // observer* Observer;
     // the stepper needs a do_step method
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
@@ -606,9 +700,11 @@ class euler_simple_adaptive : public stepper<state_type, algebra, operations, va
     string repetitions = "Repetitions";
     checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
 public:
-    using stepper<state_type, algebra, operations, value_type, time_type>::dxdt;
-    using stepper<state_type, algebra, operations, value_type, time_type>::theta;
-    using stepper<state_type, algebra, operations, value_type, time_type>::N;
+    typedef stepper<state_type, algebra, operations, value_type, time_type> stepper;
+    using stepper::stepper;
+    using stepper::dxdt;
+    using stepper::theta;
+    using stepper::N;
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
@@ -667,7 +763,7 @@ public:
     }
 
     euler_simple_adaptive(size_t N, int K, double tol) : dx_drift_dt(N), x_drift(N), k(K), tol(tol),
-    stepper<state_type, algebra, operations, value_type, time_type>(N){}
+    stepper(N){}
 
     int get_k() {
         return k;
@@ -703,12 +799,11 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     typedef typename operations::calc_error calc_error;
     typedef typename operations::template sum<value_type> sum;
     typedef typename operations::template apply_diff<time_type> apply_diff;
-    using euler_mayurama_stepper<state_type, algebra, operations,
-            value_type, time_type>::theta;
-    using euler_mayurama_stepper<state_type, algebra, operations,
-            value_type, time_type>::N;
-    using euler_mayurama_stepper<state_type, algebra, operations,
-            value_type, time_type>::dxdt;
+    typedef euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type> euler_mayurama_stepper;
+    using euler_mayurama_stepper::theta;
+    using euler_mayurama_stepper::N;
+    using euler_mayurama_stepper::dxdt;
 /*    using do_euler_step = euler_mayurama_stepper<state_type, algebra, operations,
             value_type, time_type>::do_step;*/
     string drift_calc = "Second drift calc";
@@ -719,7 +814,6 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     string rng = "Random Number Generation";
     checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps, rng}};
 public:
-
     template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         if(switch_counter > switch_count * k) {
@@ -729,8 +823,7 @@ public:
                 cout << "or are we at prev_k? prev_k = " << prev_accepted_k << endl;
                 switched = true;
             }
-            euler_mayurama_stepper<state_type, algebra, operations,
-                    value_type, time_type>::do_step(sys, x, dt, t);
+            euler_mayurama_stepper::do_step(sys, x, dt, t);
             t += dt;
             timer.set_endpoint(euler_steps);
         } else {
@@ -744,14 +837,6 @@ public:
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         while (t < end_time){
             do_step(sys, x, dt_max, t);
-        }
-    }
-    template<class Sys>
-    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, observer obs) {
-        obs(sys, x, t);
-        while (t < end_time){
-            do_step(sys, x, dt_max, t);
-            obs(sys, x, t);     // I think the new plan is to observe after every step and let the observer decide whether to do something or not
         }
     }
 
@@ -828,7 +913,9 @@ public:
 
     }
 
-    euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper<state_type, algebra, operations, value_type, time_type>(N),
+    euler_combined() {} // TODO default constructor, could be inherited but...
+
+    euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper(N),
              dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
     k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count), first_k(K)
     {
@@ -851,6 +938,7 @@ public:
         k = first_k;
         // something else?
     }
+
 
 private:
     state_type x_drift, dx_drift_dt;
@@ -1114,7 +1202,7 @@ state_initializer* create_state_initializer(int random, map<string, double>& par
         // case for the random initializer
         return new random_initializer(paras);
     } else if (random == 0) {
-
+        return NULL;
     }
 }
 
@@ -1126,14 +1214,14 @@ template<
         class time_type = value_type,
         template<class, class, class, class, class> class stepper_type
 >
-stepper<state_type, algebra, operations, value_type, time_type> create_stepper(map<string, double>& paras, int n) {
+stepper_type<state_type, algebra, operations, value_type, time_type>* create_stepper(map<string, double>& paras, int n) {
     if(is_same<stepper_type<state_type, algebra, operations, value_type, time_type>,
             euler_combined<state_type, algebra, operations, value_type, time_type>>::value){
         // damn tahts ugly
         int N = (int) paras["N"];
         double K = paras["K"];
         double tol = paras["tol"];
-        return euler_combined<state_type, algebra, operations, value_type, time_type>(N * n, K ,tol);
+        return new stepper_type<state_type, algebra, operations, value_type, time_type>(N * n, K ,tol);
     } // TODO other steppers
 }
 

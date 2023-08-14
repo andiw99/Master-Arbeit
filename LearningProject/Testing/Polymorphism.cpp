@@ -181,6 +181,46 @@ int main(int argc, char* argv[]) {
     B B_class{};
     B_class.repeat();
 
+    int rows = 3;
+    int cols = 4;
+
+    double** matrix = new double*[rows];
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new double[cols];
+    }
+
+    // Initializing values
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = i * cols + j;
+        }
+    }
+
+    // Accessing and printing values
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << matrix[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // Deallocating memory
+    for (int i = 0; i < rows; ++i) {
+        delete[] matrix[i];
+    }
+    delete[] matrix;
+
+    double* testarray = new double[2];
+    testarray[0] = 0.0;
+    cout << "here?" << endl;
+    testarray[1] = 1.1;
+    cout << "or here?" << endl;
+    for(int l; l < 2; l++) {
+        cout << "what?" << endl;
+        cout << testarray[l] << endl;
+    }
+    delete[] testarray;
+
     return 0;
 
 }

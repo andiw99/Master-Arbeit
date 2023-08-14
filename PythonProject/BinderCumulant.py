@@ -43,9 +43,9 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 2
+    exclude_large_dists = 3
     exclude_small_dists = 0
-    min_temp = 0.7
+    min_temp = 0.50
     xi_exclude_large_dists = 2
     xi_exclude_small_dists = 0
     r = 2
@@ -297,8 +297,9 @@ def get_size(size_path, temp_dirs):
             file_paths = os.listdir(dir_path)
             for f in file_paths:
                 if (os.path.splitext(f)[1] == ".txt"):
+                    print(os.path.join(dir_path, f))
                     parameters = read_parameters_txt(os.path.join(dir_path, f))
-    return np.sqrt(parameters["n"])
+                    return np.sqrt(parameters["n"])
 
 
 if __name__ == "__main__":
