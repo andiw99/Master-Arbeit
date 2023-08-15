@@ -87,7 +87,7 @@ public:
 
 class A{
 public:
-    virtual void run() {
+    void run() {
         cout << "running the virutal function?" << endl;
     }
     void repeat() {
@@ -96,9 +96,27 @@ public:
 };
 
 class B : public A {
-    void run() override {
+public:
+    void run() {
         cout << "calling the right shit fam" << endl;
     }
+};
+
+class Container {
+public:
+    vector<A*> observers;
+
+    template <class obsver>
+    void register_observer(obsver* obs) {
+        cout << "Registering observers" << endl;
+        obs->run();
+        observers.push_back(obs);
+        observers[0]->run();
+    }
+};
+
+class DerivedContainer: public Container {
+
 };
 
 int main(int argc, char* argv[]) {
@@ -180,6 +198,12 @@ int main(int argc, char* argv[]) {
 
     B B_class{};
     B_class.repeat();
+
+    B* derived = new B();
+    A* base = new A();
+    DerivedContainer container;
+    container.register_observer(derived);
+    container.register_observer(base);
 
     int rows = 3;
     int cols = 4;

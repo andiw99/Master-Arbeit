@@ -17,7 +17,8 @@ class Simulation {
 public:
     // i think we should work with a vector of pointers to observers, this should work right? I dont really trust me to safely
     // handle observer** pointer
-    vector<observer*> obsvers = {};          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
+    typedef obsver<lat_dim, sys, state_type> observer_type;
+    vector<observer_type*> obsvers;          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
     map<string, double> paras;
     state_initializer* State_initializer;
     fs::path simulation_path;
@@ -40,6 +41,7 @@ public:
     virtual void simulate() {
         // I probably will have some repeated code for simulate, since actually i only iterate over a tau or
         // T vector and call repeat, rest is handled by specific run implementation
+        cout << "calling virtual function simulate" << endl;
     }
     void run(int nr) {
         // okay what do we need to do for ever run?
@@ -70,7 +72,8 @@ public:
         // now we still need all the observing logic, damn that was more work than anticipated
         double end_t = Sys.get_end_t();
         double t = 0;
-        stepper->step_until(end_t, Sys, x, paras["dt"], t);
+        cout << "I am at least trying to call the stepper?" << endl;
+        stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
         step_nr += Sys.get_step_nr();
     }
     void repeat(int runs) {
@@ -100,14 +103,20 @@ public:
         // done for every simulation and it would be nice to not have to write that again
         repeat_nr = (int) paras["repeat_nr"];
         // the observer is supposed to be already alive here, so we just register it to the stepper
-        for(auto obs : obsvers) {
+/*        for(auto obs : obsvers) {
+            cout << "Registering observer to stepper: obs name:" << endl;
+            cout << obs->get_name() << endl;
             stepper->register_observer(obs);
-        }
+        }*/
     }
 
-    void register_observer(observer* obs) {
+    template <class Obs>
+    void register_observer(Obs* obs) {
         // this function needs to be called from outside and I have to register the custom initialized observers
+        cout << obs->get_name() << endl;
         obsvers.push_back(obs);
+        cout << "Type of first obs in obsvers:" << endl;
+        cout << obsvers[0]->get_name() << endl;
     }
 };
 
@@ -137,6 +146,8 @@ class QuenchSimulation : public Simulation<lat_dim, stepper_type, state_type, al
         Simulation::initialize();
     }
 
+public:
+
     void simulate() {
         // we need to initialize here or think of a different architecture since
         // if we initialize in the constructor we do not register the observers to the stepper
@@ -149,8 +160,6 @@ class QuenchSimulation : public Simulation<lat_dim, stepper_type, state_type, al
             this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
         }
     }
-
-public:
     QuenchSimulation(map<string, double> &paras, fs::path& simulation_path) :
             Simulation(paras, simulation_path) {
     }

@@ -225,9 +225,110 @@ public:
     void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
         cout << "dummy init is called" << endl;
     }
+
+    string get_name() {
+        return "base observer";
+    }
 };
 
-class quench_observer : public observer {
+// Okay because of our fancy vector<observer*> stuff in the simulation, we now need new templateable observer classes
+template <size_t lat_dim, template<size_t> class system, class State>
+class obsver {
+public:
+    typedef system<lat_dim> System;
+    ofstream ofile;
+    virtual void operator()(const System& sys, const State &x , double t ) {
+        cout << "Base Observer gets called" << endl;
+    }
+
+    obsver() {
+    }
+    void write(System &sys, const State &x , double t ) {
+
+    }
+
+    void open_stream(fs::path filepath) {
+        cout << "open stream is called with filepaht: " << filepath <<  endl;
+        create_dir(filepath.parent_path());
+        ofile.open(filepath);
+        ofile << "something" << endl;
+    }
+
+    void close_stream(fs::path filepath) {
+        ofile.close();
+    }
+    virtual void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+        cout << "dummy init is called" << endl;
+    }
+
+    virtual string get_name() {
+        return "base observer";
+    }
+};
+
+template <size_t lat_dim, template<size_t> class system, class State>
+class quench_observer : public obsver<lat_dim, system, State> {
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    double write_interval = 1;
+    int nr_values;
+    double timepoint = 0;
+public:
+    typedef system<lat_dim> System;
+    typedef obsver<lat_dim,system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    quench_observer(int nr_values): nr_values(nr_values) {
+        // should this be the observer that only writes a few values for the equilibrium process?
+        // I am not sure at the moment, I think i am just going to write the simplest one for now, so
+        // just equidistant saving values.
+        // We try to initialize the observer outside the class since it probably needs
+        // multiple unique-to-observer parameters
+        // problem is it still might depend on system parameters. and i don't want another if for every step
+        // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
+    }
+    void operator()(const System &sys, const State &x , double t ) override {
+        cout << "I am the all knowing" << endl;
+        if(t > timepoint) {
+            // write
+            // Doing some refactoring, not putting t in every row and Temperature directly after T
+            double T = sys.get_cur_T();
+
+            ofile << t << "," << T << ",";
+            for(int i = 0; i < lat_dim * lat_dim; i++) {
+                ofile << x[i] << ",";
+                // cout << x[i] << endl;
+
+            }
+            // Zeilenumbruch
+            ofile << "\n";
+            // advance timeoint
+            timepoint += write_interval;
+        }
+    }
+    void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        cout << "Quench obs init is called" << endl;
+        double end_T = sys.get_end_t();
+        write_interval = end_T / (double)nr_values;
+        timepoint = 0.0;
+
+        // open the file to write the info to, in this case it will be just run_nr.csv
+        // I think we will add the run number to the paras of the run
+        int run_nr = (int)paras["run_nr"];
+        open_stream(folderpath / (to_string(run_nr) + ".csv"));
+    }
+
+    void init(fs::path folderpath, map<string, double>& paras) {
+        cout << "call this mf" << endl;
+    }
+
+    string get_name() override {
+        return "quench observer";
+    }
+};
+/*class quench_observer : public observer {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
     double write_interval = 1;
@@ -243,14 +344,14 @@ public:
         // problem is it still might depend on system parameters. and i don't want another if for every step
         // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
     }
-    template<class State, class System>
-    void operator()(const System &sys, const State &x , double t ) {
+
+    template <class System, class State>
+    void operator()(const System &sys, const State &x , double t )  {
         if(t > timepoint) {
             // write
             // Doing some refactoring, not putting t in every row and Temperature directly after T
-            size_t lat_dim = sys.get_lattice_dim();
             double T = sys.get_cur_T();
-
+            int lat_dim = sys.get_lat_dim();
             ofile << t << "," << T << ",";
             for(int i = 0; i < lat_dim * lat_dim; i++) {
                 ofile << x[i] << ",";
@@ -263,10 +364,11 @@ public:
             timepoint += write_interval;
         }
     }
-    template<class System>
-    void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+    template <class System>
+    void init(fs::path folderpath, map<string, double>& paras, const System &sys)  {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
+        cout << "Quench obs init is called" << endl;
         double end_T = sys.get_end_t();
         write_interval = end_T / (double)nr_values;
         timepoint = 0.0;
@@ -276,8 +378,15 @@ public:
         int run_nr = (int)paras["run_nr"];
         open_stream(folderpath / (to_string(run_nr) + ".csv"));
     }
-};
 
+    void init(fs::path folderpath, map<string, double>& paras)  {
+        cout << "call this mf" << endl;
+    }
+
+    string get_name() {
+        return "quench observer";
+    }
+};*/
 // Observer for lattic on bath specific for gpu_bath system?
 class bath_observer : public observer {
     // this one has a filestream
@@ -550,9 +659,7 @@ template<
 class stepper {
 public:
 
-    template<class Sys>
-    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
-    }
+
     stepper() {}
     stepper(size_t N) : N(N), dxdt(N), theta(N) {}
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
@@ -568,26 +675,41 @@ public:
 
     const size_t N;
     state_type dxdt, theta;
-    vector<observer*> obsvers = {};               // new, we can register an observer to a stepper
+/*    vector<observer*> obsvers = {};               // new, we can register an observer to a stepper
 
     void register_observer(observer* obs) {
         obsvers.push_back(obs);
-    }
+    }*/
 
-    template<class Sys>
+/*    template<class Sys>
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type& t) {
         cout << "dummy do step is called" << endl;
-    }
+    }*/
 
-    template<class Sys>
+/*    template<class Sys>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         for(auto obs : obsvers) {
-            obs->(sys, x, t); // Observing before anything happens
+            obs->operator()(sys, x, t); // Observing before anything happens
         }
         while (t < end_time){
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
-                obs->(sys, x, t); // Observing before anything happens
+                obs->operator()(sys, x, t); // Observing before anything happens
+            }
+        }
+    }*/
+
+    template<class Sys, class Obs>
+    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, vector<Obs*> obsvers) {
+        cout << "Well well well, look how the turn tables" << endl;
+        for(auto obs : obsvers) {
+            obs->operator()(sys, x, t); // Observing before anything happens
+        }
+        while (t < end_time){
+            cout << "annoy";
+            this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
+            for(auto obs : obsvers) {
+                obs->operator()(sys, x, t); // Observing before anything happens
             }
         }
     }
@@ -833,12 +955,14 @@ public:
         }
     }
 
+/*
     template<class Sys>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
         while (t < end_time){
             do_step(sys, x, dt_max, t);
         }
     }
+*/
 
     // we now pass dt by reference, so that we can modify it
     template<class Sys>
