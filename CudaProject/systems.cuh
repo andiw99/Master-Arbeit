@@ -30,6 +30,7 @@ public:
     double T;
     const double eta;
     double D;
+    checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
     struct rand
     {
@@ -232,47 +233,6 @@ public:
 };
 
 
-struct constant_bath_timer : public timer {
-    long rng_generation_time = 0;
-    long functor_time = 0;
-    chrono::time_point<chrono::high_resolution_clock> rng_start;
-    chrono::time_point<chrono::high_resolution_clock> rng_end;
-    chrono::time_point<chrono::high_resolution_clock> functor_start;
-    chrono::time_point<chrono::high_resolution_clock> functor_end;
-public:
-    constant_bath_timer() : timer() {
-        cout << "timer is constructed" << endl;
-        rng_start = chrono::high_resolution_clock ::now();
-        rng_end = chrono::high_resolution_clock ::now();
-        functor_start = chrono::high_resolution_clock ::now();
-        functor_end = chrono::high_resolution_clock ::now();
-    }
-
-    void set_rng_start() {
-        rng_start = chrono::high_resolution_clock ::now();
-    }
-
-    void set_rng_end() {
-        rng_end = chrono::high_resolution_clock ::now();
-        rng_generation_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                rng_end - rng_start).count();
-    }
-
-    void set_functor_start() {
-        functor_start = chrono::high_resolution_clock ::now();
-    }
-
-    void set_functor_end() {
-        functor_end = chrono::high_resolution_clock ::now();
-        functor_time += std::chrono::duration_cast<std::chrono::microseconds>(
-                functor_end - functor_start).count();
-    }
-
-    ~constant_bath_timer() {
-        cout << "RNG took " << (double)rng_generation_time * 0.001 << " ms" << endl;
-        cout << "Functor executions took " << (double)functor_time * 0.001 << " ms" << endl;
-    }
-};
 
 
 template <size_t lat_dim>
@@ -676,36 +636,50 @@ public:
 template<size_t lat_dim, template<size_t> class sys>
 sys<lat_dim> create(map<string, double> &paras, size_t seed){
     size_t seed_val = seed;
-      if(std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value) {
-          cout << "Create function for anisotropic_coulomb_quench called" << endl;
-        return sys<lat_dim>(paras["starting_T"],
-                   paras["end_T"],
-                   paras["eta"],
-                   paras["alpha"],
-                   paras["beta"],
-                   paras["J"],
-                   paras["Jy"],
-                   paras["tau"],
-                   seed_val,
-                   paras["t_eq"]);
-    } else if(std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value) {
-          cout << "Create function for gpu_bath called" << endl;
-          return sys<lat_dim>(paras["starting_T"],
-                              paras["end_T"],
+    if(std::is_same<sys<lat_dim>, anisotropic_coulomb_constant<lat_dim>>::value) {
+            cout << std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value << endl;
+            cout << std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value << endl;
+            cout << "Create function for anisotropic coulomb constant called" << endl;
+            return sys<lat_dim>(paras["T"],
                               paras["eta"],
                               paras["alpha"],
                               paras["beta"],
                               paras["J"],
-                              paras["tau"],
-                              seed_val,
-                              paras["t_eq"]);
-      }
+                              paras["Jy"],
+                              seed_val);}
+       if(std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value) {
+        cout << "Create function for gpu_bath called" << endl;
+        return sys<lat_dim>(paras["starting_T"],
+                            paras["end_T"],
+                            paras["eta"],
+                            paras["alpha"],
+                            paras["beta"],
+                            paras["J"],
+                            paras["tau"],
+                            seed_val,
+                            paras["t_eq"]);
+    } else if(std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value) {
+        cout << "Create function for anisotropic_coulomb_quench called" << endl;
+        return sys<lat_dim>(paras["starting_T"],
+                            paras["end_T"],
+                            paras["eta"],
+                            paras["alpha"],
+                            paras["beta"],
+                            paras["J"],
+                            paras["Jy"],
+                            paras["tau"],
+                            seed_val,
+                            paras["t_eq"]);
+    }
 };
 
 template<size_t lat_dim, template<size_t> class sys>
 sys<lat_dim> create(map<string, double> &paras){
     return create<lat_dim, sys>(paras, paras["seed"]);
 }
+
+
+
 /*
 
 template <template <class> class sys>

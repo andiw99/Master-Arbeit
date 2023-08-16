@@ -7,7 +7,7 @@
 
 int main() {
     // reading the parameters from the parameter file
-    map<string, double> paras = quench_paras;
+    map<string, double> paras = adaptive_temp_scan_standard;
     int nr_save_values = (int)paras["nr_save_values"];
     fs::path simulation_path = quench_root;
     const size_t lat_dim = lattice_dim;
@@ -16,20 +16,21 @@ int main() {
     typedef thrust_algebra algebra;
     typedef thrust_operations operations;
 
-    // Okay so we initialize the observer first haha
-    quench_observer<lat_dim, anisotropic_coulomb_quench, state_type> * quench_obs =
+    // We need new observers for the standard relaxation, i mean it basically does the same but the
+    // end_T reading is different
+    auto* quench_obs =
             new quench_observer<lat_dim, anisotropic_coulomb_quench, state_type>(nr_save_values);
+    auto* runtime_obs =
+            new runtime_observer<lat_dim, anisotropic_coulomb_quench, state_type>();
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
     // templating..
-    quench_obs->init("test", paras);
     QuenchSimulation simulation = QuenchSimulation<   lat_dim, euler_combined,
                                                 state_type,
                                                 algebra, operations,
                                                 anisotropic_coulomb_quench>(paras, simulation_path);
-    cout << "Trying to register obs" << endl;
     simulation.register_observer(quench_obs);
-    cout << "registered observer" << endl;
+    simulation.register_observer(runtime_obs);
     simulation.simulate();
     return 0;
 }

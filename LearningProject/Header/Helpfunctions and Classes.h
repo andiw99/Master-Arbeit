@@ -700,4 +700,120 @@ double extractTauValue(const fs::path& filePath) {
     return 0.0; // Return a default value if 'tau' is not found
 }
 
+
+int findHighestCSVNumber(const string& folderPath) {
+    if (!std::filesystem::is_directory(folderPath)) {
+        return -1;
+    }
+    int highestNumber = -1;
+
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (entry.is_regular_file()) {
+            const string& filename = entry.path().filename().string();
+
+            // Check if the file has the .csv extension
+            if (entry.path().extension() == ".csv") {
+                // Extract the numeric part of the filename (excluding the extension)
+                string numberPart = entry.path().stem().string();
+
+                try {
+                    // Convert the numeric part to an integer
+                    int number = stoi(numberPart);
+
+                    // Update the highest number if the current number is higher
+                    if (number > highestNumber) {
+                        highestNumber = number;
+                    }
+                } catch (const invalid_argument&) {
+                    // Ignore invalid filenames that cannot be converted to integers
+                }
+            }
+        }
+    }
+
+    return highestNumber;
+}
+
+template <typename T>
+std::vector<T> geomspace(T start, T stop, int num, bool endpoint = true) {
+    std::vector<T> result;
+
+    if (num < 1) {
+        return result;
+    }
+
+    if (endpoint) {
+        T factor = std::pow(stop / start, 1.0 / (num - 1));
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    } else {
+        T factor = std::pow(stop / start, 1.0 / num);
+        for (int i = 0; i < num; ++i) {
+            T value = start * std::pow(factor, i);
+            result.push_back(value);
+        }
+    }
+
+    return result;
+}
+
+
+template<typename T>
+std::vector<T> linspace(T start_in, T end_in, int num_in)
+{
+
+    std::vector<T> linspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return linspaced; }
+    if (num == 1)
+    {
+        linspaced.push_back(start);
+        return linspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        linspaced.push_back((T)(start + delta * i));
+    }
+    linspaced.push_back(end); // I want to ensure that start and end
+    // are exactly the same as the input
+    return linspaced;
+}
+
+template<typename T>
+std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
+{
+    std::vector<T> logspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double base = static_cast<double>(base_in);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return logspaced; }
+    if (num == 1)
+    {
+        logspaced.push_back((T)pow(base, start));
+        return logspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        logspaced.push_back((T)pow(base, start + delta * i));
+    }
+    logspaced.push_back((T)pow(base, end)); // I want to ensure that start and end
+    // are exactly the same as the input
+    return logspaced;
+}
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

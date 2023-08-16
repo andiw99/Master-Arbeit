@@ -97,10 +97,39 @@ public:
 
 class B : public A {
 public:
+    B(int a) {
+        cout << "B constructor called with " << a << endl;
+    }
     void run() {
         cout << "calling the right shit fam" << endl;
     }
 };
+
+class b : public B {
+public:
+    b(int x, int y) : B(x) {
+        cout << "b constructor called with " << x << "   " << y << endl;
+    }
+};
+
+class c : public B {
+public:
+    c(int x, double y) : B(x) {
+        cout << "b constructor called with " << x << "   " << y << endl;
+    }
+};
+
+
+class C : public A {
+public:
+    C(double a) {
+        cout << "C constructor called with " << a << endl;
+    }
+    void run() {
+        cout << "calling the right shit fam" << endl;
+    }
+};
+
 
 class Container {
 public:
