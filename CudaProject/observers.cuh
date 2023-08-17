@@ -43,18 +43,17 @@ public:
 };
 
 // Okay because of our fancy vector<observer*> stuff in the simulation, we now need new templateable observer classes
-template <size_t lat_dim, template<size_t> class system, class State>
+template <class system, class State>
 class obsver {
 public:
-    typedef system<lat_dim> System;
     ofstream ofile;
-    virtual void operator()(const System& sys, const State &x , double t ) {
+    virtual void operator()(const system& sys, const State &x , double t ) {
         cout << "Base Observer gets called" << endl;
     }
 
     obsver() {
     }
-    void write(System &sys, const State &x , double t ) {
+    void write(system &sys, const State &x , double t ) {
 
     }
 
@@ -68,7 +67,7 @@ public:
         cout << "closing stream of " << this->get_name() << endl;
         ofile.close();
     }
-    virtual void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+    virtual void init(fs::path folderpath, map<string, double>& paras, const system &sys) {
         cout << "dummy init is called" << endl;
     }
 
@@ -82,16 +81,15 @@ public:
     }
 };
 
-template <size_t lat_dim, template<size_t> class system, class State>
-class standard_observer : public obsver<lat_dim, system, State> {
+template <class system, class State>
+class standard_observer : public obsver<system, State> {
     double timepoint = 0;
 public:
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
     int nr_values;
     double write_interval = 1;
-    typedef system<lat_dim> System;
-    typedef obsver<lat_dim,system, State> obsver;
+    typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
     using obsver::close_stream;
@@ -100,12 +98,13 @@ public:
         // Relaxation. The init is a bit different since we need to find out the write interval
         // It also writes the run parameters to a file
     }
-    void operator()(const System &sys, const State &x , double t ) override {
+    void operator()(const system &sys, const State &x , double t ) override {
         if(t > timepoint) {
             // write
             cout << "t = " << t << endl;
             // Doing some refactoring, not putting t in every row and Temperature directly after T
             double T = sys.get_cur_T();
+            size_t lat_dim = sys.get_lattice_dim();
 
             ofile << t << "," << T << ",";
             for(int i = 0; i < lat_dim * lat_dim; i++) {
@@ -119,7 +118,7 @@ public:
             timepoint += write_interval;
         }
     }
-    virtual void init(fs::path folderpath, map<string, double>& paras, const System &sys)  {
+    virtual void init(fs::path folderpath, map<string, double>& paras, const system &sys)  {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
 
@@ -142,13 +141,12 @@ public:
     }
 };
 
-template <size_t lat_dim, template<size_t> class system, class State>
-class relax_observer : public standard_observer<lat_dim, system, State> {
+template <class system, class State>
+class relax_observer : public standard_observer<system, State> {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
 public:
-    typedef system<lat_dim> System;
-    typedef standard_observer<lat_dim,system, State> standard_observer;
+    typedef standard_observer<system, State> standard_observer;
     using standard_observer::write_interval;
     using standard_observer::nr_values;
     using standard_observer::operator();
@@ -161,7 +159,7 @@ public:
         // problem is it still might depend on system parameters. and i don't want another if for every step
         // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
     }
-    void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
+    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
         double end_t = paras["end_t"];
@@ -175,13 +173,12 @@ public:
     }
 };
 
-template <size_t lat_dim, template<size_t> class system, class State>
-class quench_observer : public standard_observer<lat_dim, system, State> {
+template <class system, class State>
+class quench_observer : public standard_observer<system, State> {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
 public:
-    typedef system<lat_dim> System;
-    typedef standard_observer<lat_dim,system, State> standard_observer;
+    typedef standard_observer<system, State> standard_observer;
     using standard_observer::write_interval;
     using standard_observer::nr_values;
     quench_observer(int nr_values): standard_observer(nr_values) {
@@ -193,7 +190,7 @@ public:
         // problem is it still might depend on system parameters. and i don't want another if for every step
         // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
     }
-    void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
+    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
         cout << "Quench obs init is called" << endl;
@@ -209,21 +206,20 @@ public:
     }
 };
 
-template <size_t lat_dim, template<size_t> class system, class State>
-class runtime_observer : public obsver<lat_dim, system, State> {
+template <class system, class State>
+class runtime_observer : public obsver<system, State> {
     // supposed to write the time the run took
     // I am thinking about adding a 'conclude'-function to the observers since i dont really know how
     // to efficiently read and write the runtime otherwise
     // or we just don't care about performance since we can turn this observer off if we do real runs...
     double end_t;
 public:
-    typedef system<lat_dim> System;
-    typedef obsver<lat_dim,system, State> obsver;
+    typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
     using obsver::close_stream;
     fs::path path = "";
-    void operator()(const System &sys, const State &x , double t) override {
+    void operator()(const system &sys, const State &x , double t) override {
         if(t >= end_t) {
             int duration = sys.timer.get_elapsed_time();
             cout << "writing runtime.." << endl;
@@ -231,7 +227,7 @@ public:
         }
     }
 
-    void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
+    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
         // this observer is supposed to work with a finite t
         end_t = paras["end_t"];
         // we open the runtimes file if we are doing a new measurment, so if the folderpath chagnes

@@ -11,29 +11,30 @@
 #include "parameters.cuh"
 
 
-template <size_t lat_dim,
-        template<size_t, class, class, class, template<size_t> class, class, class> class stepper_type,
+template <
+        template<class, class, class, class, class, class> class stepper_type,
         class state_type, class alg, class oper,
-        template<size_t> class sys >     // I think I don't do anything with the stepper so i should not template the base class?
+        class sys >     // I think I don't do anything with the stepper so i should not template the base class?
 class Simulation {
 public:
     // i think we should work with a vector of pointers to observers, this should work right? I dont really trust me to safely
     // handle observer** pointer
-    typedef obsver<lat_dim, sys, state_type> observer_type;
+    typedef obsver<sys, state_type> observer_type;
     vector<observer_type*> obsvers;          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
     map<string, double> paras;
     state_initializer* State_initializer;
     fs::path simulation_path;
     int seed = 0;   //should the simulation be seedable?
     int N;
-    int n = lat_dim * lat_dim;
-    stepper_type<lat_dim, state_type, alg, oper, sys, double, double>* stepper;
+    int n;          // current system size, but can change
+    stepper_type<state_type, alg, oper, sys, double, double>* stepper;
     size_t step_nr = 0;
     fs::path folder_path;   // gets updated everytime repeat is called for the first time, depends on whether quench or not because of folder names
     int repeat_nr;
     Simulation(map<string, double> &paras, fs::path& simulation_path): paras(paras),
     simulation_path(simulation_path), N((int)paras["N"]) {
-        stepper = create_stepper<lat_dim, state_type, alg, oper, sys, double, double, stepper_type>(paras, n);
+        // Stepper cannot be created here anymore since it initializes vectors of size N * n which now can change
+        // per setting
     }
     Simulation(map<string, double> &paras, fs::path& simulation_path, int seed) :
     Simulation(paras, simulation_path) {
@@ -76,7 +77,7 @@ public:
         // we try to create only with the map...
         paras["step_nr"] = step_nr;
         paras["run_nr"] = nr;
-        sys<lat_dim> Sys = sys<lat_dim>(paras);
+        sys Sys = sys(paras);
         for(auto obs : obsvers) {
             // calling init rather than open stream.
             obs->init(folder_path, paras, Sys);         // nah this is bad, i might have multiple observers that want to write to different files
@@ -99,10 +100,14 @@ public:
         // but I need to change the run for sure...
         // If the number of runs equals the repeat nr, which means we called repeat the first time with the current
         // parameters, we initialize a new state initializer
+        // TODO it is important that the subroutines set the lat_dim parameter in paras
         if (runs == repeat_nr) {
             // i am not really happy with this if statement but it safes some redundant code which in don't know
             // where to put otherwise
             State_initializer = create_state_initializer((int)paras["random"], paras, simulation_path);
+            stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
+            n = (int)(paras["lat_dim"] * paras["lat_dim"]);
+            paras["n"] = n;
         }
         run(repeat_nr - runs);
         if(runs > 0) {
@@ -118,7 +123,6 @@ public:
         // the huge templates everywhere, but on the other hand registering observer etc is stuff that has to be
         // done for every simulation and it would be nice to not have to write that again
         repeat_nr = (int) paras["repeat_nr"];
-        paras["n"] = lat_dim * lat_dim;
         // the observer is supposed to be already alive here, so we just register it to the stepper
 /*        for(auto obs : obsvers) {
             cout << "Registering observer to stepper: obs name:" << endl;
@@ -146,12 +150,12 @@ public:
 };
 
 
-template <  size_t lat_dim,
-            template<size_t, class, class, class,template<size_t> class, class, class> class stepper_type,
+template <
+            template<class, class, class,class, class, class> class stepper_type,
             class state_type, class alg, class oper,
-            template<size_t> class quench_sys >
-class QuenchSimulation : public Simulation<lat_dim, stepper_type, state_type, alg, oper, quench_sys> {
-    typedef Simulation<lat_dim, stepper_type, state_type, alg, oper, quench_sys> Simulation;
+                    class quench_sys >
+class QuenchSimulation : public Simulation<stepper_type, state_type, alg, oper, quench_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, quench_sys> Simulation;
     using Simulation::paras;
     using Simulation::simulation_path;
     using Simulation::folder_path;
@@ -194,12 +198,12 @@ public:
     }
 };
 
-template <  size_t lat_dim,
-        template<size_t, class, class, class,template<size_t> class, class, class> class stepper_type,
+template <
+        template<class, class, class, class, class, class> class stepper_type,
         class state_type, class alg, class oper,
-        template<size_t> class relax_sys >
-class RelaxationSimulation : public Simulation<lat_dim, stepper_type, state_type, alg, oper, relax_sys> {
-    typedef Simulation<lat_dim, stepper_type, state_type, alg, oper, relax_sys> Simulation;
+        class relax_sys >
+class RelaxationSimulation : public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
     using Simulation::paras;
     using Simulation::simulation_path;
     using Simulation::folder_path;
@@ -235,6 +239,47 @@ public:
     }
     RelaxationSimulation(map<string, double> &paras, fs::path& simulation_path) :
             Simulation(paras, simulation_path) {
+    }
+};
+
+template <
+        template<class, class, class, class, class, class> class stepper_type,
+        class state_type, class alg, class oper,
+        class relax_sys >
+class PerformanceSimulation : public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+    using Simulation::paras;
+    using Simulation::simulation_path;
+    using Simulation::folder_path;
+    using Simulation::Simulation;
+    vector<size_t> lat_dims;
+    void initialize() {
+        // init the taus i want the simultion to run over
+        lat_dims = logspace<size_t>(paras["min_lat_factor"],
+                            paras["max_lat_factor"],
+                            (int)paras["nr_lat_dims"] + 1);
+        // call the general initialization
+        Simulation::initialize();
+    }
+
+public:
+
+    void simulate() {
+        // we need to initialize here or think of a different architecture since
+        // if we initialize in the constructor we do not register the observers to the stepper
+        this->initialize();
+        // runs the whole simulation, the sequence depends on the type of simulation we do
+        for(auto lat_dim : lat_dims) {
+            // update the parameters so we create the correct systems and stuff
+            paras["lat_dim"] = lat_dim;
+            folder_path = simulation_path / to_string(lat_dim);
+            this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
+        }
+    }
+    double get_end_t() override {
+        double t_end = paras["end_t"];
+        cout << "Simulating until " << t_end << endl;
+        return t_end;
     }
 };
 

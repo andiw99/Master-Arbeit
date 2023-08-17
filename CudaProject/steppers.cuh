@@ -16,17 +16,16 @@ using namespace std;
  */
 
 template<
-        size_t lat_dim,
         class state_type,
         class algebra,
         class operations,
-        template<size_t> class System,
+        class System,
         class value_type = double,
         class time_type = value_type
 >
 class stepper {
 public:
-    typedef System<lat_dim> Sys;
+    typedef System Sys;
 
     stepper() {}
     stepper(size_t N) : N(N), dxdt(N), theta(N) {}
@@ -83,26 +82,25 @@ public:
 
 
 template<
-        size_t lat_dim,
         class state_type,
         class algebra,
         class operations,
-        template<size_t> class System,
+        class System,
         class value_type = double,
         class time_type = value_type
 >
-class euler_mayurama_stepper : public stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type> {
+class euler_mayurama_stepper : public stepper<state_type, algebra, operations, System, value_type, time_type> {
     string system_name = "System";
     string applying_name = "Applying Euler";
     string rng = "RNG during Euler";
     string functor = "Functor during Euler";
     checkpoint_timer timer{{system_name, applying_name, rng, functor}};
 public:
-    typedef System<lat_dim> Sys;
-    using stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>::dxdt;
-    using stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>::theta;
-    using stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>::N;
-    using stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>::stepper;
+    typedef System Sys;
+    using stepper<state_type, algebra, operations, System, value_type, time_type>::dxdt;
+    using stepper<state_type, algebra, operations, System, value_type, time_type>::theta;
+    using stepper<state_type, algebra, operations, System, value_type, time_type>::N;
+    using stepper<state_type, algebra, operations, System, value_type, time_type>::stepper;
     // observer* Observer;
     // the stepper needs a do_step method
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
@@ -154,7 +152,7 @@ public:
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N) : stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>(N) //, Observer(Obs)
+    euler_mayurama_stepper(size_t N) : stepper<state_type, algebra, operations, System, value_type, time_type>(N) //, Observer(Obs)
     {
     }
 
@@ -168,15 +166,14 @@ public:
 };
 
 template<
-        size_t lat_dim,
         class state_type,
         class algebra,
         class operations,
-        template<size_t> class System,
+        class System,
         class value_type = double,
         class time_type = value_type
 >
-class euler_simple_adaptive : public stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>{
+class euler_simple_adaptive : public stepper<state_type, algebra, operations, System, value_type, time_type>{
     int k;
     value_type tol;
     value_type error = 0;
@@ -190,8 +187,8 @@ class euler_simple_adaptive : public stepper<lat_dim, state_type, algebra, opera
     string repetitions = "Repetitions";
     checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
 public:
-    typedef stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type> stepper;
-    typedef System<lat_dim> Sys;
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    typedef System Sys;
     using stepper::stepper;
     using stepper::dxdt;
     using stepper::theta;
@@ -267,15 +264,14 @@ private:
     state_type x_drift, dx_drift_dt;
 };
 template<
-        size_t lat_dim,
         class state_type,
         class algebra,
         class operations,
-        template<size_t> class System,
+        class System,
         class value_type = double,
         class time_type = value_type
 >
-class euler_combined : public euler_mayurama_stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type>{
+class euler_combined : public euler_mayurama_stepper<state_type, algebra, operations, System, value_type, time_type>{
     int k;
     int prev_accepted_k;
     const int first_k;
@@ -290,7 +286,7 @@ class euler_combined : public euler_mayurama_stepper<lat_dim, state_type, algebr
     typedef typename operations::calc_error calc_error;
     typedef typename operations::template sum<value_type> sum;
     typedef typename operations::template apply_diff<time_type> apply_diff;
-    typedef euler_mayurama_stepper<lat_dim, state_type, algebra, operations, System, value_type, time_type> euler_mayurama_stepper;
+    typedef euler_mayurama_stepper<state_type, algebra, operations, System, value_type, time_type> euler_mayurama_stepper;
     using euler_mayurama_stepper::theta;
     using euler_mayurama_stepper::N;
     using euler_mayurama_stepper::dxdt;
@@ -304,7 +300,7 @@ class euler_combined : public euler_mayurama_stepper<lat_dim, state_type, algebr
     string rng = "Random Number Generation";
     checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps, rng}};
 public:
-    typedef System<lat_dim> Sys;
+    typedef System Sys;
 
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) override {
         if(switch_counter > switch_count * k) {
@@ -437,25 +433,39 @@ private:
 };
 
 template<
-        size_t lat_dim,
         class state_type,
         class algebra,
         class operations,
-        template<size_t> class System,
+        class System,
         class value_type = double,
         class time_type = value_type,
-        template<size_t, class, class, class, template<size_t> class, class, class> class stepper_type
+        template<class, class, class, class, class, class> class stepper_type
 >
-stepper_type<lat_dim, state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<string, double>& paras, int n) {
-    if(is_same<stepper_type<lat_dim, state_type, algebra, operations, System, value_type, time_type>,
-            euler_combined<lat_dim, state_type, algebra, operations, System, value_type, time_type>>::value){
+stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<string, double>& paras, int n) {
+    if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
+            euler_combined<state_type, algebra, operations, System, value_type, time_type>>::value){
         // damn tahts ugly#
         // TODO This cannot! possibly work, i see it already. probably we have to exchange one 'class' with template<size_t> class
         int N = (int) paras["N"];
         double K = paras["K"];
         double tol = paras["tol"];
-        return new stepper_type<lat_dim, state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
     } // TODO other steppers
 }
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class System,
+        class value_type = double,
+        class time_type = value_type,
+        template<class, class, class, class, class, class> class stepper_type
+>
+stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<string, double>& paras) {
+    int n =(int) (paras["lat_dim"] * paras["lat_dim"]);
+    return create_stepper<state_type, algebra, operations, System, value_type, time_type, stepper_type>(paras, n);
+}
+
 
 #endif //CUDAPROJECT_STEPPERS_CUH

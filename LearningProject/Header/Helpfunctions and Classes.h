@@ -816,4 +816,32 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
     return logspaced;
 }
 
+template<typename T, typename S>
+std::vector<S> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
+{
+    std::vector<S> logspaced;
+
+    double start = static_cast<double>(start_in);
+    double end = static_cast<double>(end_in);
+    double base = static_cast<double>(base_in);
+    double num = static_cast<double>(num_in);
+
+    if (num == 0) { return logspaced; }
+    if (num == 1)
+    {
+        logspaced.push_back((S)pow(base, start));
+        return logspaced;
+    }
+
+    double delta = (end - start) / (num - 1);
+
+    for(int i=0; i < num-1; ++i)
+    {
+        logspaced.push_back((S)pow(base, start + delta * i));
+    }
+    logspaced.push_back((S)pow(base, end)); // I want to ensure that start and end
+    // are exactly the same as the input
+    return logspaced;
+}
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

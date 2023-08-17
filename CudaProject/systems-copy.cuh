@@ -21,17 +21,20 @@
 
 using namespace std;
 
-
+// TODO Why TF is the lattice dimension a template parameter of the system.........................
+// That makes everything so much more complicated and it prevents that we can choose the system size at runtime
+// And therefore prevents that we can iterate over the lattice dimension
+// Performance wise it should not make a significant difference
+// I am SO clos to just refactor it, but I dont think that this should be my focus rn...
+template <size_t lat_dim>
 struct System {
 public:
     const size_t n;
-
     // needed to "advance the random engine" and generate different random numbers for the different steps
     size_t step_nr;
     double T;
     const double eta;
     double D;
-    const size_t lat_dim;
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
     struct rand
@@ -68,16 +71,22 @@ public:
             return D * dist(rng);
         }
     };
+    /*
+    __global__ curandState global_state;
+    struct curand {
+        float D;
+        curand(float D) : D(D) {}
 
+        __host__ __device__
+        float operator()() const
+        {
 
-    struct neighbor : thrust::unary_function<size_t, size_t> {
-        const size_t lattice_dim;
-        neighbor(size_t lat_dim): thrust::unary_function<size_t, size_t>(), lattice_dim(lat_dim){
+            return D;
         }
     };
+*/
 
-    struct left : public neighbor {
-        using neighbor::neighbor;
+    struct left : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
             // we have to think about that we are actually in 2D and i guess we want to use PBC?
@@ -91,38 +100,35 @@ public:
             // if i is on the left side of the lattice, i % lat_dim = 0
             // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
 
-            return (i % lattice_dim == 0) ? i + lattice_dim - 1 : i - 1;
+            return (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
         }
     };
 
-    struct right : public neighbor {
-        using neighbor::neighbor;
+    struct right : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i+1, expect when i is on the right side of the lattice
             // if i is on the right side of the lattice, j is i - (d - 1)
             // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
 
-            return (i % lattice_dim == lattice_dim - 1) ? i - (lattice_dim - 1) : i + 1;
+            return (i % lat_dim == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
         }
     };
 
-    struct up : public neighbor {
-        using neighbor::neighbor;
+    struct up : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i - d, except when i is on the upper bound of the lattice
             // if it is on the upper bound, j will be i + d(d-1)
             // if i is on the upper bound, i will be smaller than d
-            return (i < lattice_dim) ? i + lattice_dim * (lattice_dim - 1) : i - lattice_dim;
+            return (i < lat_dim) ? i + lat_dim * (lat_dim - 1) : i - lat_dim;
         }
     };
 
-    struct down : public neighbor {
-        using neighbor::neighbor;
+    struct down : thrust::unary_function<size_t, size_t> {
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i + d, except when i is on the lower bound of the lattice
             // if it is on the lower bound, j will be i - d(d-1)
             // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= lattice_dim * (lattice_dim -1 )) ? i - lattice_dim * (lattice_dim - 1) : i + lattice_dim;
+            return (i >= lat_dim * (lat_dim -1 )) ? i - lat_dim * (lat_dim - 1) : i + lat_dim;
         }
     };
 
@@ -148,28 +154,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(lat_dim)
+                                left()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(lat_dim)
+                                right()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(lat_dim)
+                                up()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(lat_dim)
+                                down()
                         )
                 )
         )));
@@ -191,13 +197,15 @@ public:
                           rand(D));
     }
 
-    System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), lat_dim(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
+    System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
         cout << "System constructor is called with eta = " << eta << "  T = " << T << endl;
     }
-    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), lat_dim((size_t)paras["lat_dim"]), eta(paras["eta"]), T(paras["T"]),
-                                         n((size_t)paras["lat_dim"] * (size_t)paras["lat_dim"]) {
+    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), n(lat_dim * lat_dim), eta(paras["eta"]), T(paras["T"]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Map is called with eta = " << eta << "  T = " << T << endl;
+    }
+    System() {
+        cout << "Probably wrong system constructor called" << endl;
     }
 
     size_t get_lattice_dim() const{
@@ -236,12 +244,12 @@ public:
 
 
 
-
-struct constant_bath : public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+template <size_t lat_dim>
+struct constant_bath : public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double beta;
@@ -290,7 +298,7 @@ public:
         // cout << "calc_drift is called" << endl;
         timer.set_startpoint(functor_point);
 
-        bath_functor functor = bath_functor(System::eta, alpha, beta, J);
+        bath_functor functor = bath_functor(System<lat_dim>::eta, alpha, beta, J);
 
         this->universalStepOperations(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
@@ -300,17 +308,17 @@ public:
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
         timer.set_startpoint(rng);
-        System::calc_diff(theta, t);
+        System<lat_dim>::calc_diff(theta, t);
         timer.set_endpoint(rng);
     }
 public:
-    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const size_t lat_dim, const int init_step=0)
-            : System(init_step, eta, T, lat_dim), alpha(alpha), beta(beta), J(J) {
+    constant_bath(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), beta(beta), J(J) {
         cout << "constant Bath System is constructed" << endl;
     }
 
     double get_cur_T() const{
-        return System::T;
+        return System<lat_dim>::T;
     }
     ~constant_bath() {
         cout << "Bath System is destroyed" << endl;
@@ -318,12 +326,12 @@ public:
 };
 
 
-
-struct coulomb_interaction : public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+template <size_t lat_dim>
+struct coulomb_interaction : public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double beta;
@@ -384,35 +392,35 @@ public:
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        coulomb_functor functor = coulomb_functor(System::eta, alpha, beta, J);
+        coulomb_functor functor = coulomb_functor(System<lat_dim>::eta, alpha, beta, J);
         this->universalStepOperations(x, dxdt, t, functor);
     }
 
 
 
-    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const size_t lat_dim, const int init_step=0)
-            : System(init_step, eta, T, lat_dim), alpha(alpha),
+    coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha),
             beta(beta), J(J) {
     }
 };
 
-
-class coulomb_constant : public coulomb_interaction {
+template <size_t lat_dim>
+class coulomb_constant : public coulomb_interaction<lat_dim> {
 public:
-    coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const size_t lat_dim, const int init_step=0)
-    : coulomb_interaction(T, eta, alpha, beta, J, lat_dim, init_step) {
+    coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const int init_step=0)
+    : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step) {
 
     }
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
-        System::calc_diff(theta, t);
+        System<lat_dim>::calc_diff(theta, t);
     }
 };
 
 
-
-struct gpu_bath : public coulomb_interaction {
+template <size_t lat_dim>
+struct gpu_bath : public coulomb_interaction<lat_dim> {
     // actually I think we can write the gpu_bath as extension of coulomb or coulomb constant?
 public:
     const double T_start;       // Start-Temperture of the Quenching For example: 10
@@ -430,27 +438,27 @@ public:
     double simple_linear_T(double t) {
         // parametrisierung für die Temperatur
         // linearer Abfall
-        System::T = max(T_start - t/tau, T_end);
-        return System::T;
+        System<lat_dim>::T = max(T_start - t/tau, T_end);
+        return System<lat_dim>::T;
     }
 
     double linear_T(double t) {
         if(s_eq_t < t && t < end_quench_t) {
             // if we are in the quench phase, we reduce T
-            System::T = T_start - (t - s_eq_t)/tau;
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
         }
-        return System::T;
+        return System<lat_dim>::T;
     }
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // I think this should work? We change the D of the System and then just calc the random numbers
-        System::D = sqrt(2 * linear_T(t) * System::eta);
-        System::calc_diff(theta, t);
+        System<lat_dim>::D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
+        System<lat_dim>::calc_diff(theta, t);
     }
 public:
-    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, const size_t lat_dim, size_t init_step = 0, double eq_t = 30)
-            : coulomb_interaction(T, eta, alpha, beta, J, lat_dim, init_step), T_start(T),
+    gpu_bath(const double T, const double T_end, const double eta, const double alpha, const double beta, const double J, const double tau, size_t init_step = 0, double eq_t = 30)
+            : coulomb_interaction<lat_dim>(T, eta, alpha, beta, J, init_step), T_start(T),
               tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
@@ -473,8 +481,8 @@ public:
     }
 };
 
-
-struct quench : virtual public System {
+template <size_t lat_dim>
+struct quench : virtual public System<lat_dim> {
     const double T_start;       // Start-Temperture of the Quenching For example: 10
     const double T_end;         // End-Temperature of the Quencheing. For example: 1
     const double s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
@@ -486,25 +494,25 @@ struct quench : virtual public System {
     double linear_T(double t) {
         if(s_eq_t < t && t < end_quench_t) {
             // if we are in the quench phase, we reduce T
-            System::T = T_start - (t - s_eq_t)/tau;
+            System<lat_dim>::T = T_start - (t - s_eq_t)/tau;
         }
-        return System::T;
+        return System<lat_dim>::T;
     }
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // I think this should work? We change the D of the System and then just calc the random numbers
-        System::D = sqrt(2 * linear_T(t) * System::eta);
-        System::calc_diff(theta, t);
+        System<lat_dim>::D = sqrt(2 * linear_T(t) * System<lat_dim>::eta);
+        System<lat_dim>::calc_diff(theta, t);
     }
 
 public:
-   quench(const double T, const double T_end, const double eta, const double tau, const size_t lat_dim, size_t init_step = 0, double eq_t = 30)
-            : System(init_step, eta, T, lat_dim), T_start(T), tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
+   quench(const double T, const double T_end, const double eta, const double tau, size_t init_step = 0, double eq_t = 30)
+            : System<lat_dim>(init_step, eta, T), T_start(T), tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
     }
-    quench(map<string, double>& paras): System(paras),
+    quench(map<string, double>& paras): System<lat_dim>(paras),
             tau(paras["tau"]), T_end(paras["end_T"]), s_eq_t(paras["t_eq"]), e_eq_t(paras["t_eq"]), T_start(paras["starting_T"]) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;
@@ -526,12 +534,12 @@ public:
     }
 };
 
-
-struct anisotropic_coulomb_interaction : virtual public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+template <size_t lat_dim>
+struct anisotropic_coulomb_interaction : virtual public System<lat_dim> {
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double beta;
@@ -567,67 +575,193 @@ public:
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        ani_coulomb_functor functor = ani_coulomb_functor(System::eta, alpha, beta, Jx, Jy);
+        ani_coulomb_functor functor = ani_coulomb_functor(System<lat_dim>::eta, alpha, beta, Jx, Jy);
         this->universalStepOperations(x, dxdt, t, functor);
     }
 
-    anisotropic_coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const size_t lat_dim, const int init_step=0)
-            : System(init_step, eta, T, lat_dim), alpha(alpha),
+    anisotropic_coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha),
               beta(beta), Jx(Jx), Jy(Jy) {
     }
     anisotropic_coulomb_interaction(map<string, double>& paras)
-            : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["Jx"]), Jy(paras["Jy"]) {
+            : System<lat_dim>(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["Jx"]), Jy(paras["Jy"]) {
     }
 };
 
 
-
-class anisotropic_coulomb_constant : public anisotropic_coulomb_interaction {
+template <size_t lat_dim>
+class anisotropic_coulomb_constant : public anisotropic_coulomb_interaction<lat_dim> {
 public:
-    anisotropic_coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const size_t lat_dim, const int init_step=0)
-            : System(init_step, eta, T, lat_dim), anisotropic_coulomb_interaction(T, eta, alpha, beta, Jx, Jy, lat_dim, init_step) {
+    anisotropic_coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step) {
 
     }
 
     anisotropic_coulomb_constant(map<string, double>& paras)
-            : System(paras), anisotropic_coulomb_interaction(paras) {
+            : System<lat_dim>(paras), anisotropic_coulomb_interaction<lat_dim>(paras) {
 
     }
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
-        System::calc_diff(theta, t);
+        System<lat_dim>::calc_diff(theta, t);
     }
 };
 
-
-class anisotropic_coulomb_quench: public anisotropic_coulomb_interaction, public quench {
+template <size_t lat_dim>
+class anisotropic_coulomb_quench: public anisotropic_coulomb_interaction<lat_dim>, public quench<lat_dim> {
 public:
     anisotropic_coulomb_quench(const double T, const double T_end, const double eta, const double alpha,
-                               const double beta, const double Jx,const double Jy, const double tau, const size_t lat_dim,
+                               const double beta, const double Jx,const double Jy, const double tau,
                                size_t init_step = 0, double eq_t = 30)
-            : anisotropic_coulomb_interaction(T, eta, alpha, beta, Jx, Jy, lat_dim, init_step),
-                    quench(T, T_end, eta, tau, lat_dim, init_step, eq_t),
-                            System(init_step, eta, T, lat_dim){
+            : anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step),
+                    quench<lat_dim>(T, T_end, eta, tau, init_step, eq_t),
+                            System<lat_dim>(init_step, eta, T){
 
     }
     anisotropic_coulomb_quench(map<string,double>& paras)
-            : anisotropic_coulomb_interaction(paras),
-              quench(paras),
-              System(paras){
+            : anisotropic_coulomb_interaction<lat_dim>(paras),
+              quench<lat_dim>(paras),
+              System<lat_dim>(paras){
 
     }
 };
 
+/*template <size_t lat_dim>
+struct sys_factory {
+public:
+    template<template<class> class sys>
+    sys<size_t> init_sys(map<string, double> &paras) {
+    }
+
+    template<>
+    anisotropic_coulomb_quench<lat_dim> init_sys<anisotropic_coulomb_quench<lat_dim >>(map<string, double> &paras) {
+        return anisotropic_coulomb_quench<lat_dim>(paras["starting_T"],
+                                                   paras["end_T"],
+                                                   paras["eta"],
+                                                   paras["alpha"],
+                                                   paras["beta"],
+                                                   paras["J"],
+                                                   paras["Jy"],
+                                                   paras["tau"],
+                                                   paras["seed"],
+                                                   paras["t_eq"]);
+    }
+
+    template<>
+    gpu_bath<lat_dim> init_sys<gpu_bath<lat_dim>>(map<string, double> &paras) {
+        return gpu_bath<lat_dim>(paras["starting_T"],
+                                 paras["end_T"],
+                                 paras["eta"],
+                                 paras["alpha"],
+                                 paras["beta"],
+                                 paras["J"],
+                                 paras["tau"],
+                                 paras["seed"],
+                                 paras["t_eq"]);
+    }
+};*/
+
+/*template<size_t lat_dim, template<size_t> class sys>
+sys<lat_dim> create(map<string, double> &paras, size_t seed){
+    size_t seed_val = seed;
+    if(std::is_same<sys<lat_dim>, anisotropic_coulomb_constant<lat_dim>>::value) {
+            cout << std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value << endl;
+            cout << std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value << endl;
+            cout << "Create function for anisotropic coulomb constant called" << endl;
+            return sys<lat_dim>(paras["T"],
+                              paras["eta"],
+                              paras["alpha"],
+                              paras["beta"],
+                              paras["J"],
+                              paras["Jy"],
+                              seed_val);}
+       if(std::is_same<sys<lat_dim>, gpu_bath<lat_dim>>::value) {
+        cout << "Create function for gpu_bath called" << endl;
+        return sys<lat_dim>(paras["starting_T"],
+                            paras["end_T"],
+                            paras["eta"],
+                            paras["alpha"],
+                            paras["beta"],
+                            paras["J"],
+                            paras["tau"],
+                            seed_val,
+                            paras["t_eq"]);
+    } else if(std::is_same<sys<lat_dim>, anisotropic_coulomb_quench<lat_dim>>::value) {
+        cout << "Create function for anisotropic_coulomb_quench called" << endl;
+        return sys<lat_dim>(paras["starting_T"],
+                            paras["end_T"],
+                            paras["eta"],
+                            paras["alpha"],
+                            paras["beta"],
+                            paras["J"],
+                            paras["Jy"],
+                            paras["tau"],
+                            seed_val,
+                            paras["t_eq"]);
+    }
+};
+
+template<size_t lat_dim, template<size_t> class sys>
+sys<lat_dim> create(map<string, double> &paras){
+    return create<lat_dim, sys>(paras, paras["seed"]);
+}*/
 
 
-struct quadratic_trapped_lattice : public System {
-    using rand = typename System::rand;
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+
+/*
+
+template <template <class> class sys>
+sys<size_t> create()
+{
+    sys<size_t>* object = new sys<size_t>();
+
+    // Do some generic initialization after construction.
+
+    return *object;
+};
+*/
+
+/*template<class sys>
+sys init_sys(map<string, double> &paras) {
+    return NULL;
+}
+
+template<>
+anisotropic_coulomb_quench init_sys<anisotropic_coulomb_interaction>(map<string, double> &paras) {
+    return anisotropic_coulomb_quench<lat_dim>(paras["starting_T"],
+                                      paras["end_T"],
+                                      paras["eta"],
+                                      paras["alpha"],
+                                      paras["beta"],
+                                      paras["J"],
+                                      paras["Jy"],
+                                      paras["tau"],
+                                      paras["seed"],
+                                      paras["t_eq"]);
+}
+
+template <size_t lat_dim>
+gpu_bath<lat_dim> init_sys(map<string, double> &paras) {
+    return gpu_bath<lat_dim>(paras["starting_T"],
+                                               paras["end_T"],
+                                               paras["eta"],
+                                               paras["alpha"],
+                                               paras["beta"],
+                                               paras["J"],
+                                               paras["tau"],
+                                               paras["seed"],
+                                               paras["t_eq"]);
+}*/
+
+template <size_t lat_dim>
+struct quadratic_trapped_lattice : public System<lat_dim> {
+    using rand = typename System<lat_dim>::rand;
+    using left = typename System<lat_dim>::left;
+    using right = typename System<lat_dim>::right;
+    using up = typename System<lat_dim>::up;
+    using down = typename System<lat_dim>::down;
 public:
     const double alpha;
     const double J;
@@ -673,7 +807,7 @@ public:
     void calc_drift(const State &x, Deriv &dxdt, double t) {
         timer.set_startpoint(functor_point);
 
-        harmonic_trap_functor functor = harmonic_trap_functor(System::eta, alpha, J);
+        harmonic_trap_functor functor = harmonic_trap_functor(System<lat_dim>::eta, alpha, J);
 
         this->universalStepOperations(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
@@ -682,18 +816,18 @@ public:
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         timer.set_startpoint(rng);
-        System::calc_diff(theta, t);
+        System<lat_dim>::calc_diff(theta, t);
         timer.set_endpoint(rng);
     }
 
 public:
-    quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const size_t lat_dim, const int init_step=0)
-            : System(init_step, eta, T, lat_dim), alpha(alpha), J(J) {
+    quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const int init_step=0)
+            : System<lat_dim>(init_step, eta, T), alpha(alpha), J(J) {
         cout << "Lattice quadratic Trap System is constructed" << endl;
     }
 
     double get_cur_T() const{
-        return System::T;
+        return System<lat_dim>::T;
     }
 
     size_t get_lattice_dim() const{
@@ -703,50 +837,21 @@ public:
 };
 
 
-struct chain {
-    using rand = typename System::rand;
+template <size_t lat_dim>
+struct quadratic_chain {
+    using rand = typename System<lat_dim>::rand;
+public:
     const double eta;
+    const double J;
     const double D;
     // systemsize should probably be a template argument?
     const size_t n;
-    const size_t lat_dim;
     // needed to "advance the random engine" and generate different random numbers for the different steps
     size_t step_nr;
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
     double T;
-
-    struct neighbor : thrust::unary_function<size_t, size_t> {
-        size_t lattice_dim;
-        neighbor(size_t lat_dim): thrust::unary_function<size_t, size_t>(), lattice_dim(lat_dim) {}
-    };
-
-    struct left : public neighbor {
-        using neighbor::neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
-            // if we are at the left end of our chain, we need to use the right end as left neighbor
-            return (i == 0) ? i + lattice_dim - 1 : i - 1;
-        }
-    };
-
-    struct right :  public neighbor{
-        using neighbor::neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i == lattice_dim - 1) ? i - (lattice_dim - 1) : i + 1;
-        }
-    };
-
-    chain(const double T, const double eta, const size_t lat_dim, const int init_step=0)
-            : T(T), step_nr(init_step), lat_dim(lat_dim), n(lat_dim), eta(eta), D(sqrt(2 * T * eta)) {
-    }
-
-};
-
-
-struct quadratic_chain : public chain {
-public:
-    const double J;
-
+    // parameters of the potential and of the Interaction
     struct functor {
         // I think also the potential and interaction parameters have to be set in the functor
         // I mean i could template everything and this would probably also give a bit of potential but is it really
@@ -772,6 +877,19 @@ public:
         }
     };
 
+    struct left : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            // if we are at the left end of our chain, we need to use the right end as left neighbor
+            return (i == 0) ? i + lat_dim - 1 : i - 1;
+        }
+    };
+
+    struct right : thrust::unary_function<size_t, size_t> {
+        __host__ __device__ size_t operator()(size_t i) const {
+            return (i == lat_dim - 1) ? i - (lat_dim - 1) : i + 1;
+        }
+    };
+
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -786,14 +904,14 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(lat_dim)
+                                left()
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(lat_dim)
+                                right()
                         )
                 )
         )));
@@ -820,8 +938,8 @@ public:
     }
 
 public:
-    quadratic_chain(const double T, const double eta, const double J, const size_t lat_dim, const int init_step=0)
-            : chain(T, eta, lat_dim, init_step), J(J) {
+    quadratic_chain(const double T, const double eta, const double J, const int init_step=0)
+            : T(T), step_nr(init_step), n(lat_dim), eta(eta), J(J), D(sqrt(2 * T * eta)) {
     }
 
     double get_cur_T() const{
@@ -878,14 +996,20 @@ public:
 };
 
 
-
-struct gpu_oscillator_chain : chain{
+template <size_t lat_dim>
+struct gpu_oscillator_chain {
+    using rand = typename System<lat_dim>::rand;
 public:
+    const double T;
     const double alpha;
+    const double eta;
     // no tau, constant temp
     // no beta, just harmonic potential
     // no interaction
     // systemsize should probably be a template argument?
+    const size_t n;
+    size_t step_nr;
+
     struct oscillator_chain_functor {
 
         const double alpha, eta;
@@ -928,8 +1052,8 @@ public:
         step_nr++;
     }
 public:
-    gpu_oscillator_chain(const double T, const double eta, const size_t lat_dim, const double alpha, const size_t init_step)
-            : chain(T, eta, lat_dim, init_step), alpha(alpha) {
+    gpu_oscillator_chain(const double T, const double eta, const double alpha)
+            : T(T), step_nr(0), n(lat_dim * lat_dim), eta(eta), alpha(alpha) {
     }
 
     double get_cur_T() const{
@@ -968,6 +1092,7 @@ struct brownian_particel {
 /*
  * The most difficult part seems to be the implementation of the system, since we need to use thrust operations
  */
+typedef thrust::device_vector<double> gpu_state_type;
 struct gpu_brownian_system {
 public:
 

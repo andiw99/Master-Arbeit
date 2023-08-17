@@ -7,7 +7,7 @@ import matplotlib.ticker as ticker
 
 def main():
     # parameters
-    root = "../../Generated content/Performance Benchmark"
+    root = "../../Generated content/Performance Benchmark/"
     name = "runtimes"
     root_dirs = os.listdir(root)
 
