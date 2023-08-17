@@ -21,6 +21,11 @@
 
 using namespace std;
 
+// TODO Why TF is the lattice dimension a template parameter of the system.........................
+// That makes everything so much more complicated and it prevents that we can choose the system size at runtime
+// And therefore prevents that we can iterate over the lattice dimension
+// Performance wise it should not make a significant difference
+// I am SO clos to just refactor it, but I dont think that this should be my focus rn...
 template <size_t lat_dim>
 struct System {
 public:
@@ -194,6 +199,10 @@ public:
 
     System(size_t step_nr, const double eta, const double T) : step_nr(step_nr), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
         cout << "System constructor is called with eta = " << eta << "  T = " << T << endl;
+    }
+    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), n(lat_dim * lat_dim), eta(paras["eta"]), T(paras["T"]) {
+        D = (sqrt(2 * T * eta));
+        cout << "System constructor from Map is called with eta = " << eta << "  T = " << T << endl;
     }
     System() {
         cout << "Probably wrong system constructor called" << endl;
@@ -455,6 +464,7 @@ public:
         end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
     }
 
+    // TODO Constructor with map
     double get_quench_time() {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
@@ -501,6 +511,11 @@ public:
             : System<lat_dim>(init_step, eta, T), T_start(T), tau(tau), T_end(T_end), s_eq_t(eq_t), e_eq_t(eq_t) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;       // end of quench is the quench time + equilibrate at beginning
+    }
+    quench(map<string, double>& paras): System<lat_dim>(paras),
+            tau(paras["tau"]), T_end(paras["end_T"]), s_eq_t(paras["t_eq"]), e_eq_t(paras["t_eq"]), T_start(paras["starting_T"]) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;
     }
 
     double get_quench_time() {
@@ -568,6 +583,9 @@ public:
             : System<lat_dim>(init_step, eta, T), alpha(alpha),
               beta(beta), Jx(Jx), Jy(Jy) {
     }
+    anisotropic_coulomb_interaction(map<string, double>& paras)
+            : System<lat_dim>(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["Jx"]), Jy(paras["Jy"]) {
+    }
 };
 
 
@@ -578,6 +596,12 @@ public:
             : System<lat_dim>(init_step, eta, T), anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step) {
 
     }
+
+    anisotropic_coulomb_constant(map<string, double>& paras)
+            : System<lat_dim>(paras), anisotropic_coulomb_interaction<lat_dim>(paras) {
+
+    }
+
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
@@ -594,6 +618,12 @@ public:
             : anisotropic_coulomb_interaction<lat_dim>(T, eta, alpha, beta, Jx, Jy, init_step),
                     quench<lat_dim>(T, T_end, eta, tau, init_step, eq_t),
                             System<lat_dim>(init_step, eta, T){
+
+    }
+    anisotropic_coulomb_quench(map<string,double>& paras)
+            : anisotropic_coulomb_interaction<lat_dim>(paras),
+              quench<lat_dim>(paras),
+              System<lat_dim>(paras){
 
     }
 };
@@ -633,7 +663,7 @@ public:
     }
 };*/
 
-template<size_t lat_dim, template<size_t> class sys>
+/*template<size_t lat_dim, template<size_t> class sys>
 sys<lat_dim> create(map<string, double> &paras, size_t seed){
     size_t seed_val = seed;
     if(std::is_same<sys<lat_dim>, anisotropic_coulomb_constant<lat_dim>>::value) {
@@ -676,7 +706,7 @@ sys<lat_dim> create(map<string, double> &paras, size_t seed){
 template<size_t lat_dim, template<size_t> class sys>
 sys<lat_dim> create(map<string, double> &paras){
     return create<lat_dim, sys>(paras, paras["seed"]);
-}
+}*/
 
 
 

@@ -68,7 +68,6 @@ public:
 
     template<class Obs>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, vector<Obs*> obsvers) {
-        cout << "problem is prbably in observer?" << endl;
         for(auto obs : obsvers) {
             obs->operator()(sys, x, t); // Observing before anything happens
         }
@@ -308,7 +307,6 @@ public:
     typedef System<lat_dim> Sys;
 
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) override {
-        cout << "We callin the right do step? " << endl;
         if(switch_counter > switch_count * k) {
             timer.set_startpoint(euler_steps);
             if (!switched) {

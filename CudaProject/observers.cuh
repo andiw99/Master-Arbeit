@@ -65,6 +65,7 @@ public:
     }
 
     void close_stream() {
+        cout << "closing stream of " << this->get_name() << endl;
         ofile.close();
     }
     virtual void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
@@ -73,6 +74,11 @@ public:
 
     virtual string get_name() {
         return "base observer";
+    }
+
+    ~obsver() {
+        cout << "deleting " << this->get_name() << endl;
+        close_stream();
     }
 };
 
@@ -95,10 +101,9 @@ public:
         // It also writes the run parameters to a file
     }
     void operator()(const System &sys, const State &x , double t ) override {
-        cout << "t  " << t << "   timepoint   " << timepoint <<  endl;
         if(t > timepoint) {
             // write
-            cout << "writing..." << endl;
+            cout << "t = " << t << endl;
             // Doing some refactoring, not putting t in every row and Temperature directly after T
             double T = sys.get_cur_T();
 
@@ -123,6 +128,7 @@ public:
         // I think we will add the run number to the paras of the run
         int run_nr = (int)paras["run_nr"];
         // we just write the parameters first
+        close_stream();
         open_stream(folderpath / (to_string(run_nr) + ".txt"));
         write_parameters(ofile, paras);
         // dont forget to close!;
@@ -158,9 +164,9 @@ public:
     void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
-        cout << "relax obs init is called" << endl;
         double end_t = paras["end_t"];
         write_interval = end_t / (double)nr_values;
+        cout << "relax obs init is called, write_interval is  " << write_interval << endl;
         standard_observer::init(folderpath, paras, sys);
     }
 
@@ -192,7 +198,9 @@ public:
         // Make sure to use this observer only with systems that have a get_end_T method
         cout << "Quench obs init is called" << endl;
         double end_T = sys.get_end_t();
+        cout << "sys.get_end_t():  " << sys.get_end_t() << endl;
         write_interval = end_T / (double)nr_values;
+        cout << "Write interval is " << write_interval << endl;
         standard_observer::init(folderpath, paras, sys);
     }
 
@@ -214,9 +222,11 @@ public:
     using obsver::ofile;
     using obsver::open_stream;
     using obsver::close_stream;
+    fs::path path = "";
     void operator()(const System &sys, const State &x , double t) override {
-        if(t > end_t) {
+        if(t >= end_t) {
             int duration = sys.timer.get_elapsed_time();
+            cout << "writing runtime.." << endl;
             ofile << duration << ",";
         }
     }
@@ -224,7 +234,24 @@ public:
     void init(fs::path folderpath, map<string, double>& paras, const System &sys) override {
         // this observer is supposed to work with a finite t
         end_t = paras["end_t"];
-        open_stream(folderpath/ "runtimes");
+        // we open the runtimes file if we are doing a new measurment, so if the folderpath chagnes
+        // and only if the file isnt open already
+        cout << "stream is open: " << ofile.is_open() << endl;
+        if(path != folderpath || !ofile.is_open()) {
+            path = folderpath;
+            close_stream();
+            cout << "opening new stream" << endl;
+            open_stream(folderpath/ "runtimes");
+        }
+    }
+
+    ~runtime_observer() {
+        cout << "deleting runtime observer " << endl;
+        close_stream();
+    }
+
+    string get_name() override {
+        return "runtime observer";
     }
 };
 

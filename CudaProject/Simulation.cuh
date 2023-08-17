@@ -72,7 +72,11 @@ public:
         // 2. Initialize the stepper and the system (and open new file for the observer)
         // the stepper is already initialized, but i think it should have a reset button?
         stepper->reset();
-        sys<lat_dim> Sys = create<lat_dim, sys>(paras, step_nr);   // seed?
+        // sys<lat_dim> Sys = create<lat_dim, sys>(paras, step_nr);   // seed?
+        // we try to create only with the map...
+        paras["step_nr"] = step_nr;
+        paras["run_nr"] = nr;
+        sys<lat_dim> Sys = sys<lat_dim>(paras);
         for(auto obs : obsvers) {
             // calling init rather than open stream.
             obs->init(folder_path, paras, Sys);         // nah this is bad, i might have multiple observers that want to write to different files
@@ -88,6 +92,7 @@ public:
         step_nr += Sys.get_step_nr();
     }
     void repeat(int runs) {
+        cout << "run " << repeat_nr - runs << "/" << repeat_nr << endl;
         // repeat gets called just with the runs, we can look at the parameters?
         // but we need specific parameters for this repeat? I mean we can just alter the overall parameter map
         // I am thinking whether the repeat function is so general that i can put this into the base class
@@ -113,6 +118,7 @@ public:
         // the huge templates everywhere, but on the other hand registering observer etc is stuff that has to be
         // done for every simulation and it would be nice to not have to write that again
         repeat_nr = (int) paras["repeat_nr"];
+        paras["n"] = lat_dim * lat_dim;
         // the observer is supposed to be already alive here, so we just register it to the stepper
 /*        for(auto obs : obsvers) {
             cout << "Registering observer to stepper: obs name:" << endl;
@@ -128,6 +134,14 @@ public:
         obsvers.push_back(obs);
         cout << "Type of first obs in obsvers:" << endl;
         cout << obsvers[0]->get_name() << endl;
+    }
+
+    ~Simulation() {
+        // call the destroyers of the observers
+        cout << "Deleting simulation" << endl;
+        for(auto obs : obsvers) {
+            delete obs;
+        }
     }
 };
 
@@ -169,9 +183,9 @@ public:
 
     double get_end_t() override {
         double eq_t = paras["t_eq"];
-        double t_quench = (paras["starting_T"] - paras["ending_T"]) * paras["tau"];
+        double t_quench = (paras["starting_T"] - paras["end_T"]) * paras["tau"];
         double t_end = 2 * eq_t + t_quench;
-        cout << "Simulating until " <<  t_end << endl;
+        cout << "Simulating Quench until " <<  t_end << endl;
         return t_end;
     }
 

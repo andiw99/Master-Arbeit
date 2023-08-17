@@ -7,7 +7,7 @@
 
 int main() {
     // reading the parameters from the parameter file
-    map<string, double> paras = adaptive_temp_scan_standard;
+    map<string, double> paras = quench_paras;
     int nr_save_values = (int)paras["nr_save_values"];
     fs::path simulation_path = quench_root;
     const size_t lat_dim = lattice_dim;
