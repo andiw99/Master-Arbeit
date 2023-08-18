@@ -1,11 +1,14 @@
 import csv
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import matplotlib.ticker as ticker
 from matplotlib.colors import BoundaryNorm
 import matplotlib
+from itertools import product
 
 # import matplotlib; matplotlib.use("TkAgg")
 
@@ -278,6 +281,132 @@ def chess_board_trafo(x):
     return x
 
 
+from decimal import Decimal, ROUND_HALF_UP
+
+def round_to_first_non_zero(number):
+    dec_number = Decimal(str(number))
+
+    # Find the position of the first non-zero digit
+    nonzero_position = None
+    for i, digit in enumerate(str(number)):
+        if digit != '0' and digit != '.':
+            nonzero_position = i
+            break
+    decimal_position = None
+    for i, digit in enumerate(str(number)):
+        if digit == ".":
+            decimal_position = i
+    if nonzero_position is not None:
+        # Round to the next digit after the first non-zero digit
+        # decimal position is 1 if we have a float 0.something or 1.something
+        # decimal position is greater than one if we have 10.something
+        if(nonzero_position - decimal_position < 0):
+            # means we have something in front of the comma
+            rounded = round(number / (10 ** decimal_position), 1) * (10 ** decimal_position)
+        else:
+            rounded = round(number, nonzero_position - decimal_position)
+
+        return rounded
+
+    # If all digits are zeros, return the original number
+    return number
+
+
+def configure_ax(fig, ax, config=None):
+    """
+    Takes a fig and an axes and configures the axes and stuff. If no config map is provided standard config is used
+    :param fig:
+    :param ax:
+    :param config:
+    :return: void
+    """
+
+    x_span, y_span = get_spans(ax)
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
+    ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/5 / 5))
+    # We want to have inline ticks
+    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
+    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+
+    remove_origin_ticks(ax)
+
+    # Füge Gitterlinien hinzu
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+
+    # title, achsenbeschriftungen, legend
+    get_functions = [ax.get_title, ax.get_xlabel, ax.get_ylabel]        # haha functions in a list, just python things
+    set_functions = [ax.set_title, ax.set_xlabel, ax.set_ylabel]
+    default_texts = [os.path.splitext(os.path.basename(sys.argv[0]))[0], "x", "y"]
+    for i, get in enumerate(get_functions):
+        if get() == "":
+            # If we have empty string as title or stuff
+            set_functions[i](default_texts[i])
+
+    # rotate the y label
+    ax.set_ylabel(ax.get_ylabel(), rotation=0, ha="right")
+    #legend
+    ax.legend()
+    plt.tight_layout()
+
+
+def mark_point(ax, x, y, c="C0"):
+    ax.scatter(x, y, c=c)
+    ax.plot([x, x], [0, y], c=c, ls='--', lw=2, alpha=0.75)
+    ax.plot([0, x], [y, y], c=c, ls='--', lw=2, alpha=0.75)
+
+def remove_origin_ticks(ax):
+    # Remove ticks in the origin of the plot
+    get_functions = [ax.get_xticks, ax.get_yticks]
+    set_functions = [ax.set_xticks, ax.set_yticks]
+    origins = [ax.get_xlim()[0], ax.get_ylim()[0]]
+    ends = [ax.get_xlim()[1], ax.get_ylim()[1]]
+    for getter, setter, origin, end in zip(get_functions, set_functions, origins, ends):
+        major_ticks = getter()
+        minor_ticks = getter(minor=True)
+        half_tick = (minor_ticks[1] - minor_ticks[0]) / 2
+        new_minor_ticks = set(minor_ticks)
+        new_major_ticks = set(major_ticks)
+        # remove the tick if it is within half a minor tick of the origin value
+        for tick in major_ticks:
+            if (np.abs(origin - tick) < half_tick) | (tick < origin) | (tick > end):
+                new_major_ticks.remove(tick)
+        for tick in minor_ticks:
+            if (np.abs(origin - tick) < half_tick) | (tick < origin) | (tick > end):
+                new_minor_ticks.remove(tick)
+        # set the new ticks
+        setter(list(new_major_ticks))
+        setter(list(new_minor_ticks), minor=True)
+
+
+def get_spans(ax):
+    # The base of those ticks should be read of the data
+    xmin = np.infty
+    xmax = -np.infty
+    ymin = np.infty
+    ymax = -np.infty
+    for line in ax.get_lines():
+        xmin = np.minimum(xmin, np.min(line.get_xdata()))
+        xmax = np.maximum(xmax, np.max(line.get_xdata()))
+        ymin = np.minimum(ymin, np.min(line.get_ydata()))
+        ymax = np.maximum(ymax, np.max(line.get_ydata()))
+    # check for already set custom limits or do we want to just set them with config?
+    # TODO We probably should just have looked for the limits anyway?
+    set_xmin = ax.get_xlim()[0]
+    set_xmax = ax.get_xlim()[1]
+    set_ymin = ax.get_ylim()[0]
+    set_ymax = ax.get_ylim()[1]
+    xmin = np.maximum(xmin, set_xmin)
+    xmax = np.minimum(xmax, set_xmax)
+    ymin = np.maximum(ymin, set_ymin)
+    ymax = np.minimum(ymax, set_ymax)
+    x_span = round_to_first_non_zero(xmax - xmin)
+    y_span = round_to_first_non_zero(ymax - ymin)
+    return x_span, y_span
+
+
 def pd_chess_board_trafo(x):
     for i in range(x.shape[0]//2):
         for j in range(x.shape[1]//2):
@@ -320,6 +449,36 @@ def find_nearest_value_and_index(x_arr, x_star):
             min_diff = diff
 
     return nearest_value, nearest_index
+
+
+
+def get_intersection_index(y, z, x_y = [], x_z = []):
+    def get_intersection_index(y, z):
+        # assume two arrays y and z OF SAME SIZE and we find the index where the difference between them is the smallest
+        dif = np.infty
+        ind = 0
+        for i in range(len(y)):
+            difference = (np.abs(y[i] - z[i]))
+            if difference < dif:
+                dif = difference
+                ind = i
+        return ind
+    if len(x_y) == 0:
+        return get_intersection_index(y, z)
+    else:
+        dif = np.infty
+        ind_i, ind_j = 0, 0
+        for i,j in product(range(len(y)), range(len(z))):
+            # we need a metric for the difference, lets take RS
+            difference = np.sqrt((y[i]- z[j]) ** 2 + (x_y[i] - x_z[j]) ** 2)
+            if difference < dif:
+                dif =difference
+                ind_i = i
+                ind_j = j
+        return (ind_i, ind_j)
+
+
+
 
 def main():
     print("This file is made to import, not to execute")

@@ -126,9 +126,13 @@ class Anim():
         self.xi = xi_x
         self.tau_nr += 1
 
+    def safe(self, path="foo"):
+        FFwriter = animation.FFMpegWriter(fps=60)
+        self.ani.save('~/animation.mp4', writer=FFwriter)
+
 
 def main():
-    root = "../../Generated content/New/Overdamped Quenching/"
+    root = "../../Generated content/Trash/New/Overdamped Quenching/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -171,6 +175,7 @@ def main():
     ani_class = Anim(fig, axes, root)
     ani_class.next_quench()
     plt.title(r"Quench Process for different Values of $\tau$")
+    ani_class.safe()
     plt.show()
     exit()
     for item in root_dirs:
@@ -209,7 +214,6 @@ def main():
                 # save_plot(root + "Animation plots/", "frame" + str(i))
                 # print(i, t_tau[i], xi_x[i])
     plt.show()
-
 
     fig, axes = plt.subplots(1, 1)
     # plot everything
