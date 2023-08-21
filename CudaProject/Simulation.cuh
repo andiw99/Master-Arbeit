@@ -255,9 +255,16 @@ class PerformanceSimulation : public Simulation<stepper_type, state_type, alg, o
     vector<size_t> lat_dims;
     void initialize() {
         // init the taus i want the simultion to run over
-        lat_dims = logspace<size_t>(paras["min_lat_factor"],
-                            paras["max_lat_factor"],
-                            (int)paras["nr_lat_dims"] + 1);
+        if(paras["logspaced"] == 1.0) {
+            lat_dims = logspace<size_t>(paras["min_lat_factor"],
+                                        paras["max_lat_factor"],
+                                        (int)paras["nr_lat_dims"] + 1);
+
+        } else {
+            lat_dims = linspace<size_t>(paras["min_lat_factor"],
+                                        paras["max_lat_factor"],
+                                        (int)paras["nr_lat_dims"] + 1);
+        }
         // call the general initialization
         Simulation::initialize();
     }
