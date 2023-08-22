@@ -127,8 +127,8 @@ class Anim():
         self.tau_nr += 1
 
     def safe(self, path="foo"):
-        FFwriter = animation.FFMpegWriter(fps=60)
-        self.ani.save('~/animation.mp4', writer=FFwriter)
+        FFwriter = animation.FFMpegWriter(fps=10)
+        self.ani.save('../../Generated content/animation.mp4', writer=FFwriter)
 
 
 def main():

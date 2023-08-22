@@ -357,20 +357,24 @@ public:
 
     }
     template <class state_type>
-    void init_state(state_type& x) {}
+    void init_state(state_type& x) {
+        cout << "Dummy initializer is called" << endl;
+    }
 
 };
 
 class random_initializer : public state_initializer {
     double x0;
     double p0;
+    size_t lattice_dim;
 public:
     random_initializer(map<string, double>& paras): state_initializer(paras) {
         const double beta = paras["beta"];
         x0 = paras["x0"] * sqrt(beta / 2.0);
         p0 = paras["p0"] * sqrt(beta / 2.0);
+        lattice_dim = (size_t) paras["lat_dim"];
     }
-    template <size_t lattice_dim, class state_type>
+    template <class state_type>
     void init_state(state_type& x) {
         chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
                 chrono::system_clock::now().time_since_epoch()
@@ -382,10 +386,13 @@ public:
 class memory_initializer : public state_initializer {
     fs::path root;
     int count = 0;
+    size_t lattice_dim;
+
 public:
     memory_initializer(map<string, double>& paras, fs::path& root): state_initializer(paras), root(root) {
+        lattice_dim = (size_t) paras["lat_dim"];
     }
-    template <size_t lattice_dim, class state_type>
+    template <class state_type>
     void init_state(state_type& x) {
         // since the initialization sometimes depend on the parameters
         // like here T, i have to create the initializer everytime i call repeat for the first time
@@ -421,6 +428,29 @@ public:
     }
 };
 
+class equilibrium_initializer : public state_initializer {
+    size_t n;
+    double J;
+    double beta;
+public:
+    equilibrium_initializer(map<string, double> & paras) : state_initializer(paras) {
+        n = (size_t)paras["n"];
+        J = paras["J"];
+        beta = paras["beta"];
+    }
+
+    template <class state_type>
+    void init_state(state_type& x) {
+        cout << get_name() << " is called" << endl;
+        thrust::fill(x.begin(), x.begin() + n, sqrt(beta / 2.0));
+        thrust::fill(x.begin() + n, x.begin() + 2*n, 0);
+    }
+
+    string get_name() {
+        return "equilibrium initializer";
+    }
+};
+
 state_initializer* create_state_initializer(int random, map<string, double>& paras, fs::path& root) {
     // again some fishy function to create different derived classes based on the value of an parameter
     // don't know better, dont care...
@@ -431,7 +461,7 @@ state_initializer* create_state_initializer(int random, map<string, double>& par
         // case for the random initializer
         return new random_initializer(paras);
     } else if (random == 0) {
-        return NULL;
+        return new equilibrium_initializer(paras);
     }
 }
 

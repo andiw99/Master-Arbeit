@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from FunctionsAndClasses import *
 
 def double_well(x, alpha, beta):
     return 1/2 * alpha*  (x ** 4 - beta * x **2)
@@ -39,7 +40,7 @@ def kos():
     # lines: note that this has no effect in this example with ticks_frequency=1
 
     # Draw major and minor grid lines
-    ax.grid(which='both', color='grey', linewidth=1, linestyle='-', alpha=0.2)
+    # ax.grid(which='both', color='grey', linewidth=1, linestyle='-', alpha=0.2)
 
     # Draw arrows
     arrow_fmt = dict(markersize=4, color='black', clip_on=False)
@@ -63,12 +64,10 @@ def plot_potential(alpha, beta):
     fig, ax = kos()
 
     ax.plot(x, V, c="C1", lw=2)
-    ax.scatter(xmin, Vmin)
-    ax.plot([xmin, xmin], [0, Vmin], c="C0", ls='--', lw=2, alpha=0.75)
-    ax.plot([0, xmin], [Vmin, Vmin], c="C0", ls='--', lw=2, alpha=0.75)
+    # mark_point(ax, xmin, Vmin)
     # Create 'x' and 'y' labels placed at the end of the axes
-    ax.set_xlabel('q', size=14, labelpad=-35, x=1.00)
-    ax.set_ylabel('V(q)', size=14, labelpad=-50, y=0.98, x=0.5, rotation=0)
+    #ax.set_xlabel('q', size=14, labelpad=-35, x=1.00)
+    #ax.set_ylabel('V(q)', size=14, labelpad=-50, y=0.98, x=0.5, rotation=0)
     plt.tight_layout()
 
 
@@ -123,11 +122,21 @@ def main():
     J = alpha * beta / 17
     J =10
     qNN = np.array([np.sqrt(beta/2), -np.sqrt(beta/2), np.sqrt(beta/2), np.sqrt(beta/2)])
-    #plot_potential(alpha, beta)
+    plot_potential(alpha, beta)
     #plot_transformation(a)
-    plot_potential_interaction(alpha, beta, J, qNN)
+    #plot_potential_interaction(alpha, beta, J, qNN)
+    plt.tick_params(
+        axis='both',  # changes apply to the x-axis
+        which='both',  # both major and minor ticks are affected
+        bottom=False,  # ticks along the bottom edge are off
+        top=False,  # ticks along the top edge are off
+        right=False,
+        left=False,
+        labelleft=False,
+        labelbottom=False)  # labels along the bottom edge are off
 
     plt.tight_layout()
+    plt.savefig("../../potential.png", format="png", transparent=True)
     plt.show()
 
 

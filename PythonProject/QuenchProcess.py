@@ -5,7 +5,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/AA/AA Quench"
+    root = "../../Generated content/Trash/New/Overdamped Quenching/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -77,7 +77,7 @@ def main():
                 axes.set_ylabel(r"$\xi$")
                 axes.set_xlabel(r"t$/ \tau_Q$")
                 axes.set_title(rf"Quench protocol $\tau_Q = {int(tau)}$")
-                save_plot(root + "plots/", str(tau) + ".png")
+                save_plot(root + "/plots/", str(tau) + ".png")
                 fig.legend()
                 plt.show()
 
@@ -93,7 +93,7 @@ def main():
                      labelsize=9)
     axes.tick_params(direction='in', which='minor', length=3, width=1,
                      labelsize=9)
-    axes.set_yscale("log")
+    # axes.set_yscale("log")
     maxt_tau = 1
     max_xi = 0.5
     for tau in t_tau_dic.keys():
@@ -113,7 +113,7 @@ def main():
         axes.set_title(rf"Quench protocol")
     axes.set_xlim(-0.5, 1.25)
     fig.legend()
-    save_plot(root + "plots/", "together" + ".png")
+    save_plot(root + "/plots/", "together" + ".png")
     plt.show()
 
 if __name__ == "__main__":

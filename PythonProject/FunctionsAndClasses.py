@@ -120,7 +120,7 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1, pdf=False):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -165,12 +165,14 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
 
     if name == "":
         name = plot_name_paras(paras)
-
+    format = "png"
+    if pdf:
+        format = "pdf"
     try:
-        plt.savefig(storage_root + name, format="png")
+        plt.savefig(storage_root + name, format=format)
     except FileNotFoundError:
         os.makedirs(storage_root)
-        plt.savefig(storage_root + name, format="png")
+        plt.savefig(storage_root + name, format=format)
     if show:
         plt.show()
 
