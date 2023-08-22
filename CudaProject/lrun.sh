@@ -2,7 +2,7 @@ module load gcc/10.2.0
 module load cuda/12.1
 module load openmpi/4.1.1
 module load fftw/3.3.10-ompi411
-
+module load boost
 # Get the input and output file names from the command line arguments
 input_file=${1:-"main.cu"}
 output_file=${2:-"main_script"}
@@ -14,12 +14,8 @@ if [ $? -eq 0 ]; then
     echo "Compilation successful"
     # run the simulation
     # save the output in variable output
-    output=$(./$output_file | tee /dev/tty)
+    ./${output_file}
     # cut only the last line, which is the save path
-    rootpath=$(echo "$output" | tail -1)
-    # run calc correlation function with the path as input variable
-    # remember to call it with argument since otherwise the hardcoded path is used
-    # make the plots
 else
     echo "Compilation failed"
 fi

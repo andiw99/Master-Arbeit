@@ -460,15 +460,12 @@ class equilibrium_initializer : public state_initializer<state_type>  {
 public:
     equilibrium_initializer(map<string, double> & paras) : state_initializer<state_type> (paras) {
         n = (size_t)paras["n"];
-        cout << "paras n " << paras["n"] << endl;
         J = paras["J"];
         beta = paras["beta"];
     }
 
     void init_state(state_type& x) {
         cout << get_name() << " is called" << endl;
-        cout << n << endl;
-        cout << beta << endl;
 
         thrust::fill(x.begin(), x.begin() + n, sqrt(beta / 2.0));
         if (J < 0) {
