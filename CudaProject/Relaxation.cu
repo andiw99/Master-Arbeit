@@ -6,6 +6,7 @@
 //
 
 #include "Simulation.cuh"
+#include "parameters.cuh"
 
 
 int main() {

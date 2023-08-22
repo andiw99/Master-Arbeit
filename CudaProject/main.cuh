@@ -467,6 +467,9 @@ public:
     void init_state(state_type& x) {
         cout << get_name() << " is called" << endl;
         thrust::fill(x.begin(), x.begin() + n, sqrt(beta / 2.0));
+        if (J < 0) {
+            chess_trafo(x, (size_t)sqrt(n));
+        }
         thrust::fill(x.begin() + n, x.begin() + 2*n, 0);
     }
 
