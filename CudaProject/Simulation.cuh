@@ -22,7 +22,7 @@ public:
     typedef obsver<sys, state_type> observer_type;
     vector<observer_type*> obsvers;          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
     map<string, double> paras;
-    state_initializer* State_initializer;
+    state_initializer<state_type> * State_initializer;
     fs::path simulation_path;
     int seed = 0;   //should the simulation be seedable?
     int N;
@@ -88,7 +88,6 @@ public:
         // now we still need all the observing logic, damn that was more work than anticipated
         double end_t = this->get_end_t();
         double t = 0;
-        cout << "I am at least trying to call the stepper?" << endl;
         stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
         step_nr += Sys.get_step_nr();
     }
@@ -104,7 +103,7 @@ public:
         if (runs == repeat_nr) {
             // i am not really happy with this if statement but it safes some redundant code which in don't know
             // where to put otherwise
-            State_initializer = create_state_initializer((int)paras["random"], paras, simulation_path);
+            State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             n = (int)(paras["lat_dim"] * paras["lat_dim"]);
             paras["n"] = n;
@@ -136,8 +135,6 @@ public:
         // this function needs to be called from outside and I have to register the custom initialized observers
         cout << obs->get_name() << endl;
         obsvers.push_back(obs);
-        cout << "Type of first obs in obsvers:" << endl;
-        cout << obsvers[0]->get_name() << endl;
     }
 
     ~Simulation() {

@@ -374,31 +374,31 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
     }*/
 }
 
+template <class state_type>
 class state_initializer {
 public:
     map<string, double> paras;
     state_initializer(map<string, double>& paras): paras(paras) {
 
     }
-    template <class state_type>
-    void init_state(state_type& x) {
+    virtual void init_state(state_type& x) {
         cout << "Dummy initializer is called" << endl;
     }
 
 };
 
-class random_initializer : public state_initializer {
+template <class state_type>
+class random_initializer : public state_initializer<state_type>  {
     double x0;
     double p0;
     size_t lattice_dim;
 public:
-    random_initializer(map<string, double>& paras): state_initializer(paras) {
+    random_initializer(map<string, double>& paras): state_initializer<state_type> (paras) {
         const double beta = paras["beta"];
         x0 = paras["x0"] * sqrt(beta / 2.0);
         p0 = paras["p0"] * sqrt(beta / 2.0);
         lattice_dim = (size_t) paras["lat_dim"];
     }
-    template <class state_type>
     void init_state(state_type& x) {
         chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
                 chrono::system_clock::now().time_since_epoch()
@@ -407,20 +407,20 @@ public:
     }
 };
 
-class memory_initializer : public state_initializer {
+template <class state_type>
+class memory_initializer : public state_initializer<state_type> {
     fs::path root;
     int count = 0;
     size_t lattice_dim;
 
 public:
-    memory_initializer(map<string, double>& paras, fs::path& root): state_initializer(paras), root(root) {
+    memory_initializer(map<string, double>& paras, fs::path& root): state_initializer<state_type> (paras), root(root) {
         lattice_dim = (size_t) paras["lat_dim"];
     }
-    template <class state_type>
     void init_state(state_type& x) {
         // since the initialization sometimes depend on the parameters
         // like here T, i have to create the initializer everytime i call repeat for the first time
-        double T = paras["T"];
+        double T = this->paras["T"];
         size_t n = lattice_dim * lattice_dim;
         cout << "checking for initial state in folder..." << endl;
         // listing the temp folders that are already inside
@@ -452,18 +452,18 @@ public:
     }
 };
 
-class equilibrium_initializer : public state_initializer {
+template <class state_type>
+class equilibrium_initializer : public state_initializer<state_type>  {
     size_t n;
     double J;
     double beta;
 public:
-    equilibrium_initializer(map<string, double> & paras) : state_initializer(paras) {
+    equilibrium_initializer(map<string, double> & paras) : state_initializer<state_type> (paras) {
         n = (size_t)paras["n"];
         J = paras["J"];
         beta = paras["beta"];
     }
 
-    template <class state_type>
     void init_state(state_type& x) {
         cout << get_name() << " is called" << endl;
         thrust::fill(x.begin(), x.begin() + n, sqrt(beta / 2.0));
@@ -475,17 +475,18 @@ public:
     }
 };
 
-state_initializer* create_state_initializer(int random, map<string, double>& paras, fs::path& root) {
+template <class state_type>
+state_initializer<state_type>* create_state_initializer(int random, map<string, double>& paras, fs::path& root) {
     // again some fishy function to create different derived classes based on the value of an parameter
     // don't know better, dont care...
     if(random == -1) {
         // memory initializer case
-        return new memory_initializer(paras, root);
+        return new memory_initializer<state_type> (paras, root);
     } else if (random == 1) {
         // case for the random initializer
-        return new random_initializer(paras);
+        return new random_initializer<state_type> (paras);
     } else if (random == 0) {
-        return new equilibrium_initializer(paras);
+        return new equilibrium_initializer<state_type> (paras);
     }
 }
 
