@@ -8,7 +8,6 @@
 #include "systems.cuh"
 #include "steppers.cuh"
 #include "observers.cuh"
-#include "parameters.cuh"
 
 
 template <
@@ -87,7 +86,7 @@ public:
         // 3. run the simulation haha, observing logic is handled by the observer
         // now we still need all the observing logic, damn that was more work than anticipated
         double end_t = this->get_end_t();
-        cout << "For a" << lattice_dim << " x " << lattice_dim << " System" << endl;
+        cout << "For a " << (int)paras["lat_dim"] << " x " << (int)paras["lat_dim"] << " System" << endl;
         double t = 0;
         stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
         step_nr += Sys.get_step_nr();
