@@ -103,10 +103,10 @@ public:
         if (runs == repeat_nr) {
             // i am not really happy with this if statement but it safes some redundant code which in don't know
             // where to put otherwise
-            State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
-            stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             n = (int)(paras["lat_dim"] * paras["lat_dim"]);
             paras["n"] = n;
+            stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
+            State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
         }
         run(repeat_nr - runs);
         if(runs > 0) {

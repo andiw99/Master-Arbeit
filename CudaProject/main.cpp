@@ -6,6 +6,7 @@
 //
 
 #include "Simulation.cuh"
+#include "parameters.cuh"
 
 
 int main() {
@@ -13,7 +14,6 @@ int main() {
     map<string, double> paras = adaptive_temp_scan_standard;
     int nr_save_values = (int)paras["nr_save_values"];
     fs::path simulation_path = adaptive_tempscan_root;
-    const size_t lat_dim = lattice_dim;
     // typedefs
     typedef thrust::device_vector<double> state_type;
     typedef thrust_algebra algebra;
