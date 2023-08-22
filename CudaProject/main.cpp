@@ -1,7 +1,4 @@
 //
-// Created by andi on 17.08.23.
-//
-//
 // Created by andi on 15.08.23.
 //
 //
@@ -13,9 +10,9 @@
 
 int main() {
     // reading the parameters from the parameter file
-    map<string, double> paras = performance_paras;
+    map<string, double> paras = adaptive_temp_scan_standard;
     int nr_save_values = (int)paras["nr_save_values"];
-    fs::path simulation_path = performance_root;
+    fs::path simulation_path = adaptive_tempscan_root;
     const size_t lat_dim = lattice_dim;
     // typedefs
     typedef thrust::device_vector<double> state_type;
@@ -28,9 +25,10 @@ int main() {
 
     auto* runtime_obs =
             new runtime_observer<anisotropic_coulomb_constant, state_type>();
-
+/*    quench_observer* quench_obs =
+            new quench_observer(nr_save_values);*/
     // templating..
-    PerformanceSimulation simulation = PerformanceSimulation<euler_combined,
+    RelaxationSimulation simulation = RelaxationSimulation<euler_combined,
             state_type,
             algebra, operations,
             anisotropic_coulomb_constant>(paras, simulation_path);

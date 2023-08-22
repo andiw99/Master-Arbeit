@@ -349,6 +349,30 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
     }*/
 }
 
+template <class State>
+void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
+
+    int n = state.size()/2;
+
+    thrust::counting_iterator<size_t> index_sequence_begin(run * state.size());
+    // thrust::fill(theta.begin(), theta.begin() + n, 0);
+    // n is system size
+    // fill the starting positions
+    thrust::transform(index_sequence_begin,
+                      index_sequence_begin + n,
+                      state.begin(),
+                      rand_init_values(x0, mu, sigma));
+
+
+    // fill starting impulses
+    thrust::transform(index_sequence_begin + n,
+                      index_sequence_begin + 2*n,
+                      state.begin() + n,
+                      rand_init_values(p0, mu, sigma));
+/*    for(int i = 0; i < state.size(); i++) {
+        cout << "x[" << i << "]=" << state[i] << endl;
+    }*/
+}
 
 class state_initializer {
 public:
@@ -379,7 +403,7 @@ public:
         chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
                 chrono::system_clock::now().time_since_epoch()
         );
-        fill_init_values<state_type, lattice_dim * lattice_dim>(x, (float) x0, (float) p0, ms.count() % 10000);
+        fill_init_values<state_type>(x, (float) x0, (float) p0, ms.count() % 10000);
     }
 };
 
