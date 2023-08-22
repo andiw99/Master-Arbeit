@@ -87,6 +87,7 @@ public:
         // 3. run the simulation haha, observing logic is handled by the observer
         // now we still need all the observing logic, damn that was more work than anticipated
         double end_t = this->get_end_t();
+        cout << "For a" << lattice_dim << " x " << lattice_dim << " System" << endl;
         double t = 0;
         stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
         step_nr += Sys.get_step_nr();
@@ -231,7 +232,7 @@ public:
 
     double get_end_t() override {
         double t_end = paras["end_t"];
-        cout << "Simulating until " << t_end << endl;
+        cout << "Simulating Relaxation until " << t_end << endl;
         return t_end;
     }
     RelaxationSimulation(map<string, double> &paras, fs::path& simulation_path) :

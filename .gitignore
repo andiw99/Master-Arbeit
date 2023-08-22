@@ -75,3 +75,6 @@
 /Pythonproject/__pycache__/
 /CudaProject/parameters.cuh
 CudaProject/parameters.cuh
+/CudaProject/*.out
+CudaProject/*.out
+**/*.out
