@@ -116,13 +116,13 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        root = "../../../Generated content/AA/Binder Overdamped";
+        root = "../../../Generated content/Defense/Binder Cumulant/";
     }
     // lattice dim
     const int lat_dim = lattice_dim;
     int N;
-    const int starting_k = 2;
-    const int nr_Ls = 10;
+    const int starting_k = 10;
+    const int nr_Ls = 20;
     bool chessTrafo = true;
     vector<int> L_vec;
 

@@ -13,15 +13,15 @@ class CorrLengthHandler : public calcHandler {
 public:
 
     void pre_routine() override {
-        cout << "Calling CorrLength pre routine" << endl;
+        cout << "Calling CorrLength pre routine (UNIMPLEMENTED)" << endl;
     }
 
     void realization_routine(vector<double> &lat_q, double T, double t) override {
-        cout << "Calling realization routine of corr length" << endl;
+        cout << "Calling realization routine of corr length (UNIMPLEMENTED)" << endl;
     }
 
     void post_routine() override {
-        cout << "Calling CorrLengthHandler post routine" << endl;
+        cout << "Calling CorrLengthHandler post routine (UNIMPLEMENTED)" << endl;
     }
 };
 

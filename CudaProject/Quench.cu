@@ -3,7 +3,7 @@
 //
 
 #include "Simulation.cuh"
-
+#include "parameters.cuh"
 
 int main() {
     // reading the parameters from the parameter file
@@ -19,13 +19,13 @@ int main() {
     // We need new observers for the standard relaxation, i mean it basically does the same but the
     // end_T reading is different
     auto* quench_obs =
-            new quench_observer<lat_dim, anisotropic_coulomb_quench, state_type>(nr_save_values);
+            new quench_observer<anisotropic_coulomb_quench, state_type>(nr_save_values);
     auto* runtime_obs =
-            new runtime_observer<lat_dim, anisotropic_coulomb_quench, state_type>();
+            new runtime_observer<anisotropic_coulomb_quench, state_type>();
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
     // templating..
-    QuenchSimulation simulation = QuenchSimulation<   lat_dim, euler_combined,
+    QuenchSimulation simulation = QuenchSimulation<euler_combined,
                                                 state_type,
                                                 algebra, operations,
                                                 anisotropic_coulomb_quench>(paras, simulation_path);

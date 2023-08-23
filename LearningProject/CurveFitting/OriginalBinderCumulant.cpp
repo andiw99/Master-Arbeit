@@ -156,12 +156,12 @@ int main(int argc, char* argv[]) {
         // It is called in the same directory as the run itself, so why would you need the ../ in front
         root = adaptive_tempscan_root;
     } else {
-        root = "../../Generated content/Binder Chess Init/";
+        root = "../../Generated content/Defense/Binder Cumulant/";
     }
     cout << "root in CalcBinderCumulant" << endl;
     cout << root << endl;
-    int nr_Ls = 10;
-    int starting_k = 2;
+    int nr_Ls = 20;
+    int starting_k = 8;
     bool chessTrafo = true;
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);
@@ -197,7 +197,7 @@ int main(int argc, char* argv[]) {
 
         double T = 0, t;
         for(int i = 0; i < nr_csv_files; i++) {
-            ifstream file = safe_read(csv_files[i], false);
+            ifstream file = safe_read(csv_files[i], true);
 
             auto lat_q = readDoubleValuesAt(file, -1,  T, t);
             // if we look at a antisymmetric system, we do a chess trafo
@@ -207,6 +207,7 @@ int main(int argc, char* argv[]) {
             if (running == 0) {
                 n = lat_q.size();
                 L_vec = generate_L(starting_k, n, nr_Ls);
+                print_vector(L_vec);
                 running++;
                 init_file_header(cumsList, L_vec);
             }

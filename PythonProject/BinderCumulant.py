@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/AA/Binder Underdamped"
+    root = "../../Generated content/Defense/Binder Cumulant"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)

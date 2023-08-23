@@ -7,11 +7,11 @@
 
 int main() {
     // possible Calcs: BinderCumulant, CorrLength, SecondMomentCorr
-    vector<Calc> calcs = {Calc::BinderCumulant};
+    vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength};
     for (auto calc : calcs) {
         cout << (int)calc << endl;
     }
-    fs::path root = "../../Generated content/AA/Binder Overdamped";
+    fs::path root = "../../../Generated content/Defense/Binder Cumulant/";
     simulation sim = simulation(root);
     sim.run(calcs);
 
