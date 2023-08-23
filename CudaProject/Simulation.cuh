@@ -105,10 +105,11 @@ public:
             // where to put otherwise
             n = (int)(paras["lat_dim"] * paras["lat_dim"]);
             paras["n"] = n;
+            int count = findHighestCSVNumber(folder_path) + 1;
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
         }
-        run(repeat_nr - runs);
+        run(repeat_nr - runs + count);
         if(runs > 0) {
             repeat(runs-1);
         } else {

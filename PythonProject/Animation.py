@@ -12,7 +12,7 @@ class Anim():
         self.fig = fig
         self.sys_ax = axes[0]
         self.corr_ax = axes[1]
-        self.twin_corr_ax = self.corr_ax.twinx()
+        self.twin_corr_ax = axes[2]
         self.init = True
         self.root = root
         self.tau_dirs = []
@@ -24,28 +24,39 @@ class Anim():
         self.read_folder(0)
 
     def update(self, frame):
-        if (frame == (self.sys_values) - 1):
-            self.ani.pause()
+        # index has to be modulo sinze we animate multipel taus
+        ind = frame % ((self.sys_values))
+        print(frame, ind)
+        if (ind == (self.sys_values) -1):
+            #self.ani.pause()
             if self.tau_nr < len(self.tau_dirs):
+                print("what is even this tau nr? ", self.tau_nr)
                 self.read_folder(tau_nr=self.tau_nr)
                 self.next_quench()
-                self.ani.resume()
-        # index has to be modulo sinze we animate multipel taus
-        ind = (frame % ((self.sys_values) - 1) ) + 1
+                #self.ani.resume()
+                return self.ln, self.pcm
+            else:
+                print("Exhausting all tau folders")
+                self.ani.pause()
+                return
         # updating system
+
         df_row = self.sys_df.iloc[ind]
         lat_dim = int(np.sqrt(df_row.size))
         z_values = np.array(df_row, dtype=float).reshape((lat_dim, lat_dim))
+        print("Here?")
         self.pcm.set_array(z_values)
         # updating corr length
         if (ind % self.sys_per_corr == 0):
             # only every like 10th run
-            xi_ind = int(ind / self.sys_per_corr)
-            self.ln.set_data(self.t_tau[:xi_ind],   self.xi[:xi_ind])
+            xi_ind = int(ind / self.sys_per_corr) + 1
+            self.ln.set_data(self.t_tau[:xi_ind], self.xi[:xi_ind])
             self.ln_temp.set_data(self.t_tau[:xi_ind], self.T[:xi_ind])
             lower_bound = np.minimum(np.min(self.xi[:xi_ind]) - 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[0])
             upper_bound = np.maximum(np.max(self.xi[:xi_ind]) + 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[1])
             self.corr_ax.set_ylim(lower_bound, upper_bound)
+
+        print("why?")
         return self.ln, self.pcm
 
 
@@ -53,13 +64,16 @@ class Anim():
         lat_dim = int(np.sqrt(df_row.size))
         return np.array(df_row, dtype=float).reshape((lat_dim, lat_dim))
 
+
     def next_quench(self):
         # assuming t_tau stays the same
         v = np.sqrt(self.beta/2)
         # plot the first value of the time and the correlation length
+        print("Before plotting first xi")
         self.ln,  = self.corr_ax.plot(self.t_tau[0], self.xi[0], ls="", marker=".", label=rf"$\tau = {self.tau}$")
+        print("Before plotting first temp")
         self.ln_temp, = self.twin_corr_ax.plot(self.t_tau[0], self.T[0], alpha=0.5, c="red")
-        self.twin_corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
+        #self.twin_corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
         self.twin_corr_ax.set_ylim(np.min(self.T), np.max(self.T))
         # plot first system frame
         # Frames of the animation are all ts excluded the first one
@@ -75,10 +89,11 @@ class Anim():
             self.init = False
         else:
             self.pcm.set_array(self.reshape(self.sys_df.iloc[0]))
-            self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=10)
+            #self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=10)
 
     def init_plots(self):
-        self.corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
+        tau_span = np.max(self.t_tau[:-2]) - np.min(self.t_tau[2:])
+        self.corr_ax.set_xlim(np.min(self.t_tau[2:] - 0.05 * tau_span), np.max(self.t_tau[:-2]) + 0.05 * tau_span)
         self.corr_ax.set_ylim(np.min(self.xi) - 0.1 * np.min(self.xi), np.max(self.xi) + 0.1 * np.min(self.xi))
 
     def get_tau_dirs(self):
@@ -113,7 +128,6 @@ class Anim():
         # calcing T
         xi_x = np.array(df["xi_x"][1:])
         xi_y = np.array(df["xi_y"][1:])
-        print(self.sys_values, len(self.t_tau))
         for i, t_eq_tau in enumerate(self.t_tau[1:]):
             if T_start - t_eq_tau < T_end:
                 self.T[i] = T_end
@@ -122,7 +136,6 @@ class Anim():
             else:
                 self.T[i] = T_start
         self.sys_per_corr = int(self.sys_values / len(self.t_tau))
-        print(self.sys_per_corr)
         self.xi = xi_x
         self.tau_nr += 1
 
@@ -132,7 +145,7 @@ class Anim():
 
 
 def main():
-    root = "../../Generated content/Trash/New/Overdamped Quenching/"
+    root = "../../Generated content/Overdamped Quenching/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -171,12 +184,11 @@ def main():
     corr_ax.set_ylabel(r"$\xi$")
     corr_ax.set_xlabel(r"t$/ \tau_Q$")
     #corr_ax.set_title(rf"Quench protocol $\tau_Q = {int(tau)}$")
-
+    axes = np.append(axes, axes2)
     ani_class = Anim(fig, axes, root)
     ani_class.next_quench()
     plt.title(r"Quench Process for different Values of $\tau$")
     ani_class.safe()
-    plt.show()
     exit()
     for item in root_dirs:
         if (item != "plots"):
