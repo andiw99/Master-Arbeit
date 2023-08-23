@@ -394,12 +394,14 @@ class random_initializer : public state_initializer<state_type>  {
     size_t lattice_dim;
 public:
     random_initializer(map<string, double>& paras): state_initializer<state_type> (paras) {
-        const double beta = paras["beta"];
+        double beta = paras["beta"];
         x0 = paras["x0"] * sqrt(beta / 2.0);
         p0 = paras["p0"] * sqrt(beta / 2.0);
         lattice_dim = (size_t) paras["lat_dim"];
     }
     void init_state(state_type& x) {
+        cout << "Random initializer is called with " << endl;
+        cout << "x0 = " << x0 << "  p0 = " << p0 << endl;
         chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
                 chrono::system_clock::now().time_since_epoch()
         );

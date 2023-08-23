@@ -10,7 +10,6 @@ int main() {
     map<string, double> paras = quench_paras;
     int nr_save_values = (int)paras["nr_save_values"];
     fs::path simulation_path = quench_root;
-    const size_t lat_dim = lattice_dim;
     // typedefs
     typedef thrust::device_vector<double> state_type;
     typedef thrust_algebra algebra;

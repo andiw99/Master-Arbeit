@@ -164,7 +164,7 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
     # if you want to save the pics somewhere else
 
     if name == "":
-        name = plot_name_paras(paras)
+        name = plot_name_paras(paras)[:200]
     format = "png"
     if pdf:
         format = "pdf"

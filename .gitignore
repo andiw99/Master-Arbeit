@@ -78,3 +78,4 @@ CudaProject/parameters.cuh
 /CudaProject/*.out
 CudaProject/*.out
 **/*.out
+**/*.pyc

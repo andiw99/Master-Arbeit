@@ -68,6 +68,7 @@ public:
         // How do we determine which? Is coded in random param, ... if else function is pretty lame again
         // The state initialization should also be exchangeable, or rather i mean it is code that is used by every
         // simulation, so we might have a 'state initializer' object as member of the base class
+        double end_t = this->get_end_t();
         state_type x(N * n);
         State_initializer->init_state(x);           // init state via correct state initializer that was created in repeat
         // 2. Initialize the stepper and the system (and open new file for the observer)
@@ -86,7 +87,6 @@ public:
         // reset the current T and stuff
         // 3. run the simulation haha, observing logic is handled by the observer
         // now we still need all the observing logic, damn that was more work than anticipated
-        double end_t = this->get_end_t();
         cout << "For a " << (int)paras["lat_dim"] << " x " << (int)paras["lat_dim"] << " System" << endl;
         double t = 0;
         stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
@@ -165,6 +165,7 @@ class QuenchSimulation : public Simulation<stepper_type, state_type, alg, oper, 
         taus = logspace(paras["min_tau_factor"],
                                              paras["max_tau_factor"],
                                              (int)paras["nr_taus"] + 1);
+        paras["T"] = paras["starting_T"];
         // call the general initialization
         Simulation::initialize();
     }
@@ -189,6 +190,8 @@ public:
         double t_quench = (paras["starting_T"] - paras["end_T"]) * paras["tau"];
         double t_end = 2 * eq_t + t_quench;
         cout << "Simulating Quench until " <<  t_end << endl;
+        // set end t in paras for the observer
+        paras["end_t"] = t_end;
         return t_end;
     }
 
