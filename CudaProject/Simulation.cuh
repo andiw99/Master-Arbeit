@@ -30,6 +30,7 @@ public:
     size_t step_nr = 0;
     fs::path folder_path;   // gets updated everytime repeat is called for the first time, depends on whether quench or not because of folder names
     int repeat_nr;
+    int run_count = 0;          // stupid variable for simulations that are already present in the folder
     Simulation(map<string, double> &paras, fs::path& simulation_path): paras(paras),
     simulation_path(simulation_path), N((int)paras["N"]) {
         // Stepper cannot be created here anymore since it initializes vectors of size N * n which now can change
@@ -105,10 +106,11 @@ public:
             // where to put otherwise
             n = (int)(paras["lat_dim"] * paras["lat_dim"]);
             paras["n"] = n;
+            run_count = findHighestCSVNumber(folder_path) + 1;
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
         }
-        run(repeat_nr - runs);
+        run(repeat_nr - runs + run_count);
         if(runs > 0) {
             repeat(runs-1);
         } else {
