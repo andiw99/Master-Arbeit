@@ -390,10 +390,13 @@ def get_spans(ax):
     ymin = np.infty
     ymax = -np.infty
     for line in ax.get_lines():
-        xmin = np.minimum(xmin, np.min(line.get_xdata()))
-        xmax = np.maximum(xmax, np.max(line.get_xdata()))
-        ymin = np.minimum(ymin, np.min(line.get_ydata()))
-        ymax = np.maximum(ymax, np.max(line.get_ydata()))
+        try:
+            xmin = np.minimum(xmin, np.min(line.get_xdata()))
+            xmax = np.maximum(xmax, np.max(line.get_xdata()))
+            ymin = np.minimum(ymin, np.min(line.get_ydata()))
+            ymax = np.maximum(ymax, np.max(line.get_ydata()))
+        except ValueError:
+            pass
     # check for already set custom limits or do we want to just set them with config?
     # TODO We probably should just have looked for the limits anyway?
     set_xmin = ax.get_xlim()[0]

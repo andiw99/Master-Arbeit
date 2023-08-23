@@ -10,6 +10,8 @@ def main():
     png_name = "quench.png"
     root_dirs = os.listdir(root)
     print(root_dirs)
+    colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
+    size_factor = 0.8
 
     xi_avg_dic = {}
     t_tau_dic = {}
@@ -85,7 +87,7 @@ def main():
                 t_tau_dic[tau] = t_tau
                 xi_avg_dic[tau] = xi
 
-    fig, axes = plt.subplots(1, 1)
+    fig, axes = plt.subplots(1, 1, figsize=(6.4 * size_factor, 4.8 * size_factor))
     # plot everything
 
     # Setze Tickmarken und Labels
@@ -96,8 +98,9 @@ def main():
     # axes.set_yscale("log")
     maxt_tau = 1
     max_xi = 0.5
-    for tau in t_tau_dic.keys():
-        axes.plot(t_tau_dic[tau][1:], xi_avg_dic[tau], ls="", marker=".", label=rf"{tau}", ms=2.5)
+    for i, tau in enumerate(sorted(t_tau_dic.keys())):
+        axes.plot(t_tau_dic[tau][1:], xi_avg_dic[tau], ls="", marker=".", ms=2.5, color=colors[i])
+        axes.plot([], [], ls="-", label=rf"{tau}", color=colors[i])
         maxt_tau = np.maximum(int(np.max(t_tau_dic[tau])), maxt_tau)
         axes.xaxis.set_major_locator(ticker.MultipleLocator(base=maxt_tau / 4))
         axes.xaxis.set_minor_locator(ticker.MultipleLocator(base=maxt_tau / 4 / 5))
@@ -112,8 +115,9 @@ def main():
         axes.set_xlabel(r"t$/ \tau_Q$")
         axes.set_title(rf"Quench protocol")
     axes.set_xlim(-0.5, 1.25)
-    fig.legend()
-    save_plot(root + "/plots/", "together" + ".png")
+    configure_ax(fig, axes)
+    axes.legend()
+    fig.savefig(root + "/plots/together.png", format="png", transparent=True)
     plt.show()
 
 if __name__ == "__main__":

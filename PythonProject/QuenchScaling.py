@@ -139,7 +139,6 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
-
     print(root_dirs)
     # arrays to save the xi corrsponding to T
     T_arr = []

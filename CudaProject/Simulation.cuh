@@ -211,6 +211,8 @@ class RelaxationSimulation : public Simulation<stepper_type, state_type, alg, op
         temps = linspace(paras["min_temp"],
                              paras["max_temp"], (int)paras["nr_temps"] + 1);
         // call the general initialization
+        cout << "Temperatures:" << endl;
+        print_vector(temps);
         Simulation::initialize();
     }
 
