@@ -394,6 +394,10 @@ public:
             : System(init_step, eta, T, lat_dim), alpha(alpha),
             beta(beta), J(J) {
     }
+    coulomb_interaction(map<string, double>& paras)
+            : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), J(paras["J"]) {
+    }
+
 };
 
 
@@ -401,6 +405,10 @@ class coulomb_constant : public coulomb_interaction {
 public:
     coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double J, const size_t lat_dim, const int init_step=0)
     : coulomb_interaction(T, eta, alpha, beta, J, lat_dim, init_step) {
+
+    }
+    coulomb_constant(map<string, double>& paras)
+            : coulomb_interaction(paras) {
 
     }
     template<class Stoch>
