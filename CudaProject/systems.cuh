@@ -574,6 +574,7 @@ public:
     anisotropic_coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const size_t lat_dim, const int init_step=0)
             : System(init_step, eta, T, lat_dim), alpha(alpha),
               beta(beta), Jx(Jx), Jy(Jy) {
+
     }
     anisotropic_coulomb_interaction(map<string, double>& paras)
             : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["Jx"]), Jy(paras["Jy"]) {
@@ -586,12 +587,12 @@ class anisotropic_coulomb_constant : public anisotropic_coulomb_interaction {
 public:
     anisotropic_coulomb_constant(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const size_t lat_dim, const int init_step=0)
             : System(init_step, eta, T, lat_dim), anisotropic_coulomb_interaction(T, eta, alpha, beta, Jx, Jy, lat_dim, init_step) {
-
+        cout << "creating anisotropic_coulomb_constant system" << endl;
     }
 
     anisotropic_coulomb_constant(map<string, double>& paras)
             : System(paras), anisotropic_coulomb_interaction(paras) {
-
+        cout << "creating anisotropic_coulomb_constant system" << endl;
     }
 
     template<class Stoch>

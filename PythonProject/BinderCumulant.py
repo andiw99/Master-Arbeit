@@ -43,12 +43,12 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 3
-    exclude_small_dists = 0
-    min_temp = 0.50
+    exclude_large_dists = 18
+    exclude_small_dists = 1
+    min_temp = 0.0
     xi_exclude_large_dists = 2
     xi_exclude_small_dists = 0
-    r = 2
+    r = 1
 
 
     cum_path = root + "/" + name
@@ -95,6 +95,7 @@ def main():
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
+    print(cum_dic.keys())
     for i,size in enumerate(cum_dic.keys()):
         # only plot every n-th
         interpol_dic[size] = np.interp(T_inter_arr, T, cum_dic[size])

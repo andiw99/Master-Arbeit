@@ -160,8 +160,8 @@ int main(int argc, char* argv[]) {
     }
     cout << "root in CalcBinderCumulant" << endl;
     cout << root << endl;
-    int nr_Ls = 20;
-    int starting_k = 8;
+    int nr_Ls = 22;
+    int starting_k = 10;
     bool chessTrafo = true;
     vector<fs::path> temp_directories = list_dir_paths(root);
     print_vector(temp_directories);

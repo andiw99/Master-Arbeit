@@ -163,8 +163,10 @@ vector<fs::path> list_csv_files(const fs::path& root)
             }
             else if (fs::is_directory(entry.path()))
             {
-                vector<fs::path> sub_csv_files = list_csv_files(entry.path());
-                csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
+                if(entry.path().filename().string()[0] != '.') {
+                    vector<fs::path> sub_csv_files = list_csv_files(entry.path());
+                    csv_files.insert(csv_files.end(), sub_csv_files.begin(), sub_csv_files.end());
+                }
             }
         }
     }

@@ -57,6 +57,9 @@ def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2
         z_values = df.iloc[1:n*n+1]
     if proj:
         z_values = np.sign(z_values)
+    print("z_values!")
+    print(z_values)
+    exit()
     # for now i just want to know in which minimum i fall so i make this
     # projection
     z_values = np.array(z_values, dtype=float).reshape((n, n))
@@ -120,7 +123,7 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1, pdf=False):
+def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1, pdf=False, cell_L=0, cell_nr = 0):
     # find out number of rows
     nr_rows = df.shape[0]
     # equidistant row numbers to use
@@ -136,8 +139,12 @@ def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True,
         for ax in axs:
             # plot with one row out of the row numbers
             try:
-                plot_colormesh(
-                df_rows.iloc[i], fig, ax,
+                print(df_rows.iloc[i])
+                if cell_L:
+                    cell = extract_cell(df_rows.iloc[i], 0, cell_L)
+                else:
+                    cell = df_rows.iloc[i]
+                plot_colormesh(cell, fig, ax,
                 title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, v1 * -1]}",
                 proj=proj, p=p, beta=beta, chess_board=chess_board)
             except ValueError:
@@ -482,6 +489,20 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
                 ind_j = j
         return (ind_i, ind_j)
 
+
+def extract_cell(row, cell_nr, cell_L):
+    L = int(np.sqrt(row.size()))
+    cells_per_row = L / cell_L
+    col = cell_nr % cells_per_row       # number of the cell in its row
+    row = cell_nr // cells_per_row
+
+    cell = np.zeros(cell_L * cell_L)    # array for the values of the cell
+    for j in range(L):
+        for i in range(L):
+            ind = L * (row * L + j) + i + col * L
+            cell[j * L + i] = row[ind % (L * L)]
+
+    return cell
 
 
 
