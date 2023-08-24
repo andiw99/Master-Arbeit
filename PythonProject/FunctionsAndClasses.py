@@ -12,6 +12,8 @@ from itertools import product
 
 # import matplotlib; matplotlib.use("TkAgg")
 
+colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
+
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)
@@ -31,89 +33,6 @@ def read_struct_func(filepath):
     df = pd.read_csv(filepath, delimiter=",", index_col=False)
     return df
 
-def plot_colormesh(df, fig=None, ax=None, title=None, proj=False, p=True, beta=2, chess_board=False):
-    """
-    plots the dataframe as a colormesh
-    :param df:
-    :return:
-    """
-    # actually we woulndt even have to read in all values since we only
-    # plot the last one, but for now thats okay
-    # We have to construct a n x n matrix out of the values that we extract
-    try:
-        # this is if I am saving the impuls values
-        if p:
-            n = (int(np.sqrt(df.shape[1] / 2 - 1)))
-        else:
-            n = int(np.sqrt(df.shape[1] - 1))
-            print(n)
-        z_values = df.iloc[-1, 1:n*n+1]
-    except IndexError:
-        # catch case that it is 1D-array
-        if p:
-            n = (int(np.sqrt(df.shape[0] / 2 - 1)))
-        else:
-            n = int(np.sqrt(df.shape[0] -1))
-        z_values = df.iloc[1:n*n+1]
-    if proj:
-        z_values = np.sign(z_values)
-    print("z_values!")
-    print(z_values)
-    exit()
-    # for now i just want to know in which minimum i fall so i make this
-    # projection
-    z_values = np.array(z_values, dtype=float).reshape((n, n))
-    if(chess_board):
-        z_values = chess_board_trafo(z_values)
-
-
-    x = np.arange(0.5, n+1, 1)
-    y = np.arange(0.5, n + 1, 1)
-    if fig is None:
-        fig, ax = plt.subplots()
-        ax.set_title(title)
-        vmin = -np.max(np.abs(z_values))
-        vmax = np.max(np.abs(z_values))
-        # find out how many multiples of the minimum we need
-        min_pos = np.sqrt(beta/2)
-        print(min_pos)
-        nr_ticks = vmax // min_pos + 1
-        tick_labels = np.arange(-nr_ticks, nr_ticks + 1)
-        # calculate tick positions
-        tick_positions = tick_labels * min_pos
-        # make labels to strings
-        tick_labels = [str(label) for label in tick_labels]
-        cf = ax.pcolormesh(x, y, z_values, vmin=vmin,
-                           vmax=vmax)
-        print(tick_labels)
-        cbar = fig.colorbar(cf, ax=ax, ticks=tick_positions)
-        cbar.ax.set_yticklabels(tick_labels)
-        plt.show()
-    else:
-        ax.set_title(title)
-        vmin = -np.max(np.abs(z_values))
-        vmax = np.max(np.abs(z_values))
-        # find out how many multiples of the minimum we need
-        min_pos = np.sqrt(beta/2)
-        max_tick_nr = vmax // min_pos + 1
-        # always 5 ticks
-        tick_labels = np.int32(np.linspace(-max_tick_nr, max_tick_nr, 7))
-        # could be to long
-
-        # calculate tick positions
-        tick_positions = tick_labels * min_pos
-        # make labels to strings
-
-        tick_labels = [str(int(label)) for label in tick_labels]
-        cf = ax.pcolormesh(x, y, z_values / min_pos, vmin=-1, vmax=1, cmap="copper")
-        cbar = fig.colorbar(cf, ax=ax, ticks=tick_positions)
-        cbar.ax.set_yticklabels(tick_labels)
-        """
-        cf = ax.pcolormesh(x, y, z_values,  vmin=-np.max(np.abs(z_values)),
-                           vmax=np.max(np.abs(z_values)))
-        ax.set_title(title)
-        fig.colorbar(cf, ax=ax)
-        """
 
 def corr_scaling_right(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
@@ -123,65 +42,80 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def plot_multiple_times(df, paras, n, proj=False, storage_root="plots/", p=True, chess_board=False, show=False, name="", v1=1, pdf=False, cell_L=0, cell_nr = 0):
-    # find out number of rows
+def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
+    df = read_csv(filepath)
+    para_filepath = os.path.splitext(filepath)[0] + ".txt"
+    parameters = read_parameters_txt(para_filepath)
+
+    # extract parameters out of config
+    nr_of_meshs = config["nr_of_meshs"]
+    cell_L = config["cell_L"]
+    parameters["cell_L"] = cell_L
+
     nr_rows = df.shape[0]
     # equidistant row numbers to use
-    rows = np.linspace(0, nr_rows-1, n, endpoint=True)
+    rows = np.linspace(0, nr_rows-1, nr_of_meshs, endpoint=True)
     # Select the rows with the row equidistant row numbers
+    print(rows)
     df_rows = df.iloc[rows]
-    # read beta
-    beta = paras["beta"]
-    # create fig and axes
-    fig, axes = plt.subplots(int(np.sqrt(n)), int(np.sqrt(n)), figsize =[12, 10])
+    print(df_rows)
+
+    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[12, 10])
     i = 0
-    for axs in axes:
-        for ax in axs:
-            # plot with one row out of the row numbers
-            try:
-                print(df_rows.iloc[i])
-                if cell_L:
-                    cell = extract_cell(df_rows.iloc[i], 0, cell_L)
-                else:
-                    cell = df_rows.iloc[i]
-                plot_colormesh(cell, fig, ax,
-                title=f"t = {df_rows.iloc[i, 0]:.2f}, T = {df_rows.iloc[i, v1 * -1]}",
-                proj=proj, p=p, beta=beta, chess_board=chess_board)
-            except ValueError:
-                plot_colormesh(
-                df_rows.iloc[i][1: -1], fig, ax,
-                title=f"t = {df_rows.iloc[i, 1]:.2f}, T = {df_rows.iloc[i, -1]}",
-                proj=proj, p=p, beta=beta, chess_board=chess_board)
+    for axs in (axes):
+        for ax in (axs):
+            ind = i
 
-            i +=1
-            # scale colormap in multiples of the position of the minimum
+            # read time and temperature and extract the values
+            parameters["t"] = df_rows.iloc[ind, 0]
+            parameters["T"] = df_rows.iloc[ind, 1]
+            row = np.array(df_rows.iloc[ind, 2:-1])           # TODO -1 because of nan in the df?
+            print(df_rows.iloc[ind])
+            print(row)
+            if config["cell_L"]:
+                row = extract_cell(row, config["cell_nr"], config["cell_L"])
+            im = plot_colormesh(ax, row, parameters, config)
+            i += 1
+    plt.tight_layout()
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.83, 0.04, 0.02, 0.7])
+    well_pos = np.sqrt(parameters["beta"] / 2)
+    nr_ticks = config["nr_colorbar_ticks"]
+    ticks = np.linspace(- well_pos, well_pos, nr_ticks, endpoint=True)
+    tick_labels = np.linspace(-1, 1, nr_ticks, endpoint=True)
+    tick_labels = [str(tick_label) for tick_label in tick_labels]
+    cbar = fig.colorbar(im, cax=cbar_ax, ticks=ticks)
+    cbar.ax.set_yticklabels(tick_labels)
 
-    # insert parameters
     textstr = ''
-    wanted_paras= ["dt", "J", "alpha", "beta", "eta", "tau"]
+    wanted_paras=["dt", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
     for para in wanted_paras:
         try:
-            textstr += para + "=" + str(paras[para]) + "\n"
+            textstr += para + "=" + str(parameters[para]) + "\n"
         except:
             pass
     textstr = textstr[:-1]
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
-    fig.text(0.02, 0.8, textstr, fontsize=14, bbox=props)
-    plt.tight_layout()
-    # if you want to save the pics somewhere else
+    fig.text(0.83, 0.8, textstr, fontsize=16, bbox=props)
+    plt.show()
+    name = plot_name_paras(parameters)
+    return fig, axes, name
 
-    if name == "":
-        name = plot_name_paras(paras)[:200]
-    format = "png"
-    if pdf:
-        format = "pdf"
-    try:
-        plt.savefig(storage_root + name, format=format)
-    except FileNotFoundError:
-        os.makedirs(storage_root)
-        plt.savefig(storage_root + name, format=format)
-    if show:
-        plt.show()
+def plot_colormesh(ax, row, parameters, config):
+
+    title=f"t = {parameters['t']:.2f}, T = {parameters['T']}"
+    ax.set_title(title)
+    L = int(np.sqrt(row.size))
+    print(row)
+    row = row.reshape((L, L))
+    if config["chess_trafo"]:
+        row = chess_board_trafo(row)
+    print(row)
+    well_pos = np.sqrt(parameters["beta"] / 2)
+    cf = ax.pcolormesh(row, cmap="copper", vmax=well_pos, vmin=-well_pos)
+
+    return cf
+
 
 
 def make_dir(path):
@@ -197,8 +131,12 @@ def save_plot(path, name, format="png"):
 
 def plot_name_paras(paras):
     fname = ""
-    for key in paras.keys():
-        fname += key + "=" + str(paras[key])
+    wanted_paras=["cell_L", "dt", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
+    for key in wanted_paras:
+        try:
+            fname += key + "=" + str(paras[key])
+        except:
+            pass
     return fname
 
 
@@ -490,17 +428,17 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
         return (ind_i, ind_j)
 
 
-def extract_cell(row, cell_nr, cell_L):
-    L = int(np.sqrt(row.size()))
+def extract_cell(row_data, cell_nr, cell_L):
+    L = int(np.sqrt(row_data.size))
     cells_per_row = L / cell_L
     col = cell_nr % cells_per_row       # number of the cell in its row
     row = cell_nr // cells_per_row
 
     cell = np.zeros(cell_L * cell_L)    # array for the values of the cell
-    for j in range(L):
-        for i in range(L):
-            ind = L * (row * L + j) + i + col * L
-            cell[j * L + i] = row[ind % (L * L)]
+    for j in range(cell_L):
+        for i in range(cell_L):
+            ind = int(L * (row * cell_L + j) + i + col * cell_L)
+            cell[j * cell_L + i] = row_data[ind % (L * L)]
 
     return cell
 

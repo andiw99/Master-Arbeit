@@ -70,7 +70,8 @@ class Anim():
         v = np.sqrt(self.beta/2)
         # plot the first value of the time and the correlation length
         print("Before plotting first xi")
-        self.ln,  = self.corr_ax.plot(self.t_tau[0], self.xi[0], ls="", marker=".", label=rf"$\tau = {self.tau}$")
+        self.ln,  = self.corr_ax.plot(self.t_tau[0], self.xi[0], ls="",
+                                      marker=".", label=rf"$\tau = {self.tau}$", c=colors[self.tau_nr])
         print("Before plotting first temp")
         self.ln_temp, = self.twin_corr_ax.plot(self.t_tau[0], self.T[0], alpha=0.5, c="red")
         #self.twin_corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
@@ -150,7 +151,6 @@ def main():
     png_name = "quench.png"
     root_dirs = os.listdir(root)
     print(root_dirs)
-
     xi_avg_dic = {}
     t_tau_dic = {}
 

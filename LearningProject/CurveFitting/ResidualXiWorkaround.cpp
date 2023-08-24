@@ -10,7 +10,6 @@
 #include "../DomainSize/QuenchCorrLength.h"
 #include "../DomainSize/FourierLatticeTrafo.h"
 #include "../Header/Helpfunctions and Classes.h"
-#include "../../CudaProject/parameters.cuh"
 #include <filesystem>
 
 void write_to_file(const int lat_dim, const vector<vector<array<double, 2>>> &p, const double *ft_squared_y,
@@ -116,10 +115,10 @@ int main(int argc, char* argv[]) {
     if(argc >= 2) {
         root = argv[1];
     } else {
-        root = "../../../Generated content/Defense/Binder Cumulant/";
+        root = "../../../Generated content/Defense/eta=0.6/";
     }
     // lattice dim
-    const int lat_dim = lattice_dim;
+    const int lat_dim = 1024;
     int N;
     const int starting_k = 10;
     const int nr_Ls = 20;

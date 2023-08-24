@@ -13,8 +13,8 @@
 
 class BinderHandler : public calcHandler {
     using calcHandler::calcHandler;     // if i don't need a special constructor i can write this to inherit from base
-    int starting_k = 2;                 // should find way to initialize them in create? Probably not
-    int nr_Ls = 14;                     // to comfortable to always have to change them in the class
+    int starting_k = 10;                 // should find way to initialize them in create? Probably not
+    int nr_Ls = 20;                     // to comfortable to always have to change them in the class
     vector<int> L_vec;
     map<int, vector<double>> m_map = {};
     double T;

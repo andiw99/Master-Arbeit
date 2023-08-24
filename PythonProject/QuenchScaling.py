@@ -132,7 +132,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Trash/New/Overdamped Quenching/"
+    root = "../../Generated content/Trash/New/Overdamped Quenching 2/"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)

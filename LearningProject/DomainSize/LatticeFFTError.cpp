@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
     // We just read from the parameter file and compile this when we start the run, but we run when we have finished
     // the run
-    const int N = lattice_dim;
+    const int N = 256;
     fs::path root;
     if(argc >= 2) {
         // if we give some argument, doesnt even matter what argument, we take the parameter file values

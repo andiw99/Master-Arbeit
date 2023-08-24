@@ -683,7 +683,7 @@ fs::path findFirstTxtFile(const fs::path& directory) {
     return {}; // Return an empty path if no .txt file is found
 }
 
-double extractTauValue(const fs::path& filePath) {
+string extractStringValueFromTxt(const fs::path& filePath, const string& value) {
     ifstream inputFile = safe_read(filePath);
 
     string line;
@@ -691,15 +691,23 @@ double extractTauValue(const fs::path& filePath) {
         size_t pos = line.find(",");
         if (pos != std::string::npos) {
             std::string parameter = line.substr(0, pos);
-            if (parameter == "tau") {
-                cout << line.substr(pos + 1);
-                double tauValue = std::stod(line.substr(pos + 1));
-                return tauValue;
+            if (parameter == value) {
+                string value_str = line.substr(pos + 1);
+                return value_str;
             }
         }
     }
 
-    return 0.0; // Return a default value if 'tau' is not found
+    return "0.0"; // Return a default value if 'tau' is not found
+}
+
+double extractValueFromTxt(const fs::path& filePath, const string& value) {
+    return stod(extractStringValueFromTxt(filePath, value));
+}
+
+
+double extractTauValue(const fs::path& filePath) {
+    return (extractValueFromTxt(filePath, "tau"));
 }
 
 

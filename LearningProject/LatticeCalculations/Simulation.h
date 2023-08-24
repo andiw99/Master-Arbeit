@@ -9,12 +9,14 @@
 #include "CalcHandlers/corrLengthHandler.h"
 #include "CalcHandlers/secondCorrLenghtHandler.h"
 #include "CalcHandlers/calcHandler.h"
+#include "CalcHandlers/StructFactHandler.h"
 
 
 enum class Calc {
     BinderCumulant,
     CorrLength,
     SecondMomentCorr,
+    StructFact,
 };
 
 calcHandler* create(Calc calc, const fs::path& root){
@@ -26,6 +28,8 @@ calcHandler* create(Calc calc, const fs::path& root){
         return new CorrLengthHandler(root);
     } else if (calc == Calc::SecondMomentCorr) {
         return new secondCorrLenghtHandler(root);
+    } else if (calc == Calc::StructFact) {
+        return new StructFactHandler(root);
     }
 }
 
@@ -97,7 +101,16 @@ public:
             }
             // ready to cycle over realizations?
             vector<fs::path> csv_files = list_csv_files(setting_path);
+            fs::path txt_file = findFirstTxtFile(setting_path);
+            double J = extractValueFromTxt(txt_file, "J");
+            if(J < 0) {
+                chessTrafo = true;
+            } else {
+                chessTrafo = false;
+            }
             for(auto csv_path : csv_files) {
+                // find out if chess_trafo should be true or not
+
                 ifstream file = safe_read(csv_path, true);
                 double T, t;
                 // TODO okay we only read in the last line here, so it doesnt work for the quench.process
