@@ -68,20 +68,28 @@ public:
         // How do we determine which? Is coded in random param, ... if else function is pretty lame again
         // The state initialization should also be exchangeable, or rather i mean it is code that is used by every
         // simulation, so we might have a 'state initializer' object as member of the base class
+        paras["step_nr"] = step_nr;
+        paras["run_nr"] = nr;
         double end_t = this->get_end_t();
+        cout << "Starting run with parameters:" << endl;
+        printMap(paras);
         state_type x(N * n);
         State_initializer->init_state(x);           // init state via correct state initializer that was created in repeat
         // 2. Initialize the stepper and the system (and open new file for the observer)
         // the stepper is already initialized, but i think it should have a reset button?
+        stepper->print_stepper_info();
         stepper->reset();
+        stepper->print_stepper_info();
+
         // sys<lat_dim> Sys = create<lat_dim, sys>(paras, step_nr);   // seed?
         // we try to create only with the map...
-        paras["step_nr"] = step_nr;
-        paras["run_nr"] = nr;
+
         sys Sys = sys(paras);
+        Sys.print_info();
+        exit(0);
         for(auto obs : obsvers) {
             // calling init rather than open stream.
-            obs->init(folder_path, paras, Sys);         // nah this is bad, i might have multiple observers that want to write to different files
+            obs->init(folder_path, paras, Sys);
         }
         // system? System should probably be created new since we need another tau for the system
         // reset the current T and stuff

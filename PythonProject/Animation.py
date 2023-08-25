@@ -38,13 +38,13 @@ class Anim():
             else:
                 print("Exhausting all tau folders")
                 self.ani.pause()
+                self.ani.event_source.stop()
                 return
         # updating system
 
         df_row = self.sys_df.iloc[ind]
         lat_dim = int(np.sqrt(df_row.size))
         z_values = np.array(df_row, dtype=float).reshape((lat_dim, lat_dim))
-        print("Here?")
         self.pcm.set_array(z_values)
         # updating corr length
         if (ind % self.sys_per_corr == 0):
@@ -56,7 +56,6 @@ class Anim():
             upper_bound = np.maximum(np.max(self.xi[:xi_ind]) + 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[1])
             self.corr_ax.set_ylim(lower_bound, upper_bound)
 
-        print("why?")
         return self.ln, self.pcm
 
 
@@ -71,7 +70,7 @@ class Anim():
         # plot the first value of the time and the correlation length
         print("Before plotting first xi")
         self.ln,  = self.corr_ax.plot(self.t_tau[0], self.xi[0], ls="",
-                                      marker=".", label=rf"$\tau = {self.tau}$", c=colors[self.tau_nr])
+                                      marker=".", label=rf"$\tau = {self.tau}$", c=colors[self.tau_nr - 1])
         print("Before plotting first temp")
         self.ln_temp, = self.twin_corr_ax.plot(self.t_tau[0], self.T[0], alpha=0.5, c="red")
         #self.twin_corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
@@ -141,12 +140,12 @@ class Anim():
         self.tau_nr += 1
 
     def safe(self, path="foo"):
-        FFwriter = animation.FFMpegWriter(fps=10)
-        self.ani.save('../../Generated content/animation.mp4', writer=FFwriter)
+        FFwriter = animation.FFMpegWriter(fps=60)
+        self.ani.save('../../Generated content/animation.mp4', writer=FFwriter, dpi=500)
 
 
 def main():
-    root = "../../Generated content/Overdamped Quenching/"
+    root = "../../Generated content/Trash/New/Overdamped Quenching/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)

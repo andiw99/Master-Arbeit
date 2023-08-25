@@ -34,6 +34,15 @@ public:
     const size_t lat_dim;
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
+    virtual void print_info() {
+        cout << "Printing system info:" << endl;
+        cout << "step_nr = " << step_nr << endl;
+        cout << "T = " << T << endl;
+        cout << "eta = " << eta << endl;
+        cout << "D = " << D << endl;
+        cout << "lat_dim = " << lat_dim << endl;
+    }
+
     struct rand
     {
         double mu, sigma, D;
@@ -250,6 +259,9 @@ public:
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
     // the current temperature
 
+    void print_info() override {
+        System::print_info();
+    }
 
     string rng = "RNG";
     string theta_filling = "Filling of theta";
@@ -328,6 +340,14 @@ public:
     const double alpha;
     const double beta;
     const double J;
+
+
+    void print_info() override {
+        System::print_info();
+        cout << "alpha = " << alpha << endl;
+        cout << "beta = " << beta << endl;
+        cout << "J = " << J << endl;
+    }
     // systemsize should probably be a template argument?
     // needed to "advance the random engine" and generate different random numbers for the different steps
     // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
@@ -483,14 +503,24 @@ public:
 
 
 struct quench : virtual public System {
-    const double T_start;       // Start-Temperture of the Quenching For example: 10
-    const double T_end;         // End-Temperature of the Quencheing. For example: 1
-    const double s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
-    const double e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
-    double t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
-    double end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
-    const double tau;
+    const double    T_start;       // Start-Temperture of the Quenching For example: 10
+    const double    T_end;         // End-Temperature of the Quencheing. For example: 1
+    const double    s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
+    const double    e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
+    double          t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
+    double          end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
+    const double    tau;
 
+    void print_info() override {
+        System::print_info();
+        cout << "T_start = " << T_start << endl;
+        cout << "T_end = " << T_end << endl;
+        cout << "s_eq_t = " << s_eq_t << endl;
+        cout << "e_eq_t = " << e_eq_t << endl;
+        cout << "t_quench = " << t_quench << endl;
+        cout << "end_quench_t = " << end_quench_t << endl;
+        cout << "tau = " << tau << endl;
+    }
     double linear_T(double t) {
         if(s_eq_t < t && t < end_quench_t) {
             // if we are in the quench phase, we reduce T
@@ -544,6 +574,15 @@ public:
     const double alpha;
     const double beta;
     const double Jx, Jy;
+
+    void print_info() override {
+        System::print_info();
+        cout << "alpha = " << alpha << endl;
+        cout << "beta = " << beta << endl;
+        cout << "Jx = " << Jx << endl;
+        cout << "Jy = " << Jy << endl;
+    }
+
     struct ani_coulomb_functor {
         const double alpha, beta, Jx, Jy, eta;
 
@@ -585,7 +624,7 @@ public:
 
     }
     anisotropic_coulomb_interaction(map<string, double>& paras)
-            : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["Jx"]), Jy(paras["Jy"]) {
+            : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["J"]), Jy(paras["Jy"]) {
     }
 };
 
@@ -622,11 +661,15 @@ public:
 
     }
     anisotropic_coulomb_quench(map<string,double>& paras)
-            : anisotropic_coulomb_interaction(paras),
-              quench(paras),
-              System(paras){
+            : anisotropic_coulomb_interaction(paras), quench(paras), System(paras){
 
     }
+
+    void print_info() override {
+        quench::print_info();
+        anisotropic_coulomb_interaction::print_info();
+    }
+
 };
 
 

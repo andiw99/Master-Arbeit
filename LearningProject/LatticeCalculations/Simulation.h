@@ -12,12 +12,7 @@
 #include "CalcHandlers/StructFactHandler.h"
 
 
-enum class Calc {
-    BinderCumulant,
-    CorrLength,
-    SecondMomentCorr,
-    StructFact,
-};
+
 
 calcHandler* create(Calc calc, const fs::path& root){
     // i think we sadly need to return a pointer to the created object?

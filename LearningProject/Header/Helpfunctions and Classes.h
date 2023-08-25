@@ -16,6 +16,7 @@
 #include <fstream>
 #include <filesystem>
 #include <utility>
+#include <map>
 
 
 // using namespaces!
@@ -880,6 +881,13 @@ std::vector<S> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
     logspaced.push_back((S)pow(base, end)); // I want to ensure that start and end
     // are exactly the same as the input
     return logspaced;
+}
+
+template <typename Key, typename Value>
+void printMap(const std::map<Key, Value>& myMap) {
+    for (const auto& pair : myMap) {
+        std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
+    }
 }
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

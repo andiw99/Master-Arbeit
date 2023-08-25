@@ -79,4 +79,5 @@ add_executable(LearningProject
         LatticeCalculations/CalcHandlers/BinderHandler.h
         LatticeCalculations/CalcHandlers/corrLengthHandler.h
         LatticeCalculations/CalcHandlers/secondCorrLenghtHandler.h
-        LatticeCalculations/CalcHandlers/StructFactHandler.h)
+        LatticeCalculations/CalcHandlers/StructFactHandler.h
+        LatticeCalculations/configs.h)

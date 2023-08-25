@@ -90,13 +90,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #py = np.sort(py)
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
-
+    print("It cant be that hard to fit :(")
+    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     if errors_for_fit:
         popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
         popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
     else:
+        print(px, ft_avg_y)
         popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
         popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
+    print("It cant be that hard to fit :(")
+
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
     #print("gamma = %g" % popt_x[2])
@@ -113,15 +117,15 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # error of xi:
     xi_err = 1/2 * (xix_err + xiy_err)
     # plotting
-    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     p = np.linspace(min(px), max(px), px.size)
     lorentz_x = fitfunc(p, *popt_x)
     lorentz_y = fitfunc(p, *popt_y)
-    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
     axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {parameters['tau']:2f}$")
     axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {parameters['tau']:2f}$")
+    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
     plt.tight_layout()
+    plt.show()
     plt.savefig(savepath, format="png")
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
@@ -132,7 +136,10 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Trash/New/Overdamped Quenching 2/"
+    #root = "../../Generated content/Defense/Quench Small"
+    root = "../../Generated content/AA/AA Quench Copy"
+    #root = "../../Generated content/Trash/New/Overdamped Quenching 2"
+
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)

@@ -12,12 +12,38 @@ from itertools import product
 
 # import matplotlib; matplotlib.use("TkAgg")
 
-colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
+colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
 
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)
     return df.iloc[:nrows]
+
+def create_directory_if_not_exists(directory_path):
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+def read_last_line(path):
+    with open(path, 'rb') as f:
+        try:  # catch OSError in case of a one line file
+            f.seek(-2, os.SEEK_END)
+            while f.read(1) != b'\n':
+                f.seek(-2, os.SEEK_CUR)
+        except OSError:
+            f.seek(0)
+        last_line = f.readline().decode()
+    print(last_line[-200:-2])
+
+    return last_line[:-2]   # strip last comma
+
+def string_to_array(input_string):
+    # Split the input string by commas and convert each element to a float
+    # input_string = input_string.strip()
+    values = [float(x) for x in input_string.split(',')]
+
+    # Create a NumPy array from the list of float values
+    array = np.array(values)
+
+    return array
 
 
 def read_multiple_csv(filepaths, nrows=None):
@@ -43,7 +69,7 @@ def corr_scaling_left(T, Tc, nu, xi0):
     return xi0 / (eps ** nu)
 
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
-    df = read_csv(filepath)
+
     para_filepath = os.path.splitext(filepath)[0] + ".txt"
     parameters = read_parameters_txt(para_filepath)
 
@@ -51,14 +77,20 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     nr_of_meshs = config["nr_of_meshs"]
     cell_L = config["cell_L"]
     parameters["cell_L"] = cell_L
-
-    nr_rows = df.shape[0]
+    nr_rows = parameters["nr_save_values"]
     # equidistant row numbers to use
-    rows = np.linspace(0, nr_rows-1, nr_of_meshs, endpoint=True)
     # Select the rows with the row equidistant row numbers
+    df = []
+    rows = np.linspace(0, nr_rows-1, nr_of_meshs, endpoint=True)
+    rows = [int(row) for row in rows]
     print(rows)
-    df_rows = df.iloc[rows]
-    print(df_rows)
+    with open(filepath) as f:
+        for i, line in enumerate(f):
+            if i in rows:
+                print("appending...")
+                df.append(string_to_array(line[:-2]))
+
+    print(df)
 
     fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[12, 10])
     i = 0
@@ -67,11 +99,10 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
             ind = i
 
             # read time and temperature and extract the values
-            parameters["t"] = df_rows.iloc[ind, 0]
-            parameters["T"] = df_rows.iloc[ind, 1]
-            row = np.array(df_rows.iloc[ind, 2:-1])           # TODO -1 because of nan in the df?
-            print(df_rows.iloc[ind])
-            print(row)
+            parameters["t"] = df[ind][0]
+            parameters["T"] = df[ind][1]
+            row = np.array(df[ind][2:])
+
             if config["cell_L"]:
                 row = extract_cell(row, config["cell_nr"], config["cell_L"])
             im = plot_colormesh(ax, row, parameters, config)
@@ -108,7 +139,15 @@ def plot_colormesh(ax, row, parameters, config):
     L = int(np.sqrt(row.size))
     print(row)
     row = row.reshape((L, L))
-    if config["chess_trafo"]:
+    chess_trafo = 0
+    if config["chess_trafo"] == 1:
+        chess_trafo = True
+    elif config["chess_trafo"] == -1:
+        # 'auto', so infering fom J
+        chess_trafo = parameters["J"] < 0
+        print("auto chess trafo yields: chess_trafo=", chess_trafo)
+    if chess_trafo:
+        print("doing chess trafo")
         row = chess_board_trafo(row)
     print(row)
     well_pos = np.sqrt(parameters["beta"] / 2)
@@ -117,6 +156,12 @@ def plot_colormesh(ax, row, parameters, config):
     return cf
 
 
+def find_first_csv_file(folder_path):
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".csv"):
+            return os.path.join(folder_path, file_name)
+
+    return None
 
 def make_dir(path):
     try:
@@ -131,7 +176,7 @@ def save_plot(path, name, format="png"):
 
 def plot_name_paras(paras):
     fname = ""
-    wanted_paras=["cell_L", "dt", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
+    wanted_paras=["cell_L", "T", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
     for key in wanted_paras:
         try:
             fname += key + "=" + str(paras[key])
@@ -140,6 +185,14 @@ def plot_name_paras(paras):
     return fname
 
 
+def list_folders_and_subfolders(directory_path):
+    folder_list = []
+
+    for root, dirs, files in os.walk(directory_path):
+        for dir_name in dirs:
+            folder_list.append(os.path.join(root, dir_name))
+
+    return folder_list
 
 def get_plotted_files(root):
     try:

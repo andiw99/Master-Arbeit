@@ -65,6 +65,12 @@ public:
         }
     }*/
 
+    virtual void print_stepper_info() {
+        cout << "Stepper Info:" << endl;
+        cout << "N = " << N << endl;
+    }
+
+
     template<class Obs>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, vector<Obs*> obsvers) {
         for(auto obs : obsvers) {
@@ -163,6 +169,10 @@ public:
     // now for the memory allocation. I am not sure if this ever changes for me but the implementation should not harm
     // on the other hand, my class doesn't have any saved state_types that could potentially be resized
     // so we skip this for now
+
+    void print_stepper_info() override {
+        stepper<state_type, algebra, operations, System, value_type, time_type>::print_stepper_info();
+    }
 };
 
 template<
@@ -260,6 +270,12 @@ public:
         return error;
     }
 
+
+    void print_stepper_info() override {
+        stepper::print_stepper_info();
+        cout << "k = " << k;
+    }
+
 private:
     state_type x_drift, dx_drift_dt;
 };
@@ -301,6 +317,14 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps, rng}};
 public:
     typedef System Sys;
+
+    void print_stepper_info() override {
+        euler_mayurama_stepper::print_stepper_info();
+        cout << "k = " << k << endl;
+        cout << "prev_accepted_k = " << prev_accepted_k << endl;
+        cout << "switched = " << switched << endl;
+        cout << "switch_count = " << switch_count << endl;
+    }
 
     void do_step(Sys& sys, state_type& x, time_type dt_max, time_type &t) override {
         if(switch_counter > switch_count * k) {

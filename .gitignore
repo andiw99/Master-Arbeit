@@ -79,3 +79,4 @@ CudaProject/parameters.cuh
 CudaProject/*.out
 **/*.out
 **/*.pyc
+**/__pycache__

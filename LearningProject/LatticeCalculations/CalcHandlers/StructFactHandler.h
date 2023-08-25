@@ -8,9 +8,9 @@
 #include <fftw3.h>
 #include "../../Header/Helpfunctions and Classes.h"
 #include "calcHandler.h"
+#include "../configs.h"
 
 class StructFactHandler : public calcHandler {
-    using calcHandler::calcHandler;
     fftw_complex *in, *out;
     fftw_plan plan;
     int n;
@@ -26,6 +26,11 @@ class StructFactHandler : public calcHandler {
     fs::path writepath;
 public:
 
+    StructFactHandler(fs::path root) : calcHandler(root) {
+        L = (int) StructFactConfig["cell_L"];
+
+    }
+
     void pre_routine() override {
         // need to find out the lattice dimension
         // TODO Assuming we have all the same size?
@@ -33,6 +38,10 @@ public:
     }
 
     void setting_pre_routine(fs::path setting_path) override {
+        if (L == 0) {
+            L = (int)lat_dim;
+            cout << "cell L equals system size L = " << L << endl;
+        }
         // we need a map that maps the system size to the vector containing all the m values
         // it has to be reset for every setting / temperature
         fs::path txt_path = findFirstTxtFile(setting_path);
@@ -123,10 +132,10 @@ public:
         for(int j = 0; j<L; j++) {
             int K = L/2;
             int i = (j + K < L) ? j + K : j - K;
+            int ft_ind = i;
 
-
-            ofile <<  p[i][i][0] << ", " << mean_ft_squared_k[j] << ", " << 0 << "," << p[i][i][1] << ", "
-                  << mean_ft_squared_l[j] <<"," << 0;
+            ofile <<  p[i][i][0] << ", " << mean_ft_squared_k[ft_ind] << ", " << 0 << "," << p[i][i][1] << ", "
+                  << mean_ft_squared_l[ft_ind] <<"," << 0;
 /*            cout <<  p[i][i][0] << ", " << ft_squared_y[i] << ", " << p[i][i][1] << ", " << ft_squared_x[i] << endl;
         cout << i << "  " << p[0][i][0] << "  " << ft_squared_y[i] << "  " << p[i][0][1] << "   " << ft_squared_x[i] << endl;
         */
