@@ -27,8 +27,12 @@ class stepper {
 public:
     typedef System Sys;
 
+    ofstream debugging_file;
+
     stepper() {}
-    stepper(size_t N) : N(N), dxdt(N), theta(N) {}
+    stepper(size_t N) : N(N), dxdt(N), theta(N) {
+        debugging_file.open("../../Generated content/debugging2");
+    }
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
     // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
@@ -77,9 +81,13 @@ public:
             obs->operator()(sys, x, t); // Observing before anything happens
         }
         while (t < end_time){
+/*            for(int i = 0; i <= x.size() / 2; i++) {
+                debugging_file << theta[x.size() / 2 + i] << ",";
+            }
+            debugging_file << endl;*/
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
-                obs->operator()(sys, x, t); // Observing before anything happens
+                obs->operator()(sys, x, t);
             }
         }
     }
@@ -144,7 +152,17 @@ public:
         timer.set_startpoint(applying_name);
         typedef typename operations::template apply_em<time_type> apply_em;
         // this is the operation that i want to apply on every lattice site
+        // cout << endl << endl;
+        // cout << "THETA IN EULER MAYURAMA:" << endl;
+        // print_container(theta);
+        // cout << endl << endl;
+        // cout << "Before application x = " << endl;
+        // print_container(x);
+        // cout << endl;
         algebra::for_each(x, x, dxdt, theta, apply_em(dt));
+        // cout << "After application" << endl;
+        // print_container(x);
+        // cout << endl;
         timer.set_endpoint(applying_name);
         // and that should already be it?
         // Observe? How much time does this take?
@@ -391,9 +409,9 @@ public:
             timer.set_startpoint(rng);
             // cout << "calcing diff"<< endl;
             sys.calc_diff(theta, t);
-            // cout << "THETA IN ADAPTIVE STEPPER:" << endl;
-            // print_container(theta);
-            // cout << endl << endl;
+            cout << "THETA IN ADAPTIVE STEPPER:" << endl;
+            print_container(theta);
+            cout << endl << endl;
             timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time

@@ -481,11 +481,13 @@ void print2DContainer(const Container& container) {
 }
 
 template <typename Container>
-void print_container(const Container& container) {
+void print_container(const Container& container, bool b=false) {
     int i = 0;
     for (const auto& element : container) {
-        if (i % 30 == 0) {
-            cout << endl;
+        if(b) {
+            if (i % 30 == 0) {
+                cout << endl;
+            }
         }
         std::cout << element << ", ";
         i++;

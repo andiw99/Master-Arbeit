@@ -191,7 +191,11 @@ public:
     void calc_diff(Stoch &theta, double t) {
         // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
         // as it will probably improve nothing
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        chrono::microseconds mus = chrono::duration_cast<chrono::microseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+        long seed = (mus.count() % 10000000) * 1000000000;
+        thrust::counting_iterator<size_t> index_sequence_begin(seed);
 /*        if(step_nr == 0) {
             thrust::fill(theta.begin(), theta.begin() + n, 0);
         }*/

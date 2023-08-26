@@ -179,7 +179,7 @@ def plot_name_paras(paras):
     wanted_paras=["cell_L", "T", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
     for key in wanted_paras:
         try:
-            fname += key + "=" + str(paras[key])
+            fname += key + "=" + str(round(paras[key], 2))
         except:
             pass
     return fname

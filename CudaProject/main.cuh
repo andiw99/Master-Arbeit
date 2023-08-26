@@ -127,6 +127,7 @@ struct thrust_operations {
             // The most simple tuple would be for only one lattice site, then the tuple would be
             // tup = ( x = (q, p), dxdt = (dqdt, dpdt), theta = (theta_q = 0, theta_p = rand))
             // and since for_each does the following code for every entry of every vector in the tuple
+            // printf(" x = %f, dxdt = %f, theta = %f \n",thrust::get<1>(tup), thrust::get<2printf>(tup), thrust::get<3>(tup));
             thrust::get<0>(tup) = thrust::get<1>(tup) +
                                   dt * thrust::get<2>(tup) +
                                   sqrt(dt) * thrust::get<3>(tup);
