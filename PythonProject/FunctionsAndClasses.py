@@ -190,7 +190,8 @@ def list_folders_and_subfolders(directory_path):
 
     for root, dirs, files in os.walk(directory_path):
         for dir_name in dirs:
-            folder_list.append(os.path.join(root, dir_name))
+            if dir_name[0] != ".":
+                folder_list.append(os.path.join(root, dir_name))
 
     return folder_list
 

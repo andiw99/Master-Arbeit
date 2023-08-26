@@ -19,7 +19,7 @@ def kos():
     icks_frequency = 1
 
     # Plot points
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(14, 10))
 
 
     # Set identical scales for both axes
@@ -43,7 +43,7 @@ def kos():
     # ax.grid(which='both', color='grey', linewidth=1, linestyle='-', alpha=0.2)
 
     # Draw arrows
-    arrow_fmt = dict(markersize=4, color='black', clip_on=False)
+    arrow_fmt = dict(markersize=12, color='black', clip_on=False)
     ax.plot((1), (0), marker='>', transform=ax.get_yaxis_transform(), **arrow_fmt)
     ax.plot((0), (1), marker='^', transform=ax.get_xaxis_transform(), **arrow_fmt)
 
@@ -53,8 +53,8 @@ def kos():
 def plot_potential(alpha, beta):
     xmin = np.sqrt(beta / 2)
     Vmin = - 1/8 * alpha * beta ** 2
-
-    x = np.linspace(-1.7 * xmin, 1.7 * xmin, 500)
+    fact = 1.5
+    x = np.linspace(-fact * xmin, fact * xmin, 500)
 
     V = double_well(x, alpha, beta)
 
@@ -63,7 +63,7 @@ def plot_potential(alpha, beta):
 
     fig, ax = kos()
 
-    ax.plot(x, V, c="C1", lw=2)
+    ax.plot(x, V, c="C1", lw=5)
     # mark_point(ax, xmin, Vmin)
     # Create 'x' and 'y' labels placed at the end of the axes
     #ax.set_xlabel('q', size=14, labelpad=-35, x=1.00)

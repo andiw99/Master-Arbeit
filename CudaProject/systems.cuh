@@ -41,6 +41,7 @@ public:
         cout << "eta = " << eta << endl;
         cout << "D = " << D << endl;
         cout << "lat_dim = " << lat_dim << endl;
+        cout << "n = " << n << endl;
     }
 
     struct rand
@@ -191,13 +192,16 @@ public:
         // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
         // as it will probably improve nothing
         thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
+/*        if(step_nr == 0) {
             thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
+        }*/
+        cout << step_nr << endl;
         thrust::transform(index_sequence_begin,
                           index_sequence_begin + n,
                           theta.begin() + n,
                           rand(D));
+        print_container(theta);
+        cout << endl;
     }
 
     System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), lat_dim(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {

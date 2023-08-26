@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <utility>
 #include <map>
-
+#include <array>
 
 // using namespaces!
 using namespace std;
@@ -887,6 +887,40 @@ template <typename Key, typename Value>
 void printMap(const std::map<Key, Value>& myMap) {
     for (const auto& pair : myMap) {
         std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
+    }
+}
+
+
+vector<vector<array<double, 2>>> init_q(size_t lat_dim) {
+    // later we can either overload or adjust this function to work with lattice spacings
+    vector<vector<array<double, 2>>> q = vector<vector<array<double, 2>>>(
+            lat_dim, vector<array<double, 2>>(lat_dim, array<double, 2>()));
+    // iterate over the lattice
+    for(int m = 0; m < lat_dim; m++) {
+        for(int n = 0; n < lat_dim; n++) {
+            q[m][n][0]= 1.0 * n;
+            q[m][n][1] = 1.0 * m;
+        }
+    }
+    return q;
+}
+void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<double, 2>>> &p) {
+    int lat_dim = q.size();         // f has size of lattice dim
+    int N = lat_dim;
+    // To center the impulses around the center, we shift by K = N/2
+    int K = N / 2;
+    // qi corresponds to xn, so i is the col
+    // find out the lattice spacings a_x = x_1 - x_0
+    double ax = q[0][1][0] - q[0][0][0];
+    double ay = q[1][0][1] - q[0][0][1];
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            int i_ft = i < K ? i : i - N;
+            int j_ft = j < K ? j : j - N;
+            double p_i = 2 * M_PI * (double)i_ft / N / ax;
+            double p_j = 2 * M_PI * (double)j_ft / N / ay;
+            p[i][j] = array<double, 2>{p_i, p_j};
+        }
     }
 }
 

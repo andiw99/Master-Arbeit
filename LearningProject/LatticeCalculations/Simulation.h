@@ -49,6 +49,7 @@ public:
     simulation(const fs::path& root): root(root) {
         // First thing we should get done is look for the lattice dim
         lat_dim = get_sim_size(root);
+        cout << "lat dim = " << lat_dim << endl;
         setting_directories = list_dir_paths(root);
     }
 
@@ -69,6 +70,7 @@ public:
             // some of the handlers need parameters, how do i hand them over?
             handlers.push_back(create(calc, root));
         }
+        cout << "Created Handlers" << endl;
         // now we have all handlers in the handler vector
 
         // I just thougt of: We could speed up the process even more if we
@@ -89,6 +91,8 @@ public:
             handler->pre_routine();
         }
 
+        cout << "Did pre routines" << endl;
+
         // Now we cycle through the the settings
         for(auto setting_path : setting_directories) {
             for (auto handler : handlers) {
@@ -103,6 +107,7 @@ public:
             } else {
                 chessTrafo = false;
             }
+            cout << "come on?" << endl;
             for(auto csv_path : csv_files) {
                 // find out if chess_trafo should be true or not
 

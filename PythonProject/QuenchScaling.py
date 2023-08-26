@@ -125,8 +125,8 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     axes[0].plot(p, lorentz_x, label="Lorentzian fit")
     axes[1].plot(p, lorentz_y, label="Lorentzian fit")
     plt.tight_layout()
-    plt.show()
     plt.savefig(savepath, format="png")
+    plt.show()
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
@@ -137,7 +137,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 def main():
     # parameters
     #root = "../../Generated content/Defense/Quench Small"
-    root = "../../Generated content/AA/AA Quench Copy"
+    root = "../../Generated content/Defense/Real Quench"
     #root = "../../Generated content/Trash/New/Overdamped Quenching 2"
 
     name = "struct.fact"
@@ -245,7 +245,7 @@ def main():
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(tau_arr, xi_sorted, yerr=xi_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
     ax.plot(tau_arr, poly(tau_arr, popt[0], np.exp(popt[1])), color="C3",
-            label=r"$\frac{\nu}{1 + \mu} =$" + f"{popt[0]:.2f}")
+            label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt[0]:.2f}")
     ax.set_xlabel(r"$\tau_Q$")
     ax.set_ylabel(r"$\xi(\tau_Q)$")
     ax.set_title(r"Corr Length depending on $\tau_Q$")

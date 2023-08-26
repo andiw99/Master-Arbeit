@@ -35,6 +35,11 @@ public:
     simulation_path(simulation_path), N((int)paras["N"]) {
         // Stepper cannot be created here anymore since it initializes vectors of size N * n which now can change
         // per setting
+        // we need a random standard seed?
+        chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+        this->seed = (ms.count() % 10000) * 10000000;
     }
     Simulation(map<string, double> &paras, fs::path& simulation_path, int seed) :
     Simulation(paras, simulation_path) {
@@ -86,7 +91,7 @@ public:
 
         sys Sys = sys(paras);
         Sys.print_info();
-        exit(0);
+
         for(auto obs : obsvers) {
             // calling init rather than open stream.
             obs->init(folder_path, paras, Sys);
@@ -98,6 +103,7 @@ public:
         cout << "For a " << (int)paras["lat_dim"] << " x " << (int)paras["lat_dim"] << " System" << endl;
         double t = 0;
         stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
+        cout << "Sys.get_step_nr():" << Sys.get_step_nr() << endl;
         step_nr += Sys.get_step_nr();
     }
     void repeat(int runs) {
@@ -131,7 +137,9 @@ public:
         // We could theoretically also create the stepper in the base class, but then we would have
         // the huge templates everywhere, but on the other hand registering observer etc is stuff that has to be
         // done for every simulation and it would be nice to not have to write that again
-        repeat_nr = (int) paras["repeat_nr"];
+        repeat_nr = (int) paras["repeat"];
+        step_nr = seed;
+        cout << "initial step_nr = " << step_nr << endl;
         // the observer is supposed to be already alive here, so we just register it to the stepper
 /*        for(auto obs : obsvers) {
             cout << "Registering observer to stepper: obs name:" << endl;
@@ -189,7 +197,7 @@ public:
             // update the parameters so we create the correct systems and stuff
             paras["tau"] = tau;
             folder_path = simulation_path / to_string(tau);
-            this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
+            this->repeat((int)paras["repeat"]);      // and actually this should be it
         }
     }
 

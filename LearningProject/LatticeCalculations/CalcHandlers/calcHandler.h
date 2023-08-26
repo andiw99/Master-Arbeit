@@ -5,7 +5,7 @@
 #ifndef LEARNINGPROJECT_CALCHANDLER_CPP
 #define LEARNINGPROJECT_CALCHANDLER_CPP
 #include "../../Header/Helpfunctions and Classes.h"
-
+#include "../configs.h"
 
 class calcHandler {
 public:

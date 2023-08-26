@@ -12,7 +12,6 @@
 
 
 class BinderHandler : public calcHandler {
-    using calcHandler::calcHandler;     // if i don't need a special constructor i can write this to inherit from base
     int starting_k = 10;                 // should find way to initialize them in create? Probably not
     int nr_Ls = 20;                     // to comfortable to always have to change them in the class
     vector<int> L_vec;
@@ -20,12 +19,20 @@ class BinderHandler : public calcHandler {
     double T;
 public:
 
+    BinderHandler(fs::path root): calcHandler(root) {
+        starting_k = (int) BinderHandlerConfig["starting_k"];
+        nr_Ls = (int) BinderHandlerConfig["nr_Ls"];
+    }
+
     void pre_routine() override {
+        cout << "Calling BinderHandler pre routine" << endl;
         calcFile.open(root / "binder.cumulants");
         // Generating the vector of Ls
+
         L_vec = generate_L(starting_k, lat_dim * lat_dim, nr_Ls);
+
         init_file_header(calcFile, L_vec);
-        cout << "Calling BinderHandler pre routine" << endl;
+
     }
 
     void setting_pre_routine(fs::path setting_path) override {

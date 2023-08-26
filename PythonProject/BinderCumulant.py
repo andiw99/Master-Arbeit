@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Defense/eta=0.6"
+    root = "../../Generated content/Defense/Real Binder Equilibrium"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,12 +43,13 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 10
+    exclude_large_dists = 8
     exclude_small_dists = 1
-    min_temp = 0.6
-    xi_exclude_large_dists = 4
-    xi_exclude_small_dists = 0
-    r = 1
+    min_temp = 0
+    max_temp = 0.75
+    xi_exclude_large_dists = 8
+    xi_exclude_small_dists = 1
+    r = 3
 
 
     cum_path = root + "/" + name
@@ -69,17 +70,19 @@ def main():
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
 
     for size in xi_labels[::2]:
-
         xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
         xiy_dic[size] = np.array(df_xi[size + "_y"])[np.argsort(T)]
     T = np.sort(T)
-
-    T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
     # sort out temps
     for size in labels[::2]:
-        cum_dic[size] = cum_dic[size][T > min_temp]
-        cum_err_dic[size] = cum_err_dic[size][T > min_temp]
-    T = T[T > min_temp]
+        cum_dic[size] = cum_dic[size][(min_temp < T) & (T < max_temp)]
+        cum_err_dic[size] = cum_err_dic[size][(min_temp < T) & (T < max_temp)]
+        xix_dic[size] = xix_dic[size][(min_temp < T) & (T < max_temp)]
+        xiy_dic[size] = xiy_dic[size][(min_temp < T) & (T < max_temp)]
+    T = T[(min_temp < T) & (T < max_temp)]
+
+    T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
+
     plt.show()
     fig, ax = plt.subplots(1, 1)
 
