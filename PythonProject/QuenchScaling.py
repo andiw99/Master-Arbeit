@@ -137,7 +137,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 def main():
     # parameters
     #root = "../../Generated content/Defense/Quench Small"
-    root = "../../Generated content/Defense/Real Quench"
+    root = "../../Generated content/Defense2/Quench Time High Temp Small System/"
     #root = "../../Generated content/Trash/New/Overdamped Quenching 2"
 
     name = "struct.fact"

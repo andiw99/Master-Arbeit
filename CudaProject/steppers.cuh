@@ -31,7 +31,7 @@ public:
 
     stepper() {}
     stepper(size_t N) : N(N), dxdt(N), theta(N) {
-        debugging_file.open("../../Generated content/debugging2");
+        debugging_file.open("../../Generated content/debugging4");
     }
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
@@ -81,10 +81,12 @@ public:
             obs->operator()(sys, x, t); // Observing before anything happens
         }
         while (t < end_time){
-/*            for(int i = 0; i <= x.size() / 2; i++) {
-                debugging_file << theta[x.size() / 2 + i] << ",";
+            if (t > 0.95 * end_time) {
+                for(int i = 0; i <= 1000; i++) {
+                    debugging_file << theta[x.size() / 2 + i] << ",";
+                }
+                debugging_file << endl;
             }
-            debugging_file << endl;*/
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
                 obs->operator()(sys, x, t);
@@ -409,9 +411,9 @@ public:
             timer.set_startpoint(rng);
             // cout << "calcing diff"<< endl;
             sys.calc_diff(theta, t);
-            cout << "THETA IN ADAPTIVE STEPPER:" << endl;
-            print_container(theta);
-            cout << endl << endl;
+            // cout << "THETA IN ADAPTIVE STEPPER:" << endl;
+            // print_container(theta);
+            // cout << endl << endl;
             timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time

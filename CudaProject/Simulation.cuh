@@ -115,12 +115,12 @@ public:
         // If the number of runs equals the repeat nr, which means we called repeat the first time with the current
         // parameters, we initialize a new state initializer
         // TODO it is important that the subroutines set the lat_dim parameter in paras
+        run_count = findHighestCSVNumber(folder_path) + 1;
         if (runs == repeat_nr) {
             // i am not really happy with this if statement but it safes some redundant code which in don't know
             // where to put otherwise
             n = (int)(paras["lat_dim"] * paras["lat_dim"]);
             paras["n"] = n;
-            run_count = findHighestCSVNumber(folder_path) + 1;
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
         }

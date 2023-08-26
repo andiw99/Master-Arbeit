@@ -39,7 +39,7 @@ class Anim():
                 print("Exhausting all tau folders")
                 self.ani.pause()
                 self.ani.event_source.stop()
-                return
+                exit()
         # updating system
 
         df_row = self.sys_df.iloc[ind]
@@ -140,8 +140,8 @@ class Anim():
         self.tau_nr += 1
 
     def safe(self, path="foo"):
-        FFwriter = animation.FFMpegWriter(fps=60)
-        self.ani.save('../../Generated content/animation.mp4', writer=FFwriter, dpi=500)
+        FFwriter = animation.FFMpegWriter(fps=20)
+        self.ani.save('../../Generated content/animation20.mp4', writer=FFwriter, dpi=500)
 
 
 def main():

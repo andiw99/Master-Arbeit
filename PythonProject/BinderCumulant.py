@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Defense/Real Binder Equilibrium"
+    root = "../../Generated content/Defense2/Binder Small Detailed"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,13 +43,13 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 8
-    exclude_small_dists = 1
-    min_temp = 0
-    max_temp = 0.75
-    xi_exclude_large_dists = 8
-    xi_exclude_small_dists = 1
-    r = 3
+    exclude_large_dists = 2
+    exclude_small_dists = 0
+    min_temp = 0.62
+    max_temp = 0.9
+    xi_exclude_large_dists = 2
+    xi_exclude_small_dists = 0
+    r = 2
 
 
     cum_path = root + "/" + name
@@ -137,7 +137,7 @@ def main():
 
     # fitting
     popt, _ = curve_fit(linear_fit, np.log(size_arr), np.log(diff_arr))
-    popt_ising, _ = curve_fit(ising_corr_poly_fit, size_arr, diff_arr, maxfev=10000)
+    popt_ising, _ = curve_fit(ising_corr_poly_fit, size_arr, diff_arr, maxfev=1000000)
     popt_poly_corr, _ = curve_fit(crit_poly_fit_corr, size_arr, diff_arr, p0=(1, popt_ising[0], popt_ising[1],
                                                                               popt_ising[2]), maxfev=10000000)
     nu = 1 / popt[0]
