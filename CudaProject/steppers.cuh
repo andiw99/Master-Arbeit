@@ -391,9 +391,9 @@ public:
             timer.set_startpoint(rng);
             // cout << "calcing diff"<< endl;
             sys.calc_diff(theta, t);
-            cout << "THETA IN ADAPTIVE STEPPER:" << endl;
-            print_container(theta);
-            cout << endl << endl;
+            // cout << "THETA IN ADAPTIVE STEPPER:" << endl;
+            // print_container(theta);
+            // cout << endl << endl;
             timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
             // we also increase the time
