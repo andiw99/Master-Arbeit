@@ -15,7 +15,7 @@ enum class Calc {
 vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength};
 // vector<Calc> calcs = {Calc::StructFact};
 // fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Defense2/Binder Small Detailed";
+fs::path root = "../../../Generated content/Defense2/Binder Detailed Long";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128}
@@ -23,12 +23,12 @@ map<string, double> StructFactConfig {
 
 map<string, double> CorrLengthHandlerConfig {
         {"starting_k", 1},
-        {"nr_Ls", 9}
+        {"nr_Ls", 20}
 };
 
 map<string, double> BinderHandlerConfig {
         {"starting_k", 1},
-        {"nr_Ls", 9}
+        {"nr_Ls", 20}
 };
 
 

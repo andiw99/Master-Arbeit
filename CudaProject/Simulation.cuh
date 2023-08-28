@@ -124,7 +124,7 @@ public:
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
             State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
         }
-        run(run_count + 1);
+        run(run_count);
         if(runs > 0) {
             repeat(runs-1);
         } else {

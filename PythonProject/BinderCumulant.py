@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Defense2/Binder Small Detailed"
+    root = "../../Generated content/Defense2/Binder Detailed Long"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,11 +43,11 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 2
+    exclude_large_dists = 14
     exclude_small_dists = 0
-    min_temp = 0.62
+    min_temp = 0.7
     max_temp = 0.9
-    xi_exclude_large_dists = 2
+    xi_exclude_large_dists = 14
     xi_exclude_small_dists = 0
     r = 2
 
