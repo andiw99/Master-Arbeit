@@ -5,14 +5,15 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Trash/New/Overdamped Quenching/"
+    root = "../../Generated content/Defense2/Large Quench Video/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
     print(root_dirs)
     colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
     size_factor = 0.8
-
+    max_t_tau = 1.01
+    min_t_tau = -0.01
     xi_avg_dic = {}
     t_tau_dic = {}
 
@@ -44,14 +45,14 @@ def main():
                     else:
                         T[i] = T_start
 
-                xi_x = np.array(df["xi_x"][1:])
-                xi_y = np.array(df["xi_y"][1:])
+                xi_x = np.array(df["xi_x"])
+                xi_y = np.array(df["xi_y"])
                 xi = 1/2 * (xi_x + xi_y)
                 #xi_y +=  1/4 * np.max(xi_x)     # for plotting
 
                 fig, axes = plt.subplots(1, 1)
-                axes.plot(t_tau[1:], xi_x, ls="", marker=".", label=r"$\xi_x$", ms=2.5)
-                axes.plot(t_tau[1:], xi_y, ls="", marker=".", label=r"$\xi_y$", ms=2.5)
+                axes.plot(t_tau, xi_x, ls="", marker=".", label=r"$\xi_x$", ms=2.5)
+                axes.plot(t_tau, xi_y, ls="", marker=".", label=r"$\xi_y$", ms=2.5)
 
                 # Setze Tickmarken und Labels
                 axes.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
@@ -99,8 +100,10 @@ def main():
     maxt_tau = 1
     max_xi = 0.5
     for i, tau in enumerate(sorted(t_tau_dic.keys())):
-        axes.plot(t_tau_dic[tau][1:], xi_avg_dic[tau], ls="", marker=".", ms=2.5, color=colors[i])
-        axes.plot([], [], ls="-", label=rf"{tau}", color=colors[i])
+        xi_plot = xi_avg_dic[tau][(t_tau_dic[tau] < max_t_tau) & (t_tau_dic[tau] > min_t_tau)]
+        t_tau_plot = t_tau_dic[tau][(t_tau_dic[tau] < max_t_tau) & (t_tau_dic[tau] > min_t_tau)]
+        axes.plot(t_tau_plot, xi_plot, ls="", marker=".", ms=2.5, color=colors[2* i])
+        axes.plot([], [], ls="-", label=rf"{tau}", color=colors[2 * i])
         maxt_tau = np.maximum(int(np.max(t_tau_dic[tau])), maxt_tau)
         axes.xaxis.set_major_locator(ticker.MultipleLocator(base=maxt_tau / 4))
         axes.xaxis.set_minor_locator(ticker.MultipleLocator(base=maxt_tau / 4 / 5))
@@ -114,10 +117,11 @@ def main():
         axes.set_ylabel(r"$\xi$")
         axes.set_xlabel(r"t$/ \tau_Q$")
         axes.set_title(rf"Quench protocol")
-    axes.set_xlim(-0.5, 1.25)
+
+    axes.set_xlim(axes.get_xlim()[0], 1.5)
     configure_ax(fig, axes)
-    axes.legend()
-    fig.savefig(root + "/plots/together.png", format="png", transparent=True)
+    axes.legend(loc="upper left")
+    fig.savefig(root + "/plots/together.png", format="png", transparent=False, dpi=300)
     plt.show()
 
 if __name__ == "__main__":

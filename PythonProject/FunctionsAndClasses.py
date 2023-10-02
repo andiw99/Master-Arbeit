@@ -313,6 +313,42 @@ def round_to_first_non_zero(number):
     return number
 
 
+def create_config(given_config, default_config):
+    config = {}
+    if given_config == None:
+        return default_config
+    else:
+        for key in default_config.keys():
+            try:
+                config[key] = given_config[key]
+            except KeyError:
+                config[key] = default_config[key]
+        return config
+
+PLOT_DEFAULT_CONFIG = {
+    "ylabelsize": 11,
+    "xlabelsize": 11,
+    "titlesize": 14,
+    "xtickfontsize": 9,
+    "ytickfontsize": 9,
+    "legendfontsize": 11,
+    "ticklength": 6,
+    "tickwidth": 2,
+}
+
+def delete_last_line(filename):
+    # Read all lines from the file
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    # Remove the last line
+    if len(lines) > 0:
+        lines.pop()
+
+    # Write the remaining lines back to the file
+    with open(filename, 'w') as file:
+        file.writelines(lines)
+        
 def configure_ax(fig, ax, config=None):
     """
     Takes a fig and an axes and configures the axes and stuff. If no config map is provided standard config is used
@@ -322,15 +358,19 @@ def configure_ax(fig, ax, config=None):
     :return: void
     """
 
+    config = create_config(config, PLOT_DEFAULT_CONFIG)
+
     x_span, y_span = get_spans(ax)
 
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
-    ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/5 / 5))
+    if ax.get_yscale() != "log":
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
+        ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/5 / 5))
+    if ax.get_xscale() != "log":
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
+        ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
     # We want to have inline ticks
-    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+    ax.tick_params(direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=9)
+    ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75), labelsize=9)
 
     remove_origin_ticks(ax)
 
@@ -347,9 +387,11 @@ def configure_ax(fig, ax, config=None):
             set_functions[i](default_texts[i])
 
     # rotate the y label
-    ax.set_ylabel(ax.get_ylabel(), rotation=0, ha="right")
+    ax.set_ylabel(ax.get_ylabel(), rotation=0, ha="right", fontsize=config["ylabelsize"])
+    ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
+    ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
-    ax.legend()
+    ax.legend(fontsize=config["legendfontsize"])
     plt.tight_layout()
 
 

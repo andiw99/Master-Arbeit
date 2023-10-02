@@ -195,7 +195,7 @@ public:
                 chrono::system_clock::now().time_since_epoch()
         );
         long seed = (mus.count() % 10000000) * 1000000000;
-        // thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
+        thrust::counting_iterator<size_t> index_sequence_begin(seed);
         // cout << seed << endl;
 /*        if(step_nr == 0) {
             thrust::fill(theta.begin(), theta.begin() + n, 0);

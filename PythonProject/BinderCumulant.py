@@ -16,7 +16,8 @@ def det_intersection(x, y_dic):
             for key2 in y_dic.keys():
                 total_dist += np.abs(y_dic[key1][i] - y_dic[key2][i])
         total_dist /= len(y_dic.keys()) ** 2
-        if total_dist < min_total_dist:
+        if (total_dist < min_total_dist) & (i > 1):
+            print(i)
             min_total_dist = total_dist
             x_inter = x_val
             y_inter = list(y_dic.values())[0][i]
@@ -26,7 +27,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Defense2/Binder Detailed Long"
+    root = "../../Generated content/Defense2/Final Binder"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,13 +44,15 @@ def main():
     m_dic = {}
     interpol_dic = {}
     interpol_L_xi_dic = {}
-    exclude_large_dists = 14
-    exclude_small_dists = 0
+    exclude_large_dists = 8
+    exclude_small_dists = 2
     min_temp = 0.7
     max_temp = 0.9
-    xi_exclude_large_dists = 14
-    xi_exclude_small_dists = 0
-    r = 2
+    xi_exclude_large_dists = 8
+    xi_exclude_small_dists = 2
+    max_L_fit = 1000
+    r = 3
+    figsize = (1.2 *  6.4, 4.8)
 
 
     cum_path = root + "/" + name
@@ -84,7 +87,8 @@ def main():
     T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
 
     plt.show()
-    fig, ax = plt.subplots(1, 1)
+
+    fig, ax = plt.subplots(1, 1, figsize = figsize)
 
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
@@ -99,6 +103,7 @@ def main():
     ax.grid(which='major', linestyle='--', alpha=0.5)
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
     print(cum_dic.keys())
+    line_nr = 0
     for i,size in enumerate(cum_dic.keys()):
         # only plot every n-th
         interpol_dic[size] = np.interp(T_inter_arr, T, cum_dic[size])
@@ -106,15 +111,14 @@ def main():
             # print(size, cum_dic[size])
             # interpolation
             ax.errorbar(T, cum_dic[size], yerr = cum_err_dic[size], ls="",
-                        marker="x", color="C" + str(i), ecolor="black", capsize=3)
-            ax.plot(T_inter_arr, interpol_dic[size], color="C" + str(i),
+                        marker="x", color=colors[2 * line_nr], ecolor="black", elinewidth=0, capsize=0)
+            ax.plot(T_inter_arr, interpol_dic[size], color=colors[2 * line_nr],
                     label=rf"L = {size}", linewidth=0.5)
+            line_nr += 1
 
     # get intersection
     T_inter, U_inter, i_inter = det_intersection(T_inter_arr, interpol_dic)
-    ax.scatter(T_inter, U_inter, marker="x", c="black", s=100)
-    ax.plot([T_inter, T_inter], [0, U_inter], c="black", ls='--', lw=2, alpha=0.75)
-    ax.plot([0, T_inter], [U_inter, U_inter], c="black", ls='--', lw=2, alpha=0.75)
+    # mark_point(ax, T_inter, U_inter)
     plt.xticks(list(plt.xticks()[0]) + [T_inter])
 
     ax.set_xlim(np.min(T) - 0.02 * np.mean(T), np.max(T) + 0.02 * np.mean(T))
@@ -123,7 +127,10 @@ def main():
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
     ax.legend()
-    save_plot(root, "/cum.pdf", format="pdf")
+    ax.set_ylim((0.8, 2.7))
+    configure_ax(fig, ax)
+    fig.savefig(root + "/cum.png", format="png", dpi=300, transparent=True)
+    #save_plot(root, "/cum.pdf", format="pdf")
 
     # Now we got to make a numerical diff for the reduced temp at Tc
     eps = (T_inter_arr - T_inter) / T_inter
@@ -134,9 +141,10 @@ def main():
     plt.show()
 
 
-
+    diff_fit_arr = diff_arr[size_arr < max_L_fit]
+    size_arr_fit = size_arr[size_arr < max_L_fit]
     # fitting
-    popt, _ = curve_fit(linear_fit, np.log(size_arr), np.log(diff_arr))
+    popt, _ = curve_fit(linear_fit, np.log(size_arr_fit), np.log(diff_fit_arr))
     popt_ising, _ = curve_fit(ising_corr_poly_fit, size_arr, diff_arr, maxfev=1000000)
     popt_poly_corr, _ = curve_fit(crit_poly_fit_corr, size_arr, diff_arr, p0=(1, popt_ising[0], popt_ising[1],
                                                                               popt_ising[2]), maxfev=10000000)
@@ -145,7 +153,13 @@ def main():
     print("FITTING RESULTS:")
     print("nu = ", nu)
     print("nu_poly_corr = ", popt_poly_corr)
-    fig, ax = plt.subplots(1, 1)
+
+    config = {
+        "ylabelsize": 14,
+        "legendfontsize": 14
+    }
+
+    fig, ax = plt.subplots(1, 1, figsize = figsize)
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
@@ -165,22 +179,27 @@ def main():
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(size_arr, diff_arr, linestyle="", marker="+")
     L_fit = np.linspace(0, np.max(size_arr) + 0.2 * np.max(size_arr), 101)
-    ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$")
-    ax.plot(L_fit, crit_poly_fit_corr(L_fit, *popt_poly_corr), label=rf"$\nu = {nu_poly_corr:.2f}$")
-    ax.plot(L_fit, ising_corr_poly_fit(L_fit, *popt_ising), label=rf"$\omega = {popt_ising[2]:.2f}$", linestyle="-.")
+    ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
+    # ax.plot(L_fit, crit_poly_fit_corr(L_fit, *popt_poly_corr), label=rf"$\nu = {nu_poly_corr:.2f}$")
+    # ax.plot(L_fit, ising_corr_poly_fit(L_fit, *popt_ising), label=rf"$\omega = {popt_ising[2]:.2f}$", linestyle="-.")
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
-    save_plot(root, "/critical_exponent.pdf", format="pdf")
+    configure_ax(fig, ax, config)
+    ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
+    # save_plot(root, "/critical_exponent.pdf", format="pdf")
+    fig.savefig(root + "/critical_exponent.png", format="png", dpi=250, transparent=True)
     plt.show()
 
 
     # fitting L/xi
 
-    popt, _ = curve_fit(linear_fit, np.log(xi_size_arr), np.log(xi_num_diff_arr))
+    xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
+    xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
+    popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
     nu = 1 / popt[0]
 
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize = figsize)
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
@@ -196,11 +215,14 @@ def main():
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(xi_size_arr, xi_num_diff_arr, linestyle="", marker="+")
     L_fit = np.linspace(0, np.max(xi_size_arr) + 0.2 * np.max(xi_size_arr), 101)
-    ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$")
+    ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
     ax.legend()
-    save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
+    ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$")
+    configure_ax(fig, ax, config)
+    #save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
+    fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=True)
     plt.show()
 
 
@@ -250,10 +272,19 @@ def calc_diff_at(T_inter, T, value_dic):
 
 
 def plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic):
-    fig, ax = plt.subplots(1, 1)
+    figsize_factor = 1
+    figsize = ( 1.2 * 6.4,4.8)
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    config = {}
+    #    "ylabelsize": 20,
+    #    "xlabelsize": 22,
+    #    "titlesize": 25,
+    #    "ticklength" : 9,
+    #    "tickwidth" : 3,
+    #}
     # Setze Tickmarken und Labels
-    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+    ax.tick_params(direction='in', which='both', length=9, width=3, labelsize=9)
+    ax.tick_params(direction='in', which='minor', length=6, width=2, labelsize=9)
     x_span = np.max(T) - np.min(T)
     ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.round(x_span / 2, 2)))
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=np.round(x_span / 2, 2) / 5))
@@ -261,6 +292,7 @@ def plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
+    line_nr = 0
     for i, size in enumerate(xix_dic.keys()):
         # only plot every n-th
         L_xi_dic[size] = int(size) / (0.5 * (xix_dic[size] + xiy_dic[size]))
@@ -270,26 +302,40 @@ def plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
             # print(size, cum_dic[size])
             # interpolation
             ax.errorbar(T, L_xi_dic[size], yerr=None, ls="",
-                        marker="x", color="C" + str(i), ecolor="black", capsize=3)
-            ax.plot(T_inter_arr, interpol_L_xi_dic[size], color="C" + str(i),
-                    label=rf"L = {size}", linewidth=0.5)
+                        marker="x", color=colors[2 * line_nr], ecolor="black", capsize=3)
+            ax.plot(T_inter_arr, interpol_L_xi_dic[size], color=colors[2 * line_nr],
+                    label=rf"L = {size}", linewidth=0.5 * figsize_factor)
+
+            line_nr += 1
     # get intersection
     y_span = 0
     for key in L_xi_dic.keys():
         y_span = np.maximum(np.max(L_xi_dic[key]) - np.min(L_xi_dic[key]), y_span)
-    ax.yaxis.set_major_locator((plt.MultipleLocator(y_span / 4)))
-    ax.yaxis.set_minor_locator((plt.MultipleLocator(y_span / 4 / 5)))
+
     T_xi_inter, xi_inter, xi_inter_ind = det_intersection(T_inter_arr, interpol_L_xi_dic)
-    ax.scatter(T_xi_inter, xi_inter, marker="x", c="black", s=100)
-    ax.plot([T_xi_inter, T_xi_inter], [0, xi_inter], c="black", ls='--', lw=2, alpha=0.75)
-    ax.plot([0, T_xi_inter], [xi_inter, xi_inter], c="black", ls='--', lw=2, alpha=0.75)
+    # mark_point(ax, T_xi_inter, xi_inter)
+
     plt.xticks(list(plt.xticks()[0]) + [T_xi_inter])
     ax.set_xlim(np.min(T) - 0.02 * np.mean(T), np.max(T) + 0.02 * np.mean(T))
-    ax.set_xlabel("T")
+    ax.set_xlabel(r"$\varepsilon$")
     ax.set_ylabel(r"$L/\xi$")
-    ax.set_title(r" $L/\xi$ on T")
-    ax.legend()
-    save_plot(root, "/L_xi.pdf", format="pdf")
+    ax.set_title(r" $L/\xi$ on $\varepsilon$")
+    ax.set_ylim((0, ax.get_ylim()[1]))
+    configure_ax(fig, ax, config)
+    # for dummy plot ticks
+    # x_span = np.max(T_inter_arr) - np.min(T_inter_arr)
+    # tick_length = x_span / 5
+    # x_ticks = np.linspace(T_xi_inter - 5 * tick_length, T_xi_inter + 5 * tick_length, 11, endpoint=True)
+    # x_minor_ticks = np.linspace(T_xi_inter - 5 * tick_length, T_xi_inter + 5 * tick_length, 5 * (len(x_ticks) - 1) + 1, endpoint=True)
+    # x_tick_labels = ["" for tick in x_ticks]
+    # x_tick_labels[len(x_ticks) // 2] = "0"
+    # ax.set_xticks(x_ticks, x_tick_labels, fontsize=20)
+    # ax.set_xticks(x_minor_ticks, minor=True)
+    # plt.tick_params(labelleft= False)
+    # ax.get_legend().remove()
+    # ax.set_xlim((np.min(T_inter_arr) - 0.05 * x_span, np.max(T_inter_arr) + 0.05 * x_span))
+
+    fig.savefig(root + "/L_xi.png", format="png", dpi=300, transparent=True)
     return T_xi_inter, L_xi_dic
 
 

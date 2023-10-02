@@ -22,18 +22,21 @@ class Anim():
         self.sys_values = 0
         self.sys_per_corr = 0
         self.read_folder(0)
+        self.cell_L = 128
+        self.lines_at_a_time = 100
 
     def update(self, frame):
         # index has to be modulo sinze we animate multipel taus
         ind = frame % ((self.sys_values))
-        print(frame, ind)
+        print(frame, ind, self.sys_values)
+
         if (ind == (self.sys_values) -1):
             #self.ani.pause()
             if self.tau_nr < len(self.tau_dirs):
                 print("what is even this tau nr? ", self.tau_nr)
                 self.read_folder(tau_nr=self.tau_nr)
                 self.next_quench()
-                self.ani.resume()
+                #self.ani.resume()
                 return self.ln, self.pcm
             else:
                 print("Exhausting all tau folders")
@@ -41,20 +44,24 @@ class Anim():
                 self.ani.event_source.stop()
                 exit()
         # updating system
-
-        df_row = self.sys_df.iloc[ind]
-        lat_dim = int(np.sqrt(df_row.size))
-        z_values = np.array(df_row, dtype=float).reshape((lat_dim, lat_dim))
+        if ind % self.lines_at_a_time == 0:
+            self.ts, self.Ts, self.sys_rows = self.read_multiple_lines(ind, self.lines_at_a_time)
+        self.t_tau.append((self.ts[ind % self.lines_at_a_time]-self.t_eq) / self.tau)
+        self.T.append(self.Ts[ind % self.lines_at_a_time])
+        z_values = np.array(self.sys_rows[ind % self.lines_at_a_time], dtype=float).reshape((self.cell_L, self.cell_L))
+        if self.J < 0:
+            z_values = chess_board_trafo(z_values)
         self.pcm.set_array(z_values)
         # updating corr length
-        if (ind % self.sys_per_corr == 0):
-            # only every like 10th run
-            xi_ind = int(ind / self.sys_per_corr) + 1
-            self.ln.set_data(self.t_tau[:xi_ind], self.xi[:xi_ind])
-            self.ln_temp.set_data(self.t_tau[:xi_ind], self.T[:xi_ind])
-            lower_bound = np.minimum(np.min(self.xi[:xi_ind]) - 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[0])
-            upper_bound = np.maximum(np.max(self.xi[:xi_ind]) + 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[1])
-            self.corr_ax.set_ylim(lower_bound, upper_bound)
+
+        # only every like 10th run
+        xi_ind = int(ind) + 1
+        print(xi_ind)
+        self.ln.set_data(self.t_tau, self.xi[:xi_ind])
+        self.ln_temp.set_data(self.t_tau, self.T)
+        lower_bound = np.minimum(np.min(self.xi[:xi_ind]) - 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[0])
+        upper_bound = np.maximum(np.max(self.xi[:xi_ind]) + 0.1 * np.min(self.xi[:xi_ind]), self.corr_ax.get_ylim()[1])
+        self.corr_ax.set_ylim(lower_bound, upper_bound)
 
         return self.ln, self.pcm
 
@@ -69,23 +76,23 @@ class Anim():
         v = np.sqrt(self.beta/2)
         # plot the first value of the time and the correlation length
         print("Before plotting first xi")
-        self.ln,  = self.corr_ax.plot(self.t_tau[0], self.xi[0], ls="",
+        self.ln,  = self.corr_ax.plot([], [], ls="",
                                       marker=".", label=rf"$\tau = {self.tau}$", c=colors[self.tau_nr - 1])
         print("Before plotting first temp")
-        self.ln_temp, = self.twin_corr_ax.plot(self.t_tau[0], self.T[0], alpha=0.5, c="red")
+        self.ln_temp, = self.twin_corr_ax.plot([], [], alpha=0.5, c="red")
         #self.twin_corr_ax.set_xlim(np.min(self.t_tau), np.max(self.t_tau))
-        self.twin_corr_ax.set_ylim(np.min(self.T), np.max(self.T))
+        self.twin_corr_ax.set_ylim(self.paras["end_T"] - 0.05, self.paras["starting_T"] + 0.05)
         # plot first system frame
         # Frames of the animation are all ts excluded the first one
         # but we just use the count
         # plot the first value of the time and the correlation length
         # plot first system frame
         # pcm will be overwritten so we use set_array
-        self.corr_ax.legend(bbox_to_anchor=(0.05, 0.25, 0.2, 0.5))
+        self.corr_ax.legend(bbox_to_anchor=(0.07, 0.3, 0.2, 0.5))
         if self.init:
-            self.init_plots()
-            self.pcm = self.sys_ax.pcolormesh(self.reshape(self.sys_df.iloc[0]), vmin=-1.5 * v, vmax=1.5 * v)
-            self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=50)
+            self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=50, init_func=self.init_plots)
+            self.pcm = self.sys_ax.pcolormesh(self.reshape(np.zeros(self.cell_L ** 2)), vmin=-1.5 * v, vmax=1.5 * v)
+            print("Before starting the animation")
             ticks = np.linspace(- 1.5 *  v, 1.5 * v, 7, endpoint=True)
             tick_labels = np.linspace(-1.5, 1.5, 7, endpoint=True)
             tick_labels = [str(tick_label) for tick_label in tick_labels]
@@ -94,13 +101,54 @@ class Anim():
             plt.tight_layout()
             self.init = False
         else:
-            self.pcm.set_array(self.reshape(self.sys_df.iloc[0]))
+            self.pcm.set_array(self.reshape(np.zeros(self.cell_L ** 2)))
             #self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=10)
 
     def init_plots(self):
-        tau_span = np.max(self.t_tau[:-2]) - np.min(self.t_tau[2:])
-        self.corr_ax.set_xlim(np.min(self.t_tau[2:] - 0.05 * tau_span), np.max(self.t_tau[:-2]) + 0.05 * tau_span)
+        tau_span = (self.paras["end_t"]) / self.tau
+        print("tau_span:", tau_span)
+        self.corr_ax.set_xlim(- self.t_eq/ self.tau - 0.05 * tau_span, tau_span - self.t_eq / self.tau + 0.05 * tau_span)
         self.corr_ax.set_ylim(np.min(self.xi) - 0.1 * np.min(self.xi), np.max(self.xi) + 0.1 * np.min(self.xi))
+
+
+    def read_line(self, ind):
+        """
+        returns t, T and the system
+        :param ind:
+        :return:
+        """
+        with open(self.dir_path + "/0.csv") as f:
+            for i, line in enumerate(f):
+                if i == ind:
+                    data = string_to_array(line[:-2])
+                    t = data[0]
+                    T = data[1]
+                    sys_row = extract_cell(data[2:], 0, self.cell_L)
+                    return t, T, sys_row
+
+    def read_multiple_lines(self, ind, n):
+        """
+        returns t, T and the system values for the next n lines
+        :param ind:
+        :return:
+        """
+        with open(self.dir_path + "/0.csv") as f:
+            ts = []
+            Ts = []
+            sys_rows = []
+            for i, line in enumerate(f):
+                if (i > ind):
+                    if (i > ind + n):
+                        return ts, Ts, sys_rows
+                    data = string_to_array(line[:-2])
+                    t = data[0]
+                    T = data[1]
+                    sys_row = extract_cell(data[2:], 0, self.cell_L)
+                    ts.append(t)
+                    Ts.append(T)
+                    sys_rows.append(sys_row)
+            return ts, Ts, sys_rows
+
 
     def get_tau_dirs(self):
         root_dirs = os.listdir(self.root)
@@ -116,44 +164,35 @@ class Anim():
 
 
     def read_folder(self, tau_nr):
-        dir_path = self.tau_dirs[tau_nr]
+        self.dir_path = self.tau_dirs[tau_nr]
+        dir_path = self.dir_path
         filename = dir_path + "/quench.process"
-        sys_df = read_csv(dir_path + "/0.csv")
         df = read_struct_func(filename)
         paras = read_parameters_txt(dir_path + "/0.txt")
-        self.sys_df = sys_df.iloc[:, 2:-1]
-        self.sys_values = sys_df.shape[0]
+        self.paras = paras
+        self.sys_values = int(paras["nr_save_values"])
         self.tau = paras["tau"]
-        t_eq = paras["t_eq"]
+        self.t_eq = paras["t_eq"]
         T_start = paras["starting_T"]
         T_end = paras["end_T"]
-        t = np.array(df["t"])
         self.beta = paras["beta"]
+        self.J = paras["J"]
         # normalizing so the quench begins at zero:
-        t = t - t_eq
-        self.t_tau = t / self.tau
-        self.T = np.zeros(len(self.t_tau))
+        self.t_tau = []
+        self.T = []
         # calcing T
         xi_x = np.array(df["xi_x"][1:])
         xi_y = np.array(df["xi_y"][1:])
-        for i, t_eq_tau in enumerate(self.t_tau[1:]):
-            if T_start - t_eq_tau < T_end:
-                self.T[i] = T_end
-            elif t_eq_tau > 0:
-                self.T[i] = T_start - t_eq_tau
-            else:
-                self.T[i] = T_start
-        self.sys_per_corr = int(self.sys_values / len(self.t_tau))
-        self.xi = xi_x
+        self.xi = 1/2 * (xi_x + xi_y)
         self.tau_nr += 1
 
     def safe(self, path="foo"):
-        FFwriter = animation.FFMpegWriter(fps=20)
-        self.ani.save('../../Generated content/animationBlub2.mp4', writer=FFwriter, dpi=500)
+        FFwriter = animation.FFMpegWriter(fps=40)
+        self.ani.save('../../Generated content/LargeAnimationLegend.mp4', writer=FFwriter, dpi=300)
 
 
 def main():
-    root = "../../Generated content/Trash/New/Overdamped Quenching Selection/"
+    root = "../../Generated content/Defense2/Large Quench Video/"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -195,6 +234,7 @@ def main():
     ani_class = Anim(fig, axes, root)
     ani_class.next_quench()
     plt.title(r"Quench Process for different Values of $\tau$")
+    # plt.show()
     ani_class.safe()
     exit()
     for item in root_dirs:

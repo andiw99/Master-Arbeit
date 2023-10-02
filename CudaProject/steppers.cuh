@@ -81,12 +81,12 @@ public:
             obs->operator()(sys, x, t); // Observing before anything happens
         }
         while (t < end_time){
-            if (t > 0.95 * end_time) {
+/*            if (t > 0.95 * end_time) {
                 for(int i = 0; i <= 1000; i++) {
                     debugging_file << theta[x.size() / 2 + i] << ",";
                 }
                 debugging_file << endl;
-            }
+            }*/
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
                 obs->operator()(sys, x, t);

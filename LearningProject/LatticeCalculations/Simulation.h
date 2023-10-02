@@ -10,6 +10,7 @@
 #include "CalcHandlers/secondCorrLenghtHandler.h"
 #include "CalcHandlers/calcHandler.h"
 #include "CalcHandlers/StructFactHandler.h"
+#include "CalcHandlers/QuenchProcessHandler.h"
 
 
 
@@ -25,6 +26,8 @@ calcHandler* create(Calc calc, const fs::path& root){
         return new secondCorrLenghtHandler(root);
     } else if (calc == Calc::StructFact) {
         return new StructFactHandler(root);
+    } else if (calc == Calc::QuenchProcess) {
+        return new QuenchProcessHandler(root);
     }
 }
 

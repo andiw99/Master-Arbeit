@@ -146,7 +146,14 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
+    min_tau = 100
     print(root_dirs)
+    config = {
+        "ylabelsize": 14,
+        "xlabelsize": 14,
+        "legendfontsize": 14,
+
+    }
     # arrays to save the xi corrsponding to T
     T_arr = []
     xix_arr = []
@@ -201,14 +208,16 @@ def main():
 
     # fitting linear fit
     print(xi_err_sorted)
+    xi_fit = xi_sorted[tau_arr > min_tau]
+    tau_fit_arr = tau_arr[tau_arr > min_tau]
     if not errors_for_fit:
         xi_err_sorted = None
-    popt, _ = curve_fit(linear_fit, np.log(tau_arr), np.log(xi_sorted), sigma=xi_err_sorted)
+    popt, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xi_fit), sigma=xi_err_sorted)
     print("FITTING RESULTS")
 
     print(popt)
     # plotting
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(1.5 * 6.4, 1.5 * 4.8))
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
@@ -234,9 +243,7 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
 
-    span = np.max(tau_arr) - np.min(tau_arr)
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
+
     ax.set_yscale("log")
     ax.set_xscale("log")
     # TODO minor locator muss
@@ -244,12 +251,16 @@ def main():
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(tau_arr, xi_sorted, yerr=xi_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
-    ax.plot(tau_arr, poly(tau_arr, popt[0], np.exp(popt[1])), color="C3",
+    tau_arr = np.append(tau_arr, tau_arr[-1] * 1.5)
+    print(tau_arr)
+    ax.plot(tau_arr, poly(tau_arr, popt[0], np.exp(popt[1])), color=colors[2],
             label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt[0]:.2f}")
     ax.set_xlabel(r"$\tau_Q$")
     ax.set_ylabel(r"$\xi(\tau_Q)$")
     ax.set_title(r"Corr Length depending on $\tau_Q$")
     ax.legend()
+    ax.set_ylim((0.8, ax.get_ylim()[1]))
+    configure_ax(fig, ax, config)
     save_plot(root, "/xi.png")
     plt.show()
 
