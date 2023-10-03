@@ -487,14 +487,14 @@ template<
         class time_type = value_type,
         template<class, class, class, class, class, class> class stepper_type
 >
-stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<string, double>& paras, int n) {
+stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<Parameter, double>& paras, int n) {
     if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
             euler_combined<state_type, algebra, operations, System, value_type, time_type>>::value){
         // damn tahts ugly#
         // TODO This cannot! possibly work, i see it already. probably we have to exchange one 'class' with template<size_t> class
-        int N = (int) paras["N"];
-        double K = paras["K"];
-        double tol = paras["tol"];
+        int N = 2;   // N for now no parameter
+        double K = paras[Parameter::K];
+        double tol = paras[Parameter::tol];
         return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
     } // TODO other steppers
 }
@@ -508,8 +508,8 @@ template<
         class time_type = value_type,
         template<class, class, class, class, class, class> class stepper_type
 >
-stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<string, double>& paras) {
-    int n =(int) (paras["lat_dim"] * paras["lat_dim"]);
+stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<Parameter, double>& paras) {
+    int n =(int) (paras[dim_size_x] * paras[dim_size_y]);
     return create_stepper<state_type, algebra, operations, System, value_type, time_type, stepper_type>(paras, n);
 }
 

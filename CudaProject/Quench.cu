@@ -7,8 +7,8 @@
 
 int main() {
     // reading the parameters from the parameter file
-    map<string, double> paras = quench_paras;
-    int nr_save_values = (int)paras["nr_save_values"];
+    map<Parameter, double> paras = quench_paras;
+    int nr_save_values = (int)paras[nr_saves];
     fs::path simulation_path = quench_root;
     // typedefs
     typedef thrust::device_vector<double> state_type;

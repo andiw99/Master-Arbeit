@@ -20,19 +20,18 @@ public:
     // handle observer** pointer
     typedef obsver<sys, state_type> observer_type;
     vector<observer_type*> obsvers;          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
-    map<string, double> paras;
+    map<Parameter, double> paras;
     state_initializer<state_type> * State_initializer;
     fs::path simulation_path;
     int seed = 0;   //should the simulation be seedable?
-    int N;
     int n;          // current system size, but can change
     stepper_type<state_type, alg, oper, sys, double, double>* stepper;
     size_t step_nr = 0;
     fs::path folder_path;   // gets updated everytime repeat is called for the first time, depends on whether quench or not because of folder names
     int repeat_nr;
     int run_count = 0;          // stupid variable for simulations that are already present in the folder
-    Simulation(map<string, double> &paras, fs::path& simulation_path): paras(paras),
-    simulation_path(simulation_path), N((int)paras["N"]) {
+    Simulation(map<Parameter, double> &paras, fs::path& simulation_path): paras(paras),
+    simulation_path(simulation_path) {
         // Stepper cannot be created here anymore since it initializes vectors of size N * n which now can change
         // per setting
         // we need a random standard seed?
@@ -41,7 +40,7 @@ public:
         );
         this->seed = (ms.count() % 10000) * 10000000;
     }
-    Simulation(map<string, double> &paras, fs::path& simulation_path, int seed) :
+    Simulation(map<Parameter, double> &paras, fs::path& simulation_path, int seed) :
     Simulation(paras, simulation_path) {
         this->seed = seed;
     }
@@ -73,12 +72,12 @@ public:
         // How do we determine which? Is coded in random param, ... if else function is pretty lame again
         // The state initialization should also be exchangeable, or rather i mean it is code that is used by every
         // simulation, so we might have a 'state initializer' object as member of the base class
-        paras["step_nr"] = step_nr;
-        paras["run_nr"] = nr;
+        paras[Parameter::step_nr] = step_nr;
+        paras[Parameter::run_nr] = nr;
         double end_t = this->get_end_t();
         cout << "Starting run with parameters:" << endl;
         printMap(paras);
-        state_type x(N * n);
+        state_type x(2 * n);                            // N is not a parameter anymore
         State_initializer->init_state(x);           // init state via correct state initializer that was created in repeat
         // 2. Initialize the stepper and the system (and open new file for the observer)
         // the stepper is already initialized, but i think it should have a reset button?
@@ -100,9 +99,9 @@ public:
         // reset the current T and stuff
         // 3. run the simulation haha, observing logic is handled by the observer
         // now we still need all the observing logic, damn that was more work than anticipated
-        cout << "For a " << (int)paras["lat_dim"] << " x " << (int)paras["lat_dim"] << " System" << endl;
+        cout << "For a " << (int)paras[Parameter::dim_size_x] << " x " << (int)paras[Parameter::dim_size_y] << " System" << endl;
         double t = 0;
-        stepper->step_until(end_t, Sys, x, paras["dt"], t, obsvers);
+        stepper->step_until(end_t, Sys, x, paras[Parameter::dt], t, obsvers);
         cout << "Sys.get_step_nr():" << Sys.get_step_nr() << endl;
         step_nr += Sys.get_step_nr();
     }
@@ -119,10 +118,10 @@ public:
         if (runs == repeat_nr) {
             // i am not really happy with this if statement but it safes some redundant code which in don't know
             // where to put otherwise
-            n = (int)(paras["lat_dim"] * paras["lat_dim"]);
-            paras["n"] = n;
+            n = (int)(paras[Parameter::dim_size_x] * paras[Parameter::dim_size_y]);
+            paras[Parameter::total_size] = n;
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
-            State_initializer = create_state_initializer<state_type>((int)paras["random"], paras, simulation_path);
+            State_initializer = create_state_initializer<state_type>((int)paras[Parameter::random_init], paras, simulation_path);
         }
         run(run_count);
         if(runs > 0) {
@@ -137,7 +136,7 @@ public:
         // We could theoretically also create the stepper in the base class, but then we would have
         // the huge templates everywhere, but on the other hand registering observer etc is stuff that has to be
         // done for every simulation and it would be nice to not have to write that again
-        repeat_nr = (int) paras["repeat"];
+        repeat_nr = (int) paras[Parameter::nr_repeat];
         step_nr = seed;
         cout << "initial step_nr = " << step_nr << endl;
         // the observer is supposed to be already alive here, so we just register it to the stepper
@@ -178,10 +177,10 @@ class QuenchSimulation : public Simulation<stepper_type, state_type, alg, oper, 
 
     void initialize() {
         // init the taus i want the simultion to run over
-        taus = logspace(paras["min_tau_factor"],
-                                             paras["max_tau_factor"],
-                                             (int)paras["nr_taus"] + 1);
-        paras["T"] = paras["starting_T"];
+        taus = logspace(paras[min_tau_factor],
+                                             paras[max_tau_factor],
+                                             (int)paras[nr_runs] + 1);
+        paras[T] = paras[starting_temp];
         // call the general initialization
         Simulation::initialize();
     }
@@ -195,23 +194,23 @@ public:
         // runs the whole simulation, the sequence depends on the type of simulation we do
         for(auto tau : taus) {
             // update the parameters so we create the correct systems and stuff
-            paras["tau"] = tau;
+            paras[Parameter::tau] = tau;
             folder_path = simulation_path / to_string(tau);
-            this->repeat((int)paras["repeat"]);      // and actually this should be it
+            this->repeat((int)paras[nr_repeat]);      // and actually this should be it
         }
     }
 
     double get_end_t() override {
-        double eq_t = paras["t_eq"];
-        double t_quench = (paras["starting_T"] - paras["end_T"]) * paras["tau"];
+        double eq_t = paras[equil_time];
+        double t_quench = (paras[starting_temp] - paras[end_temp]) * paras[tau];
         double t_end = 2 * eq_t + t_quench;
         cout << "Simulating Quench until " <<  t_end << endl;
         // set end t in paras for the observer
-        paras["end_t"] = t_end;
+        paras[end_temp] = t_end;
         return t_end;
     }
 
-    QuenchSimulation(map<string, double> &paras, fs::path& simulation_path) :
+    QuenchSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
             Simulation(paras, simulation_path) {
     }
 };
@@ -229,8 +228,8 @@ class RelaxationSimulation : public Simulation<stepper_type, state_type, alg, op
 
     void initialize() {
         // init the taus i want the simultion to run over
-        temps = linspace(paras["min_temp"],
-                             paras["max_temp"], (int)paras["nr_temps"] + 1);
+        temps = linspace(paras[min_temp],
+                             paras[max_temp], (int)paras[nr_runs] + 1);
         // call the general initialization
         cout << "Temperatures:" << endl;
         print_vector(temps);
@@ -246,18 +245,18 @@ public:
         // runs the whole simulation, the sequence depends on the type of simulation we do
         for(auto T : temps) {
             // update the parameters so we create the correct systems and stuff
-            paras["T"] = T;
+            paras[Parameter::T] = T;
             folder_path = simulation_path / to_string(T);
-            this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
+            this->repeat((int)paras[nr_repeat]);      // and actually this should be it
         }
     }
 
     double get_end_t() override {
-        double t_end = paras["end_t"];
+        double t_end = paras[end_time];
         cout << "Simulating Relaxation until " << t_end << endl;
         return t_end;
     }
-    RelaxationSimulation(map<string, double> &paras, fs::path& simulation_path) :
+    RelaxationSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
             Simulation(paras, simulation_path) {
     }
 };
@@ -275,15 +274,15 @@ class PerformanceSimulation : public Simulation<stepper_type, state_type, alg, o
     vector<size_t> lat_dims;
     void initialize() {
         // init the taus i want the simultion to run over
-        if(paras["logspaced"] == 1.0) {
-            lat_dims = logspace<size_t>(paras["min_lat_factor"],
-                                        paras["max_lat_factor"],
-                                        (int)paras["nr_lat_dims"] + 1);
+        if(paras[logspaced] == 1.0) {
+            lat_dims = logspace<size_t>(paras[min_lat_factor],
+                                        paras[max_lat_factor],
+                                        (int)paras[nr_runs] + 1);
 
         } else {
-            lat_dims = linspace<size_t>(paras["min_lat_factor"],
-                                        paras["max_lat_factor"],
-                                        (int)paras["nr_lat_dims"] + 1);
+            lat_dims = linspace<size_t>(paras[min_lat_factor],
+                                        paras[max_lat_factor],
+                                        (int)paras[nr_runs] + 1);
         }
         // call the general initialization
         Simulation::initialize();
@@ -298,13 +297,14 @@ public:
         // runs the whole simulation, the sequence depends on the type of simulation we do
         for(auto lat_dim : lat_dims) {
             // update the parameters so we create the correct systems and stuff
-            paras["lat_dim"] = lat_dim;
+            paras[dim_size_x] = lat_dim;
+            paras[dim_size_y] = lat_dim;
             folder_path = simulation_path / to_string(lat_dim);
-            this->repeat((int)paras["repeat_nr"]);      // and actually this should be it
+            this->repeat((int)paras[nr_repeat]);      // and actually this should be it
         }
     }
     double get_end_t() override {
-        double t_end = paras["end_t"];
+        double t_end = paras[end_time];
         cout << "Simulating until " << t_end << endl;
         return t_end;
     }

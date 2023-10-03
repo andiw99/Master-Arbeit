@@ -81,4 +81,6 @@ add_executable(LearningProject
         LatticeCalculations/CalcHandlers/secondCorrLenghtHandler.h
         LatticeCalculations/CalcHandlers/StructFactHandler.h
         LatticeCalculations/configs.h
-        LatticeCalculations/CalcHandlers/QuenchProcessHandler.h)
+        LatticeCalculations/CalcHandlers/QuenchProcessHandler.h
+        Testing/NeighborPerfCheck.cpp
+        Testing/NeighborPerfCheck.h)

@@ -7,6 +7,12 @@
 
 
 
+void write_parameters(ofstream& file, map<Parameter, double> paras) {
+    cout << "Using the new write parameters" << endl;
+    for(const auto& pair : paras) {
+        file << parameter_names[pair.first] << "," << pair.second << endl;
+    }
+}
 
 // We need those observers that do stuff like writing the values to a file
 class observer {
@@ -33,7 +39,7 @@ public:
         ofile.close();
     }
     template <class System>
-    void init(fs::path folderpath, map<string, double>& paras, const System &sys) {
+    void init(fs::path folderpath, map<Parameter, double>& paras, const System &sys) {
         cout << "dummy init is called" << endl;
     }
 
@@ -67,7 +73,7 @@ public:
         cout << "closing stream of " << this->get_name() << endl;
         ofile.close();
     }
-    virtual void init(fs::path folderpath, map<string, double>& paras, const system &sys) {
+    virtual void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) {
         cout << "dummy init is called" << endl;
     }
 
@@ -104,10 +110,11 @@ public:
             cout << "t = " << t << endl;
             // Doing some refactoring, not putting t in every row and Temperature directly after T
             double T = sys.get_cur_T();
-            size_t lat_dim = sys.get_lattice_dim();
+            size_t dim_size_x = sys.get_dim_size_x();
+            size_t dim_size_y = sys.get_dim_size_y();
 
             ofile << t << "," << T << ",";
-            for(int i = 0; i < lat_dim * lat_dim; i++) {
+            for(int i = 0; i < dim_size_x * dim_size_y; i++) {
                 ofile << x[i] << ",";
                 // cout << x[i] << endl;
 
@@ -118,14 +125,14 @@ public:
             timepoint += write_interval;
         }
     }
-    virtual void init(fs::path folderpath, map<string, double>& paras, const system &sys)  {
+    virtual void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys)  {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
 
         // open the file to write the info to, in this case it will be just run_nr.csv
         timepoint = 0.0;
         // I think we will add the run number to the paras of the run
-        int run_nr = (int)paras["run_nr"];
+        int run_nr = (int)paras[Parameter::run_nr];
         // we just write the parameters first
         close_stream();
         open_stream(folderpath / (to_string(run_nr) + ".txt"));
@@ -140,6 +147,8 @@ public:
         return "standard observer";
     }
 };
+
+
 
 template <class system, class State>
 class relax_observer : public standard_observer<system, State> {
@@ -159,10 +168,10 @@ public:
         // problem is it still might depend on system parameters. and i don't want another if for every step
         // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
     }
-    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
-        double end_t = paras["end_t"];
+        double end_t = paras[end_time];
         write_interval = end_t / (double)nr_values;
         cout << "relax obs init is called, write_interval is  " << write_interval << endl;
         standard_observer::init(folderpath, paras, sys);
@@ -190,7 +199,7 @@ public:
         // problem is it still might depend on system parameters. and i don't want another if for every step
         // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
     }
-    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
         cout << "Quench obs init is called" << endl;
@@ -227,9 +236,9 @@ public:
         }
     }
 
-    void init(fs::path folderpath, map<string, double>& paras, const system &sys) override {
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         // this observer is supposed to work with a finite t
-        end_t = paras["end_t"];
+        end_t = paras[end_time];
         // we open the runtimes file if we are doing a new measurment, so if the folderpath chagnes
         // and only if the file isnt open already
         cout << "stream is open: " << ofile.is_open() << endl;

@@ -6,7 +6,6 @@
 #define CUDAPROJECT_SYSTEMS_CUH
 
 #include "main.cuh"
-// #include "parameters.cuh"
 #include <cmath>
 #include <random>
 #include <functional>
@@ -32,10 +31,7 @@ public:
     double T;
     const double eta;
     double D;
-    // possibility of different sizes in the different directions
-    const size_t dim_size_x;
-    const size_t dim_size_y;
-
+    const size_t lat_dim;
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
     virtual void print_info() {
@@ -44,8 +40,7 @@ public:
         cout << "T = " << T << endl;
         cout << "eta = " << eta << endl;
         cout << "D = " << D << endl;
-        cout << "dim_size_x = " << dim_size_x << endl;
-        cout << "dim_size_y = " << dim_size_y << endl;
+        cout << "lat_dim = " << lat_dim << endl;
         cout << "n = " << n << endl;
     }
 
@@ -85,22 +80,14 @@ public:
     };
 
 
-    struct hor_neighbor : thrust::unary_function<size_t, size_t> {
-        const size_t dim_size;
-        hor_neighbor(size_t dimension_size): thrust::unary_function<size_t, size_t>(), dim_size(dimension_size){
+    struct neighbor : thrust::unary_function<size_t, size_t> {
+        const size_t lattice_dim;
+        neighbor(size_t lat_dim): thrust::unary_function<size_t, size_t>(), lattice_dim(lat_dim){
         }
     };
 
-    struct vert_neighbor : thrust::unary_function<size_t, size_t> {
-        const size_t dim_size_x;
-        const size_t dim_size_y;
-        vert_neighbor(size_t dimension_size_x, size_t dimension_size_y):
-        thrust::unary_function<size_t, size_t>(), dim_size_x(dimension_size_x), dim_size_y(dimension_size_y){
-        }
-    };
-
-    struct left : public hor_neighbor {
-        using hor_neighbor::hor_neighbor;
+    struct left : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
             // we have to think about that we are actually in 2D and i guess we want to use PBC?
@@ -114,41 +101,38 @@ public:
             // if i is on the left side of the lattice, i % lat_dim = 0
             // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
 
-            return (i % dim_size == 0) ? i + dim_size - 1 : i - 1;
+            return (i % lattice_dim == 0) ? i + lattice_dim - 1 : i - 1;
         }
     };
 
-    struct right : public hor_neighbor {
-        using hor_neighbor::hor_neighbor;
+    struct right : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i+1, expect when i is on the right side of the lattice
             // if i is on the right side of the lattice, j is i - (d - 1)
             // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
 
-            return (i % dim_size == dim_size - 1) ? i - (dim_size - 1) : i + 1;
+            return (i % lattice_dim == lattice_dim - 1) ? i - (lattice_dim - 1) : i + 1;
         }
     };
 
-    struct up : public vert_neighbor{
-        using vert_neighbor::vert_neighbor;
+    struct up : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i - d, except when i is on the upper bound of the lattice
             // if it is on the upper bound, j will be i + d(d-1)
             // if i is on the upper bound, i will be smaller than d
-
-            // okay for rectangular lattices now both dimensions are relevant
-
-            return (i < dim_size_x) ? i + dim_size_x * (dim_size_y - 1) : i - dim_size_x;
+            return (i < lattice_dim) ? i + lattice_dim * (lattice_dim - 1) : i - lattice_dim;
         }
     };
 
-    struct down : public vert_neighbor {
-        using vert_neighbor::vert_neighbor;
+    struct down : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i + d, except when i is on the lower bound of the lattice
             // if it is on the lower bound, j will be i - d(d-1)
             // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= dim_size_x * (dim_size_y -1 )) ? i - dim_size_x * (dim_size_y - 1) : i + dim_size_x;
+            return (i >= lattice_dim * (lattice_dim -1 )) ? i - lattice_dim * (lattice_dim - 1) : i + lattice_dim;
         }
     };
 
@@ -174,28 +158,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                                left(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                                right(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                                up(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(dim_size_x, dim_size_y)
+                                down(lat_dim)
                         )
                 )
         )));
@@ -227,30 +211,17 @@ public:
         // cout << endl;
     }
 
-
-    // depricated constructors, use the one below
-    System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), dim_size_x(lat_dim), dim_size_y(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
+    System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), lat_dim(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
         cout << "System constructor is called with eta = " << eta << "  T = " << T << endl;
     }
-    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), dim_size_x((size_t)paras["lat_dim"]), dim_size_y((size_t)paras["lat_dim"]), eta(paras["eta"]), T(paras["T"]),
+    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), lat_dim((size_t)paras["lat_dim"]), eta(paras["eta"]), T(paras["T"]),
                                          n((size_t)paras["lat_dim"] * (size_t)paras["lat_dim"]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Map is called with eta = " << eta << "  T = " << T << endl;
     }
 
-    System(map<Parameter, double>& paras) : step_nr((size_t)paras[Parameter::step_nr]), dim_size_x((size_t)paras[Parameter::dim_size_x]),
-                                            dim_size_y((size_t)paras[Parameter::dim_size_y]), eta(paras[Parameter::eta]), T(paras[Parameter::T]),
-                                            n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
-        D = (sqrt(2 * T * eta));
-        cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-    }
-
-    size_t get_dim_size_x() const{
-        return dim_size_x;
-    }
-
-    size_t get_dim_size_y() const{
-        return dim_size_y;
+    size_t get_lattice_dim() const{
+        return lat_dim;
     }
 
     double get_cur_T() const{
@@ -457,7 +428,6 @@ public:
     coulomb_interaction(map<string, double>& paras)
             : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), J(paras["J"]) {
     }
-    coulomb_interaction(map<Parameter, double>& paras) : System(paras), alpha(paras[Parameter::alpha]), beta(paras[Parameter::beta]), J(paras[Parameter::J]) {}
 
 };
 
@@ -470,12 +440,8 @@ public:
     }
     coulomb_constant(map<string, double>& paras)
             : coulomb_interaction(paras) {
-    }
 
-    coulomb_constant(map<Parameter, double>& paras)
-            : coulomb_interaction(paras) {
     }
-
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
@@ -593,13 +559,6 @@ public:
         end_quench_t = t_quench + s_eq_t;
     }
 
-    quench(map<Parameter, double>& paras): System(paras),
-                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]), s_eq_t(paras[Parameter::equil_time]),
-                                        e_eq_t(paras[Parameter::equil_time]), T_start(paras[Parameter::starting_temp]) {
-        t_quench = (get_quench_time());
-        end_quench_t = t_quench + s_eq_t;
-    }
-
     double get_quench_time() {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
@@ -677,9 +636,6 @@ public:
     }
     anisotropic_coulomb_interaction(map<string, double>& paras)
             : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["J"]), Jy(paras["Jy"]) {
-    }
-    anisotropic_coulomb_interaction(map<Parameter, double>& paras)
-            : System(paras), alpha(paras[Parameter::alpha]), beta(paras[Parameter::beta]), Jx(paras[Parameter::J]), Jy(paras[Parameter::Jy]) {
     }
 };
 
@@ -802,6 +758,11 @@ public:
     double get_cur_T() const{
         return System::T;
     }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
 };
 
 

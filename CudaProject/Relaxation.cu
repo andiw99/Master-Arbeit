@@ -11,8 +11,8 @@
 
 int main() {
     // reading the parameters from the parameter file
-    map<string, double> paras = adaptive_temp_scan_standard;
-    int nr_save_values = (int)paras["nr_save_values"];
+    map<Parameter, double> paras = temp_scan_paras;
+    int nr_save_values = (int)paras[Parameter::nr_saves];
     fs::path simulation_path = adaptive_tempscan_root;
     // typedefs
     typedef thrust::device_vector<double> state_type;

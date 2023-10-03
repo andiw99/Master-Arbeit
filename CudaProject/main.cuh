@@ -24,6 +24,76 @@
 #include <thrust/execution_policy.h>
 #include <thrust/random.h>
 
+enum Parameter {
+    dim_size_x,
+    dim_size_y,
+    total_size,
+    J,
+    Jy,
+    dt,
+    end_time,
+    starting_temp,
+    end_temp,
+    T,
+    alpha,
+    beta,
+    tau,
+    eta,
+    nr_saves,
+    nr_repeat,
+    min_temp,
+    max_temp,
+    nr_runs,
+    K,
+    tol,
+    random_init,
+    x0,
+    p0,
+    min_tau_factor,
+    max_tau_factor,
+    equil_time,
+    logspaced,
+    step_nr,
+    run_nr,
+    min_lat_factor,
+    max_lat_factor
+};
+
+map<Parameter, string> parameter_names {
+        {dim_size_x, "dim_size_x"},
+        {dim_size_y, "dim_size_y"},
+        {total_size, "total_size"},
+        {J, "J"},
+        {Jy,"Jy"},
+        {dt,"dt"},
+        {end_time,"end_time"},
+        {starting_temp,"starting_temp"},
+        {end_temp,"end_temp"},
+        {T,"T"},
+        {alpha,"alpha"},
+        {Parameter::beta, "beta"},
+        {tau,"tau"},
+        {eta,"eta"},
+        {nr_saves,"nr_saves"},
+        {nr_repeat,"nr_repeat"},
+        {min_temp,"min_temp"},
+        {max_temp,"max_temp"},
+        {nr_runs,"nr_runs"},
+        {K,"K"},
+        {tol,"tol"},
+        {random_init,"random_init"},
+        {x0,"x0"},
+        {p0,"p0"},
+        {min_tau_factor,"min_tau_factor"},
+        {max_tau_factor,"max_tau_factor"},
+        {equil_time,"equil_time"},
+        {logspaced,"logspaced"},
+        {step_nr,"step_nr"},
+        {run_nr,"run_nr"},
+        {min_lat_factor,"min_lat_factor"},
+        {max_lat_factor,"max_lat_factor"}
+
+};
 
 using namespace std;
 /*
@@ -378,8 +448,8 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
 template <class state_type>
 class state_initializer {
 public:
-    map<string, double> paras;
-    state_initializer(map<string, double>& paras): paras(paras) {
+    map<Parameter, double> paras;
+    state_initializer(map<Parameter, double>& paras): paras(paras) {
 
     }
     virtual void init_state(state_type& x) {
@@ -392,13 +462,11 @@ template <class state_type>
 class random_initializer : public state_initializer<state_type>  {
     double x0;
     double p0;
-    size_t lattice_dim;
 public:
-    random_initializer(map<string, double>& paras): state_initializer<state_type> (paras) {
-        double beta = paras["beta"];
-        x0 = paras["x0"] * sqrt(beta / 2.0);
-        p0 = paras["p0"] * sqrt(beta / 2.0);
-        lattice_dim = (size_t) paras["lat_dim"];
+    random_initializer(map<Parameter, double>& paras): state_initializer<state_type> (paras) {
+        double beta = paras[Parameter::beta];
+        x0 = paras[Parameter::x0] * sqrt(beta / 2.0);
+        p0 = paras[Parameter::p0] * sqrt(beta / 2.0);
     }
     void init_state(state_type& x) {
         cout << "Random initializer is called with " << endl;
@@ -414,17 +482,19 @@ template <class state_type>
 class memory_initializer : public state_initializer<state_type> {
     fs::path root;
     int count = 0;
-    size_t lattice_dim;
+    size_t dim_size_x;
+    size_t dim_size_y;
 
 public:
-    memory_initializer(map<string, double>& paras, fs::path& root): state_initializer<state_type> (paras), root(root) {
-        lattice_dim = (size_t) paras["lat_dim"];
+    memory_initializer(map<Parameter, double>& paras, fs::path& root): state_initializer<state_type> (paras), root(root) {
+        dim_size_x = (size_t) paras[Parameter::dim_size_x];
+        dim_size_y = (size_t) paras[Parameter::dim_size_y];
     }
     void init_state(state_type& x) {
         // since the initialization sometimes depend on the parameters
         // like here T, i have to create the initializer everytime i call repeat for the first time
-        double T = this->paras["T"];
-        size_t n = lattice_dim * lattice_dim;
+        double T = this->paras[Parameter::T];
+        size_t n = dim_size_x * dim_size_y;
         cout << "checking for initial state in folder..." << endl;
         // listing the temp folders that are already inside
         vector<fs::path> temp_paths = list_dir_paths(root);
@@ -461,10 +531,10 @@ class equilibrium_initializer : public state_initializer<state_type>  {
     double J;
     double beta;
 public:
-    equilibrium_initializer(map<string, double> & paras) : state_initializer<state_type> (paras) {
-        n = (size_t)paras["n"];
-        J = paras["J"];
-        beta = paras["beta"];
+    equilibrium_initializer(map<Parameter, double> & paras) : state_initializer<state_type> (paras) {
+        n = (size_t)paras[Parameter::total_size];
+        J = paras[Parameter::J];
+        beta = paras[Parameter::beta];
     }
 
     void init_state(state_type& x) {
@@ -483,7 +553,7 @@ public:
 };
 
 template <class state_type>
-state_initializer<state_type>* create_state_initializer(int random, map<string, double>& paras, fs::path& root) {
+state_initializer<state_type>* create_state_initializer(int random, map<Parameter, double>& paras, fs::path& root) {
     // again some fishy function to create different derived classes based on the value of an parameter
     // don't know better, dont care...
     if(random == -1) {

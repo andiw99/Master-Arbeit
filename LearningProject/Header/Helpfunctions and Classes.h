@@ -18,6 +18,7 @@
 #include <utility>
 #include <map>
 #include <array>
+#include <magic_enum.hpp>
 
 // using namespaces!
 using namespace std;
@@ -33,6 +34,8 @@ void write_parameters(ofstream& file, map_like paras) {
         file << pair.first << "," << pair.second << endl;
     }
 }
+
+
 
 int pymod(int a, int b) {
     return ((b + (a % b)) % b);
