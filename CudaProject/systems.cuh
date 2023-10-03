@@ -194,6 +194,8 @@ public:
         chrono::microseconds mus = chrono::duration_cast<chrono::microseconds >(
                 chrono::system_clock::now().time_since_epoch()
         );
+        // TODO are you still using this seed? Why is it not possible to get it to work with the default random
+        // engine just advancing? Maybe just switch to curand?
         long seed = (mus.count() % 10000000) * 1000000000;
         thrust::counting_iterator<size_t> index_sequence_begin(seed);
         // cout << seed << endl;

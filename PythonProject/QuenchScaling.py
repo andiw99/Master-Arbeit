@@ -61,7 +61,7 @@ def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([]))
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True):
+def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True, plot=False):
 
 
     px = df["px"]
@@ -90,16 +90,12 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #py = np.sort(py)
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
-    print("It cant be that hard to fit :(")
-    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
     if errors_for_fit:
         popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
         popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, x_error)
     else:
-        print(px, ft_avg_y)
         popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, None)
         popt_y, perr_y = fit_lorentz(py, ft_avg_x, fitfunc, None)
-    print("It cant be that hard to fit :(")
 
     #print("a = %g" % popt_x[0])
     #print("x0 = %g" % popt_x[1])
@@ -120,13 +116,15 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     p = np.linspace(min(px), max(px), px.size)
     lorentz_x = fitfunc(p, *popt_x)
     lorentz_y = fitfunc(p, *popt_y)
-    axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {parameters['tau']:2f}$")
-    axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {parameters['tau']:2f}$")
-    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
-    plt.tight_layout()
-    plt.savefig(savepath, format="png")
-    plt.show()
+    if plot:
+        fig, axes = plot_struct_func(px, py, ft_avg_y, ft_avg_x, y_error, x_error)
+        axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {parameters['tau']:2f}$")
+        axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {parameters['tau']:2f}$")
+        axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+        axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+        plt.tight_layout()
+        plt.savefig(savepath, format="png")
+        plt.show()
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
@@ -147,6 +145,7 @@ def main():
     fitfunc = MF_lorentz
     errors_for_fit = False
     min_tau = 100
+    plot_struct = False
     print(root_dirs)
     config = {
         "ylabelsize": 14,
@@ -163,6 +162,7 @@ def main():
     xi_arr = []
     xi_err_arr = []
     tau_arr = []
+    Jx_Jy = 0
     # Loop through the directory contents and print the directories
     for item in root_dirs:
 
@@ -186,7 +186,8 @@ def main():
                     xiy_err, xi, xi_err = analyze(df, parameters,
                                                   savepath=dir_path + png_name,
                                                   cutoff=cutoff, fitfunc=fitfunc,
-                                                  errors_for_fit=errors_for_fit)
+                                                  errors_for_fit=errors_for_fit,
+                                                  plot=plot_struct)
 
                 tau_arr.append(parameters["tau"])
                 xix_arr.append(xix)
@@ -195,6 +196,7 @@ def main():
                 xiy_err_arr.append(xiy_err)
                 xi_arr.append(xi)
                 xi_err_arr.append(xi_err)
+                Jx_Jy = 1 / (np.sqrt(parameters["J"] / parameters["Jy"]))
 
     print("Where ticks")
 
@@ -233,7 +235,7 @@ def main():
     ax.errorbar(tau_arr, xix_sorted, yerr=xix_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
     ax.errorbar(tau_arr, xiy_sorted, yerr=xiy_err_sorted, ls="", marker="x", color="C1", ecolor="black", capsize=3)
     ax.plot(tau_arr, poly(tau_arr, popt[0], np.exp(popt[1])), color="C3", label="fit")
-    ax.set_xlabel(r"\tau_Q")
+    ax.set_xlabel(r"$\tau_Q$")
     ax.set_ylabel(r"$\xi(\tau_Q)$")
     ax.set_title("Corr Length depending on Quench time")
     save_plot(root, "/xix-xiy.png")
@@ -262,6 +264,21 @@ def main():
     ax.set_ylim((0.8, ax.get_ylim()[1]))
     configure_ax(fig, ax, config)
     save_plot(root, "/xi.png")
+    plt.show()
+
+    # Now we also want to plot the ratio of xi_x / xi_y vs tau_Q and J_x / J_y
+
+    xi_ratio = xix_sorted / xiy_sorted
+    print(xi_ratio)
+    print(tau_arr)
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\tau_Q$")
+    ax.set_ylabel(r"$\frac{\xi_y}{\xi_x}$")
+    ax.set_title("Ratio of correlation lengths vs ratio of coupling constants")
+    ax.plot(tau_arr[:-1], xi_ratio, ls="", marker="x", label=r"$\frac{\xi_y}{\xi_x}$")
+    ax.plot((tau_arr[0], tau_arr[-2]), (Jx_Jy, Jx_Jy), label=r"$\sqrt{\frac{J_y}{J_x}}$")
+    configure_ax(fig, ax)
     plt.show()
 
 

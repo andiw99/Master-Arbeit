@@ -17,7 +17,6 @@ def det_intersection(x, y_dic):
                 total_dist += np.abs(y_dic[key1][i] - y_dic[key2][i])
         total_dist /= len(y_dic.keys()) ** 2
         if (total_dist < min_total_dist) & (i > 1):
-            print(i)
             min_total_dist = total_dist
             x_inter = x_val
             y_inter = list(y_dic.values())[0][i]
@@ -39,18 +38,16 @@ def main():
     cum_dic = {}
     xix_dic = {}
     xiy_dic = {}
-    L_xi_dic = {}
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    interpol_L_xi_dic = {}
     exclude_large_dists = 8
     exclude_small_dists = 2
     min_temp = 0.7
     max_temp = 0.9
     xi_exclude_large_dists = 8
     xi_exclude_small_dists = 2
-    max_L_fit = 1000
+    max_L_fit = 20
     r = 3
     figsize = (1.2 *  6.4, 4.8)
 
@@ -84,9 +81,39 @@ def main():
         xiy_dic[size] = xiy_dic[size][(min_temp < T) & (T < max_temp)]
     T = T[(min_temp < T) & (T < max_temp)]
 
-    T_xi_inter, L_xi_dic = plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic)
+    T_xi_inter, L_xi_dic = plot_intersection(T, r, root, xix_dic, xiy_dic)
+
+    # Okay we want to switch to deal with xi_x and xi_y seperately, so we need to interpolate xix for every size
+    # and then use our det_intersection method
+
 
     plt.show()
+
+    # make xix to L_xix
+    L_xix_dic = {}
+    L_xiy_dic = {}
+    for size in xix_dic.keys():
+        L_xix_dic[size] = int(size) / xix_dic[size]
+        L_xiy_dic[size] = int(size) / xiy_dic[size]
+
+    # plot for x direction
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    ax.set_title(r"$L/\xi_x$ on $\varepsilon$")
+    ax.set_xlabel(r"$\varepsilon$")
+    ax.set_ylabel(r"$L/\xi_x$")
+    T_x_intersec, L_xix_intersec = plt_inter(ax, fig, T, L_xix_dic, 300, r)
+    configure_ax(fig, ax)
+    plt.show()
+
+    # plot for y direction
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    ax.set_title(r"$L/\xi_y$ on $\varepsilon$")
+    ax.set_xlabel(r"$\varepsilon$")
+    ax.set_ylabel(r"$L/\xi_y$")
+    T_y_intersec, L_xiy_intersec = plt_inter(ax, fig, T, L_xiy_dic, 300, r)
+    configure_ax(fig, ax)
+    plt.show()
+
 
     fig, ax = plt.subplots(1, 1, figsize = figsize)
 
@@ -135,7 +162,11 @@ def main():
     # Now we got to make a numerical diff for the reduced temp at Tc
     eps = (T_inter_arr - T_inter) / T_inter
     diff_arr, size_arr = calc_diff_at(T_inter, T, cum_dic)
+
     xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
+    # numercial diffs for x and y direction aswell as the size arrays
+    xix_num_diff_arr, xix_size_arr = calc_diff_at(T_x_intersec, T, L_xix_dic)
+    xiy_num_diff_arr, xiy_size_arr = calc_diff_at(T_y_intersec, T, L_xiy_dic)
     # fig, ax = plt.subplots(1, 1)
     # ax.plot(size_arr, diff_beta_arr)
     plt.show()
@@ -195,9 +226,19 @@ def main():
     # fitting L/xi
 
     xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
+    xix_num_diff_arr = xix_num_diff_arr[xix_size_arr < max_L_fit]
+    xiy_num_diff_arr = xiy_num_diff_arr[xiy_size_arr < max_L_fit]
     xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
+    xix_size_arr = xix_size_arr[xix_size_arr < max_L_fit]
+    xiy_size_arr = xiy_size_arr[xiy_size_arr < max_L_fit]
     popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
     nu = 1 / popt[0]
+
+    popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
+    nu_x = 1 / popt_x[0]
+
+    popt_y, _ = curve_fit(linear_fit, np.log(xiy_size_arr), np.log(xiy_num_diff_arr))
+    nu_y = 1 / popt_y[0]
 
     fig, ax = plt.subplots(1, 1, figsize = figsize)
     # Setze Tickmarken und Labels
@@ -223,6 +264,24 @@ def main():
     configure_ax(fig, ax, config)
     #save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
     fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=True)
+    plt.show()
+
+    # plotting derivatives for both directions
+
+    fig, ax = plt.subplots(1, 1, figsize = figsize)
+
+    ax.plot(xix_size_arr, xix_num_diff_arr, linestyle="", marker="+", color=colors[0])
+    ax.plot(xiy_size_arr, xiy_num_diff_arr, linestyle="", marker="x", color=colors[4])
+    L_x_fit = np.linspace(0, np.max(xix_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
+    L_y_fit = np.linspace(0, np.max(xiy_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
+    ax.plot(L_x_fit, poly(L_x_fit, 1 / nu_x, np.exp(popt_x[1])), label=rf"$\nu_x = {nu_x:.2f}$", color=colors[0])
+    ax.plot(L_y_fit, poly(L_y_fit, 1 / nu_y, np.exp(popt_y[1])), label=rf"$\nu_y = {nu_y:.2f}$", color=colors[4])
+
+    ax.set_xlabel("L")
+    ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
+    ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$ in x- and y-direction")
+
+    configure_ax(fig, ax)
     plt.show()
 
 
@@ -270,9 +329,37 @@ def calc_diff_at(T_inter, T, value_dic):
     size_arr = np.sort(size_arr)
     return num_diff_arr, size_arr
 
+def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
+    """
+    plots the intersection of datasets in a dictionary
+    :param res: number of datapoints to interpolate
+    :param x: value which the data depends on (Temperature in our case)
+    :param y_dic: dictionary with data for different cases (correlation length on Temperature for different system sizes)
+    :return: None
+    """
+    # interpolate the x-values
+    x_inter = np.linspace(x[0], x[-1], res)
+    print(x)
+    # create interpolations of the data for every size
+    y_dic_inter = {}
+    for key in y_dic.keys():
+        y_dic_inter[key] = np.interp(x_inter, x, y_dic[key])
+    # now we find the intersection point?
+    x_intersec, y_intersec, intersec_ind = det_intersection(x_inter, y_dic_inter)
 
-def plot_intersection(L_xi_dic, T, interpol_L_xi_dic, r, root, xix_dic, xiy_dic):
+    # plotting
+    for i, key in enumerate(y_dic.keys()):
+        if not i % r:
+            ax.plot(x, y_dic[key], ls="", marker="x", c=colors[i // r])         # discrete points
+            ax.plot(x_inter, y_dic_inter[key], c=colors[i // r], label=key)   # interpolated line
+    mark_point(ax, x_intersec, y_intersec)
+
+    return x_intersec, y_intersec
+
+def plot_intersection(T, r, root, xix_dic, xiy_dic):
     figsize_factor = 1
+    L_xi_dic = {}
+    interpol_L_xi_dic = {}
     figsize = ( 1.2 * 6.4,4.8)
     fig, ax = plt.subplots(1, 1, figsize=figsize)
     config = {}

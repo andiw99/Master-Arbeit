@@ -397,8 +397,11 @@ def configure_ax(fig, ax, config=None):
 
 def mark_point(ax, x, y, c="C0"):
     ax.scatter(x, y, c=c)
-    ax.plot([x, x], [0, y], c=c, ls='--', lw=2, alpha=0.75)
-    ax.plot([0, x], [y, y], c=c, ls='--', lw=2, alpha=0.75)
+    y_low = ax.get_ylim()[0]
+    x_low = ax.get_xlim()[0]
+    print("mark point called")
+    ax.plot([x, x], [y_low, y], c=c, ls='--', lw=2, alpha=0.75)
+    ax.plot([x_low, x], [y, y], c=c, ls='--', lw=2, alpha=0.75)
 
 def remove_origin_ticks(ax):
     # Remove ticks in the origin of the plot
