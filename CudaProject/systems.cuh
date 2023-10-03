@@ -697,6 +697,12 @@ public:
         cout << "creating anisotropic_coulomb_constant system" << endl;
     }
 
+    anisotropic_coulomb_constant(map<Parameter, double>& paras)
+            : System(paras), anisotropic_coulomb_interaction(paras) {
+        cout << "creating anisotropic_coulomb_constant system" << endl;
+    }
+
+
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;

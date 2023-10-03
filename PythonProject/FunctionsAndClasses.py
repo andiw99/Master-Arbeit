@@ -77,7 +77,9 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     nr_of_meshs = config["nr_of_meshs"]
     cell_L = config["cell_L"]
     parameters["cell_L"] = cell_L
-    nr_rows = parameters["nr_save_values"]
+    nr_rows = parameters["nr_saves"]
+    Lx = parameters["dim_size_x"]
+    Ly = parameters["dim_size_y"]
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
     df = []
@@ -92,7 +94,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
 
     print(df)
 
-    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[12, 10])
+    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * Lx/Ly, 10])
     i = 0
     for axs in (axes):
         for ax in (axs):
@@ -105,7 +107,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
 
             if config["cell_L"]:
                 row = extract_cell(row, config["cell_nr"], config["cell_L"])
-            im = plot_colormesh(ax, row, parameters, config)
+            im = plot_rectangular_colormesh(ax, row, parameters, config)
             i += 1
     plt.tight_layout()
     fig.subplots_adjust(right=0.8)
@@ -133,7 +135,6 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     return fig, axes, name
 
 def plot_colormesh(ax, row, parameters, config):
-
     title=f"t = {parameters['t']:.2f}, T = {parameters['T']}"
     ax.set_title(title)
     L = int(np.sqrt(row.size))
@@ -155,6 +156,32 @@ def plot_colormesh(ax, row, parameters, config):
 
     return cf
 
+
+def plot_rectangular_colormesh(ax, row, parameters, config):
+    title=f"t = {parameters['t']:.2f}, T = {parameters['T']}"
+    ax.set_title(title)
+    Lx = int(parameters["dim_size_x"])
+    Ly = int(parameters["dim_size_y"])
+    print("not resphaed row:")
+    print(row)
+    row = row.reshape((Ly, Lx))
+    print("reshaped row:")
+    print(row)
+    chess_trafo = 0
+    if config["chess_trafo"] == 1:
+        chess_trafo = True
+    elif config["chess_trafo"] == -1:
+        # 'auto', so infering fom J
+        chess_trafo = np.sign(parameters["J"]) != np.sign(parameters["Jy"])
+        print("auto chess trafo yields: chess_trafo=", chess_trafo)
+    if chess_trafo:
+        print("doing chess trafo")
+        row = chess_board_trafo(row)
+    print(row)
+    well_pos = np.sqrt(parameters["beta"] / 2)
+    cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos)
+
+    return cf
 
 def find_first_csv_file(folder_path):
     for file_name in os.listdir(folder_path):
