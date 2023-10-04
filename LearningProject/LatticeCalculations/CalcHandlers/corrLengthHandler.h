@@ -15,12 +15,14 @@
 #include "../../DomainSize/QuenchCorrLength.h"
 
 class CorrLengthHandler : public calcHandler {
+    // what does it do? I think this one calculates the correlation length for different cells for the L/xi plots
     int starting_k = 0;
     int nr_Ls = 10;
-    vector<int> L_vec;
+    vector<pair<int, int>> L_vec;
+    vector<int> cutup_vec;
     ofstream corrList;
-    map<int, double*> ft_k_map;
-    map<int, double*> ft_l_map;
+    map<pair<int, int>, double*> ft_k_map;
+    map<pair<int, int>, double*> ft_l_map;
     double Temp = 0;
 public:
     CorrLengthHandler(const fs::path& root): calcHandler(root) {
@@ -31,9 +33,14 @@ public:
     }
 
     void pre_routine() override {
-        L_vec = generate_L(starting_k, lat_dim * lat_dim, nr_Ls);
-        for (int L : L_vec) {
-            corrList << "," << L << "," << L << "_y";
+        // now this one has to be completely rewritten because here I need rectangular cells
+        cutup_vec = vector<int>(nr_Ls);
+        std::iota(std::begin(cutup_vec), std::end(cutup_vec), starting_k);
+        for (int cut_factor : cutup_vec) {
+            int Lx = dim_size_x / cut_factor;
+            int Ly = dim_size_y / cut_factor;
+            L_vec.push_back(pair(Lx, Ly));      // TODO is this save or do I need to initialize the vector beforehand?
+            corrList << "," << Lx << "," << Ly << "_y";
         }
     }
 
@@ -47,74 +54,90 @@ public:
 
     void realization_routine(vector<double> &lat_q, double T, double t) override {
         Temp = T;
-        for (int L : L_vec) {
+        for (pair<int, int> L_pair : L_vec) {
             // I have L values for the fourier transform i think
-            double* ft_k = new double[L];
-            double* ft_l = new double[L];
-            for(int l = 0; l < L; l++) {
+            int Lx = L_pair.first;
+            int Ly = L_pair.second;
+            double* ft_k = new double[Lx];
+            double* ft_l = new double[Ly];
+            // TODO This is probably not even necessary?
+            for(int l = 0; l < Lx; l++) {
+                cout << ft_k[l] << endl;
                 ft_k[l] = 0;
-                ft_l[l] = 0;
             }
 
             // ft_k_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
             // ft_l_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
-            ft_k_map[L] = ft_k;
-            ft_l_map[L] = ft_l;
+            ft_k_map[L_pair] = ft_k;
+            ft_l_map[L_pair] = ft_l;
         }
 
-        for(int L : L_vec) {
+        for(pair<int, int> L_pair : L_vec) {
             // enumerate subsystems
-            int nr_cells = (int)(lat_dim * lat_dim/ (L * L));
+            int Lx = L_pair.first;
+            int Ly = L_pair.second;
+            int nr_cells = (int)(dim_size_x * dim_size_y/ (Lx * Ly));
             fftw_complex *in, *out;
-            in = new fftw_complex[L*L];
-            out = new fftw_complex[L*L];
+            in = new fftw_complex[Lx*Ly];
+            out = new fftw_complex[Lx*Ly];
             fftw_plan plan;
-            plan = fftw_plan_dft_2d(L, L, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+            plan = fftw_plan_dft_2d(Lx, Ly, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
             // loop over cell and extract fourier trafo of the subsystem
 
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
-                vector<double> cell = vector<double>(L * L, 0);
-                extract_cell(lat_q, cell, cell_nr, L);
-                for (int l = 0; l < L * L; l++) {
+                vector<double> cell = vector<double>(Lx * Ly, 0);
+                extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
+                // TODO I think this is also not necessary?
+                for (int l = 0; l < Lx * Ly; l++) {
                     in[l][0] = cell[l];
                     in[l][1] = 0;
                 }
                 // fourier trafo
                 fftw_execute(plan);
-                sum_and_add(L, out, ft_k_map[L], ft_l_map[L]);
+                sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
             }
             }
 
     }
 
     void setting_post_routine() {
-        for(int L : L_vec) {
-            for(int l = 0; l < L; l++) {
+        for(pair<int, int> L_pair : L_vec) {
+            int Lx = L_pair.first;
+            int Ly = L_pair.second;
+            for(int l = 0; l < Lx; l++) {
                 // TODO average by number of csv files
-                ft_l_map[L][l] /= (pow(L, 4));
-                ft_k_map[L][l] /= (pow(L, 4));
+                ft_l_map[L_pair][l] /= (pow(Ly, 4));
+            }
+            for(int l = 0; l < Ly; l++) {
+                ft_k_map[L_pair][l] /= (pow(Lx, 4));
             }
         }
         // we now need to fit and write for every L
         corrList << endl << Temp;
         cout << "Writing for temp = " << Temp << endl;
 
-        for (int L : L_vec) {
+        for (pair<int, int> L_pair : L_vec) {
             // We do the fit with vectors...
 /*            vector<double> ft_vec_k = vector<double>(ft_k_map[L], ft_k_map[L] + sizeof(ft_k_map[L]) / (sizeof ft_k_map[L][0]));
             vector<double> ft_vec_l = vector<double>(ft_l_map[L], ft_l_map[L] + sizeof(ft_l_map[L]) / (sizeof ft_l_map[L][0]));*/
-
+            int Lx = L_pair.first;
+            int Ly = L_pair.second;
             // fitting
             // vectors for the parameters
+            auto qx = init_q(Lx);
+            auto px = vector<vector<array<double, 2>>>(
+                    Lx, vector<array<double, 2>>(Lx, array<double, 2>()));
+            fill_p(qx, px);
+            auto qy = init_q(Ly);
+            auto py = vector<vector<array<double, 2>>>(
+                    Ly, vector<array<double, 2>>(Ly, array<double, 2>()));
+            fill_p(qx, px);
+            fill_p(qy, py);
+            auto kx = p_to_vec(px);
+            auto ky = p_to_vec(py);
 
-            auto q = init_q(L);
-            auto p = vector<vector<array<double, 2>>>(
-                    L, vector<array<double, 2>>(L, array<double, 2>()));
-            fill_p(q, p);
-            auto k = p_to_vec(p);
-
-            Eigen::VectorXd paras_x = fit_lorentz_peak(k, ft_k_map[L], L);
-            Eigen::VectorXd paras_y = fit_lorentz_peak(k, ft_l_map[L], L);
+            Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
+            Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
             // index one is the correlation length
             // we now have the correlation length for one temperature for one L
             // We add it to a file that looks like
@@ -124,9 +147,9 @@ public:
         }
 
         // deallocate memory of the maps?
-        for (int L : L_vec) {
-            delete[] ft_k_map[L];
-            delete[] ft_l_map[L];
+        for (pair<int, int> L_pair : L_vec) {
+            delete[] ft_k_map[L_pair];
+            delete[] ft_l_map[L_pair];
         }
     }
 
@@ -160,6 +183,27 @@ public:
                 int l_ind = j * N + i;
                 ft_squared_l[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
 
+            }
+        }
+    }
+
+    void sum_and_add(const int nx, const int ny, fftw_complex const (*out), double (*ft_squared_k), double (*ft_squared_l)) {
+        for(int i = 0; i < nx; i++) {
+            // i counts in x dimension?
+            for(int j = 0; j < ny; j++) {
+                // if i want to average over l i need to sum over the rows, so determine row i
+                int k_ind = i * nx + j;
+                // I sum over k the squared absolute value
+                // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
+                ft_squared_k[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
+            }
+        }
+        // TODO it should also be possible to write this in one loop with ft_sqaured_l[j] and l_ind = i * nx + j
+        for(int i = 0; i < ny; i++) {
+            // i counts in x dimension?
+            for(int j = 0; j < nx; j++) {
+                int l_ind = j * nx + i;
+                ft_squared_l[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
             }
         }
     }

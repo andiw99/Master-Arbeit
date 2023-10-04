@@ -425,6 +425,29 @@ void printComplexMatrix(value_type(&arr)[size]) {
     }
 }
 
+vector<double> get_frequencies(int nr_times) {
+    vector<double> freqs;
+    for(int i = 0; i < nr_times; i++) {
+        freqs.push_back(2 * M_PI * (double)(i - nr_times/2) / (double)nr_times);
+    }
+    return freqs;
+}
+
+template <class value_type>
+void printComplexMatrix(value_type &arr, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            // Access the real and imaginary parts of the complex number
+            double realPart = arr[i * cols + j][0];
+            double imagPart = arr[i * cols + j][1];
+
+            // Print the complex number as "real + imag i"
+            std::cout << realPart << " + " << imagPart << "i\t";
+        }
+        std::cout << std::endl;
+    }
+}
+
 string print_statetype(const state_type x) {
     string str = "";
     int n = x.size();
@@ -634,6 +657,21 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
     }
 }
 
+template <class value_type>
+void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cell_nr, int Lx, int Ly, int dim_size_x) {
+    int cells_per_row = dim_size_x / Lx;
+    int cell_in_row = cell_nr % cells_per_row;
+    // determine in which rom number we are
+    int row = cell_nr / cells_per_row;
+    for(int j = 0; j < Ly; j++) {
+        // extract values of j-th row
+        for(int i = 0; i < Lx; i++) {
+            int ind = dim_size_x * (row * Lx + j) + i + cell_in_row * Lx;
+            cell[j * Lx + i] = lattice[ind % lattice.size()];
+        }
+    }
+}
+
 fs::path findCsvFile(const fs::path& directory) {
     for (const auto& entry : fs::recursive_directory_iterator(directory)) {
         if (entry.is_regular_file() && entry.path().extension() == ".csv") {
@@ -680,7 +718,7 @@ int ind_to_1D(int row, int col, int lat_dim) {
 }
 
 fs::path findFirstTxtFile(const fs::path& directory) {
-    for (const auto& entry : fs::directory_iterator(directory)) {
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
         if (entry.is_regular_file() && entry.path().extension() == ".txt") {
             return entry.path();
         }
@@ -715,6 +753,22 @@ double extractValueFromTxt(const fs::path& filePath, const string& value) {
 double extractTauValue(const fs::path& filePath) {
     return (extractValueFromTxt(filePath, "tau"));
 }
+
+template <typename T>
+void printAsMatrix(const std::vector<T>& vec, int rows, int cols) {
+    if (vec.size() != rows * cols) {
+        std::cout << "Error: Vector size does not match the specified matrix shape." << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << vec[i * cols + j] << "   "; // Assuming tab-separated values
+        }
+        std::cout << std::endl;
+    }
+}
+
 
 
 int findHighestCSVNumber(const string& folderPath) {

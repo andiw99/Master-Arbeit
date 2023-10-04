@@ -62,20 +62,28 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     else:
         T = parameters["T"]
 
+
+
     px = df["px"]
     px = np.array(px)
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
     # cutoff
     px = px[indices]
+    px = px[~np.isnan(px)]
     ft_avg_y = np.array(df["ft_avg_y"])[indices]
-
+    ft_avg_y = ft_avg_y[~np.isnan(ft_avg_y)]
 
     py = df["py"]
     py = np.array(py)[indices]
+    py = py[~np.isnan(py)]
     ft_avg_x = np.array(df["ft_avg_x"])[indices]
+    ft_avg_x = ft_avg_x[~np.isnan(ft_avg_x)]
+    # x = x[~numpy.isnan(x)]
     try:
         y_error = np.array(df["stddev_y"])
+        y_error = y_error[~np.isnan(y_error)]
         x_error = np.array(df["stddev_x"])
+        x_error = x_error[~np.isnan(x_error)]
     except:
         y_error = None
         x_error = None
@@ -131,7 +139,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/AA/AA Quench/"
+    root = "../../Generated content/Testing Rectangular/anisotropicx"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -175,7 +183,6 @@ def main():
                                                   cutoff=cutoff, fitfunc=fitfunc,
                                                   errors_for_fit=errors_for_fit,
                                                   plot_struct=plot_struct)
-
                 T_arr.append(T)
                 xix_arr.append(xix)
                 xiy_arr.append(xiy)
@@ -200,7 +207,7 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
     print("Where")
-    span = np.max(T_arr) - np.min(T_arr)
+    span = np.maximum(np.max(T_arr) - np.min(T_arr), 0.05)
     print(span)
     print(np.max(xix_sorted))
     print(np.max(xiy_sorted))
@@ -223,7 +230,6 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
 
-    span = np.max(T_arr) - np.min(T_arr)
     ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
     # TODO minor locator muss

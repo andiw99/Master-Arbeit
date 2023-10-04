@@ -28,8 +28,9 @@ public:
         cout << "Calling BinderHandler pre routine" << endl;
         calcFile.open(root / "binder.cumulants");
         // Generating the vector of Ls
-
-        L_vec = generate_L(starting_k, lat_dim * lat_dim, nr_Ls);
+        // Okay i think we have to rewrite this entirely since we want to cut up into rectangles (or do we want to?)
+        // TODO think about whether you want to calculate the binder cumulant in rectangular cells, for now i dont think so
+        L_vec = generate_L(starting_k, dim_size_x * dim_size_y, nr_Ls);
 
         init_file_header(calcFile, L_vec);
 
@@ -44,7 +45,7 @@ public:
     void realization_routine(vector<double> &lat_q, double temp, double t) override {
         // for every subsystem size L we need to iterate over the lattice and extract all m's
         for(int L : L_vec) {
-            int nr_cells = (int)(lat_dim * lat_dim / (L * L));
+            int nr_cells = (int)(dim_size_x * dim_size_y / (L * L));
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
                 double m_L;
                 // now we are in the ith cell and can start calculating the local magnetization powers

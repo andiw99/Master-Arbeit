@@ -14,13 +14,16 @@ public:
     ofstream calcFile;
     fs::path root;      // probably very useful to have this as a class variable since some Handlers have to
     // write in different directories
-    size_t lat_dim = 0;
+    size_t dim_size_x = 0;
+    size_t dim_size_y = 0;
     calcHandler(){
         root = "./";
     }
     explicit calcHandler(const fs::path& root): root(root){
     }
-    calcHandler(const fs::path& root, size_t lat_dim): root(root), lat_dim(lat_dim){
+    calcHandler(const fs::path& root, size_t lat_dim): root(root), dim_size_x(lat_dim), dim_size_y(lat_dim){
+    }
+    calcHandler(const fs::path& root, size_t dim_size_x, size_t dim_size_y): root(root), dim_size_x(dim_size_x), dim_size_y(dim_size_y){
     }
     virtual void pre_routine() {}           // some initialization to do before starting to iterate over the settings
     virtual void setting_pre_routine(fs::path setting_path) {
@@ -31,8 +34,9 @@ public:
     virtual void setting_post_routine(){}   // something to do after we iterated over all realizations
     virtual void post_routine() {}          // something to do after we are done with every setting
 
-    void set_lat_dim(size_t lattice_dim) {
-        lat_dim = lattice_dim;
+    void set_dims(size_t dimension_size_x, size_t dimension_size_y) {
+        dim_size_x = dimension_size_x;
+        dim_size_y = dimension_size_y;
     }
 };
 

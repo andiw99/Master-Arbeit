@@ -16,10 +16,11 @@ enum class Calc {
 // vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength};
 vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Defense2/Large Quench Video2";
+fs::path root = "../../../Generated content/Testing Rectangular/anisotropicx";
 
 map<string, double> StructFactConfig {
-        {"cell_L", 128}
+        {"cell_L", 128},
+        {"cutup", 2}
 };
 
 map<string, double> CorrLengthHandlerConfig {
@@ -32,7 +33,8 @@ map<string, double> BinderHandlerConfig {
         {"nr_Ls", 28}
 };
 map<string, double> QuenchProcessHandlerConfig {
-        {"cell_L", 128}
+        {"cell_L", 128},
+        {"cutup", 4}
 };
 
 #endif //LEARNINGPROJECT_CONFIGS_H

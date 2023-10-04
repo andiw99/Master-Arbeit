@@ -44,21 +44,31 @@ using namespace fs;
 class simulation {
     // We probably need many class members and we maybe should split the functions to different handlers
     fs::path root;
-    size_t lat_dim;
+    size_t dim_size_x;
+    size_t dim_size_y;
     bool chessTrafo = true;
     vector<fs::path> setting_directories;
     vector<calcHandler*> handlers = {};
 public:
     simulation(const fs::path& root): root(root) {
         // First thing we should get done is look for the lattice dim
-        lat_dim = get_sim_size(root);
-        cout << "lat dim = " << lat_dim << endl;
+        fs::path txt_file = findFirstTxtFile(root);
+        cout << "found txt file: " << txt_file << endl;
+        dim_size_x = (size_t)extractValueFromTxt(txt_file, "dim_size_x");
+        dim_size_y = (size_t)extractValueFromTxt(txt_file, "dim_size_y");
+        cout << "dim_size_x = " << dim_size_x << endl;
+        cout << "dim_size_y = " << dim_size_y << endl;
         setting_directories = list_dir_paths(root);
     }
 
     simulation(const fs::path& root, bool chessTrafo): root(root), chessTrafo(chessTrafo) {
         // TODO duplicate code, maybe look into delegating constructor? Seems to be not to easy
-        lat_dim = get_sim_size(root);
+        fs::path txt_file = findFirstTxtFile(root);
+        cout << "found txt file: " << txt_file << endl;
+        dim_size_x = (size_t)extractValueFromTxt(txt_file, "dim_size_x");
+        dim_size_y = (size_t)extractValueFromTxt(txt_file, "dim_size_y");
+        cout << "dim_size_x = " << dim_size_x << endl;
+        cout << "dim_size_y = " << dim_size_y << endl;
         setting_directories = list_dir_paths(root);
     }
 
@@ -90,7 +100,7 @@ public:
         // okay initialization calls for the handlers
         for (auto handler : handlers) {
             // Or get it into the pre routine?
-            handler->set_lat_dim(lat_dim);
+            handler->set_dims(dim_size_x, dim_size_y);
             handler->pre_routine();
         }
 

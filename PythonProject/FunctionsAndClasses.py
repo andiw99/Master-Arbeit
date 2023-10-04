@@ -93,8 +93,10 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                 df.append(string_to_array(line[:-2]))
 
     print(df)
-
-    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * Lx/Ly, 10])
+    stretch = Lx/Ly
+    if cell_L != 0:
+        stretch = 1
+    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
     i = 0
     for axs in (axes):
         for ax in (axs):
@@ -106,7 +108,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
             row = np.array(df[ind][2:])
 
             if config["cell_L"]:
-                row = extract_cell(row, config["cell_nr"], config["cell_L"])
+                row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
             i += 1
     plt.tight_layout()
@@ -162,9 +164,13 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     ax.set_title(title)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
+    cell_L = int(config["cell_L"])
     print("not resphaed row:")
     print(row)
-    row = row.reshape((Ly, Lx))
+    if cell_L != 0:
+        row = row.reshape((cell_L, cell_L))
+    else:
+        row = row.reshape((Ly, Lx))
     print("reshaped row:")
     print(row)
     chess_trafo = 0
@@ -568,7 +574,25 @@ def extract_cell(row_data, cell_nr, cell_L):
 
     return cell
 
+def extract_cell_from_rectangle(row_data, cell_nr, cell_L, Lx, Ly):
+    cells_per_row = Lx / cell_L
+    col = cell_nr % cells_per_row       # number of the cell in its row
+    row = cell_nr // cells_per_row
 
+    cell = np.zeros(cell_L * cell_L)    # array for the values of the cell
+    for j in range(cell_L):
+        for i in range(cell_L):
+            ind = int(
+                # determines the left end of the lattice for the j-th row of the new cell
+                Lx * (row * cell_L + j) +
+                # iterates over everything to the right (left end of new cell to right end)
+                i
+                # displacement of the cell from the left end of the lattice
+                + col * cell_L
+            )
+            cell[j * cell_L + i] = row_data[ind % int(Lx * Ly)]
+
+    return cell
 
 def main():
     print("This file is made to import, not to execute")
