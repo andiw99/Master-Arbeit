@@ -206,7 +206,7 @@ public:
         double t_end = 2 * eq_t + t_quench;
         cout << "Simulating Quench until " <<  t_end << endl;
         // set end t in paras for the observer
-        paras[end_temp] = t_end;
+        paras[end_time] = t_end;
         return t_end;
     }
 

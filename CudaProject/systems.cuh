@@ -603,6 +603,7 @@ public:
     double get_quench_time() {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
+        cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
         return (T_start - T_end) * tau;
     }
 
@@ -722,6 +723,11 @@ public:
 
     }
     anisotropic_coulomb_quench(map<string,double>& paras)
+            : anisotropic_coulomb_interaction(paras), quench(paras), System(paras){
+
+    }
+
+    anisotropic_coulomb_quench(map<Parameter,double>& paras)
             : anisotropic_coulomb_interaction(paras), quench(paras), System(paras){
 
     }

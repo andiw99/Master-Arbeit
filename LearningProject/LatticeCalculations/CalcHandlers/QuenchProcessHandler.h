@@ -42,7 +42,7 @@ public:
         vector<fs::path> csv_files = list_csv_files(setting_path);
         fs::path txt_file = findFirstTxtFile(setting_path);
         double J = extractValueFromTxt(txt_file, "J");
-        int nr_values = (int)extractValueFromTxt(txt_file, "nr_save_values");
+        int nr_values = (int)extractValueFromTxt(txt_file, "nr_saves");
         bool chessTrafo;
         if(J < 0) {
             chessTrafo = true;
@@ -72,6 +72,8 @@ public:
         auto* ft_k = new double[Lx];
         auto* ft_l = new double[Ly];
 
+        cout << "nr_values = " << nr_values << endl;
+
         for(int time_nr = 0; time_nr < nr_values; time_nr++) {
 
             // TODO probably not necessary
@@ -86,11 +88,8 @@ public:
             double T, t;
             for(auto csv_path : csv_files) {
                 // find out if chess_trafo should be true or not
-                cout << "Before reading" << endl;
                 ifstream file = safe_read(csv_path, true);
-                cout << "After reading" << endl;
                 auto lat_q = readDoubleValuesAt(file, time_nr,  T, t);
-                cout << "After extracting double values at" << endl;
                 if(chessTrafo) {
                     chess_trafo(lat_q);
                 }
@@ -106,9 +105,7 @@ public:
                         in[l][0] = cell[l];
                         in[l][1] = 0;
                     }
-                    cout << "before executing plan" << endl;
                     fftw_execute(plan);
-                    cout << "after executing plan" << endl;
                     sum_and_add(Lx, Ly, out, ft_k, ft_l);
                     fftw_destroy_plan(plan);
                 }

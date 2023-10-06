@@ -85,7 +85,7 @@ public:
         vector<double> cell = vector<double>(Lx * Ly, 0);
         for(int cell_nr = 0; cell_nr < nr_of_cells; cell_nr++) {
             extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
-            printAsMatrix(cell, Ly, Lx);
+            // printAsMatrix(cell, Ly, Lx);
             for(int i = 0; i < Lx * Ly; i++) {
                 in[i][0] = cell[i];
                 in[i][1] = 0;
@@ -165,7 +165,6 @@ public:
     void write_to_file() {
         auto py = get_frequencies(Ly);
         auto px = get_frequencies(Lx);
-        cout << endl << "py:" << endl;
         ofstream ofile;
         ofile.open(writepath);
         ofile << "px," << "ft_avg_y,stddev_y," << "py," << "ft_avg_x,stddev_x\n";

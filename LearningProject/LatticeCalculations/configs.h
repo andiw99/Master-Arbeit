@@ -16,7 +16,7 @@ enum class Calc {
 // vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength};
 vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Testing Rectangular/anisotropicx";
+fs::path root = "../../../Generated content/Trash/Testing Rectangular/Quench";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},

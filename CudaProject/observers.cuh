@@ -231,7 +231,6 @@ public:
     void operator()(const system &sys, const State &x , double t) override {
         if(t >= end_t) {
             int duration = sys.timer.get_elapsed_time();
-            cout << "writing runtime.." << endl;
             ofile << duration << ",";
         }
     }

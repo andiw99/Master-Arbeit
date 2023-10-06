@@ -5,7 +5,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Defense2/Large Quench Video/"
+    root = "../../Generated content/Trash/Testing Rectangular/Quench"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
@@ -27,9 +27,9 @@ def main():
                 # We assume that we have one that is called 0.txt
                 paras = read_parameters_txt(dir_path + "/0.txt")
                 tau = paras["tau"]
-                t_eq = paras["t_eq"]
-                T_start = paras["starting_T"]
-                T_end = paras["end_T"]
+                t_eq = paras["equil_time"]
+                T_start = paras["starting_temp"]
+                T_end = paras["end_temp"]
                 print(paras)
                 t = np.array(df["t"])
                 # normalizing so the quench begins at zero:
