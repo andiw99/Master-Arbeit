@@ -53,10 +53,10 @@ template <class system, class State>
 class obsver {
 public:
     ofstream ofile;
-    virtual void operator()(const system& sys, const State &x , double t ) {
-        cout << "Base Observer gets called" << endl;
-    }
 
+    virtual void operator()(system& sys, const State &x , double t ) {
+        cout << "Base Observer withoud const gets called" << endl;
+    }
     obsver() {
     }
     void write(system &sys, const State &x , double t ) {
@@ -104,7 +104,24 @@ public:
         // Relaxation. The init is a bit different since we need to find out the write interval
         // It also writes the run parameters to a file
     }
-    void operator()(const system &sys, const State &x , double t ) override {
+    virtual void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys)  {
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+
+        // open the file to write the info to, in this case it will be just run_nr.csv
+        timepoint = 0.0;
+        // I think we will add the run number to the paras of the run
+        int run_nr = (int)paras[Parameter::run_nr];
+        // we just write the parameters first
+        close_stream();
+        open_stream(folderpath / (to_string(run_nr) + ".txt"));
+        write_parameters(ofile, paras);
+        // dont forget to close!;
+        close_stream();
+
+        open_stream(folderpath / (to_string(run_nr) + ".csv"));
+    }
+    void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
             // write
             cout << "t = " << t << endl;
@@ -124,23 +141,6 @@ public:
             // advance timeoint
             timepoint += write_interval;
         }
-    }
-    virtual void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys)  {
-        // I think this will have less performance impact than an if statement catching the first observer operation
-        // Make sure to use this observer only with systems that have a get_end_T method
-
-        // open the file to write the info to, in this case it will be just run_nr.csv
-        timepoint = 0.0;
-        // I think we will add the run number to the paras of the run
-        int run_nr = (int)paras[Parameter::run_nr];
-        // we just write the parameters first
-        close_stream();
-        open_stream(folderpath / (to_string(run_nr) + ".txt"));
-        write_parameters(ofile, paras);
-        // dont forget to close!;
-        close_stream();
-
-        open_stream(folderpath / (to_string(run_nr) + ".csv"));
     }
 
     string get_name() override {
@@ -228,7 +228,7 @@ public:
     using obsver::open_stream;
     using obsver::close_stream;
     fs::path path = "";
-    void operator()(const system &sys, const State &x , double t) override {
+    void operator()(system &sys, const State &x , double t) override {
         if(t >= end_t) {
             int duration = sys.timer.get_elapsed_time();
             ofile << duration << ",";
@@ -258,6 +258,51 @@ public:
         return "runtime observer";
     }
 };
+
+template <class system, class State>
+class NER_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+public:
+    NER_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (to_string(run_nr) + "-ner"));
+        cout << "NER init is called" << endl;
+        ofile << "t,m,f_mm,f_me" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        write_interval = end_t / (double)nr_values;
+    }
+
+    string get_name() override {
+        return "NER observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            cout << "NER observer writes" << endl;
+            sys.test();
+            ofile << t << "," << sys.calc_m(x) << "," << sys.calc_f_mm(x) << ",";
+            ofile << sys.calc_f_me(x) << endl;
+            timepoint += write_interval;
+        }
+    }
+
+    };
 
 /*class quench_observer : public observer {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer

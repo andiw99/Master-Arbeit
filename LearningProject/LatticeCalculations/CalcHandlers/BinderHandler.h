@@ -52,7 +52,7 @@ public:
                 // it might be easiest and maybe also the most efficient to extract the spins of the cell
                 // out of the large lattice
                 vector<double> q_cell = vector<double>(L * L, 0);
-                extract_cell(lat_q, q_cell, cell_nr, L);
+                extract_cell(lat_q, q_cell, cell_nr, L, L, dim_size_x);
                 m_L = mean(q_cell);
                 m_map[L].push_back(m_L);
             }

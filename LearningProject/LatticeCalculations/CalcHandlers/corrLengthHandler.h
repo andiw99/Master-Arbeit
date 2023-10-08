@@ -54,6 +54,7 @@ public:
 
     void realization_routine(vector<double> &lat_q, double T, double t) override {
         Temp = T;
+        cout << "corrLength realization routine" << endl;
         for (pair<int, int> L_pair : L_vec) {
             // I have L values for the fourier transform i think
             int Lx = L_pair.first;
@@ -62,8 +63,12 @@ public:
             double* ft_l = new double[Ly];
             // TODO This is probably not even necessary?
             for(int l = 0; l < Lx; l++) {
-                cout << ft_k[l] << endl;
+                // cout << ft_k[l] << endl;
                 ft_k[l] = 0;
+            }
+            for(int l = 0; l < Ly; l++) {
+                // cout << ft_k[l] << endl;
+                ft_l[l] = 0;
             }
 
             // ft_k_map[L] = (double*) fftw_malloc(sizeof(double) * L * L);
@@ -81,7 +86,7 @@ public:
             in = new fftw_complex[Lx*Ly];
             out = new fftw_complex[Lx*Ly];
             fftw_plan plan;
-            plan = fftw_plan_dft_2d(Lx, Ly, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+            plan = fftw_plan_dft_2d(Ly, Lx, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
             // loop over cell and extract fourier trafo of the subsystem
 
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
@@ -106,10 +111,10 @@ public:
             int Ly = L_pair.second;
             for(int l = 0; l < Lx; l++) {
                 // TODO average by number of csv files
-                ft_l_map[L_pair][l] /= (pow(Ly, 4));
+                ft_k_map[L_pair][l] /= (pow(Ly, 4));
             }
             for(int l = 0; l < Ly; l++) {
-                ft_k_map[L_pair][l] /= (pow(Lx, 4));
+                ft_l_map[L_pair][l] /= (pow(Lx, 4));
             }
         }
         // we now need to fit and write for every L
@@ -136,6 +141,15 @@ public:
             auto kx = p_to_vec(px);
             auto ky = p_to_vec(py);
 
+            print_vector(kx);
+            cout << endl;
+            print_array(ft_k_map[L_pair], Lx);
+
+            print_vector(ky);
+            cout << endl;
+            print_array(ft_l_map[L_pair], Ly);
+
+
             Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
             Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
             // index one is the correlation length
@@ -143,6 +157,8 @@ public:
             // We add it to a file that looks like
             // T    L1_x      L2      ...
             // 0.1  xix_11   xi_12   ...
+            cout << "xi_x = " << paras_x(1) << endl;
+            cout << "xi_y = " << paras_y(1) << endl;
             corrList << "," << paras_x(1) << "," << paras_y(1);
         }
 
@@ -192,7 +208,7 @@ public:
             // i counts in x dimension?
             for(int j = 0; j < ny; j++) {
                 // if i want to average over l i need to sum over the rows, so determine row i
-                int k_ind = i * nx + j;
+                int k_ind = j * nx + i;
                 // I sum over k the squared absolute value
                 // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
                 ft_squared_k[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
@@ -202,7 +218,7 @@ public:
         for(int i = 0; i < ny; i++) {
             // i counts in x dimension?
             for(int j = 0; j < nx; j++) {
-                int l_ind = j * nx + i;
+                int l_ind = i * nx + j;
                 ft_squared_l[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
             }
         }

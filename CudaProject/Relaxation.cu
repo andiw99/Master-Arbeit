@@ -25,8 +25,9 @@ int main() {
 
     auto* runtime_obs =
             new runtime_observer<relax_system, state_type>();
-/*    quench_observer* quench_obs =
-            new quench_observer(nr_save_values);*/
+
+    auto* ner_obs = new NER_observer<relax_system, state_type>(120);
+
     // templating..
     RelaxationSimulation simulation = RelaxationSimulation<euler_combined,
             state_type,
@@ -34,6 +35,7 @@ int main() {
             relax_system>(paras, simulation_path);
     simulation.register_observer(relax_obs);
     simulation.register_observer(runtime_obs);
+    simulation.register_observer(ner_obs);
     simulation.simulate();
     return 0;
 }

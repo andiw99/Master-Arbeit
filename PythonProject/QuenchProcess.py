@@ -5,7 +5,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Trash/Testing Rectangular/Quench"
+    root = "../../Generated content/Testing Rectangular/Quench"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)

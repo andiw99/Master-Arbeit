@@ -150,7 +150,7 @@ public:
             // i counts in x dimension?
             for(int j = 0; j < ny; j++) {
                 // if i want to average over l i need to sum over the rows, so determine row i
-                int k_ind = i * nx + j;
+                int k_ind = j * nx + i;
                 // I sum over k the squared absolute value
                 // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
                 ft_squared_k[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
@@ -160,7 +160,7 @@ public:
         for(int i = 0; i < ny; i++) {
             // i counts in x dimension?
             for(int j = 0; j < nx; j++) {
-                int l_ind = j * nx + i;
+                int l_ind = i * nx + j;
                 ft_squared_l[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
             }
         }

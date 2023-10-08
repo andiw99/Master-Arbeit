@@ -118,6 +118,7 @@ public:
         }
     };
 
+
     struct right : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
@@ -275,6 +276,75 @@ public:
     double calc_kinetic_energy(State &x) {
         double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
         return E_kin;
+    }
+
+    template<class State>
+    double calc_f_mm(State &x) {
+        double m2 = thrust::transform_reduce(x.begin(), x.begin() + n, square<double>(), 0.0, thrust::plus<double>()) / (double) n;
+        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
+        double f_mm = (double)n * (m2 / (m * m) - 1);
+        return f_mm;
+    }
+
+
+
+    template<class State, class Functor>
+    double calc_f_me(State &x, Functor functor) {
+        // ah okay damn, the energy depends on the system and the interaction potential
+        // how do i solve this the easiest? do i hand over a functor that knows the potential?
+        // ah damn it gets pretty complicated if I want to do this the right way... because of the neighbors
+        // it will look like in the universal opterations function
+        thrust::device_vector<double> e(n);
+        thrust::device_vector<double> me(n);
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down(dim_size_x, dim_size_y)
+                        )
+                ),
+                e.begin()
+        )));
+        thrust::for_each(start, start + n, functor);
+        thrust::transform(x.begin(), x.begin() + n, e.begin(), me.begin(), thrust::multiplies<double>());
+        double me_avg = thrust::reduce(me.begin(), me.end(), 0.0, thrust::plus<double>()) / (double) n;
+        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
+        double e_avg = thrust::reduce(e.begin(), e.end(), 0.0, thrust::plus<double>()) / (double) n;
+        double f_me = (double)n * (me_avg / (m * e_avg) - 1);
+        return f_me;
+    }
+
+    template<class State>
+    double calc_m(State &x) {
+        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
+        return m;
+    }
+
+    double test() {
+        return 1.0;
     }
 
     size_t get_step_nr() {
@@ -439,6 +509,10 @@ public:
                                     - alpha * (2 * q * q * q - beta * q)                                                        // double well potential
                                     - interaction;       // Interaction
         }
+    };
+
+    struct energy_functor {
+
     };
 
 public:
@@ -664,6 +738,32 @@ public:
         }
     };
 
+    struct energy_functor {
+        const double alpha, beta, Jx, Jy;
+
+        energy_functor(const double alpha,
+                            const double beta, const double Jx, const double Jy) :
+                            alpha(alpha), beta(beta), Jx(Jx), Jy(Jy){ }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double q_left =     thrust::get<1>(tup);
+            double q_right =    thrust::get<2>(tup);
+            double q_up =       thrust::get<3>(tup);
+            double q_down =     thrust::get<4>(tup);
+
+            // now here the logic for the energy
+            double E_dw = 0.5 * (alpha * pow(q, 4) - beta * pow(q, 2));
+            double E_interaction = Jx * (1.0 / sqrt(1.0 + (q-q_left) * (q-q_left))
+                            + 1.0 / sqrt(1.0 + (q-q_right) * (q-q_right)))
+                            + Jy * (1.0 / sqrt(1.0 + (q-q_up) * (q-q_up))
+                                    + 1.0 / sqrt(1.0 + (q-q_down) * (q-q_down)));
+            thrust::get<5>(tup) = E_dw + E_interaction;
+        }
+    };
+
+
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -682,6 +782,13 @@ public:
     anisotropic_coulomb_interaction(map<Parameter, double>& paras)
             : System(paras), alpha(paras[Parameter::alpha]), beta(paras[Parameter::beta]), Jx(paras[Parameter::J]), Jy(paras[Parameter::Jy]) {
     }
+
+    template<class State>
+    double calc_f_me(State &x) {
+        auto functor = energy_functor(alpha, beta, Jx, Jy);
+        return System::calc_f_me(x, functor);
+    }
+
 };
 
 

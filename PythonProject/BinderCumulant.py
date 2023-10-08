@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Defense2/Final Binder"
+    root = "../../Generated content/Testing Rectangular/Relaxation"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -41,20 +41,19 @@ def main():
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    exclude_large_dists = 8
-    exclude_small_dists = 2
-    min_temp = 0.7
-    max_temp = 0.9
-    xi_exclude_large_dists = 8
-    xi_exclude_small_dists = 2
-    max_L_fit = 20
+    exclude_large_dists = 0
+    exclude_small_dists = 0
+    min_temp = 0.68
+    max_temp = 1.0
+    xi_exclude_large_dists = 0
+    xi_exclude_small_dists = 0
+    max_L_fit = 400
     r = 3
     figsize = (1.2 *  6.4, 4.8)
 
 
     cum_path = root + "/" + name
     xi_path = root + "/" + name2
-    n = get_size(root, temp_dirs=os.listdir(root))
 
     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
     df_xi = pd.read_csv(xi_path, delimiter=",", index_col=False)
@@ -62,38 +61,45 @@ def main():
     labels = df.columns.delete(0)
     labels = labels[2*exclude_large_dists:len(labels)-2*exclude_small_dists]
 
+
     xi_labels = df_xi.columns.delete(0)
     xi_labels = xi_labels[2*xi_exclude_large_dists:len(xi_labels)-2*xi_exclude_small_dists]
     T = df["T"]
     for size in labels[::2]:
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
-
     for size in xi_labels[::2]:
         xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
-        xiy_dic[size] = np.array(df_xi[size + "_y"])[np.argsort(T)]
+    for size in xi_labels[1::2]:
+        # remove the _y thingy
+        xiy_dic[size[:-2]] = np.array(df_xi[size])[np.argsort(T)]
     T = np.sort(T)
     # sort out temps
     for size in labels[::2]:
         cum_dic[size] = cum_dic[size][(min_temp < T) & (T < max_temp)]
         cum_err_dic[size] = cum_err_dic[size][(min_temp < T) & (T < max_temp)]
+    for size in xi_labels[::2]:
         xix_dic[size] = xix_dic[size][(min_temp < T) & (T < max_temp)]
-        xiy_dic[size] = xiy_dic[size][(min_temp < T) & (T < max_temp)]
+        print(xix_dic[size])
+        print(T)
+    for size in xi_labels[1::2]:
+        xiy_dic[size[:-2]] = xiy_dic[size[:-2]][(min_temp < T) & (T < max_temp)]
     T = T[(min_temp < T) & (T < max_temp)]
 
-    T_xi_inter, L_xi_dic = plot_intersection(T, r, root, xix_dic, xiy_dic)
+    #T_xi_inter, L_xi_dic = plot_intersection(T, r, root, xix_dic, xiy_dic)
 
     # Okay we want to switch to deal with xi_x and xi_y seperately, so we need to interpolate xix for every size
     # and then use our det_intersection method
 
 
-    plt.show()
+    #plt.show()
 
     # make xix to L_xix
     L_xix_dic = {}
     L_xiy_dic = {}
     for size in xix_dic.keys():
         L_xix_dic[size] = int(size) / xix_dic[size]
+    for size in xiy_dic.keys():
         L_xiy_dic[size] = int(size) / xiy_dic[size]
 
     # plot for x direction
@@ -154,7 +160,6 @@ def main():
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
     ax.legend()
-    ax.set_ylim((0.8, 2.7))
     configure_ax(fig, ax)
     fig.savefig(root + "/cum.png", format="png", dpi=300, transparent=True)
     #save_plot(root, "/cum.pdf", format="pdf")
@@ -163,9 +168,11 @@ def main():
     eps = (T_inter_arr - T_inter) / T_inter
     diff_arr, size_arr = calc_diff_at(T_inter, T, cum_dic)
 
-    xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
+    # xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
     # numercial diffs for x and y direction aswell as the size arrays
+
     xix_num_diff_arr, xix_size_arr = calc_diff_at(T_x_intersec, T, L_xix_dic)
+
     xiy_num_diff_arr, xiy_size_arr = calc_diff_at(T_y_intersec, T, L_xiy_dic)
     # fig, ax = plt.subplots(1, 1)
     # ax.plot(size_arr, diff_beta_arr)
@@ -200,12 +207,11 @@ def main():
 
     # TODO minor locator muss
     span = np.max(diff_arr) - np.min(diff_arr)
-    print(diff_arr)
-    print(span)
+
     ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
     ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
-    x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
+    # x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
+    #ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.plot(size_arr, diff_arr, linestyle="", marker="+")
@@ -225,46 +231,49 @@ def main():
 
     # fitting L/xi
 
-    xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
+    #xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
     xix_num_diff_arr = xix_num_diff_arr[xix_size_arr < max_L_fit]
     xiy_num_diff_arr = xiy_num_diff_arr[xiy_size_arr < max_L_fit]
-    xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
+    #xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
     xix_size_arr = xix_size_arr[xix_size_arr < max_L_fit]
     xiy_size_arr = xiy_size_arr[xiy_size_arr < max_L_fit]
-    popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
+    #popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
     nu = 1 / popt[0]
+
 
     popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
     nu_x = 1 / popt_x[0]
 
+    print(xiy_size_arr)
+    print(xiy_num_diff_arr)
     popt_y, _ = curve_fit(linear_fit, np.log(xiy_size_arr), np.log(xiy_num_diff_arr))
     nu_y = 1 / popt_y[0]
 
-    fig, ax = plt.subplots(1, 1, figsize = figsize)
-    # Setze Tickmarken und Labels
-    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-
-
-    x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
-    # TODO minor locator muss
-    span = np.max(xi_num_diff_arr) - np.min(xi_num_diff_arr)
-    ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
-    ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
-    # Füge Gitterlinien hinzu
-    ax.grid(which='major', linestyle='--', alpha=0.5)
-    ax.plot(xi_size_arr, xi_num_diff_arr, linestyle="", marker="+")
-    L_fit = np.linspace(0, np.max(xi_size_arr) + 0.2 * np.max(xi_size_arr), 101)
-    ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
-    ax.set_xlabel("L")
-    ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
-    ax.legend()
-    ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$")
-    configure_ax(fig, ax, config)
-    #save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
-    fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=True)
-    plt.show()
+    #fig, ax = plt.subplots(1, 1, figsize = figsize)
+    ## Setze Tickmarken und Labels
+    #ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
+    #ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
+#
+#
+    ##x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
+    ##ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
+    ## TODO minor locator muss
+    ##span = np.max(xi_num_diff_arr) - np.min(xi_num_diff_arr)
+    #ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
+    #ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
+    ## Füge Gitterlinien hinzu
+    #ax.grid(which='major', linestyle='--', alpha=0.5)
+    ##ax.plot(xi_size_arr, xi_num_diff_arr, linestyle="", marker="+")
+    ##L_fit = np.linspace(0, np.max(xi_size_arr) + 0.2 * np.max(xi_size_arr), 101)
+    #ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
+    #ax.set_xlabel("L")
+    #ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
+    #ax.legend()
+    #ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$")
+    #configure_ax(fig, ax, config)
+    ##save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
+    #fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=True)
+    #plt.show()
 
     # plotting derivatives for both directions
 
@@ -320,9 +329,14 @@ def calc_diff_at(T_inter, T, value_dic):
             find_nearest_value_and_index(T, T_inter)
         # now we calculate a central difference with the nearest value
         # being in the center
-        num_diff = (value_dic[size][index_nearest_T + 1] -
-                    value_dic[size][index_nearest_T - 1]) \
-                   / (2 * (T[index_nearest_T + 1] - T[index_nearest_T]))
+        # check whether the index is at least greater than zero...
+        if index_nearest_T > 0:
+            num_diff = (value_dic[size][index_nearest_T + 1] -
+                        value_dic[size][index_nearest_T - 1]) \
+                       / (2 * (T[index_nearest_T + 1] - T[index_nearest_T]))
+        else:
+            # vorwärtsdifferenz?
+            num_diff = (value_dic[size][index_nearest_T + 1] - value_dic[size][index_nearest_T]) / (T[index_nearest_T + 1] - T[index_nearest_T])
         num_diff_arr.append(num_diff)
         size_arr.append(int(size))
     num_diff_arr = np.array(num_diff_arr)[np.argsort(size_arr)]
@@ -339,10 +353,11 @@ def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
     """
     # interpolate the x-values
     x_inter = np.linspace(x[0], x[-1], res)
-    print(x)
     # create interpolations of the data for every size
     y_dic_inter = {}
     for key in y_dic.keys():
+        print(x)
+        print(y_dic[key])
         y_dic_inter[key] = np.interp(x_inter, x, y_dic[key])
     # now we find the intersection point?
     x_intersec, y_intersec, intersec_ind = det_intersection(x_inter, y_dic_inter)
@@ -437,6 +452,7 @@ def get_size(size_path, temp_dirs):
                     print(os.path.join(dir_path, f))
                     parameters = read_parameters_txt(os.path.join(dir_path, f))
                     return np.sqrt(parameters["n"])
+
 
 
 if __name__ == "__main__":

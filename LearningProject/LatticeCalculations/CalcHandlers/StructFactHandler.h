@@ -111,11 +111,6 @@ public:
                     ft_k_squared_of_this_csv_file[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
                 }
             }
-/*            cout << "ft_k_squared after:" << endl;
-            for(int i = 0; i < Lx; i++) {
-                cout << ft_k_squared_of_this_csv_file[i] << "  ";
-            }
-            cout << endl;*/
             for(int i = 0; i < Ly; i++) {
                 for(int j = 0; j < Lx; j++) {
                     // I want to average over the row? so i fix the row by constant i and increment j

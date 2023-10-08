@@ -120,7 +120,6 @@ public:
             } else {
                 chessTrafo = false;
             }
-            cout << "come on?" << endl;
             for(auto csv_path : csv_files) {
                 // find out if chess_trafo should be true or not
 
