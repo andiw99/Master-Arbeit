@@ -26,7 +26,7 @@ int main() {
     auto* runtime_obs =
             new runtime_observer<relax_system, state_type>();
 
-    auto* ner_obs = new NER_observer<relax_system, state_type>(120);
+    auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
 
     // templating..
     RelaxationSimulation simulation = RelaxationSimulation<euler_combined,

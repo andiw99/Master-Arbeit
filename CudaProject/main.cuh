@@ -56,7 +56,8 @@ enum Parameter {
     step_nr,
     run_nr,
     min_lat_factor,
-    max_lat_factor
+    max_lat_factor,
+    nr_ner_values,
 };
 
 map<Parameter, string> parameter_names {

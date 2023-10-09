@@ -182,6 +182,8 @@ def main():
     diff_fit_arr = diff_arr[size_arr < max_L_fit]
     size_arr_fit = size_arr[size_arr < max_L_fit]
     # fitting
+    print(size_arr_fit)
+    print(diff_fit_arr)
     popt, _ = curve_fit(linear_fit, np.log(size_arr_fit), np.log(diff_fit_arr))
     popt_ising, _ = curve_fit(ising_corr_poly_fit, size_arr, diff_arr, maxfev=1000000)
     popt_poly_corr, _ = curve_fit(crit_poly_fit_corr, size_arr, diff_arr, p0=(1, popt_ising[0], popt_ising[1],

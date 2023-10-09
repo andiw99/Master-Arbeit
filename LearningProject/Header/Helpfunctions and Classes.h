@@ -93,7 +93,7 @@ void print_array(const T (&arr)[N]) {
 template <typename T>
 void print_array(const T (&arr), size_t L) {
     for (size_t i = 0; i < L; ++i) {
-        std::cout << arr[i] << " ";
+        std::cout << arr[i] << ", ";
     }
     std::cout << std::endl;
 }

@@ -141,13 +141,7 @@ public:
             auto kx = p_to_vec(px);
             auto ky = p_to_vec(py);
 
-            print_vector(kx);
-            cout << endl;
-            print_array(ft_k_map[L_pair], Lx);
 
-            print_vector(ky);
-            cout << endl;
-            print_array(ft_l_map[L_pair], Ly);
 
 
             Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
@@ -157,8 +151,16 @@ public:
             // We add it to a file that looks like
             // T    L1_x      L2      ...
             // 0.1  xix_11   xi_12   ...
-            cout << "xi_x = " << paras_x(1) << endl;
-            cout << "xi_y = " << paras_y(1) << endl;
+            if (L_pair.first == 128) {
+                print_vector(kx);
+                cout << endl;
+                print_array(ft_k_map[L_pair], Lx);
+                print_vector(ky);
+                cout << endl;
+                print_array(ft_l_map[L_pair], Ly);
+                cout << "xi_x = " << paras_x(1) << endl;
+                cout << "xi_y = " << paras_y(1) << endl;
+            }
             corrList << "," << paras_x(1) << "," << paras_y(1);
         }
 

@@ -381,7 +381,12 @@ def delete_last_line(filename):
     # Write the remaining lines back to the file
     with open(filename, 'w') as file:
         file.writelines(lines)
-        
+
+def get_10_power(x):
+    if x == 0:
+        return 0
+    else:
+        return int(np.floor(np.log10(abs(x))))
 def configure_ax(fig, ax, config=None):
     """
     Takes a fig and an axes and configures the axes and stuff. If no config map is provided standard config is used
@@ -393,7 +398,7 @@ def configure_ax(fig, ax, config=None):
 
     config = create_config(config, PLOT_DEFAULT_CONFIG)
 
-    x_span, y_span = get_spans(ax)
+    x_span, y_span, (xmin, xmax, ymin, ymax) = get_spans(ax)
 
     if ax.get_yscale() != "log":
         ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
@@ -401,11 +406,13 @@ def configure_ax(fig, ax, config=None):
     if ax.get_xscale() != "log":
         ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
         ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
+
     # We want to have inline ticks
     ax.tick_params(direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=9)
     ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75), labelsize=9)
 
-    remove_origin_ticks(ax)
+    if ax.get_xscale() != "log":
+        remove_origin_ticks(ax)
 
     # Füge Gitterlinien hinzu
     ax.grid(which='major', linestyle='--', alpha=0.5)
@@ -445,6 +452,7 @@ def remove_origin_ticks(ax):
     for getter, setter, origin, end in zip(get_functions, set_functions, origins, ends):
         major_ticks = getter()
         minor_ticks = getter(minor=True)
+        print(minor_ticks)
         half_tick = (minor_ticks[1] - minor_ticks[0]) / 2
         new_minor_ticks = set(minor_ticks)
         new_major_ticks = set(major_ticks)
@@ -486,7 +494,7 @@ def get_spans(ax):
     ymax = np.minimum(ymax, set_ymax)
     x_span = round_to_first_non_zero(xmax - xmin)
     y_span = round_to_first_non_zero(ymax - ymin)
-    return x_span, y_span
+    return x_span, y_span, (xmin, xmax, ymin, ymax)
 
 
 def pd_chess_board_trafo(x):
@@ -593,6 +601,40 @@ def extract_cell_from_rectangle(row_data, cell_nr, cell_L, Lx, Ly):
             cell[j * cell_L + i] = row_data[ind % int(Lx * Ly)]
 
     return cell
+
+
+def list_directory_names(path):
+    paths = os.listdir(path)
+    dirs = []
+    for dir in paths:
+        if os.path.isdir(os.path.join(path, dir)):
+            dirs.append(dir)
+    return dirs
+
+def second_order_num_diff(x, y):
+    """
+    takes two arrays and returns array with numerical diff dx/dy with second order accuracy if possible
+    :param x: x-values
+    :param y: depenant values
+    :return: numerical diff array
+    """
+    h = x[1] - x[0]
+    dif = np.zeros(len(x))
+    for i in range(len(x)):
+        if (i >= 2) and (i < len(x) - 2):
+            # second order diff
+            dy_dx = 1/(12 * h) * (- y[i + 2] + 8 * y[i + 1] - 8 * y[i - 1] + y[i - 2])
+        elif i == 1 or i == len(x) - 2:
+            # first oder central diff
+            dy_dx = 1 / (2 * h) * (y[i+1] - y[i-1])
+        elif i == 0:
+            # vorwärtsdifferenz
+            dy_dx = (y[i + 1] - y[i]) / h
+        else:
+            # rückwärtsdiffernz
+            dy_dx = (y[i] - y[i - 1]) / h
+        dif[i] = dy_dx
+    return dif
 
 def main():
     print("This file is made to import, not to execute")

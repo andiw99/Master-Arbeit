@@ -139,7 +139,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Testing Rectangular/anisotropicx"
+    root = "../../Generated content/Testing Rectangular/Relaxation"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
