@@ -272,6 +272,15 @@ public:
         }
     };
 
+    template <class T>
+    struct kinetic_energy
+    {
+        __host__ __device__
+        T operator()(const T& x, const T& y) const {
+            return 0.5 * x * y;
+        }
+    };
+
     template<class State>
     double calc_kinetic_energy(State &x) {
         double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
@@ -328,7 +337,11 @@ public:
                 ),
                 e.begin()
         )));
-        thrust::for_each(start, start + n, functor);
+        thrust::for_each(start, start + n, functor);        // potential energy
+        // TODO check if this is correct.
+        thrust::device_vector<double> e_p(n);
+        thrust::transform(x.begin() + n, x.end(), x.begin() + n, e_p.begin(), kinetic_energy<double>());    // kinetic energy
+        thrust::transform(e.begin(), e.end(), e_p.begin(), e.begin(), thrust::plus<double>());               // add both into e
         thrust::transform(x.begin(), x.begin() + n, e.begin(), me.begin(), thrust::multiplies<double>());
         double me_avg = thrust::reduce(me.begin(), me.end(), 0.0, thrust::plus<double>()) / (double) n;
         double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
@@ -738,10 +751,10 @@ public:
         }
     };
 
-    struct energy_functor {
+    struct potential_energy_functor {
         const double alpha, beta, Jx, Jy;
 
-        energy_functor(const double alpha,
+        potential_energy_functor(const double alpha,
                             const double beta, const double Jx, const double Jy) :
                             alpha(alpha), beta(beta), Jx(Jx), Jy(Jy){ }
 
@@ -785,7 +798,7 @@ public:
 
     template<class State>
     double calc_f_me(State &x) {
-        auto functor = energy_functor(alpha, beta, Jx, Jy);
+        auto functor = potential_energy_functor(alpha, beta, Jx, Jy);
         return System::calc_f_me(x, functor);
     }
 

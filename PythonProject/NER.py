@@ -31,7 +31,7 @@ def calc_gamm_fluctuations(f, t):
 
 
 def main():
-    root = "../../Generated content/NER/Selected"
+    root = "../../Generated content/NER Long/Selected"
     root_dirs = list_directory_names(root)
     file_extension = ".ner"
     print(root_dirs)
@@ -62,6 +62,7 @@ def main():
                 f_me = np.array(df["f_me"])
 
                 if temp_dir in m_dic:
+                    print("adding")
                     m_dic[temp_dir] += m
                     f_mm_dic[temp_dir] += f_mm
                     f_me_dic[temp_dir] += f_me
@@ -70,7 +71,7 @@ def main():
                     f_mm_dic[temp_dir] = f_mm
                     f_me_dic[temp_dir] = f_me
                     t_dic[temp_dir] = t
-
+        print("nr of files read: ", runs)
         m_dic[temp_dir] /= runs     # averaging
         f_mm_dic[temp_dir] /= runs
         f_me_dic[temp_dir] /= runs
@@ -105,6 +106,10 @@ def main():
     for i, key in enumerate(m_dic.keys()):
         ax.plot(np.array(t_dic[key][1:]), f_mm_dic[key][1:], ls="", marker="x",
                 color=colors[(2 * i) % len(colors)], label=f"T = {float(key):.3f}")
+    ax.set_ylabel(r"$f_{mm}(t)$")
+    ax.set_xlabel(r"t")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
     configure_ax(fig, ax)
 
     fig, ax = plt.subplots(1, 1)
@@ -112,8 +117,11 @@ def main():
     for i, key in enumerate(m_dic.keys()):
         ax.plot(np.array(t_dic[key][1:]), f_me_dic[key][1:], ls="", marker="x",
                 color=colors[(2 * i) % len(colors)], label=f"T = {float(key):.3f}")
+    ax.set_ylabel(r"$f_{me}(t)$")
+    ax.set_xlabel(r"t")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
     configure_ax(fig, ax)
-
     plt.show()
 
     # calcing and plotting gamma_mm
@@ -121,7 +129,6 @@ def main():
     fig, ax = plt.subplots(1, 1)
     for i, key in enumerate(m_dic.keys()):
         gamma_mm = calc_gamm_fluctuations(f_mm_dic[key][1:], t_dic[key][1:])
-        print(gamma_mm)
         ax.plot(1 / np.array(t_dic[key][1:]), gamma_mm, ls="", marker="x", color=colors[i], label=f"T = {float(key):.3f}")
     ax.set_yscale("log")
     ax.set_xscale("log")
