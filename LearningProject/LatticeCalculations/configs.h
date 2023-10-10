@@ -16,21 +16,21 @@ enum class Calc {
 vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength, Calc::StructFact};
 // vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Testing Rectangular/Relaxation";
+fs::path root = "../../../Generated content/NER Long/Selected";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
-        {"cutup", 8}
+        {"cutup", 4}
 };
 
 map<string, double> CorrLengthHandlerConfig {
-        {"starting_k", 8},
-        {"nr_Ls", 10}
+        {"starting_k", 6},
+        {"nr_Ls", 16}
 };
 
 map<string, double> BinderHandlerConfig {
-        {"starting_k", 10},
-        {"nr_Ls", 16}
+        {"starting_k", 6},
+        {"nr_Ls", 12}
 };
 map<string, double> QuenchProcessHandlerConfig {
         {"cell_L", 128},

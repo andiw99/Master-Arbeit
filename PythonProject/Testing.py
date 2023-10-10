@@ -1,7 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
+from FunctionsAndClasses import *
 import functools
 import matplotlib; matplotlib.use("TkAgg")
+
 
 def start_sinus(event, ax, phi_t):
     """Plotte Sinus-Kurve."""
@@ -26,6 +26,19 @@ def main():
     phi_t=phi_t)
     fig.canvas.mpl_connect("button_press_event", klick_funktion)
     plt.show()
+
+    print("hä?")
+    x = np.linspace(0, 10, 10, endpoint=True)
+
+    y = x * x
+
+    dy_dx = second_order_num_diff(x, y)
+    dy_dx_np = np.gradient(y, x)
+    dy_dx_analytic = 2 * x
+
+    print(dy_dx)
+    print(dy_dx_np)
+    print(dy_dx_analytic)
 
 if __name__ == "__main__":
     main()

@@ -22,20 +22,56 @@ def fit_gamma_m(t, m, ppf=5):
 
 
 def calc_gamm_fluctuations(f, t):
+    # We will do some kind of averaging so that the derivative does not
+    # oscillate as strongly
     ln_f = np.log(f)
     ln_t = np.log(t)
-    gamma = second_order_num_diff(ln_t, ln_f)
-
+    #gamma = second_order_num_diff(ln_t, ln_f)
+    gamma = np.gradient(ln_f, ln_t)
+    # TODO Just use gradient for now since you do not have equidistant
+    # points so the central difference implementation becomes a bit harder
     return gamma
 
 
+def avg(x, y, ppp):
+    nr_points = len(x) // ppp
+    y_avg = np.zeros(nr_points)
+    x_avg = np.zeros(nr_points)
+
+    for i in range(nr_points):
+        for j in range(ppp):
+            y_avg[i] += y[i * ppp + j]
+            x_avg[i] += x[i * ppp + j]
+        y_avg[i] /= ppp
+        x_avg[i] /= ppp
+
+    return x_avg, y_avg
+
+def smooth(x, y, ppp):
+    # ppp should be uneven and at least 3
+    nr_points = len(x)
+    y_smooth = np.zeros(nr_points)
+    # smoothing works only if we got (ppp - 1) / 2 points before and after the
+    # concerned point
+    print(y)
+    for i in range(nr_points):
+        # we can also try to calculate the possible smoothing range
+        pp = np.minimum(ppp, (np.minimum(2 * i, 2 * (nr_points - i - 1)) + 1))
+        a = (pp - 1) // 2
+        for j in range(pp):
+            y_smooth[i] += y[i - a + j]
+        y_smooth[i] /= pp
+    return y_smooth
 
 def main():
     root = "../../Generated content/NER Long/Selected"
     root_dirs = list_directory_names(root)
     file_extension = ".ner"
     print(root_dirs)
-    ppf = 20
+    ppf = 10
+    ppp = 5
+    ppp_smooth = 1
+    times_smoothing = 0
 
     m_dic = {}
     t_dic = {}
@@ -62,7 +98,6 @@ def main():
                 f_me = np.array(df["f_me"])
 
                 if temp_dir in m_dic:
-                    print("adding")
                     m_dic[temp_dir] += m
                     f_mm_dic[temp_dir] += f_mm
                     f_me_dic[temp_dir] += f_me
@@ -83,12 +118,18 @@ def main():
     ax.set_yscale("log")
     ax.set_xscale("log")
     for i, key in enumerate(m_dic.keys()):
-        ax.plot(t_dic[key][1:], m_dic[key][1:], ls="", marker="x", color=colors[i], label=f"T = {float(key):.3f}")
+        t_avg, m_avg = avg(t_dic[key][1:], m_dic[key][1:], 1)
+        for j in range(times_smoothing):
+            m_avg = smooth(t_avg, m_avg, ppp_smooth)
+        ax.plot(t_avg, m_avg, ls="", marker="x", color=colors[i], label=f"T = {float(key):.3f}")
     configure_ax(fig, ax)
     plt.show()
     # fitting gamma_m
     for i, key in enumerate(m_dic.keys()):
-        gamma_arr, t_arr = fit_gamma_m(t_dic[key], m_dic[key], ppf=ppf)
+        t_avg, m_avg = avg(t_dic[key][1:], m_dic[key][1:], 1)
+        for j in range(times_smoothing):
+            m_avg = smooth(t_avg, m_avg, ppp_smooth)
+        gamma_arr, t_arr = fit_gamma_m(t_avg, m_avg, ppf=ppf)
         gamma_m_dic[key] = gamma_arr
         t_gamma_m_dic[key] = t_arr
 
@@ -104,8 +145,11 @@ def main():
     fig, ax = plt.subplots(1, 1)
 
     for i, key in enumerate(m_dic.keys()):
-        ax.plot(np.array(t_dic[key][1:]), f_mm_dic[key][1:], ls="", marker="x",
-                color=colors[(2 * i) % len(colors)], label=f"T = {float(key):.3f}")
+        t_avg, f_mm_avg = avg(t_dic[key][1:], f_mm_dic[key][1:], ppp)
+        for j in range(times_smoothing):
+            f_mm_avg = smooth(t_avg, f_mm_avg, ppp_smooth)
+        ax.plot(t_avg, f_mm_avg, ls="", marker="x",
+                color=colors[(i) % len(colors)], label=f"T = {float(key):.3f}")
     ax.set_ylabel(r"$f_{mm}(t)$")
     ax.set_xlabel(r"t")
     ax.set_yscale("log")
@@ -128,17 +172,25 @@ def main():
 
     fig, ax = plt.subplots(1, 1)
     for i, key in enumerate(m_dic.keys()):
-        gamma_mm = calc_gamm_fluctuations(f_mm_dic[key][1:], t_dic[key][1:])
-        ax.plot(1 / np.array(t_dic[key][1:]), gamma_mm, ls="", marker="x", color=colors[i], label=f"T = {float(key):.3f}")
+        t_avg, f_mm_avg = avg(t_dic[key][1:], f_mm_dic[key][1:], ppp)
+        for j in range(times_smoothing):
+            f_mm_avg = smooth(t_avg, f_mm_avg, ppp_smooth)
+        gamma_mm= calc_gamm_fluctuations(f_mm_avg, t_avg)
+        ax.plot(1 / t_avg, gamma_mm, ls="", marker="x", color=colors[2 * i], label=f"T = {float(key):.3f}")
     ax.set_yscale("log")
     ax.set_xscale("log")
+    ax.set_ylabel(r"$\lambda_{mm}$")
+    ax.set_xlabel(r"$\frac{1}{t}$")
     configure_ax(fig, ax)
     plt.show()
 
     fig, ax = plt.subplots(1, 1)
     for i, key in enumerate(m_dic.keys()):
-        gamma_me = calc_gamm_fluctuations(f_me_dic[key][1:], t_dic[key][1:])
-        ax.plot(1 / np.array(t_dic[key][1:]), gamma_me, ls="", marker="x", color=colors[i], label=f"T = {float(key):.3f}")
+        t_avg, f_me_avg = avg(t_dic[key][1:], f_me_dic[key][1:], ppp)
+        for j in range(times_smoothing):
+            f_mm_avg = smooth(t_avg, f_mm_avg, ppp_smooth)
+        gamma_me = calc_gamm_fluctuations(f_me_avg, t_avg)
+        ax.plot(1 / t_avg, gamma_me, ls="", marker="x", color=colors[2 * i], label=f"T = {float(key):.3f}")
     ax.set_yscale("log")
     ax.set_xscale("log")
     configure_ax(fig, ax)

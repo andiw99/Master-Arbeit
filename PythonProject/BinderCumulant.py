@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Testing Rectangular/Relaxation"
+    root = "../../Generated content/NER Long/Selected"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -82,6 +82,7 @@ def main():
         xix_dic[size] = xix_dic[size][(min_temp < T) & (T < max_temp)]
         print(xix_dic[size])
         print(T)
+    print(xi_labels[1::2])
     for size in xi_labels[1::2]:
         xiy_dic[size[:-2]] = xiy_dic[size[:-2]][(min_temp < T) & (T < max_temp)]
     T = T[(min_temp < T) & (T < max_temp)]
@@ -242,6 +243,7 @@ def main():
     #popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
     nu = 1 / popt[0]
 
+    print(xix_size_arr, xix_num_diff_arr)
 
     popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
     nu_x = 1 / popt_x[0]
@@ -368,7 +370,7 @@ def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
     for i, key in enumerate(y_dic.keys()):
         if not i % r:
             ax.plot(x, y_dic[key], ls="", marker="x", c=colors[i // r])         # discrete points
-            ax.plot(x_inter, y_dic_inter[key], c=colors[i // r], label=key)   # interpolated line
+            ax.plot(x_inter, y_dic_inter[key], c=colors[i // r], label=key, linewidth=1)   # interpolated line
     mark_point(ax, x_intersec, y_intersec)
 
     return x_intersec, y_intersec

@@ -212,7 +212,10 @@ def plot_name_paras(paras):
     wanted_paras=["cell_L", "T", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
     for key in wanted_paras:
         try:
-            fname += key + "=" + str(round(paras[key], 2))
+            if key == "T":
+                fname += key + "=" + str(round(paras[key], 3))
+            else:
+                fname += key + "=" + str(round(paras[key], 2))
         except:
             pass
     return fname
@@ -618,19 +621,22 @@ def second_order_num_diff(x, y):
     :param y: depenant values
     :return: numerical diff array
     """
-    h = x[1] - x[0]
     dif = np.zeros(len(x))
     for i in range(len(x)):
         if (i >= 2) and (i < len(x) - 2):
+            h = x[i+1] - x[i]
             # second order diff
-            dy_dx = 1/(12 * h) * (- y[i + 2] + 8 * y[i + 1] - 8 * y[i - 1] + y[i - 2])
+            dy_dx = (- y[i + 2] + 8 * y[i + 1] - 8 * y[i - 1] + y[i - 2]) / (12 * h)
         elif i == 1 or i == len(x) - 2:
             # first oder central diff
+            h = x[i+1] - x[i]
             dy_dx = 1 / (2 * h) * (y[i+1] - y[i-1])
         elif i == 0:
+            h = x[i+1] - x[i]
             # vorwärtsdifferenz
             dy_dx = (y[i + 1] - y[i]) / h
         else:
+            h = x[i] - x[i - 1]
             # rückwärtsdiffernz
             dy_dx = (y[i] - y[i - 1]) / h
         dif[i] = dy_dx

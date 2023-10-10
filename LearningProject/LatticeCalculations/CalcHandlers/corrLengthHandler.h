@@ -39,8 +39,19 @@ public:
         for (int cut_factor : cutup_vec) {
             int Lx = dim_size_x / cut_factor;
             int Ly = dim_size_y / cut_factor;
+            if (L_vec.size() > 0) {
+                if (L_vec.back().first - Lx < 2) {
+                    // if the difference is not enough, we set it to be 2 less
+                    Lx = L_vec.back().first - 2;
+                }
+                if (L_vec.back().second - Ly < 2) {
+                    // if the difference is not enough, we set it to be 2 less
+                    Ly = L_vec.back().second - 2;
+                }
+            }
             L_vec.push_back(pair(Lx, Ly));      // TODO is this save or do I need to initialize the vector beforehand?
             corrList << "," << Lx << "," << Ly << "_y";
+            cout << "Lx = " << Lx << "    Ly = " << Ly << endl;
         }
     }
 
