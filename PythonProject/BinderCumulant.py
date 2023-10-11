@@ -51,6 +51,7 @@ def main():
     r = 3
     figsize = (1.2 *  6.4, 4.8)
 
+    transparent_plots = False
 
     cum_path = root + "/" + name
     xi_path = root + "/" + name2
@@ -162,7 +163,7 @@ def main():
     ax.set_title("Binder Cumulant on T")
     ax.legend()
     configure_ax(fig, ax)
-    fig.savefig(root + "/cum.png", format="png", dpi=300, transparent=True)
+    fig.savefig(root + "/cum.png", format="png", dpi=300, transparent=transparent_plots)
     #save_plot(root, "/cum.pdf", format="pdf")
 
     # Now we got to make a numerical diff for the reduced temp at Tc
@@ -228,7 +229,7 @@ def main():
     configure_ax(fig, ax, config)
     ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
-    fig.savefig(root + "/critical_exponent.png", format="png", dpi=250, transparent=True)
+    fig.savefig(root + "/critical_exponent.png", format="png", dpi=250, transparent=transparent_plots)
     plt.show()
 
 
@@ -293,8 +294,8 @@ def main():
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
     ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$ in x- and y-direction")
-
     configure_ax(fig, ax)
+    fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=transparent_plots)
     plt.show()
 
 

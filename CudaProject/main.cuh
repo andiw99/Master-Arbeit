@@ -24,6 +24,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/random.h>
 
+
 enum Parameter {
     dim_size_x,
     dim_size_y,
@@ -269,10 +270,10 @@ public:
     }
     ~timer() {
         auto endtime = chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
                 endtime - starttime);
         auto duration_count = duration.count();
-        cout << "total execution took " << duration_count << "ms" << endl;
+        cout << "total execution took " << duration_count * 0.001 << "ms" << endl;
     }
 
     int get_elapsed_time() const {

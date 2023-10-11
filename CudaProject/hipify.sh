@@ -6,7 +6,8 @@ output_file=${2:-"main_script"}
 inter_file=${3:-"main.cpp"}
 
 # transform cu to cpp
-hipify-perl $input_file > $inter_file
+# hipify-perl $input_file > $inter_file
+./hipify-clang $input_file --cuda-path=/usr/local/cuda -- -std=c++17
 
 # Compile the c++ file with hipcc
 hipcc -I /opt/rocm/include/ -std=c++17  $inter_file -o $output_file

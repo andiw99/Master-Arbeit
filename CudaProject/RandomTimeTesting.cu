@@ -2,9 +2,9 @@
 // Created by weitze73 on 06.06.23.
 //
 #include <iostream>
-#include "../main.cuh"
-#include "../systems.cuh"
-#include "../parameters.cuh"
+#include "main.cuh"
+#include "RandomTimeTesting.cuh"
+#include <curand_kernel.h>
 
 
 /**************************************************/
@@ -27,24 +27,23 @@ struct rand_01_for_each {
         n++;
         rng.discard(n);
 
-        VecElem = dist(rng) / RAND_MAX;
+        VecElem = dist(rng);
 
     }
 };
 
 struct curand_slow{
     float a, b;
-    curandState s;
     int seed;
-
-    __host__ __device__
+    __host__
     curand_slow(float _a = 0.f, float _b = 1.f, int seed=0) : a(_a), b(_b), seed(seed) {
 
     };
 
     __device__
-    float operator()(const unsigned int n)
+    float operator()(const unsigned int n) const
     {
+        curandState s;
         curand_init(seed, n, 0, &s);
         return curand_normal(&s);
     }
@@ -52,10 +51,9 @@ struct curand_slow{
 
 struct curand_fast{
     float a, b;
-    curandState s;
     int seed;
 
-    __host__ __device__
+    __host__
     curand_fast(float _a = 0.f, float _b = 1.f, int seed=0) : a(_a), b(_b), seed(seed) {
 
     };
@@ -153,7 +151,7 @@ int main() {
     cout << N;
     //const int N = 64;
 
-    const int numIters = 50;
+    const int numIters = 1;
 
     thrust::host_vector<double>     h_v1(N);
     thrust::device_vector<double>     h_v2(N);
@@ -191,10 +189,15 @@ int main() {
         }
     }
 
-    //std::cout << "Values generated: " << std::endl;
-    //for (int k = 0; k < N; k++)
-    //  std::cout << h_v3[k] << " : ";
-    //std::cout << std::endl;
+    std::cout << "Values generated: " << std::endl;
+    for (int k = 0; k < 20; k++)
+      std::cout << h_v3[k] << " : ";
+    std::cout << std::endl;
+    double mu = 0;
+    for(int i = 0; i < N; i++) {
+        mu += h_v3[i];
+    }
+    cout << "mean: " << mu/N << endl;
 
     {
         string name = "curand";
@@ -205,10 +208,10 @@ int main() {
             thrust::transform(index_sequence_begin, index_sequence_begin + N, h_v5.begin(), curand_slow());
             timer.set_endpoint(name);
         }
-        cout << "Sample random values for " << name << endl;
+/*        cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
             cout << h_v5[i] << endl;
-        }
+        }*/
         double mu = 0;
         double msd = 0;
         for(int i = 0; i < N; i++) {
@@ -235,24 +238,23 @@ int main() {
             timer.set_startpoint(name);
             thrust::for_each(start, end, curand_fast());
             timer.set_endpoint(name);
-            double mu = 0;
-            double msd = 0;
-            for(int i = 0; i < N; i++) {
-                mu += h_v6[i];
-                msd += h_v6[i] * h_v6[i];
-            }
-            cout << "mean: " << mu/N << endl;
-            cout << "msd: " << msd/N << endl;
         }
+        double mu = 0;
+        double msd = 0;
+        for(int i = 0; i < N; i++) {
+            mu += h_v6[i];
+            msd += h_v6[i] * h_v6[i];
+        }
+        cout << "mean: " << mu/N << endl;
+        cout << "msd: " << msd/N << endl;
 
-        cout << "Sample random values for " << name << endl;
+/*        cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
             cout << h_v6[i] << endl;
-        }
-
-
-
+        }*/
     }
+
+
 
     {
         string name = "thrust fast";
@@ -267,10 +269,10 @@ int main() {
             timer.set_endpoint(name);
         }
 
-        cout << "Sample random values for " << name << endl;
+/*        cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
             cout << h_v7[i] << endl;
-        }
+        }*/
         double mu = 0;
         double msd = 0;
         for(int i = 0; i < N; i++) {
@@ -294,10 +296,10 @@ int main() {
             timer.set_endpoint(name);
         }
 
-        cout << "Sample random values for " << name << endl;
+/*        cout << "Sample random values for " << name << endl;
         for(int i = 0; i < 20; i++) {
             cout << h_v8[i] << endl;
-        }
+        }*/
         double mu = 0;
         double msd = 0;
         for(int i = 0; i < N; i++) {

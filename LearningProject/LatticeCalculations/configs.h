@@ -16,11 +16,11 @@ enum class Calc {
 vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength, Calc::StructFact};
 // vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/NER Long/Selected";
+fs::path root = "../../../Generated content/NER Very Long/Selected";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
-        {"cutup", 4}
+        {"cutup", 8}
 };
 
 map<string, double> CorrLengthHandlerConfig {
