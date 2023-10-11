@@ -267,7 +267,26 @@ public:
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, curand(D));
+        for(int i = 0; i < 20; i++) {
+            cout << theta[i] << ",  ";
+        }
+        auto mean = thrust::reduce(theta.begin(), theta.end(), 0.0, thrust::plus<double>()) / n;
+        auto variance = thrust::transform_reduce(theta.begin(), theta.end(), thrust::plus<double>(), 0.0, var(mean));
+        cout << "mean = " << mean << endl;
+        cout << "var = " << variance << endl;
     }
+
+    template <class T>
+    struct var
+    {
+        T mean;
+        var(T mean): mean(mean) {}
+
+        __host__ __device__
+        T operator()(const T& x) const {
+            return pow(mean - x, 2);
+        }
+    };
 
     // depricated constructors, use the one below
     System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), dim_size_x(lat_dim), dim_size_y(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
