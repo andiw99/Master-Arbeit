@@ -80,7 +80,7 @@ public:
         float operator()(Tuple tup) const
         {
             hiprandState local_state = thrust::get<1>(tup);
-            thrust::get<0>(tup) = hiprand_normal(&local_state);
+            thrust::get<0>(tup) = D * hiprand_normal(&local_state);
             thrust::get<1>(tup) = local_state;
         }
     };
@@ -200,7 +200,7 @@ public:
     };
 
     template<class State, class Deriv, class FunctorType>
-    void universalStepOperations(const State &x, Deriv &dxdt, double t, FunctorType functor) {
+    void universalStepOperations(State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 x.begin() + n,
@@ -264,16 +264,12 @@ public:
     }
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, hiprand(D));
         for(int i = 0; i < 20; i++) {
-            cout << theta[i] << ",  ";
+            cout << theta[n + i] << "   ";
         }
-        auto mean = thrust::reduce(theta.begin(), theta.end(), 0.0, thrust::plus<double>()) / n;
-        auto variance = thrust::transform_reduce(theta.begin(), theta.end(), thrust::plus<double>(), 0.0, var(mean));
-        cout << "mean = " << mean << endl;
-        cout << "var = " << variance << endl;
     }
 
     template <class T>
@@ -943,7 +939,7 @@ class XY_model : virtual public System {
         __host__ __device__ void operator()(Tup tup) {
             // Okay I think we have to think about where to % 2pi the system and I think i would like
             // to do it here since I can then easier switch between the models and do not have to adjust the stepper
-            double q = thrust::get<0>( tup ) % (2 * M_PI);
+            double q = fmod(thrust::get<0>( tup ), (2.0 * M_PI));
             double p = thrust::get<1>( tup );
             thrust::get<0>( tup ) = q;
             thrust::get<2>( tup ) = p;
@@ -990,18 +986,22 @@ public:
     }
 
     template<class State, class Deriv>
-    void calc_drift(const State &x, Deriv &dxdt, double t) {
+    void calc_drift(State &x, Deriv &dxdt, double t) {
         xy_functor functor = xy_functor(System::eta, J, h);
         this->universalStepOperations(x, dxdt, t, functor);
     }
 
     template<class State>
     double calc_f_me(State &x) {
-
+        auto functor = potential_energy_functor(J, h);
+        return System::calc_f_me(x, functor);
     }
 
     XY_model(map<Parameter,double>& paras)
-    : System(paras), J(paras[Parameter::J]), h(paras[alpha]) {}
+    : System(paras), J(paras[Parameter::J]), h(paras[alpha]) {
+        cout << "Xy model constructor is called "<< endl;
+        print_info();
+    }
 };
 
 
