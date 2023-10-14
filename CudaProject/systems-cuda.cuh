@@ -19,7 +19,7 @@
 #include <filesystem>
 #include <chrono>
 #include <stdio.h>
-#include <hiprand_kernel.h>
+#include <curand_kernel.h>
 
 using namespace std;
 
@@ -36,7 +36,7 @@ public:
     // possibility of different sizes in the different directions
     const size_t dim_size_x;
     const size_t dim_size_y;
-    thrust::device_vector<hiprandState> curand_states;
+    thrust::device_vector<curandState> curand_states;
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
@@ -68,19 +68,19 @@ public:
             return D * dist(rng);
         }
     };
-    struct hiprand
+    struct curand
     {
         double mu, sigma, D;
 
         __host__ __device__
-        hiprand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+        curand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
 
         template<class Tuple>
         __device__
         float operator()(Tuple tup) const
         {
-            hiprandState local_state = thrust::get<1>(tup);
-            thrust::get<0>(tup) = hiprand_normal(&local_state);
+            curandState local_state = thrust::get<1>(tup);
+            thrust::get<0>(tup) = curand_normal(&local_state);
             thrust::get<1>(tup) = local_state;
         }
     };
@@ -109,12 +109,12 @@ public:
 
         curand_setup(long seed): seed(seed) {}
 
-        using init_tuple = thrust::tuple<int, hiprandState &>;
+        using init_tuple = thrust::tuple<int, curandState &>;
         __device__
         void operator()(init_tuple t) const{
-            hiprandState s;
+            curandState s;
             int id = thrust::get<0>(t);
-            hiprand_init(seed, id, 0, &s);
+            curand_init(seed, id, 0, &s);
             thrust::get<1>(t) = s;
         }
     };
@@ -247,7 +247,7 @@ public:
                 chrono::system_clock::now().time_since_epoch()
         );
         // TODO are you still using this seed? Why is it not possible to get it to work with the default random
-        // engine just advancing? Maybe just switch to hiprand?
+        // engine just advancing? Maybe just switch to curand?
         long seed = (mus.count() % 10000000) * 1000000000;
         thrust::counting_iterator<size_t> index_sequence_begin(seed);
         // cout << seed << endl;
@@ -266,7 +266,7 @@ public:
     void calc_diff(Stoch &theta, double t) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
         // TODO does it work with start + n?
-        thrust::for_each(start, start + n, hiprand(D));
+        thrust::for_each(start, start + n, curand(D));
         for(int i = 0; i < 20; i++) {
             cout << theta[i] << ",  ";
         }
@@ -303,11 +303,11 @@ public:
                                             n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-        curand_states = thrust::device_vector<hiprandState>(n);  // TODO is this okay?
+        curand_states = thrust::device_vector<curandState>(n);  // TODO is this okay?
         // counting iterator counting from 0 to n. Every lattice site needs its own state i think
         // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
         auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
-        // now we call hiprand init with sequence numbers from the counting iterator
+        // now we call curand init with sequence numbers from the counting iterator
         thrust::for_each(sInit, sInit + n, curand_setup(step_nr));
 
     }

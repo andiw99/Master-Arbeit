@@ -2,7 +2,7 @@
 // Created by andi on 02.06.23.
 //
 #include "../main.cuh"
-#include "../systems.cuh"
+#include "../systems-cuda.cuh"
 #include "../parameters.cuh"
 
 template <size_t lattice_dim>

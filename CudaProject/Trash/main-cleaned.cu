@@ -2,7 +2,7 @@
 // Created by andi on 14.05.23.
 //
 #include "../main.cuh"
-#include "../systems.cuh"
+#include "../systems-cuda.cuh"
 #include "../parameters.cuh"
 #include <numeric>
 #include <chrono>
