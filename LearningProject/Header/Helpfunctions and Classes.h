@@ -41,6 +41,11 @@ int pymod(int a, int b) {
     return ((b + (a % b)) % b);
 }
 
+template <class value_type>
+inline value_type positive_modulo(value_type i, value_type n) {
+    return fmod((fmod(i, n) + n), n);
+}
+
 template <class T>
 void print_vector(vector<T> vec) {
     cout << vec.size() << endl;

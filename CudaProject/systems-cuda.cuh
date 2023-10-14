@@ -267,9 +267,6 @@ public:
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, curand(D));
-        for(int i = 0; i < 20; i++) {
-            cout << theta[n + i] << "   ";
-        }
     }
 
     template <class T>
@@ -939,7 +936,7 @@ class XY_model : virtual public System {
         __host__ __device__ void operator()(Tup tup) {
             // Okay I think we have to think about where to % 2pi the system and I think i would like
             // to do it here since I can then easier switch between the models and do not have to adjust the stepper
-            double q = fmod(thrust::get<0>( tup ), (2.0 * M_PI));
+            double q = positive_modulo(thrust::get<0>( tup ), (2.0 * M_PI));
             double p = thrust::get<1>( tup );
             thrust::get<0>( tup ) = q;
             thrust::get<2>( tup ) = p;
