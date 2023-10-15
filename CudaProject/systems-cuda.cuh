@@ -498,34 +498,35 @@ struct NNN_System: public System {
                                 down(dim_size_x, dim_size_y)
                         )
                 ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down_right(dim_size_x, dim_size_y)
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down_left(dim_size_x, dim_size_y)
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up_right(dim_size_x, dim_size_y)
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up_left(dim_size_x, dim_size_y)
-                        )
-                )
+                // okay tuple can only have 10 entries so we make another tuple here?
+                thrust::make_zip_iterator(thrust::make_tuple(thrust::make_permutation_iterator(
+                                           x.begin(),
+                                           thrust::make_transform_iterator(
+                                                   thrust::counting_iterator<size_t>(0),
+                                                   down_right(dim_size_x, dim_size_y)
+                                           )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           down_left(dim_size_x, dim_size_y)
+                                                   )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           up_right(dim_size_x, dim_size_y)
+                                                   )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           up_left(dim_size_x, dim_size_y)
+                                                   )
+                                           )))
         )));
         thrust::for_each(start, start + n, functor);
         step_nr++;
@@ -1120,6 +1121,8 @@ class dipol_interaction: public NNN_System {
     double p_mom;   // q * l dipole moment
     double h;   // strength of anisotropy potential
 
+public:
+
     struct dipol_functor {
         double p_mom;
         double h;
@@ -1138,12 +1141,16 @@ class dipol_interaction: public NNN_System {
             q = positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
             thrust::get<0>( tup ) = q;
 
-            double interaction = 0;
-            for(int i = 8; i <= 11; i++) {
-                double q_diag = thrust::get<i>(tup);
-                interaction += DIAG_PREF * cos(q) * sin(q_diag) + sin(q) * cos(q_diag); // NNN Interaction
-            }
-            interaction /= DIAG_DIST;
+            // thrust::get<8>(tup) should get us the tuple with the 4 NNN, so we get the value with get<i>
+            double q_down_right = thrust::get<0>(thrust::get<8>(tup));
+            double q_down_left = thrust::get<1>(thrust::get<8>(tup));
+            double q_up_right = thrust::get<2>(thrust::get<8>(tup));
+            double q_up_left = thrust::get<0>(thrust::get<8>(tup));
+            double interaction = (DIAG_PREF * cos(q) * sin(q_down_right) + sin(q) * cos(q_down_right) +
+                            DIAG_PREF * cos(q) * sin(q_down_left) + sin(q) * cos(q_down_left) +
+                            DIAG_PREF * cos(q) * sin(q_up_right) + sin(q) * cos(q_up_right) +
+                            DIAG_PREF * cos(q) * sin(q_up_left) + sin(q) * cos(q_up_left)
+                            )  / DIAG_DIST;                         // NNN Interaction
 
             interaction += 1.0 / 8.0 * (
                     2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
