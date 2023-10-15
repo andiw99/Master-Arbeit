@@ -116,9 +116,14 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     cbar_ax = fig.add_axes([0.83, 0.04, 0.02, 0.7])
     well_pos = np.sqrt(parameters["beta"] / 2)
     nr_ticks = config["nr_colorbar_ticks"]
-    ticks = np.linspace(- 1.5 * well_pos, 1.5 * well_pos, nr_ticks, endpoint=True)
-    tick_labels = np.linspace(-1.5, 1.5, nr_ticks, endpoint=True)
-    tick_labels = [str(tick_label) for tick_label in tick_labels]
+    if config["angle"] == 1:
+        ticks = np.linspace(0, 2 * np.pi, nr_ticks, endpoint=True)
+        tick_labels = np.linspace(0, 2 * np.pi, nr_ticks, endpoint=True)
+        tick_labels = [str(tick_label) for tick_label in tick_labels]
+    else:
+        ticks = np.linspace(- 1.5 * well_pos, 1.5 * well_pos, nr_ticks, endpoint=True)
+        tick_labels = np.linspace(-1.5, 1.5, nr_ticks, endpoint=True)
+        tick_labels = [str(tick_label) for tick_label in tick_labels]
     cbar = fig.colorbar(im, cax=cbar_ax, ticks=ticks)
     cbar.ax.set_yticklabels(tick_labels)
 
@@ -184,8 +189,11 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         print("doing chess trafo")
         row = chess_board_trafo(row)
     print(row)
-    well_pos = np.sqrt(parameters["beta"] / 2)
-    cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos)
+    if config["angle"] == 1:
+        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
+    else:
+        well_pos = np.sqrt(parameters["beta"] / 2)
+        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos)
 
     return cf
 

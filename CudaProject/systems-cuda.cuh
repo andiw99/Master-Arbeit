@@ -136,7 +136,7 @@ public:
 
     struct left : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
             // we have to think about that we are actually in 2D and i guess we want to use PBC?
             // so we have to know the system size
@@ -156,7 +156,8 @@ public:
 
     struct right : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        // TODO ist this fine if it is virtual?
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i+1, expect when i is on the right side of the lattice
             // if i is on the right side of the lattice, j is i - (d - 1)
             // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
@@ -167,7 +168,7 @@ public:
 
     struct up : public vert_neighbor{
         using vert_neighbor::vert_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i - d, except when i is on the upper bound of the lattice
             // if it is on the upper bound, j will be i + d(d-1)
             // if i is on the upper bound, i will be smaller than d
@@ -180,7 +181,7 @@ public:
 
     struct down : public vert_neighbor {
         using vert_neighbor::vert_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i + d, except when i is on the lower bound of the lattice
             // if it is on the lower bound, j will be i - d(d-1)
             // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
@@ -425,7 +426,112 @@ public:
 };
 
 
+struct NNN_System: public System {
+    using System::System;       // inherit constructor
 
+    struct up_right : public up, public right{
+        up_right(size_t dimension_size_x, size_t dimension_size_y):
+                right(dimension_size_x), up(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // up right is just the upper neighbor of the right neighbor
+            return right::operator()(up::operator()(i));
+        }
+    };
+
+    struct up_left : public up, public left{
+        up_left(size_t dimension_size_x, size_t dimension_size_y):
+                left(dimension_size_x), up(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // up right is just the upper neighbor of the right neighbor
+            return left::operator()(up::operator()(i));
+        }
+    };
+    struct down_right : public down, public right{
+        down_right(size_t dimension_size_x, size_t dimension_size_y):
+                right(dimension_size_x), down(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // down right is just the downper neighbor of the right neighbor
+            return right::operator()(down::operator()(i));
+        }
+    };
+    struct down_left : public down, public left{
+        down_left(size_t dimension_size_x, size_t dimension_size_y):
+                left(dimension_size_x), down(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // down left is just the downper neighbor of the left neighbor
+            return left::operator()(down::operator()(i));
+        }
+    };
+
+    template<class State, class Deriv, class FunctorType>
+    void universalStepOperations(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down(dim_size_x, dim_size_y)
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down_right(dim_size_x, dim_size_y)
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down_left(dim_size_x, dim_size_y)
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up_right(dim_size_x, dim_size_y)
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up_left(dim_size_x, dim_size_y)
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
+};
 
 
 struct constant_bath : public System {
@@ -918,6 +1024,11 @@ public:
 
 };
 
+template <class value_type>
+__host__ __device__
+inline value_type positive_modulo(value_type i, value_type n) {
+    return fmod((fmod(i, n) + n), n);
+}
 
 class XY_model : virtual public System {
     double J;
@@ -985,7 +1096,7 @@ public:
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
         xy_functor functor = xy_functor(System::eta, J, h);
-        this->universalStepOperations(x, dxdt, t, functor);
+        System::universalStepOperations(x, dxdt, t, functor);
     }
 
     template<class State>
@@ -999,6 +1110,102 @@ public:
         cout << "Xy model constructor is called "<< endl;
         print_info();
     }
+};
+
+#define DIAG_DIST 11.18033988749895
+#define DIAG_PREF 1.6832815729997475
+#define P_COS   2.5714285714285716
+
+class dipol_interaction: public NNN_System {
+    double p_mom;   // q * l dipole moment
+    double h;   // strength of anisotropy potential
+
+    struct dipol_functor {
+        double p_mom;
+        double h;
+        double eta;
+        dipol_functor(double eta, double p_mom, double h): eta(eta), p_mom(p_mom), h(h) {}
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            // okay map to -pi/2 to pi/2 again
+            q = positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
+            thrust::get<0>( tup ) = q;
+
+            double interaction = 0;
+            for(int i = 8; i <= 11; i++) {
+                double q_diag = thrust::get<i>(tup);
+                interaction += DIAG_PREF * cos(q) * sin(q_diag) + sin(q) * cos(q_diag); // NNN Interaction
+            }
+            interaction /= DIAG_DIST;
+
+            interaction += 1.0 / 8.0 * (
+                    2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
+                    2 * cos(q) * sin(q_left) + sin(q) * cos(q_left)           // left neighbor
+            );
+            interaction += (
+                     - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // right neighbor
+                     - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // left neighbor
+            );
+
+            thrust::get<2>( tup ) = p;
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                       + 2 * h * sin(P_COS * q) // bistable potential
+                                       - interaction;       // Interaction
+        }
+    };
+
+    struct potential_energy_functor {
+        const double J, h;
+
+        potential_energy_functor(const double J, const double h) : J(J), h(h) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double q_left =     thrust::get<1>(tup);
+            double q_right =    thrust::get<2>(tup);
+            double q_up =       thrust::get<3>(tup);
+            double q_down =     thrust::get<4>(tup);
+
+            // now here the logic for the energy
+            double E_pot = h * cos(P_COS * q);
+            // TODO not implemented
+            double E_interaction = 0;
+            thrust::get<5>(tup) = E_pot + E_interaction;
+        }
+    };
+
+    void print_info() override {
+        System::print_info();
+        cout << "h = " << h << endl;
+        cout << "p_mom = " << p_mom << endl;
+    }
+
+    template<class State, class Deriv>
+    void calc_drift(State &x, Deriv &dxdt, double t) {
+        dipol_functor functor = dipol_functor(System::eta, J, h);
+        NNN_System::universalStepOperations(x, dxdt, t, functor);
+    }
+
+    template<class State>
+    double calc_f_me(State &x) {
+        auto functor = potential_energy_functor(J, h);
+        return System::calc_f_me(x, functor);
+    }
+
+    dipol_interaction(map<Parameter,double>& paras)
+    : NNN_System(paras), p_mom(paras[Parameter::J]), h(paras[alpha]) {
+        cout << "dipol model constructor is called "<< endl;
+        print_info();
+    }
+
 };
 
 
