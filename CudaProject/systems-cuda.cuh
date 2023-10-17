@@ -270,6 +270,11 @@ public:
         thrust::for_each(start, start + n, curand(D));
     }
 
+    template<class State>
+    void map_state(State &x) {
+        // does nothing for most systems, but important for xy and dipole
+    }
+
     template <class T>
     struct var
     {
@@ -1048,9 +1053,8 @@ class XY_model : virtual public System {
         __host__ __device__ void operator()(Tup tup) {
             // Okay I think we have to think about where to % 2pi the system and I think i would like
             // to do it here since I can then easier switch between the models and do not have to adjust the stepper
-            double q = positive_modulo(thrust::get<0>( tup ), (2.0 * M_PI));
+            double q = thrust::get<0>( tup );
             double p = thrust::get<1>( tup );
-            thrust::get<0>( tup ) = q;
             thrust::get<2>( tup ) = p;
             double q_left = thrust::get<4>(tup);
             double q_right = thrust::get<5>(tup);
@@ -1087,6 +1091,13 @@ class XY_model : virtual public System {
         }
     };
 
+    struct map_functor {
+        template <class value_type>
+        __host__ __device__ void operator()(value_type x) {
+            return positive_modulo(x, (2.0 * M_PI));
+        }
+    };
+
 public:
     void print_info() override {
         System::print_info();
@@ -1098,6 +1109,13 @@ public:
     void calc_drift(State &x, Deriv &dxdt, double t) {
         xy_functor functor = xy_functor(System::eta, J, h);
         System::universalStepOperations(x, dxdt, t, functor);
+    }
+
+    template<class State>
+    void map_state(State &x) {
+        // does nothing for most systems, but important for xy and dipole
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+
     }
 
     template<class State>
@@ -1138,8 +1156,6 @@ public:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
             // okay map to -pi/2 to pi/2 again
-            q = positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
-            thrust::get<0>( tup ) = q;
 
             // thrust::get<8>(tup) should get us the tuple with the 4 NNN, so we get the value with get<i>
             double q_down_right = thrust::get<0>(thrust::get<8>(tup));
@@ -1156,7 +1172,7 @@ public:
                     2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
                     2 * cos(q) * sin(q_left) + sin(q) * cos(q_left)           // left neighbor
             );
-            interaction += (
+            interaction += -(
                      - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // right neighbor
                      - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // left neighbor
             );
@@ -1189,6 +1205,13 @@ public:
         }
     };
 
+    struct map_functor {
+        template <class value_type>
+        __host__ __device__ void operator()(value_type x) {
+            return positive_modulo((x + M_PI/2), M_PI) - M_PI/2;
+        }
+    };
+
     void print_info() override {
         System::print_info();
         cout << "h = " << h << endl;
@@ -1199,6 +1222,13 @@ public:
     void calc_drift(State &x, Deriv &dxdt, double t) {
         dipol_functor functor = dipol_functor(System::eta, J, h);
         NNN_System::universalStepOperations(x, dxdt, t, functor);
+    }
+
+    template<class State>
+    void map_state(State &x) {
+        // does nothing for most systems, but important for xy and dipole
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+
     }
 
     template<class State>
