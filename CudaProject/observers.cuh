@@ -294,7 +294,6 @@ public:
 
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
-            sys.test();
             ofile << t << "," << sys.calc_m(x) << "," << sys.calc_f_mm(x) << ",";
             ofile << sys.calc_f_me(x) << endl;
             timepoint += write_interval;

@@ -15,12 +15,12 @@ void fill_init_values(thrust::device_vector<double>& state, float x0, float p0, 
     thrust::transform(index_sequence_begin,
                       index_sequence_begin + n,
                       state.begin(),
-                      rand_init_values(x0, mu, sigma));
+                      rand_normal_values(x0, mu, sigma));
     // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
                       state.begin() + n,
-                      rand_init_values(p0, mu, sigma));
+                      rand_normal_values(p0, mu, sigma));
 }
 
 

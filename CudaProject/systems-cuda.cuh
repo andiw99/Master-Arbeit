@@ -40,6 +40,11 @@ public:
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        cout << "standard init state called" << endl;
+    }
+
     virtual void print_info() {
         cout << "Printing system info:" << endl;
         cout << "step_nr = " << step_nr << endl;
@@ -1098,7 +1103,41 @@ class XY_model : virtual public System {
         }
     };
 
+
+
 public:
+
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        cout << "XY init_state is called" << endl;
+        if(paras[random_init] == 0.0) {
+            // equilibrium initialization -> we are in XY model with p=2, meaning we have
+            // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
+            thrust::fill(x.begin(), x.begin()+n, M_PI/2);
+
+        } else {
+            // random initialization
+            double p_ampl = paras[p0];
+
+            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                    chrono::system_clock::now().time_since_epoch()
+            );
+            auto seed = ms.count() % 10000;
+            thrust::counting_iterator<size_t> index_sequence_begin(seed * x.size());
+            // theta is uniformly distributed between 0 and 2 pi
+            thrust::transform(index_sequence_begin,
+                              index_sequence_begin + n,
+                              x.begin() + n,
+                              rand_uni_values(0, 2 * M_PI));
+            // impuls or angular velocity normal distributed around 0;
+            thrust::transform(index_sequence_begin + n,
+                              index_sequence_begin + 2*n,
+                              x.begin() + n,
+                              rand_normal_values(p_ampl, 0, 1));
+
+        }
+    }
+
     void print_info() override {
         System::print_info();
         cout << "h = " << h << endl;

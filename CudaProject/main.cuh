@@ -368,12 +368,12 @@ public:
     }
 };
 
-struct rand_init_values
+struct rand_normal_values
 {
     double mu, sigma, ampl;
 
     __host__ __device__
-    rand_init_values(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
+    rand_normal_values(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
 
     __host__ __device__
     float operator()(const unsigned int ind) const
@@ -399,6 +399,24 @@ struct rand_init_values
     }
 };
 
+struct rand_uni_values
+{
+    float xmin, xmax;
+
+    __host__ __device__
+    rand_uni_values(float xmin, float xmax) : xmin(xmin), xmax(xmax) {};
+
+    __host__ __device__
+    float operator()(const unsigned int ind) const
+    {
+        thrust::default_random_engine rng;
+        thrust::uniform_real_distribution<float> dist(xmin, xmax);
+        rng.discard(ind);
+        auto rnr = dist(rng);
+        return rnr;
+    }
+};
+
 template <class State, size_t n>
 void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
 
@@ -409,14 +427,14 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
     thrust::transform(index_sequence_begin,
                       index_sequence_begin + n,
                       state.begin(),
-                      rand_init_values(x0, mu, sigma));
+                      rand_normal_values(x0, mu, sigma));
 
 
      // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
                       state.begin() + n,
-                      rand_init_values(p0, mu, sigma));
+                      rand_normal_values(p0, mu, sigma));
 /*    for(int i = 0; i < state.size(); i++) {
         cout << "x[" << i << "]=" << state[i] << endl;
     }*/
@@ -434,14 +452,14 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
     thrust::transform(index_sequence_begin,
                       index_sequence_begin + n,
                       state.begin(),
-                      rand_init_values(x0, mu, sigma));
+                      rand_normal_values(x0, mu, sigma));
 
 
     // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
                       state.begin() + n,
-                      rand_init_values(p0, mu, sigma));
+                      rand_normal_values(p0, mu, sigma));
 /*    for(int i = 0; i < state.size(); i++) {
         cout << "x[" << i << "]=" << state[i] << endl;
     }*/
