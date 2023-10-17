@@ -1093,7 +1093,7 @@ class XY_model : virtual public System {
 
     struct map_functor {
         template <class value_type>
-        __host__ __device__ void operator()(value_type x) {
+        __host__ __device__ value_type operator()(value_type x) {
             return positive_modulo(x, (2.0 * M_PI));
         }
     };
@@ -1132,7 +1132,7 @@ public:
 };
 
 #define DIAG_DIST 11.18033988749895
-#define DIAG_PREF 1.6832815729997475
+#define DIAG_PREF 1.4
 #define P_COS   2.5714285714285716
 
 class dipol_interaction: public NNN_System {
@@ -1179,8 +1179,8 @@ public:
 
             thrust::get<2>( tup ) = p;
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                       + 2 * h * sin(P_COS * q) // bistable potential
-                                       - interaction;       // Interaction
+                                       + P_COS * h * sin(P_COS * q) // bistable potential
+                                       - pow(p_mom, 2) * interaction;       // Interaction
         }
     };
 
@@ -1207,7 +1207,7 @@ public:
 
     struct map_functor {
         template <class value_type>
-        __host__ __device__ void operator()(value_type x) {
+        __host__ __device__ value_type operator()(value_type x) {
             return positive_modulo((x + M_PI/2), M_PI) - M_PI/2;
         }
     };
@@ -1220,7 +1220,7 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
-        dipol_functor functor = dipol_functor(System::eta, J, h);
+        dipol_functor functor = dipol_functor(System::eta, p_mom, h);
         NNN_System::universalStepOperations(x, dxdt, t, functor);
     }
 

@@ -64,7 +64,7 @@ def smooth(x, y, ppp):
     return y_smooth
 
 def main():
-    root = "../../Generated content/NER Very Long/Selected"
+    root = "../../Generated content/NER Last/"
     root_dirs = list_directory_names(root)
     file_extension = ".ner"
     print(root_dirs)
@@ -83,7 +83,7 @@ def main():
     create_directory_if_not_exists(root + "/plots/NER plots")
 
     for temp_dir in root_dirs:
-        if temp_dir != "NER plots":
+        if (temp_dir != "NER plots") & (temp_dir != "plots"):
             temp_path = os.path.join(root, temp_dir)
 
             # now we need all ner files in this folder

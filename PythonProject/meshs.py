@@ -20,7 +20,7 @@ def main():
     config = {"nr_of_meshs": 16,
               "cell_L":64,
               "cell_nr": 0,
-              "chess_trafo": -1,
+              "chess_trafo": 0,
               "nr_colorbar_ticks": 7,
               "angle": 1}
 
