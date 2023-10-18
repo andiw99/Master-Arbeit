@@ -270,6 +270,12 @@ public:
         thrust::for_each(start, start + n, curand(D));
     }
 
+    template<class State>
+    void map_state(State &x) {
+        // Okay this maps the state to a certain interval, doesnt do anything for most systems, but for XY and dipol
+        // system we map onto the intervals for the angles
+    }
+
     template <class T>
     struct var
     {
@@ -1048,9 +1054,8 @@ class XY_model : virtual public System {
         __host__ __device__ void operator()(Tup tup) {
             // Okay I think we have to think about where to % 2pi the system and I think i would like
             // to do it here since I can then easier switch between the models and do not have to adjust the stepper
-            double q = positive_modulo(thrust::get<0>( tup ), (2.0 * M_PI));
+            double q = thrust::get<0>( tup );
             double p = thrust::get<1>( tup );
-            thrust::get<0>( tup ) = q;
             thrust::get<2>( tup ) = p;
             double q_left = thrust::get<4>(tup);
             double q_right = thrust::get<5>(tup);
@@ -1087,7 +1092,22 @@ class XY_model : virtual public System {
         }
     };
 
+    struct map_functor {
+        template<class value_type>
+        __host__ __device__ void operator()(value_type q) {
+            return positive_modulo(q, 2.0 * M_PI);
+        }
+    };
+
+
 public:
+
+    template<class State>
+    void map_state(State &x) {
+        // we map every q onto [-pi/2, pi/2]
+        thrust::transform(x.begin(), x.begin + n, x.begin(), map_functor());
+    }
+
     void print_info() override {
         System::print_info();
         cout << "h = " << h << endl;
@@ -1137,9 +1157,6 @@ public:
             double q_right = thrust::get<5>(tup);
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
-            // okay map to -pi/2 to pi/2 again
-            q = positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
-            thrust::get<0>( tup ) = q;
 
             // thrust::get<8>(tup) should get us the tuple with the 4 NNN, so we get the value with get<i>
             double q_down_right = thrust::get<0>(thrust::get<8>(tup));
@@ -1156,15 +1173,15 @@ public:
                     2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
                     2 * cos(q) * sin(q_left) + sin(q) * cos(q_left)           // left neighbor
             );
-            interaction += (
-                     - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // right neighbor
-                     - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // left neighbor
+            interaction += - (
+                     - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // up neighbor
+                     - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // down neighbor
             );
 
             thrust::get<2>( tup ) = p;
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                        + 2 * h * sin(P_COS * q) // bistable potential
-                                       - interaction;       // Interaction
+                                       - pow(p_mom, 2) * interaction;       // Interaction
         }
     };
 
@@ -1189,6 +1206,13 @@ public:
         }
     };
 
+    struct map_functor {
+        template<class value_type>
+        __host__ __device__ void operator()(value_type q) {
+            return positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
+        }
+    };
+
     void print_info() override {
         System::print_info();
         cout << "h = " << h << endl;
@@ -1197,8 +1221,13 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
-        dipol_functor functor = dipol_functor(System::eta, J, h);
+        dipol_functor functor = dipol_functor(System::eta, p_mom, h);
         NNN_System::universalStepOperations(x, dxdt, t, functor);
+    }
+    template<class State>
+    void map_state(State &x) {
+        // we map every q onto [-pi/2, pi/2]
+        thrust::transform(x.begin(), x.begin + n, x.begin(), map_functor());
     }
 
     template<class State>

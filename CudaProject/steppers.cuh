@@ -162,6 +162,7 @@ public:
         // print_container(x);
         // cout << endl;
         algebra::for_each(x, x, dxdt, theta, apply_em(dt));
+        sys.map_state(x);
         // cout << "After application" << endl;
         // print_container(x);
         // cout << endl;
@@ -385,6 +386,7 @@ public:
         // Here i think we have to apply only dxdt for now to calculate f(x*) - f(x)
         // which means we need a new operations structure?
         algebra::for_each(x_drift, x, dxdt, apply_drift(dt));
+        sys.map_state(x_drift);
 
         // we have x_drift now, now we need to calculate f(x_drift)
         // we really should not just call the system since the system will generate random numbers
@@ -416,6 +418,7 @@ public:
             // cout << endl << endl;
             timer.set_endpoint(rng);
             algebra::for_each(x, x_drift, theta, apply_diff(dt));
+            sys.map_state(x);
             // we also increase the time
             t += dt;
             // and we reduce k for the next step
