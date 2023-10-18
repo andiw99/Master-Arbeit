@@ -21,7 +21,6 @@ public:
     typedef obsver<sys, state_type> observer_type;
     vector<observer_type*> obsvers;          // Observer might take many parameters to be flexibel in its logic, i think it is easiest to initialize it outside of the simulation class
     map<Parameter, double> paras;
-    state_initializer<state_type> * State_initializer;
     fs::path simulation_path;
     int seed = 0;   //should the simulation be seedable?
     int n;          // current system size, but can change
@@ -78,7 +77,6 @@ public:
         cout << "Starting run with parameters:" << endl;
         printMap(paras);
         state_type x(2 * n);                            // N is not a parameter anymore
-        State_initializer->init_state(x);           // init state via correct state initializer that was created in repeat
         // 2. Initialize the stepper and the system (and open new file for the observer)
         // the stepper is already initialized, but i think it should have a reset button?
         stepper->print_stepper_info();
@@ -90,6 +88,7 @@ public:
 
         sys Sys = sys(paras);
         Sys.print_info();
+        Sys.init_state(paras, x);           // init state via correct state initializer that was created in repeat
 
         for(auto obs : obsvers) {
             // calling init rather than open stream.
@@ -121,7 +120,6 @@ public:
             n = (int)(paras[Parameter::dim_size_x] * paras[Parameter::dim_size_y]);
             paras[Parameter::total_size] = n;
             stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
-            State_initializer = create_state_initializer<state_type>((int)paras[Parameter::random_init], paras, simulation_path);
         }
         run(run_count);
         if(runs > 0) {

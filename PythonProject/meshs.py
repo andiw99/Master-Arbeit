@@ -18,7 +18,7 @@ def main():
     plot_root = os.path.join(root, "plots/")
 
     config = {"nr_of_meshs": 16,
-              "cell_L":64,
+              "cell_L": 64,
               "cell_nr": 0,
               "chess_trafo": 1,
               "nr_colorbar_ticks": 7,

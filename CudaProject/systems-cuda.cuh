@@ -40,6 +40,11 @@ public:
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        cout << "standard init state called" << endl;
+    }
+
     virtual void print_info() {
         cout << "Printing system info:" << endl;
         cout << "step_nr = " << step_nr << endl;
@@ -1108,6 +1113,38 @@ public:
         thrust::transform(x.begin(), x.begin + n, x.begin(), map_functor());
     }
 
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        cout << "XY init_state is called" << endl;
+        if(paras[random_init] == 0.0) {
+            // equilibrium initialization -> we are in XY model with p=2, meaning we have
+            // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
+            thrust::fill(x.begin(), x.begin()+n, M_PI/2);
+
+        } else {
+            // random initialization
+            double p_ampl = paras[p0];
+
+            chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                    chrono::system_clock::now().time_since_epoch()
+            );
+            auto seed = ms.count() % 10000;
+            thrust::counting_iterator<size_t> index_sequence_begin(seed * x.size());
+            // theta is uniformly distributed between 0 and 2 pi
+            thrust::transform(index_sequence_begin,
+                              index_sequence_begin + n,
+                              x.begin() + n,
+                              rand_uni_values(0, 2 * M_PI));
+            // impuls or angular velocity normal distributed around 0;
+            thrust::transform(index_sequence_begin + n,
+                              index_sequence_begin + 2*n,
+                              x.begin() + n,
+                              rand_normal_values(p_ampl, 0, 1));
+
+        }
+>>>>>>> 91c1ff51331f94e7e17b8bb04e5d6b93534195f4
+    }
+
     void print_info() override {
         System::print_info();
         cout << "h = " << h << endl;
@@ -1118,6 +1155,13 @@ public:
     void calc_drift(State &x, Deriv &dxdt, double t) {
         xy_functor functor = xy_functor(System::eta, J, h);
         System::universalStepOperations(x, dxdt, t, functor);
+    }
+
+    template<class State>
+    void map_state(State &x) {
+        // does nothing for most systems, but important for xy and dipole
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+
     }
 
     template<class State>
@@ -1134,7 +1178,7 @@ public:
 };
 
 #define DIAG_DIST 11.18033988749895
-#define DIAG_PREF 1.6832815729997475
+#define DIAG_PREF 1.4
 #define P_COS   2.5714285714285716
 
 class dipol_interaction: public NNN_System {
@@ -1157,6 +1201,10 @@ public:
             double q_right = thrust::get<5>(tup);
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
+<<<<<<< HEAD
+=======
+            // okay map to -pi/2 to pi/2 again
+>>>>>>> 91c1ff51331f94e7e17b8bb04e5d6b93534195f4
 
             // thrust::get<8>(tup) should get us the tuple with the 4 NNN, so we get the value with get<i>
             double q_down_right = thrust::get<0>(thrust::get<8>(tup));
@@ -1173,14 +1221,24 @@ public:
                     2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
                     2 * cos(q) * sin(q_left) + sin(q) * cos(q_left)           // left neighbor
             );
+<<<<<<< HEAD
             interaction += - (
                      - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // up neighbor
                      - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // down neighbor
+=======
+            interaction += -(
+                     - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // right neighbor
+                     - cos(q) * sin(q_down) + sin(q) * cos(q_down)           // left neighbor
+>>>>>>> 91c1ff51331f94e7e17b8bb04e5d6b93534195f4
             );
 
             thrust::get<2>( tup ) = p;
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+<<<<<<< HEAD
                                        + 2 * h * sin(P_COS * q) // bistable potential
+=======
+                                       + P_COS * h * sin(P_COS * q) // bistable potential
+>>>>>>> 91c1ff51331f94e7e17b8bb04e5d6b93534195f4
                                        - pow(p_mom, 2) * interaction;       // Interaction
         }
     };
@@ -1207,9 +1265,15 @@ public:
     };
 
     struct map_functor {
+<<<<<<< HEAD
         template<class value_type>
         __host__ __device__ void operator()(value_type q) {
             return positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
+=======
+        template <class value_type>
+        __host__ __device__ value_type operator()(value_type x) {
+            return positive_modulo((x + M_PI/2), M_PI) - M_PI/2;
+>>>>>>> 91c1ff51331f94e7e17b8bb04e5d6b93534195f4
         }
     };
 
@@ -1228,6 +1292,13 @@ public:
     void map_state(State &x) {
         // we map every q onto [-pi/2, pi/2]
         thrust::transform(x.begin(), x.begin + n, x.begin(), map_functor());
+    }
+
+    template<class State>
+    void map_state(State &x) {
+        // does nothing for most systems, but important for xy and dipole
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+
     }
 
     template<class State>

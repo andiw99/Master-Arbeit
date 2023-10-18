@@ -64,7 +64,7 @@ def smooth(x, y, ppp):
     return y_smooth
 
 def main():
-    root = "../../Generated content/NER Very Long/Selected"
+    root = "../../Generated content/NER Last/"
     root_dirs = list_directory_names(root)
     file_extension = ".ner"
     print(root_dirs)

@@ -2,7 +2,7 @@
 // Created by weitze73 on 06.06.23.
 //
 #include <iostream>
-#include "main.cuh"
+#include "../main.cuh"
 #include "RandomTimeTesting.cuh"
 #include <curand_kernel.h>
 

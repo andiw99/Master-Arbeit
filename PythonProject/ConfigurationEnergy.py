@@ -124,16 +124,42 @@ def main():
     }
 
     four_low_config = {
-        (0, 0, 0): left_up,                     (2, 0, 0): right_up,
-        (0, 0, 1): right_up, (2, 0, 1): left_up,
-                             (2, 0, 2): right_up,
+                                (2, 0, 0): right_up,
+        (0, 0, 1): right_up,    (2, 0, 1): left_up,
+                                (2, 0, 2): right_up,
     }
 
     four_high_config = {
-        (0, 0, 0): left_up,                                (2, 0, 0): left_up,
+                                (2, 0, 0): left_up,
         (0, 0, 1): right_up,    (2, 0, 1): right_up,
                                 (2, 0, 2): left_up,
     }
+
+    four_same_side_low = {
+                                (2, 0, 0): right_up,
+        (0, 0, 1): right_up,    (2, 0, 1): right_down,
+                                (2, 0, 2): right_up,
+    }
+
+    four_same_side_high = {
+                                (2, 0, 0): right_down,
+        (0, 0, 1): right_up,    (2, 0, 1): right_up,
+                                (2, 0, 2): right_down,
+    }
+
+
+    four_alternating_low = {
+                                (2, 0, 0): left_down,
+        (0, 0, 1): right_up,    (2, 0, 1): left_up,
+                                (2, 0, 2): left_down,
+    }
+
+    four_alternating_high = {
+                                (2, 0, 0): left_up,
+        (0, 0, 1): right_up,    (2, 0, 1): left_down,
+                                (2, 0, 2): left_up,
+    }
+
 
     low_energy = calc_energy(low_config, interaction)
     high_energy = calc_energy(high_config, interaction)
@@ -178,11 +204,25 @@ def main():
     large_4x2 = construct_4x2(1000, 5)
     large_2x2 = construct_2x2(1000, 5)
 
-    E_large_4x2 = calc_energy(large_4x2, interaction)
-    E_large_2x2 = calc_energy(large_2x2, interaction)
+    #E_large_4x2 = calc_energy(large_4x2, interaction)
+    #E_large_2x2 = calc_energy(large_2x2, interaction)
 
-    print(f"large config antisymmetric: E = {E_large_4x2}")
-    print(f"large config symmetric: E = {E_large_2x2}")
+    #print(f"large config antisymmetric: E = {E_large_4x2}")
+    #print(f"large config symmetric: E = {E_large_2x2}")
+
+    E_same_low = calc_energy(four_same_side_low, interaction)
+    E_same_high = calc_energy(four_same_side_high, interaction)
+
+    print(f"charge fixed at same side antisymmetric: E = {E_same_low}")
+    print(f"charge fixed at same side: E = {E_same_high}")
+
+    E_alternating_low = calc_energy(four_alternating_low, interaction)
+    E_alternating_high = calc_energy(four_alternating_high, interaction)
+
+    print(f"charge fixed at alternating side antisymmetric: E = {E_alternating_low}")
+    print(f"charge fixed at alternating side: E = {E_alternating_high}")
+
+
 
 if __name__ == "__main__":
     main()

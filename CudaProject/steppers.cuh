@@ -387,7 +387,6 @@ public:
         // which means we need a new operations structure?
         algebra::for_each(x_drift, x, dxdt, apply_drift(dt));
         sys.map_state(x_drift);
-
         // we have x_drift now, now we need to calculate f(x_drift)
         // we really should not just call the system since the system will generate random numbers
         // so we just call again calc drift, but we need to store the result somewhere else than dxdt since
