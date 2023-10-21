@@ -292,6 +292,26 @@ void chess_trafo(container<value_type, std::allocator<value_type>>& vec) {
     }
 }
 
+template <class value_type, template<class, class> class container>
+void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& vec, size_t dim_size_x) {
+    int dim_size_y = vec.size() / dim_size_x;
+    for (int i = 0; i < dim_size_y/2; i++) {            // row
+        for (int j = 0; j < dim_size_x/2; j++) {        // col
+            vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
+            vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
+        }
+    }
+}
+
+template <class value_type, template<class, class> class container, class Functor>
+void trafo_rectangular(container<value_type, std::allocator<value_type>>& vec, Functor functor) {
+    // useless, just use transform
+    int size = vec.size();
+    for (int i = 0; i < size; i++) {            // row
+            vec[i] *= functor(vec[i]);
+        }
+    }
+
 template <class container>
 void chess_trafo(container& vec, int lat_dim) {
     for (int i = 0; i < lat_dim/2; i++) {
@@ -508,21 +528,27 @@ void print2DContainer(const Container& container) {
 }
 
 template <typename Container>
-void print_container(const Container& container, bool b=false) {
+void print_container(const Container& container, int total_nr, bool b=false) {
     int i = 0;
     for (const auto& element : container) {
         if(b) {
-            if (i % 30 == 0) {
+            if (i % 20 == 0) {
                 cout << endl;
             }
         }
         std::cout << element << ", ";
         i++;
-
+        if (i == total_nr) {
+            break;
+        }
     }
     cout << endl;
 }
 
+template <typename Container>
+void print_container(const Container& container, bool b=false) {
+    print_container(container, 0, b);
+}
 
 ifstream safe_read(string readpath, bool verbose=true) {
     if(verbose) {

@@ -68,6 +68,14 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
+def read_large_df(filepath, rows):
+    df = []
+    with open(filepath) as f:
+        for i, line in enumerate(f):
+            if i in rows:
+                df.append(string_to_array(line[:-2]))
+    return df
+
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
 
     para_filepath = os.path.splitext(filepath)[0] + ".txt"
@@ -82,15 +90,9 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     Ly = parameters["dim_size_y"]
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
-    df = []
     rows = np.linspace(0, nr_rows-1, nr_of_meshs, endpoint=True)
     rows = [int(row) for row in rows]
-    print(rows)
-    with open(filepath) as f:
-        for i, line in enumerate(f):
-            if i in rows:
-                print("appending...")
-                df.append(string_to_array(line[:-2]))
+    df = read_large_df(filepath, rows)
 
     print(df)
     stretch = Lx/Ly
@@ -469,7 +471,6 @@ def remove_origin_ticks(ax):
     for getter, setter, origin, end in zip(get_functions, set_functions, origins, ends):
         major_ticks = getter()
         minor_ticks = getter(minor=True)
-        print(minor_ticks)
         half_tick = (minor_ticks[1] - minor_ticks[0]) / 2
         new_minor_ticks = set(minor_ticks)
         new_major_ticks = set(major_ticks)

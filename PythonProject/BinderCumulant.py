@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/NER Last"
+    root = "../../Generated content/XY Very Detailed"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,11 +43,11 @@ def main():
     interpol_dic = {}
     exclude_large_dists = 0
     exclude_small_dists = 0
-    min_temp = 0.68
-    max_temp = 1.0
+    min_temp = 9.0
+    max_temp = 100.0
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
-    max_L_fit = 400
+    max_L_fit = 1000
     r = 3
     figsize = (1.2 *  6.4, 4.8)
 
@@ -153,6 +153,7 @@ def main():
 
     # get intersection
     T_inter, U_inter, i_inter = det_intersection(T_inter_arr, interpol_dic)
+    mark_point(ax, T_inter, U_inter)
     # mark_point(ax, T_inter, U_inter)
     plt.xticks(list(plt.xticks()[0]) + [T_inter])
 
@@ -249,36 +250,10 @@ def main():
     popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
     nu_x = 1 / popt_x[0]
 
-    print(xiy_size_arr)
-    print(xiy_num_diff_arr)
+    print("xiy_size_arr: ", xiy_size_arr)
+    print("xiy_num_diff_arr: ", xiy_num_diff_arr)
     popt_y, _ = curve_fit(linear_fit, np.log(xiy_size_arr), np.log(xiy_num_diff_arr))
     nu_y = 1 / popt_y[0]
-
-    #fig, ax = plt.subplots(1, 1, figsize = figsize)
-    ## Setze Tickmarken und Labels
-    #ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    #ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-#
-#
-    ##x_span = np.max(xi_size_arr) - np.min(xi_size_arr)
-    ##ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.maximum(int(x_span/5), 0.5)))
-    ## TODO minor locator muss
-    ##span = np.max(xi_num_diff_arr) - np.min(xi_num_diff_arr)
-    #ax.yaxis.set_major_locator((plt.MultipleLocator(span / 4)))
-    #ax.yaxis.set_minor_locator((plt.MultipleLocator(span / 4 / 5)))
-    ## Füge Gitterlinien hinzu
-    #ax.grid(which='major', linestyle='--', alpha=0.5)
-    ##ax.plot(xi_size_arr, xi_num_diff_arr, linestyle="", marker="+")
-    ##L_fit = np.linspace(0, np.max(xi_size_arr) + 0.2 * np.max(xi_size_arr), 101)
-    #ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
-    #ax.set_xlabel("L")
-    #ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
-    #ax.legend()
-    #ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$")
-    #configure_ax(fig, ax, config)
-    ##save_plot(root, "/critical_exponent_xi.pdf", format="pdf")
-    #fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=True)
-    #plt.show()
 
     # plotting derivatives for both directions
 

@@ -59,6 +59,8 @@ enum Parameter {
     min_lat_factor,
     max_lat_factor,
     nr_ner_values,
+    m,
+    p
 };
 
 map<Parameter, string> parameter_names {

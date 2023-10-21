@@ -38,6 +38,20 @@ def plot_trajectories(df, parameters):
 def theo_msd(eta, alpha, T, a, b, N):
     t = np.linspace(a, b, N)
     return t, T / alpha * (1 - np.exp(-2 * alpha / eta * t))
+
+def theo_sigma_xx(eta, alpha, T, a, b, N = 100):
+    lambda_1 = 0.5 * (eta + np.sqrt(eta ** 2 - 4 * alpha + 0j))
+    print(lambda_1)
+    lambda_2 = 0.5 * (eta - np.sqrt(eta ** 2 - 4 * alpha + 0j))
+    print(lambda_2)
+    t = np.linspace(a, b, N)
+    pref = eta * T / ((lambda_1 - lambda_2) ** 2)
+    sum_1 = (lambda_1 + lambda_2) / (lambda_1 * lambda_2)
+    sum_2 = 4 / (lambda_1 + lambda_2) * (np.exp(- (lambda_1 + lambda_2) * t) - 1)
+    sum_3 = 1 / lambda_1 * np.exp(-2 * lambda_1 * t)
+    sum_4 = 1 / lambda_2 * np.exp(-2 * lambda_2 * t)
+    return t, np.real(pref * (sum_1 + sum_2 - sum_3 - sum_4))
+
 def plot_theo_msd(df, parameters, savepath):
     eta = parameters["eta"]
     alpha = parameters["alpha"]
@@ -85,6 +99,23 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 def main():
     root = "../../../Generated content/Convergence Check MSD/"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
+
+    a = 0
+    b = 5
+    T = 10
+    eta = 5
+    alpha = 10
+
+    fig, ax = plt.subplots(1, 1)
+    t, sigma = theo_sigma_xx(eta, alpha, T, a, b, 200)
+    t_msd, msd = theo_msd(eta, alpha, T, a, b, 200)
+    print(sigma)
+    ax.plot(t, sigma)
+    # ax.plot(t_msd, msd)
+    configure_ax(fig, ax)
+    plt.show()
+    exit()
+
     filepaths = new_files_in_dir(root, root, plot_all=False)
     print(filepaths)
     for filepath in filepaths:
