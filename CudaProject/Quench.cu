@@ -18,16 +18,16 @@ int main() {
     // We need new observers for the standard relaxation, i mean it basically does the same but the
     // end_T reading is different
     auto* quench_obs =
-            new quench_observer<anisotropic_coulomb_quench, state_type>(nr_save_values);
+            new quench_observer<quench_system, state_type>(nr_save_values);
     auto* runtime_obs =
-            new runtime_observer<anisotropic_coulomb_quench, state_type>();
+            new runtime_observer<quench_system, state_type>();
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
     // templating..
     QuenchSimulation simulation = QuenchSimulation<euler_combined,
                                                 state_type,
                                                 algebra, operations,
-                                                anisotropic_coulomb_quench>(paras, simulation_path);
+                                                quench_system>(paras, simulation_path);
     simulation.register_observer(quench_obs);
     simulation.register_observer(runtime_obs);
     simulation.simulate();

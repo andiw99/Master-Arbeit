@@ -157,6 +157,17 @@ struct thrust_algebra {
                         s1.end(), s2.end(), s3.end())),
                 op);
     }
+
+    template<class S1, class S2, class S3, class Op>
+    static void for_each(S1 &s1, S2 &s2, S3 &s3, size_t n, Op op) {
+        thrust::for_each(
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1, s2, s3) ),
+                thrust::make_zip_iterator( thrust::make_tuple(
+                        s1 + n, s2 + n, s3 + n)),
+                op);
+    }
+
     template<class S1, class S2, class Op>
     static void for_each(S1 &s1, S2 &s2, Op op) {
         thrust::for_each(
@@ -259,6 +270,37 @@ struct thrust_operations {
 
         }
     };
+
+    template<class time_type = double>
+    struct apply_bbk_q {
+        const time_type pref;
+        apply_bbk_q(time_type dt, time_type eta){
+            pref = (1 - exp(- eta * dt)) / eta;
+        }
+        template< class Tuple >
+        __host__ __device__ void operator()(Tuple tup) const {
+            thrust::get<0>(tup) = thrust::get<0>(tup) +             // q(t)
+                                  pref * thrust::get<1>(tup) +       // v~
+                                  thrust::get<2>(tup);              // theta
+
+        }
+    };
+
+    template<class time_type = double>
+    struct apply_bbk_p {
+        const time_type pref, dt;
+        apply_bbk_p(time_type dt, time_type eta): dt(dt){
+            pref = exp(- eta * dt);
+        }
+        template< class Tuple >
+        __host__ __device__ void operator()(Tuple tup) const {
+            thrust::get<0>(tup) = pref * thrust::get<0>(tup) +             // v~
+                                  (dt / 2.0) * thrust::get<1>(tup) +       // F
+                                  thrust::get<2>(tup);              // theta
+
+        }
+    };
+
 };
 
 
