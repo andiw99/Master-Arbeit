@@ -247,6 +247,7 @@ public:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        cout << "force_calculation is called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
@@ -316,23 +317,26 @@ public:
     template<class Stoch>
     void calc_diff_bbk(Stoch &theta, double dt) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
-        thrust::for_each(start, start + 2 * n, hiprand(1));      // first n are n_1, second n are n_2
+        thrust::for_each(start, start + (2 * n), hiprand(1.0));      // first n are n_1, second n are n_2
         // okay i want the first n entries of theta to be sqrt(2T / eta) zeta_2, the second n entries will be sqrt(2Teta) zeta_1
         // the problem is that i need th stepsize for this, which i find a bit unelegent, but whatever
-
         // so this line is supposed to transform the n_2 that sit in the second part of theta to zeta_2
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin() + n, theta.begin() + n, zeta_2<double>(dt, eta, T));
+
         // the second one is doable with a lambda, i just need to recall how to write those...
+        double pref = sqrt(2 * T / eta * tau_2(dt, eta));
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin(),
-                          [&dt, this] (double n_1) -> double {return sqrt(2 * T / eta * tau_2(dt, eta)) * n_1;});
+                          [pref] (double n_1) { return pref * n_1;} );
     }
 
     template <class value_type>
+    __host__ __device__
     value_type static tau_1(value_type dt, value_type eta) {
         return 1.0 / eta * (1 - exp(- eta * dt));
     }
 
     template <class value_type>
+    __host__ __device__
     value_type static tau_2(value_type dt, value_type eta) {
         return 1.0 / (2 * eta) * (1 - exp(-2 * eta * dt));
     }
@@ -343,7 +347,7 @@ public:
         zeta_2(T dt, T eta, T temp): dt(dt){
             // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
             Tau_1 = tau_1(dt, eta);
-            Tau_1 = tau_2(dt, eta);
+            Tau_2 = tau_2(dt, eta);
             pref = sqrt(2 * temp * eta);
         }
         zeta_2(T dt, T eta, T temp, T Tau_1, T Tau_2): dt(dt), Tau_1(Tau_1), Tau_2(Tau_2){
@@ -388,7 +392,7 @@ public:
                                             n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-        curand_states = thrust::device_vector<hiprandState>(n);  // TODO is this okay?
+        curand_states = thrust::device_vector<hiprandState>(2 * n);  // TODO is this okay?
         // counting iterator counting from 0 to n. Every lattice site needs its own state i think
         // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
         auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
@@ -1170,7 +1174,9 @@ protected:
         const double J, h, eta, p_XY, m;
 
         xy_force(const double eta, const double J, const double h, const double p_XY, const double m) :
-                J(J), h(h), eta(eta), p_XY(p_XY), m(m) { }
+                J(J), h(h), eta(eta), p_XY(p_XY), m(m) {
+            cout << "XY force functor is constructed" << endl;
+        }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -1243,8 +1249,9 @@ protected:
                 // theta is uniformly distributed between 0 and 2 pi
                 thrust::transform(index_sequence_begin,
                                   index_sequence_begin + n,
-                                  x.begin() + n,
+                                  x.begin(),
                                   rand_uni_values(range_min, range_max));
+                print_container(x, 20);
                 // impuls or angular velocity normal distributed around 0;
                 thrust::transform(index_sequence_begin + n,
                                   index_sequence_begin + 2*n,
@@ -1283,6 +1290,7 @@ public:
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
         xy_force functor = xy_force(System::eta, J, h, p_XY, m);
+        cout << "xy calc force is called" << endl;
         System::force_calculation(x, dxdt, t, functor);
     }
 

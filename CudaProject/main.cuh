@@ -159,7 +159,7 @@ struct thrust_algebra {
     }
 
     template<class S1, class S2, class S3, class Op>
-    static void for_each(S1 &s1, S2 &s2, S3 &s3, size_t n, Op op) {
+    static void for_each(S1 s1, S2 s2, S3 s3, size_t n, Op op) {
         thrust::for_each(
                 thrust::make_zip_iterator( thrust::make_tuple(
                         s1, s2, s3) ),
@@ -274,8 +274,7 @@ struct thrust_operations {
     template<class time_type = double>
     struct apply_bbk_q {
         const time_type pref;
-        apply_bbk_q(time_type dt, time_type eta){
-            pref = (1 - exp(- eta * dt)) / eta;
+        apply_bbk_q(time_type dt, time_type eta): pref((1 - exp(- eta * dt)) / eta){
         }
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {

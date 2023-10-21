@@ -93,6 +93,10 @@ public:
             }
         }
     }
+
+    static string get_name() {
+        return "base stepper";
+    }
 };
 
 
@@ -491,8 +495,8 @@ template<
 >
 class bbk_stepper : public stepper<state_type, algebra, operations, System, value_type, time_type> {
 public:
-    typedef System Sys;         // Why this typedef? ah just to shorten things i guess
     typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    typedef System Sys;         // Why this typedef? ah just to shorten things i guess
     using stepper::dxdt;
     state_type F = dxdt;
     using stepper::theta;
@@ -503,7 +507,7 @@ public:
     typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
     size_t n = N/2;
 
-    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
         // We somehow need to wave in this p~ into our architecture
         // and what is fundamentally different is that we need two random variables per side per step
         // and we actually cannot really multiply it with the temperature beforehand which might be a problem...
@@ -519,7 +523,9 @@ public:
         // weird thing is just that we now have the first half of dxdt always empty so pretty useless
         // I guess it was the same deal with theta before...
         // okay so we use our first half of x to calculate the force which we save in the second half of F
-        sys.force_calculation(x, F, t);
+        sys.calc_force(x, F, t);
+        print_container(F);
+        exit(0);
         // now we have to apply it, i think we can use apply_drift for this
         algebra::for_each(x.begin() + n, x.begin() + n, dxdt.begin() + n, n, apply_drift(0.5 * dt));
         // now this should have done x = x and p = p + dt/ 2 * F
@@ -530,10 +536,27 @@ public:
         // easiest would probably be to get the dampening out of the system.
         algebra::for_each(x.begin(), F.begin() + n, theta.begin(), n, apply_bbk_q(dt, sys.get_eta()));
         // now we can calculate the force again
-        sys.force_calculation(x, F, t);
+        sys.calc_force(x, F, t);
+        print_container(F);
         // now we need to integrate p(t + dt) which needs again its own integrator
         algebra::for_each(x.begin(), F.begin() + n, theta.begin() + n, n, apply_bbk_p(dt, sys.get_eta()));
         // It is weird but it should be it i guess.
+        // advance
+        t += dt;
+    }
+
+    static string get_name() {
+        return "bbk stepper";
+    }
+    void reset() override {
+        //supposed to reset some variables, nothing to do here
+    }
+    bbk_stepper(size_t N) : stepper(N)
+    {
+    }
+
+    void print_stepper_info() override {
+        stepper::print_stepper_info();
     }
 };
 
@@ -547,15 +570,23 @@ template<
         template<class, class, class, class, class, class> class stepper_type
 >
 stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<Parameter, double>& paras, int n) {
-    if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
+    int N = 2;   // N for now no parameter
+    cout << stepper_type<state_type, algebra, operations, System, value_type, time_type>::get_name();
+    if (stepper_type<state_type, algebra, operations, System, value_type, time_type>::get_name() == "bbk stepper") {
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+    }
+    else if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
             euler_combined<state_type, algebra, operations, System, value_type, time_type>>::value){
         // damn tahts ugly#
         // TODO This cannot! possibly work, i see it already. probably we have to exchange one 'class' with template<size_t> class
-        int N = 2;   // N for now no parameter
         double K = paras[Parameter::K];
         double tol = paras[Parameter::tol];
-        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
-    } // TODO other steppers
+        // return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+    } else {
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+
+    }// TODO other steppers
 }
 
 template<
