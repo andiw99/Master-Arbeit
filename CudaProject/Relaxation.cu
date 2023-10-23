@@ -28,7 +28,7 @@ int main() {
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
 
     // templating..
-    RelaxationSimulation simulation = RelaxationSimulation<bbk_stepper,
+    RelaxationSimulation simulation = RelaxationSimulation<euler_combined,
             state_type,
             algebra, operations,
             relax_system>(paras, simulation_path);

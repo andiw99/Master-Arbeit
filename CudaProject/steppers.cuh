@@ -462,7 +462,7 @@ public:
         cout << "creating euler combined stepper" << endl;
     }
 
-    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[tol]){}
+    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[Parameter::tol]){}
 
     int get_k() {
         return k;

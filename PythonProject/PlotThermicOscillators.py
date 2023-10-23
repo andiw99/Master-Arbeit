@@ -103,8 +103,8 @@ def main():
     a = 0
     b = 5
     T = 10
-    eta = 5
-    alpha = 10
+    eta = 1
+    alpha = 20
 
     fig, ax = plt.subplots(1, 1)
     t, sigma = theo_sigma_xx(eta, alpha, T, a, b, 200)

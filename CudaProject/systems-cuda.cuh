@@ -515,6 +515,11 @@ public:
     }
 
     template<class State>
+    double calc_f_me(State &x) {
+        return 0;
+    }
+
+    template<class State>
     double calc_m(State &x) {
         double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
         return m;
@@ -1513,6 +1518,28 @@ public:
         }
     };
 
+    struct linear_force {
+        const double J, alpha;
+
+        linear_force(const double J, const double alpha) :
+                J(J), alpha(alpha) {
+        }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            // Okay I think we have to think about where to % 2pi the system and I think i would like
+            // to do it here since I can then easier switch between the models and do not have to adjust the stepper
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<2>(tup);
+            double q_right = thrust::get<3>(tup);
+            double q_up = thrust::get<4>(tup);
+            double q_down = thrust::get<5>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<1>( tup ) =  -alpha * (2 * q)  // linear force
+                                    + interaction;       // Interaction
+        }
+    };
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -1520,8 +1547,14 @@ public:
 
         harmonic_trap_functor functor = harmonic_trap_functor(System::eta, alpha, J);
 
-        this->derivative_calculation(x, dxdt, t, functor);
+        System::derivative_calculation(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
+    }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        linear_force functor =linear_force(J, alpha);
+        System::force_calculation(x, dxdt, t, functor);
     }
 
     template<class Stoch>
@@ -1535,6 +1568,10 @@ public:
     quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const size_t lat_dim, const int init_step=0)
             : System(init_step, eta, T, lat_dim), alpha(alpha), J(J) {
         cout << "Lattice quadratic Trap System is constructed" << endl;
+    }
+
+    quadratic_trapped_lattice(map<Parameter, double> paras): System(paras), alpha(paras[Parameter::alpha]), J(paras[Parameter::J]) {
+        cout << "Lattice quadratic Trap System from parameter map is constructed" << endl;
     }
 
     double get_cur_T() const{

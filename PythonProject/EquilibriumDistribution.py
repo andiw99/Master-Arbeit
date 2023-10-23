@@ -27,7 +27,7 @@ def start_ani(event, ax, bars, x, nr_bins=100):
 
 
 def main():
-    root = "../../Generated content/BBK/Dist Convergence/0.0001/"
+    root = "../../Generated content/Convergence Comparison/Euler/0.001/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
@@ -60,7 +60,7 @@ def main():
         Z = np.trapz(W_x, x_range)
         W_x /= Z
         fig, ax = plt.subplots(1, 1)
-        count, bins, bars = ax.hist(x[0][2:], nr_bins, density=True)
+        count, bins, bars = ax.hist(x[0][2:], nr_bins, density=True, label=f"dt = {dt}")
         ax.plot(x_range, W_x, label=f"T = {T:.2f}")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
         configure_ax(fig, ax)
