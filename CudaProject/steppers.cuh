@@ -527,19 +527,20 @@ public:
         // okay so we use our first half of x to calculate the force which we save in the second half of F
         sys.calc_force(x, F, t);
         // now we have to apply it, i think we can use apply_drift for this
-        algebra::for_each(x.begin() + n, x.begin() + n, dxdt.begin() + n, n, apply_drift(0.5 * dt));
+        algebra::for_each(x.begin() + n, x.begin() + n, F.begin() + n, n, apply_drift(0.5 * dt));
         // now this should have done x = x and p = p + dt/ 2 * F
         // now we need to calculate q (t + dt), therefore we need the theta vector
         sys.calc_diff_bbk(theta, dt);
         // The theta vector should now be filled with the temp * zeta values
         // now to apply this we definetly need a new integrater, this one it even has to know the dampening
         // easiest would probably be to get the dampening out of the system.
-        algebra::for_each(x.begin(), F.begin() + n, theta.begin(), n, apply_bbk_q(dt, sys.get_eta()));
+        // Watch out! you need zeta_2 first but you wrot it into second half of theta.
+        algebra::for_each(x.begin(), x.begin() + n, theta.begin() + n, n, apply_bbk_q(dt, sys.get_eta()));
         sys.map_state(x);
         // now we can calculate the force again
         sys.calc_force(x, F, t);
         // now we need to integrate p(t + dt) which needs again its own integrator
-        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_p(dt, sys.get_eta()));
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin(), n, apply_bbk_p(dt, sys.get_eta()));
         // It is weird but it should be it i guess.
         // advance
         t += dt;

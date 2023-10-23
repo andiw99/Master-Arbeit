@@ -318,7 +318,7 @@ public:
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin() + n, theta.begin() + n, zeta_2<double>(dt, eta, T));
 
         // the second one is doable with a lambda, i just need to recall how to write those...
-        double pref = sqrt(2 * T / eta * tau_2(dt, eta));
+        double pref = sqrt(2 * T * eta * tau_2(dt, eta));
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin(), zeta_1<double>(pref));
     }
 
@@ -360,7 +360,7 @@ public:
             pref = sqrt(2 * temp * eta);
         }
         zeta_2(T dt, T eta, T temp, T Tau_1, T Tau_2): dt(dt), Tau_1(Tau_1), Tau_2(Tau_2){
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2 * temp / eta);
         }
         __host__ __device__
         T operator()(const T& x, const T& y) const {
