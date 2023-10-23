@@ -288,9 +288,7 @@ struct thrust_operations {
     template<class time_type = double>
     struct apply_bbk_p {
         const time_type pref, dt;
-        apply_bbk_p(time_type dt, time_type eta): dt(dt){
-            pref = exp(- eta * dt);
-        }
+        apply_bbk_p(time_type dt, time_type eta): dt(dt), pref(exp(- eta * dt)){}
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             thrust::get<0>(tup) = pref * thrust::get<0>(tup) +             // v~
@@ -303,9 +301,7 @@ struct thrust_operations {
     template<class time_type = double>
     struct apply_bbk_v1 {
         const time_type pref, dt;
-        apply_bbk_v1(time_type dt, time_type eta): dt(dt){
-            pref = (1.0 - 0.5 * eta * dt);
-        }
+        apply_bbk_v1(time_type dt, time_type eta): dt(dt), pref(1.0 - 0.5 * eta * dt){}
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             thrust::get<0>(tup) = pref * thrust::get<0>(tup) +             // v^n
@@ -318,9 +314,7 @@ struct thrust_operations {
     template<class time_type = double>
     struct apply_bbk_v2 {
         const time_type pref, dt;
-        apply_bbk_v2(time_type dt, time_type eta): dt(dt){
-            pref = 1.0  / (1.0 - 0.5 * eta * dt);
-        }
+        apply_bbk_v2(time_type dt, time_type eta): dt(dt), pref(1.0  / (1.0 - 0.5 * eta * dt)){}
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             thrust::get<0>(tup) = pref * (thrust::get<0>(tup) +             // v^n

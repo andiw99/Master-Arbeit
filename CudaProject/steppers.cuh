@@ -521,7 +521,7 @@ public:
         // half a kick
         algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v1(dt, sys.get_eta()));
         // drift on q
-        algebra::for_each(x.begin(), x.begin(), x.begin() + n, n, apply_drift());
+        algebra::for_each(x.begin(), x.begin(), x.begin() + n, n, apply_drift(dt));
         sys.map_state(x);
         // now we can calculate the force again
         sys.calc_force(x, F, t);
@@ -569,8 +569,8 @@ public:
     using stepper::N;       // this is 2 * n so the size of a normal vector
     using stepper::stepper;
     typedef typename operations::template apply_drift<time_type> apply_drift;
-    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
-    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
+    typedef typename operations::template apply_bbk_v1<time_type> apply_bbk_v1;
+    typedef typename operations::template apply_bbk_v2<time_type> apply_bbk_v2;
     size_t n;
 
     void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {

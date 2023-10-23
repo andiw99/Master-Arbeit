@@ -1553,7 +1553,7 @@ public:
 
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
-        linear_force functor =linear_force(J, alpha);
+        linear_force functor = linear_force(J, alpha);
         System::force_calculation(x, dxdt, t, functor);
     }
 
