@@ -247,7 +247,6 @@ public:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
-        cout << "force_calculation is called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
@@ -295,17 +294,12 @@ public:
         // engine just advancing? Maybe just switch to curand?
         long seed = (mus.count() % 10000000) * 1000000000;
         thrust::counting_iterator<size_t> index_sequence_begin(seed);
-        // cout << seed << endl;
-/*        if(step_nr == 0) {
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }*/
-        // cout << step_nr << endl;
+
         thrust::transform(index_sequence_begin,
                           index_sequence_begin + n,
                           theta.begin() + n,
                           rand(D));
-        // print_container(theta);
-        // cout << endl;
+
     }
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
@@ -325,8 +319,7 @@ public:
 
         // the second one is doable with a lambda, i just need to recall how to write those...
         double pref = sqrt(2 * T / eta * tau_2(dt, eta));
-        thrust::transform(theta.begin(), theta.begin() + n, theta.begin(),
-                          [pref] (double n_1) { return pref * n_1;} );
+        thrust::transform(theta.begin(), theta.begin() + n, theta.begin(), zeta_1<double>(pref));
     }
 
     template <class value_type>
@@ -340,6 +333,22 @@ public:
     value_type static tau_2(value_type dt, value_type eta) {
         return 1.0 / (2 * eta) * (1 - exp(-2 * eta * dt));
     }
+
+    template <class T>
+    struct zeta_1
+    {
+        T pref;
+        zeta_1(T dt, T eta, T temp) {
+            // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
+            pref = sqrt(2 * temp * eta);
+        }
+        zeta_1(T pref): pref(pref) {}
+        __host__ __device__
+        T operator()(const T& x) const {
+            return pref * x;
+        }
+    };
+
     template <class T>
     struct zeta_2
     {
@@ -687,7 +696,6 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        // cout << "calc_drift is called" << endl;
         timer.set_startpoint(functor_point);
 
         bath_functor functor = bath_functor(System::eta, alpha, beta, J);
@@ -698,7 +706,6 @@ public:
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        // cout << "calc_diff is called" << endl;
         timer.set_startpoint(rng);
         System::calc_diff(theta, t);
         timer.set_endpoint(rng);
@@ -830,7 +837,6 @@ public:
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        // cout << "calc_diff is called" << endl;
         System::calc_diff(theta, t);
     }
 };
@@ -1175,7 +1181,6 @@ protected:
 
         xy_force(const double eta, const double J, const double h, const double p_XY, const double m) :
                 J(J), h(h), eta(eta), p_XY(p_XY), m(m) {
-            cout << "XY force functor is constructed" << endl;
         }
 
         template<class Tup>
@@ -1187,7 +1192,6 @@ protected:
             double q_right = thrust::get<3>(tup);
             double q_up = thrust::get<4>(tup);
             double q_down = thrust::get<5>(tup);
-
             double interaction = J * (
                     +   sin(m * (q - q_up))   + sin(m * (q - q_down))
                     +   sin(m * (q - q_left)) + sin(m * (q - q_right))
@@ -1251,7 +1255,6 @@ protected:
                                   index_sequence_begin + n,
                                   x.begin(),
                                   rand_uni_values(range_min, range_max));
-                print_container(x, 20);
                 // impuls or angular velocity normal distributed around 0;
                 thrust::transform(index_sequence_begin + n,
                                   index_sequence_begin + 2*n,
@@ -1290,7 +1293,6 @@ public:
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
         xy_force functor = xy_force(System::eta, J, h, p_XY, m);
-        cout << "xy calc force is called" << endl;
         System::force_calculation(x, dxdt, t, functor);
     }
 

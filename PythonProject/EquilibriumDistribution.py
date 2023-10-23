@@ -27,7 +27,8 @@ def start_ani(event, ax, bars, x, nr_bins=100):
 
 
 def main():
-    root = "../../Generated content/Testing Convergence/0.001-2/"
+    root = "../../Generated content/BBK/Dist Convergence/0.0001/"
+    #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
@@ -58,10 +59,8 @@ def main():
         W_x = boltzmann_dist_x(x_range, beta, potential)
         Z = np.trapz(W_x, x_range)
         W_x /= Z
-        print("Integral over W_x:", np.trapz(W_x, x_range))
         fig, ax = plt.subplots(1, 1)
         count, bins, bars = ax.hist(x[0][2:], nr_bins, density=True)
-        print(ax.get_lines())
         ax.plot(x_range, W_x, label=f"T = {T:.2f}")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
         configure_ax(fig, ax)

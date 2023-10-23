@@ -33,6 +33,9 @@ public:
     stepper(size_t N) : N(N), dxdt(N), theta(N) {
         debugging_file.open("../../Generated content/debugging4");
     }
+    stepper(map<Parameter, double> paras) : stepper((2 * (int)paras[total_size])){
+        debugging_file.open("../../Generated content/debugging4");
+    }
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
     // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
@@ -160,15 +163,12 @@ public:
         // this is the operation that i want to apply on every lattice site
         // cout << endl << endl;
         // cout << "THETA IN EULER MAYURAMA:" << endl;
-        // print_container(theta);
         // cout << endl << endl;
         // cout << "Before application x = " << endl;
-        // print_container(x);
         // cout << endl;
         algebra::for_each(x, x, dxdt, theta, apply_em(dt));
         sys.map_state(x);
         // cout << "After application" << endl;
-        // print_container(x);
         // cout << endl;
         timer.set_endpoint(applying_name);
         // and that should already be it?
@@ -462,6 +462,8 @@ public:
         cout << "creating euler combined stepper" << endl;
     }
 
+    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[tol]){}
+
     int get_k() {
         return k;
     }
@@ -505,7 +507,7 @@ public:
     typedef typename operations::template apply_drift<time_type> apply_drift;
     typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
     typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
-    size_t n = N/2;
+    size_t n;
 
     void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
         // We somehow need to wave in this p~ into our architecture
@@ -524,8 +526,6 @@ public:
         // I guess it was the same deal with theta before...
         // okay so we use our first half of x to calculate the force which we save in the second half of F
         sys.calc_force(x, F, t);
-        print_container(F);
-        exit(0);
         // now we have to apply it, i think we can use apply_drift for this
         algebra::for_each(x.begin() + n, x.begin() + n, dxdt.begin() + n, n, apply_drift(0.5 * dt));
         // now this should have done x = x and p = p + dt/ 2 * F
@@ -535,11 +535,11 @@ public:
         // now to apply this we definetly need a new integrater, this one it even has to know the dampening
         // easiest would probably be to get the dampening out of the system.
         algebra::for_each(x.begin(), F.begin() + n, theta.begin(), n, apply_bbk_q(dt, sys.get_eta()));
+        sys.map_state(x);
         // now we can calculate the force again
         sys.calc_force(x, F, t);
-        print_container(F);
         // now we need to integrate p(t + dt) which needs again its own integrator
-        algebra::for_each(x.begin(), F.begin() + n, theta.begin() + n, n, apply_bbk_p(dt, sys.get_eta()));
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_p(dt, sys.get_eta()));
         // It is weird but it should be it i guess.
         // advance
         t += dt;
@@ -551,9 +551,11 @@ public:
     void reset() override {
         //supposed to reset some variables, nothing to do here
     }
-    bbk_stepper(size_t N) : stepper(N)
+    bbk_stepper(size_t N) : stepper(N), n(N/2)
     {
     }
+    bbk_stepper(map<Parameter, double> paras): bbk_stepper(2*(int)paras[total_size]){}
+
 
     void print_stepper_info() override {
         stepper::print_stepper_info();
