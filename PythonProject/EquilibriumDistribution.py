@@ -14,6 +14,9 @@ def cos_potential_x(x, p_multi=2, h = 20):
     return h * np.cos(p_multi * x)
 
 
+def harmonic_potential(x, alpha=20):
+    return alpha * x**2
+
 def start_ani(event, ax, bars, x, nr_bins=100):
     mode = event.canvas.toolbar.mode
     if event.button == 1 and event.inaxes == ax and mode == "":
@@ -27,12 +30,12 @@ def start_ani(event, ax, bars, x, nr_bins=100):
 
 
 def main():
-    root = "../../Generated content/Convergence Comparison/Euler/0.001/"
+    root = "../../Generated content/Linear Force/BBK/0.001/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
-    potential = cos_potential_x
-    x_range = np.linspace(0, 2 * np.pi, 200)
+    potential = harmonic_potential
+    x_range = np.linspace(-4, 4, 200)
     T = 1
     x = []
     nr_bins = 100
@@ -63,6 +66,7 @@ def main():
         count, bins, bars = ax.hist(x[0][2:], nr_bins, density=True, label=f"dt = {dt}")
         ax.plot(x_range, W_x, label=f"T = {T:.2f}")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
+        ax.set_ylim(0, 1.5 * np.max(W_x))
         configure_ax(fig, ax)
         animation = partial(start_ani, ax=ax, bars=bars, x=x, nr_bins=nr_bins)
         fig.canvas.mpl_connect("button_press_event", animation)

@@ -508,6 +508,70 @@ public:
     typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
     typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
     size_t n;
+    bool firststep = true;
+
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
+        // we only have to calc F in the first run, otherwise we can reuse the F of the last step
+        // also we only have to generate random numbers at the beginning if its first run
+        if(firststep) {
+            sys.calc_force(x, F, t);
+            sys.calc_diff(theta, t);
+            firststep = false;
+        }
+        // half a kick
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v1(dt, sys.get_eta()));
+        // drift on q
+        algebra::for_each(x.begin(), x.begin(), x.begin() + n, n, apply_drift());
+        sys.map_state(x);
+        // now we can calculate the force again
+        sys.calc_force(x, F, t);
+        sys.calc_diff(theta, t);
+        // half a kick
+        //                     v(n+1/2)           F(q_n+1)               R_n+1
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v2(dt, sys.get_eta()));
+        // It is weird but it should be it i guess.
+        // advance
+        t += dt;
+    }
+
+    static string get_name() {
+        return "bbk stepper";
+    }
+    void reset() override {
+        //supposed to reset some variables, nothing to do here
+    }
+    bbk_stepper(size_t N) : stepper(N), n(N/2)
+    {
+    }
+    bbk_stepper(map<Parameter, double> paras): bbk_stepper(2*(int)paras[total_size]){}
+
+
+    void print_stepper_info() override {
+        stepper::print_stepper_info();
+    }
+};
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class System,
+        class value_type = double,
+        class time_type = value_type
+>
+class bbk_stepper2 : public stepper<state_type, algebra, operations, System, value_type, time_type> {
+public:
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    typedef System Sys;         // Why this typedef? ah just to shorten things i guess
+    using stepper::dxdt;
+    state_type F = dxdt;
+    using stepper::theta;
+    using stepper::N;       // this is 2 * n so the size of a normal vector
+    using stepper::stepper;
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
+    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
+    size_t n;
 
     void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
         // We somehow need to wave in this p~ into our architecture
@@ -555,10 +619,10 @@ public:
     void reset() override {
         //supposed to reset some variables, nothing to do here
     }
-    bbk_stepper(size_t N) : stepper(N), n(N/2)
+    bbk_stepper2(size_t N) : stepper(N), n(N/2)
     {
     }
-    bbk_stepper(map<Parameter, double> paras): bbk_stepper(2*(int)paras[total_size]){}
+    bbk_stepper2(map<Parameter, double> paras): bbk_stepper2(2*(int)paras[total_size]){}
 
 
     void print_stepper_info() override {
