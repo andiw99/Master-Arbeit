@@ -318,20 +318,20 @@ public:
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin() + n, theta.begin() + n, zeta_2<double>(dt, eta, T));
 
         // the second one is doable with a lambda, i just need to recall how to write those...
-        double pref = sqrt(2 * T * eta * tau_2(dt, eta));
+        double pref = sqrt(2.0 * T * eta * tau_2(dt, eta));
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin(), zeta_1<double>(pref));
     }
 
     template <class value_type>
     __host__ __device__
     value_type static tau_1(value_type dt, value_type eta) {
-        return 1.0 / eta * (1 - exp(- eta * dt));
+        return 1.0 / eta * (1.0 - exp(- eta * dt));
     }
 
     template <class value_type>
     __host__ __device__
     value_type static tau_2(value_type dt, value_type eta) {
-        return 1.0 / (2 * eta) * (1 - exp(-2 * eta * dt));
+        return 1.0 / (2.0 * eta) * (1.0 - exp(-2.0 * eta * dt));
     }
 
     template <class T>
@@ -340,7 +340,7 @@ public:
         T pref;
         zeta_1(T dt, T eta, T temp) {
             // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2 * temp * eta * tau_2(dt, eta));
         }
         zeta_1(T pref): pref(pref) {}
         __host__ __device__
@@ -357,10 +357,10 @@ public:
             // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
             Tau_1 = tau_1(dt, eta);
             Tau_2 = tau_2(dt, eta);
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2.0 * temp * eta);
         }
         zeta_2(T dt, T eta, T temp, T Tau_1, T Tau_2): dt(dt), Tau_1(Tau_1), Tau_2(Tau_2){
-            pref = sqrt(2 * temp / eta);
+            pref = sqrt(2.0 * temp / eta);
         }
         __host__ __device__
         T operator()(const T& x, const T& y) const {
