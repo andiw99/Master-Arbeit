@@ -1580,7 +1580,7 @@ public:
 };
 
 
-struct chain : public System {
+struct chain : virtual public System {
     using left = typename System::left;
     using right = typename System::right;
 
@@ -1615,7 +1615,7 @@ struct chain : public System {
 
 };
 
-struct XY_pairs : virtual public chain, virtual public XY_model {
+struct XY_pairs : public chain, public XY_model {
     double J;
     double h;
     struct XY_pair_functor {
@@ -1647,7 +1647,10 @@ struct XY_pairs : virtual public chain, virtual public XY_model {
     };
 
 public:
-    XY_pairs(map<Parameter,double>& paras) : chain(paras), XY_model(paras), System(paras), J(paras[Parameter::J]), h(paras[Parameter::alpha]) {}
+    XY_pairs(map<Parameter,double>& paras) : chain(paras), XY_model(paras), System(paras),
+    J(paras[Parameter::J]), h(paras[Parameter::alpha]) {
+        cout << "XY_pairs system is constructed" << endl;
+    }
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
