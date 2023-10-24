@@ -1615,7 +1615,7 @@ struct chain : public System {
 
 };
 
-struct XY_pairs : public chain {
+struct XY_pairs : virtual public chain, virtual public XY_model {
     double J;
     double h;
     struct XY_pair_functor {
@@ -1647,11 +1647,11 @@ struct XY_pairs : public chain {
     };
 
 public:
-    XY_pairs(map<Parameter,double>& paras) : chain(paras), J(paras[Parameter::J]), h(paras[Parameter::alpha]) {}
+    XY_pairs(map<Parameter,double>& paras) : chain(paras), XY_model(paras), System(paras), J(paras[Parameter::J]), h(paras[Parameter::alpha]) {}
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
-        XY_pair_functor functor = XY_pair_functor(J, h, eta);
+        XY_pair_functor functor = XY_pair_functor(J, h, chain::eta);
         chain::derivative_calculation(x, dxdt, t, functor);
     }
 };
