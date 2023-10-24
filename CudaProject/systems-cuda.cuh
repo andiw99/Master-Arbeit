@@ -1695,7 +1695,7 @@ public:
         functor Functor = functor(J, eta);
         chain::derivative_calculation(x, dxdt, t, Functor);
     }
-    quadratic_chain(map<Parameter, double> paras): chain(paras), J(paras[Parameter::J]) {}
+    quadratic_chain(map<Parameter, double> paras): chain(paras), System(paras), J(paras[Parameter::J]) {}
 };
 
 
@@ -1724,7 +1724,7 @@ public:
     };
 
 public:
-    gpu_oscillator_chain(map<Parameter, double> paras): chain(paras), alpha(paras[Parameter::alpha]) {
+    gpu_oscillator_chain(map<Parameter, double> paras): chain(paras), System(paras), alpha(paras[Parameter::alpha]) {
     }
 
 };
