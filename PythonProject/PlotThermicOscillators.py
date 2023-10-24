@@ -38,6 +38,18 @@ def plot_trajectories(df, parameters):
 def theo_msd(eta, alpha, T, a, b, N):
     t = np.linspace(a, b, N)
     return t, T / alpha * (1 - np.exp(-2 * alpha / eta * t))
+
+def theo_sigma_xx(eta, alpha, T, a, b, N = 100):
+    lambda_1 = 0.5 * (eta + np.sqrt(eta ** 2 - 8 * alpha + 0j))
+    lambda_2 = 0.5 * (eta - np.sqrt(eta ** 2 - 8 * alpha + 0j))
+    t = np.linspace(a, b, N)
+    pref = eta * T / ((lambda_1 - lambda_2) ** 2)
+    sum_1 = (lambda_1 + lambda_2) / (lambda_1 * lambda_2)
+    sum_2 = 4 / (lambda_1 + lambda_2) * (np.exp(- (lambda_1 + lambda_2) * t) - 1)
+    sum_3 = 1 / lambda_1 * np.exp(-2 * lambda_1 * t)
+    sum_4 = 1 / lambda_2 * np.exp(-2 * lambda_2 * t)
+    return t, np.real(pref * (sum_1 + sum_2 - sum_3 - sum_4))
+
 def plot_theo_msd(df, parameters, savepath):
     eta = parameters["eta"]
     alpha = parameters["alpha"]
@@ -47,13 +59,16 @@ def plot_theo_msd(df, parameters, savepath):
     a = times.iloc[0]
     b = times.iloc[-1]
 
-    x_values = df.iloc[:, 1:-1]
+    x_values = df.iloc[:, 2:-1]
     n = x_values.shape[1]
+    print(x_values)
 
-
-    t, msd_theo = theo_msd(eta, alpha, T, a, b, N)
+    t, msd_theo = theo_sigma_xx(eta, alpha, T, a, b, N)
+    msd_theo = msd_theo
     msd_avg = x_values ** 2
     msd_avg = msd_avg.mean(axis=1)
+    times = np.array(times)
+    msd_avg = np.array(msd_avg)
     dt = parameters["dt"]
     fig, axes = plt.subplots(1, 1)
     axes.plot(times, msd_avg, label=f" {n} Oscialltors")
@@ -65,6 +80,7 @@ def plot_theo_msd(df, parameters, savepath):
     axes.set_title(f"Uncoupled harmonic oscillators in T={T} \n dt = {dt}")
     axes.legend()
     name = str(dt + T)
+    configure_ax(fig, axes)
     save_plot(savepath, name)
     plt.show()
 
@@ -83,18 +99,39 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 
 def main():
-    root = "../../../Generated content/Convergence Check MSD/"
+    root = "../../Generated content/Linear Force/Euler/0.0001-4-many"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
-    filepaths = new_files_in_dir(root, root, plot_all=False)
-    print(filepaths)
-    for filepath in filepaths:
-        df = read_csv(filepath)
-        txt_filepath = os.path.splitext(filepath)[0] + ".txt"
-        parameters = read_parameters_txt(txt_filepath)
 
-        # average and plot, actually no big deal
-        plot_theo_msd(df, parameters, root + "plots/")
-        #plot_trajectories(df, parameters)
+    a = 0
+    b = 5
+    T = 20
+    eta = 1
+    alpha = 20
+
+    fig, ax = plt.subplots(1, 1)
+    t, sigma = theo_sigma_xx(eta, alpha, T, a, b, 200)
+    t_msd, msd = theo_msd(eta, alpha, T, a, b, 200)
+    ax.plot(t, sigma)
+    # ax.plot(t_msd, msd)
+    configure_ax(fig, ax)
+
+    filepaths = list_directory_names(root)
+    print(filepaths)
+    for fpath in filepaths:
+        temppath = os.path.join(root, fpath)
+        files = os.listdir(temppath)
+        for file in files:
+            if os.path.splitext(file)[1] == ".csv":
+
+                filepath = os.path.join(temppath, file)
+                df = read_csv(filepath)
+                print(df)
+                txt_filepath = os.path.splitext(filepath)[0] + ".txt"
+                parameters = read_parameters_txt(txt_filepath)
+
+                # average and plot, actually no big deal
+                plot_theo_msd(df, parameters, root + "plots/")
+                #plot_trajectories(df, parameters)
 
     plotted_files = open(root + "/plotted_files.txt", "a")
     for f in filepaths:

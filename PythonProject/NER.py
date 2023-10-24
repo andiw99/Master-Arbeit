@@ -83,7 +83,7 @@ def main():
     create_directory_if_not_exists(root + "/plots/NER plots")
 
     for temp_dir in root_dirs:
-        if (temp_dir != "NER plots") & (temp_dir != "plots"):
+        if (temp_dir != "NER plots") and (temp_dir != "plots"):
             temp_path = os.path.join(root, temp_dir)
 
             # now we need all ner files in this folder
@@ -94,6 +94,7 @@ def main():
                 if os.path.splitext(file)[1] == file_extension:
                     runs += 1
                     file_path = os.path.join(temp_path, file)
+                    print(file_path)
                     df = read_struct_func(file_path)
                     t = np.array(df["t"])
                     m = np.array(df["m"])

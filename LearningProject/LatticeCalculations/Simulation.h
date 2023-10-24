@@ -32,6 +32,20 @@ calcHandler* create(Calc calc, const fs::path& root){
 }
 
 
+struct sin_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return sin(x);
+    }
+};
+
+struct unity_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return x;
+    }
+};
+
 calcHandler* create(Calc calc){
     return create(calc, "./");
 }
@@ -40,7 +54,7 @@ using namespace std;
 namespace fs = std::filesystem;
 using namespace fs;
 
-
+template <class transform_functor>
 class simulation {
     // We probably need many class members and we maybe should split the functions to different handlers
     fs::path root;
@@ -129,8 +143,9 @@ public:
                 // plot atm, but i guess we could fix that in the future?
                 auto lat_q = readDoubleValuesAt(file, -1,  T, t);
                 if(chessTrafo) {
-                    chess_trafo(lat_q);
+                    chess_trafo_rectangular(lat_q, dim_size_x);
                 }
+                transform(lat_q.cbegin(), lat_q.cend(), lat_q.begin(), transform_functor());
                 // calling the calcs... it would be even more efficient if I had to cycle over the
                 // lattice only once, but that would be really complicated to implement
                 for (auto handler : handlers) {

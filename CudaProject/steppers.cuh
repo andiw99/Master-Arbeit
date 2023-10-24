@@ -33,6 +33,9 @@ public:
     stepper(size_t N) : N(N), dxdt(N), theta(N) {
         debugging_file.open("../../Generated content/debugging4");
     }
+    stepper(map<Parameter, double> paras) : stepper((2 * (int)paras[total_size])){
+        debugging_file.open("../../Generated content/debugging4");
+    }
     // the system size, but what is N if i am in 2 dimensions? probably n * n. But how can i initialize the inital
     // values for all sites? not just by "stat_type(N)"
     // i still don't fully understand what the state_type is, is it just (x, p) for one lattice site? Or is it the
@@ -92,6 +95,10 @@ public:
                 obs->operator()(sys, x, t);
             }
         }
+    }
+
+    static string get_name() {
+        return "base stepper";
     }
 };
 
@@ -156,15 +163,12 @@ public:
         // this is the operation that i want to apply on every lattice site
         // cout << endl << endl;
         // cout << "THETA IN EULER MAYURAMA:" << endl;
-        // print_container(theta);
         // cout << endl << endl;
         // cout << "Before application x = " << endl;
-        // print_container(x);
         // cout << endl;
         algebra::for_each(x, x, dxdt, theta, apply_em(dt));
         sys.map_state(x);
         // cout << "After application" << endl;
-        // print_container(x);
         // cout << endl;
         timer.set_endpoint(applying_name);
         // and that should already be it?
@@ -458,6 +462,8 @@ public:
         cout << "creating euler combined stepper" << endl;
     }
 
+    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[Parameter::tol]){}
+
     int get_k() {
         return k;
     }
@@ -480,6 +486,150 @@ private:
     state_type x_drift, dx_drift_dt;
 };
 
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class System,
+        class value_type = double,
+        class time_type = value_type
+>
+class bbk_stepper : public stepper<state_type, algebra, operations, System, value_type, time_type> {
+public:
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    typedef System Sys;         // Why this typedef? ah just to shorten things i guess
+    using stepper::dxdt;
+    state_type F = dxdt;
+    using stepper::theta;
+    using stepper::N;       // this is 2 * n so the size of a normal vector
+    using stepper::stepper;
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
+    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
+    size_t n;
+    bool firststep = true;
+
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
+        // we only have to calc F in the first run, otherwise we can reuse the F of the last step
+        // also we only have to generate random numbers at the beginning if its first run
+        if(firststep) {
+            sys.calc_force(x, F, t);
+            sys.calc_diff(theta, t);
+            firststep = false;
+        }
+        // half a kick
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v1(dt, sys.get_eta()));
+        // drift on q
+        algebra::for_each(x.begin(), x.begin(), x.begin() + n, n, apply_drift(dt));
+        sys.map_state(x);
+        // now we can calculate the force again
+        sys.calc_force(x, F, t);
+        sys.calc_diff(theta, t);
+        // half a kick
+        //                     v(n+1/2)           F(q_n+1)               R_n+1
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v2(dt, sys.get_eta()));
+        // It is weird but it should be it i guess.
+        // advance
+        t += dt;
+    }
+
+    static string get_name() {
+        return "bbk stepper";
+    }
+    void reset() override {
+        //supposed to reset some variables, nothing to do here
+    }
+    bbk_stepper(size_t N) : stepper(N), n(N/2)
+    {
+    }
+    bbk_stepper(map<Parameter, double> paras): bbk_stepper(2*(int)paras[total_size]){}
+
+
+    void print_stepper_info() override {
+        stepper::print_stepper_info();
+    }
+};
+
+template<
+        class state_type,
+        class algebra,
+        class operations,
+        class System,
+        class value_type = double,
+        class time_type = value_type
+>
+class bbk_stepper2 : public stepper<state_type, algebra, operations, System, value_type, time_type> {
+public:
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    typedef System Sys;         // Why this typedef? ah just to shorten things i guess
+    using stepper::dxdt;
+    state_type F = dxdt;
+    using stepper::theta;
+    using stepper::N;       // this is 2 * n so the size of a normal vector
+    using stepper::stepper;
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::template apply_bbk_v1<time_type> apply_bbk_v1;
+    typedef typename operations::template apply_bbk_v2<time_type> apply_bbk_v2;
+    size_t n;
+
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
+        // We somehow need to wave in this p~ into our architecture
+        // and what is fundamentally different is that we need two random variables per side per step
+        // and we actually cannot really multiply it with the temperature beforehand which might be a problem...
+        // seems like we sadly have to restructure a bit? New methods for bbk aswell as splitting old stuff to be more
+        // modular
+
+        // I am a bit unsure of how i am supposed to implement this shhhiii... I think dx_dt will now be used for F(x(t))
+        // the p~ will be saved in the p spots of x?
+
+        // I somehow need to calculate v~(t) then x(t +dt) then v(t +dt) sequientially? I cannot do it simoultanously anymore?
+        // since i cannot do it simoultaneously, there is no reason to have q and p in the same vector anymore?
+        // we should probably still leave it like that because we otherwise get compatibility problems everywhere?
+        // weird thing is just that we now have the first half of dxdt always empty so pretty useless
+        // I guess it was the same deal with theta before...
+        // okay so we use our first half of x to calculate the force which we save in the second half of F
+        sys.calc_force(x, F, t);
+        // now we have to apply it, i think we can use apply_drift for this
+        //                      v~          v                   F
+        algebra::for_each(x.begin() + n, x.begin() + n, F.begin() + n, n, apply_drift(0.5 * dt));
+        // now this should have done x = x and p = p + dt/ 2 * F
+        // now we need to calculate q (t + dt), therefore we need the theta vector
+        sys.calc_diff_bbk(theta, dt);
+        // The theta vector should now be filled with the temp * zeta values
+        // now to apply this we definetly need a new integrater, this one it even has to know the dampening
+        // easiest would probably be to get the dampening out of the system.
+        // Watch out! you need zeta_2 first but you wrot it into second half of theta.
+        //                  q           v~              zeta_2
+        algebra::for_each(x.begin(), x.begin() + n, theta.begin() + n, n, apply_bbk_q(dt, sys.get_eta()));
+        sys.map_state(x);
+        // now we can calculate the force again
+        sys.calc_force(x, F, t);
+        // now we need to integrate p(t + dt) which needs again its own integrator
+        //                     v~           F               zeta_1
+        algebra::for_each(x.begin() + n, F.begin() + n, theta.begin(), n, apply_bbk_p(dt, sys.get_eta()));
+        // It is weird but it should be it i guess.
+        // advance
+        t += dt;
+    }
+
+    static string get_name() {
+        return "bbk stepper";
+    }
+    void reset() override {
+        //supposed to reset some variables, nothing to do here
+    }
+    bbk_stepper2(size_t N) : stepper(N), n(N/2)
+    {
+    }
+    bbk_stepper2(map<Parameter, double> paras): bbk_stepper2(2*(int)paras[total_size]){}
+
+
+    void print_stepper_info() override {
+        stepper::print_stepper_info();
+    }
+};
+
 template<
         class state_type,
         class algebra,
@@ -490,15 +640,23 @@ template<
         template<class, class, class, class, class, class> class stepper_type
 >
 stepper_type<state_type, algebra, operations, System, value_type, time_type>* create_stepper(map<Parameter, double>& paras, int n) {
-    if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
+    int N = 2;   // N for now no parameter
+    cout << stepper_type<state_type, algebra, operations, System, value_type, time_type>::get_name();
+    if (stepper_type<state_type, algebra, operations, System, value_type, time_type>::get_name() == "bbk stepper") {
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+    }
+    else if(is_same<stepper_type<state_type, algebra, operations, System, value_type, time_type>,
             euler_combined<state_type, algebra, operations, System, value_type, time_type>>::value){
         // damn tahts ugly#
         // TODO This cannot! possibly work, i see it already. probably we have to exchange one 'class' with template<size_t> class
-        int N = 2;   // N for now no parameter
         double K = paras[Parameter::K];
         double tol = paras[Parameter::tol];
-        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
-    } // TODO other steppers
+        // return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n, K ,tol);
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+    } else {
+        return new stepper_type<state_type, algebra, operations, System, value_type, time_type>(N * n);
+
+    }// TODO other steppers
 }
 
 template<

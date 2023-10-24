@@ -119,7 +119,8 @@ public:
             // where to put otherwise
             n = (int)(paras[Parameter::dim_size_x] * paras[Parameter::dim_size_y]);
             paras[Parameter::total_size] = n;
-            stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
+            // stepper = create_stepper<state_type, alg, oper, sys, double, double, stepper_type>(paras);
+            stepper = new stepper_type<state_type, alg, oper, sys, double, double>(paras);
         }
         run(run_count);
         if(runs > 0) {

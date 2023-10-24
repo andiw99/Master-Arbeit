@@ -40,6 +40,11 @@ public:
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        cout << "standard init state called" << endl;
+    }
+
     virtual void print_info() {
         cout << "Printing system info:" << endl;
         cout << "step_nr = " << step_nr << endl;
@@ -136,7 +141,7 @@ public:
 
     struct left : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
             // we have to think about that we are actually in 2D and i guess we want to use PBC?
             // so we have to know the system size
@@ -156,7 +161,8 @@ public:
 
     struct right : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        // TODO ist this fine if it is virtual?
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i+1, expect when i is on the right side of the lattice
             // if i is on the right side of the lattice, j is i - (d - 1)
             // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
@@ -167,7 +173,7 @@ public:
 
     struct up : public vert_neighbor{
         using vert_neighbor::vert_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i - d, except when i is on the upper bound of the lattice
             // if it is on the upper bound, j will be i + d(d-1)
             // if i is on the upper bound, i will be smaller than d
@@ -180,7 +186,7 @@ public:
 
     struct down : public vert_neighbor {
         using vert_neighbor::vert_neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
+        virtual __host__ __device__ size_t operator()(size_t i) const {
             // j is always i + d, except when i is on the lower bound of the lattice
             // if it is on the lower bound, j will be i - d(d-1)
             // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
@@ -200,11 +206,49 @@ public:
     };
 
     template<class State, class Deriv, class FunctorType>
-    void universalStepOperations(State &x, Deriv &dxdt, double t, FunctorType functor) {
+    void derivative_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 x.begin() + n,
                 dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down(dim_size_x, dim_size_y)
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
+    template<class State, class Deriv, class FunctorType>
+    void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
                 dxdt.begin() + n,
                 thrust::make_permutation_iterator(
                         x.begin(),
@@ -250,26 +294,84 @@ public:
         // engine just advancing? Maybe just switch to hiprand?
         long seed = (mus.count() % 10000000) * 1000000000;
         thrust::counting_iterator<size_t> index_sequence_begin(seed);
-        // cout << seed << endl;
-/*        if(step_nr == 0) {
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }*/
-        // cout << step_nr << endl;
+
         thrust::transform(index_sequence_begin,
                           index_sequence_begin + n,
                           theta.begin() + n,
                           rand(D));
-        // print_container(theta);
-        // cout << endl;
+
     }
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, hiprand(D));
-        for(int i = 0; i < 20; i++) {
-            cout << theta[n + i] << "   ";
+    }
+
+    template<class Stoch>
+    void calc_diff_bbk(Stoch &theta, double dt) {
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
+        thrust::for_each(start, start + (2 * n), hiprand(1.0));      // first n are n_1, second n are n_2
+        // okay i want the first n entries of theta to be sqrt(2T / eta) zeta_2, the second n entries will be sqrt(2Teta) zeta_1
+        // the problem is that i need th stepsize for this, which i find a bit unelegent, but whatever
+        // so this line is supposed to transform the n_2 that sit in the second part of theta to zeta_2
+        thrust::transform(theta.begin(), theta.begin() + n, theta.begin() + n, theta.begin() + n, zeta_2<double>(dt, eta, T));
+
+        // the second one is doable with a lambda, i just need to recall how to write those...
+        double pref = sqrt(2 * T / eta * tau_2(dt, eta));
+        thrust::transform(theta.begin(), theta.begin() + n, theta.begin(), zeta_1<double>(pref));
+    }
+
+    template <class value_type>
+    __host__ __device__
+    value_type static tau_1(value_type dt, value_type eta) {
+        return 1.0 / eta * (1 - exp(- eta * dt));
+    }
+
+    template <class value_type>
+    __host__ __device__
+    value_type static tau_2(value_type dt, value_type eta) {
+        return 1.0 / (2 * eta) * (1 - exp(-2 * eta * dt));
+    }
+
+    template <class T>
+    struct zeta_1
+    {
+        T pref;
+        zeta_1(T dt, T eta, T temp) {
+            // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
+            pref = sqrt(2 * temp * eta);
         }
+        zeta_1(T pref): pref(pref) {}
+        __host__ __device__
+        T operator()(const T& x) const {
+            return pref * x;
+        }
+    };
+
+    template <class T>
+    struct zeta_2
+    {
+        T dt, Tau_1, Tau_2, pref;
+        zeta_2(T dt, T eta, T temp): dt(dt){
+            // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
+            Tau_1 = tau_1(dt, eta);
+            Tau_2 = tau_2(dt, eta);
+            pref = sqrt(2 * temp * eta);
+        }
+        zeta_2(T dt, T eta, T temp, T Tau_1, T Tau_2): dt(dt), Tau_1(Tau_1), Tau_2(Tau_2){
+            pref = sqrt(2 * temp * eta);
+        }
+        __host__ __device__
+        T operator()(const T& x, const T& y) const {
+            return pref * (((Tau_1 - Tau_2) / sqrt(Tau_2)) * x + sqrt(dt - pow(Tau_1, 2) / Tau_2) * y);
+        }
+    };
+
+    template<class State>
+    void map_state(State &x) {
+        // Okay this maps the state to a certain interval, doesnt do anything for most systems, but for XY and dipol
+        // system we map onto the intervals for the angles
     }
 
     template <class T>
@@ -299,12 +401,12 @@ public:
                                             n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-        curand_states = thrust::device_vector<hiprandState>(n);  // TODO is this okay?
+        curand_states = thrust::device_vector<hiprandState>(2 * n);  // TODO is this okay?
         // counting iterator counting from 0 to n. Every lattice site needs its own state i think
         // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
         auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
         // now we call hiprand init with sequence numbers from the counting iterator
-        thrust::for_each(sInit, sInit + n, curand_setup(step_nr));
+        thrust::for_each(sInit, sInit + 2*n, curand_setup(step_nr));      // now 2n, moare states should not be a problem and then we can use it also for the bbk random numbers?
 
     }
 
@@ -413,6 +515,11 @@ public:
     }
 
     template<class State>
+    double calc_f_me(State &x) {
+        return 0;
+    }
+
+    template<class State>
     double calc_m(State &x) {
         double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
         return m;
@@ -425,10 +532,120 @@ public:
     size_t get_step_nr() {
         return step_nr;
     }
+
+    double get_eta() {
+        return eta;
+    }
 };
 
 
+struct NNN_System: public System {
+    using System::System;       // inherit constructor
 
+    struct up_right : public up, public right{
+        up_right(size_t dimension_size_x, size_t dimension_size_y):
+                right(dimension_size_x), up(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // up right is just the upper neighbor of the right neighbor
+            return right::operator()(up::operator()(i));
+        }
+    };
+
+    struct up_left : public up, public left{
+        up_left(size_t dimension_size_x, size_t dimension_size_y):
+                left(dimension_size_x), up(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // up right is just the upper neighbor of the right neighbor
+            return left::operator()(up::operator()(i));
+        }
+    };
+    struct down_right : public down, public right{
+        down_right(size_t dimension_size_x, size_t dimension_size_y):
+                right(dimension_size_x), down(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // down right is just the downper neighbor of the right neighbor
+            return right::operator()(down::operator()(i));
+        }
+    };
+    struct down_left : public down, public left{
+        down_left(size_t dimension_size_x, size_t dimension_size_y):
+                left(dimension_size_x), down(dimension_size_x, dimension_size_y){}
+        __host__ __device__ size_t operator()(size_t i) const override{
+            // down left is just the downper neighbor of the left neighbor
+            return left::operator()(down::operator()(i));
+        }
+    };
+
+    template<class State, class Deriv, class FunctorType>
+    void derivative_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down(dim_size_x, dim_size_y)
+                        )
+                ),
+                // okay tuple can only have 10 entries so we make another tuple here?
+                thrust::make_zip_iterator(thrust::make_tuple(thrust::make_permutation_iterator(
+                                           x.begin(),
+                                           thrust::make_transform_iterator(
+                                                   thrust::counting_iterator<size_t>(0),
+                                                   down_right(dim_size_x, dim_size_y)
+                                           )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           down_left(dim_size_x, dim_size_y)
+                                                   )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           up_right(dim_size_x, dim_size_y)
+                                                   )
+                                           ),
+                                           thrust::make_permutation_iterator(
+                                                   x.begin(),
+                                                   thrust::make_transform_iterator(
+                                                           thrust::counting_iterator<size_t>(0),
+                                                           up_left(dim_size_x, dim_size_y)
+                                                   )
+                                           )))
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
+};
 
 
 struct constant_bath : public System {
@@ -484,18 +701,16 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-        // cout << "calc_drift is called" << endl;
         timer.set_startpoint(functor_point);
 
         bath_functor functor = bath_functor(System::eta, alpha, beta, J);
 
-        this->universalStepOperations(x, dxdt, t, functor);
+        this->derivative_calculation(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
     }
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        // cout << "calc_diff is called" << endl;
         timer.set_startpoint(rng);
         System::calc_diff(theta, t);
         timer.set_endpoint(rng);
@@ -594,7 +809,7 @@ public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
         coulomb_functor functor = coulomb_functor(System::eta, alpha, beta, J);
-        this->universalStepOperations(x, dxdt, t, functor);
+        this->derivative_calculation(x, dxdt, t, functor);
     }
 
 
@@ -627,7 +842,6 @@ public:
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
-        // cout << "calc_diff is called" << endl;
         System::calc_diff(theta, t);
     }
 };
@@ -843,7 +1057,7 @@ public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
         ani_coulomb_functor functor = ani_coulomb_functor(System::eta, alpha, beta, Jx, Jy);
-        this->universalStepOperations(x, dxdt, t, functor);
+        this->derivative_calculation(x, dxdt, t, functor);
     }
 
     anisotropic_coulomb_interaction(const double T, const double eta, const double alpha, const double beta, const double Jx, const double Jy, const size_t lat_dim, const int init_step=0)
@@ -921,27 +1135,36 @@ public:
 
 };
 
+template <class value_type>
+__host__ __device__
+inline value_type positive_modulo(value_type i, value_type n) {
+    return fmod((fmod(i, n) + n), n);
+}
 
 class XY_model : virtual public System {
-    double J;
-    double h;
     using left = typename System::left;
     using right = typename System::right;
     using up = typename System::up;
     using down = typename System::down;
+    const double p_XY = 2;     // for the potential, will be 2 for bistable XY and 2.5 for silicon
+    const double m = 1;     // prefactor for the interaction, important if we dont have the 2 pi periodicy
+protected:
+
+    double J;
+    double h;
 
     struct xy_functor {
-        const double J, h, eta;
+        const double J, h, eta, p_XY, m;
 
-        xy_functor(const double eta, const double J, const double h) : J(J), h(h), eta(eta) { }
+        xy_functor(const double eta, const double J, const double h, const double p_XY, const double m) :
+        J(J), h(h), eta(eta), p_XY(p_XY), m(m) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
             // Okay I think we have to think about where to % 2pi the system and I think i would like
             // to do it here since I can then easier switch between the models and do not have to adjust the stepper
-            double q = fmod(thrust::get<0>( tup ), (2.0 * M_PI));
+            double q = thrust::get<0>( tup );
             double p = thrust::get<1>( tup );
-            thrust::get<0>( tup ) = q;
             thrust::get<2>( tup ) = p;
             double q_left = thrust::get<4>(tup);
             double q_right = thrust::get<5>(tup);
@@ -949,11 +1172,36 @@ class XY_model : virtual public System {
             double q_down = thrust::get<7>(tup);
 
             double interaction = J * (
-                    +   sin(q - q_up)   + sin(q - q_down)
-                    +   sin(q - q_left) + sin(q - q_right)
+                    +   sin(m * (q - q_up))   + sin(m * (q - q_down))
+                    +   sin(m * (q - q_left)) + sin(m * (q - q_right))
             );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
-                                    + 2 * h * sin(2 * q) // bistable potential
+                                    + p_XY * h * sin(p_XY * q) // bistable potential
+                                    - interaction;       // Interaction
+        }
+    };
+
+    struct xy_force {
+        const double J, h, eta, p_XY, m;
+
+        xy_force(const double eta, const double J, const double h, const double p_XY, const double m) :
+                J(J), h(h), eta(eta), p_XY(p_XY), m(m) {
+        }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            // Okay I think we have to think about where to % 2pi the system and I think i would like
+            // to do it here since I can then easier switch between the models and do not have to adjust the stepper
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<2>(tup);
+            double q_right = thrust::get<3>(tup);
+            double q_up = thrust::get<4>(tup);
+            double q_down = thrust::get<5>(tup);
+            double interaction = J * (
+                    +   sin(m * (q - q_up))   + sin(m * (q - q_down))
+                    +   sin(m * (q - q_left)) + sin(m * (q - q_right))
+            );
+            thrust::get<1>( tup ) = p_XY * h * sin(p_XY * q) // bistable potential
                                     - interaction;       // Interaction
         }
     };
@@ -978,8 +1226,64 @@ class XY_model : virtual public System {
         }
     };
 
+    struct map_functor {
+        template<class value_type>
+        __host__ __device__ value_type operator()(value_type q) {
+            return positive_modulo(q, 2.0 * M_PI);
+        }
+    };
+
+    struct init_functor {
+        size_t n;
+        double equil_pos, range_min, range_max;
+
+        init_functor(size_t n, double equil_pos, double range_min, double range_max): n(n), equil_pos(equil_pos), range_min(range_min), range_max(range_max) {}
+        template<class State>
+        void operator()(map<Parameter, double>& paras, State &x) {
+            cout << "XY init_state is called with equil_pos = " << equil_pos << endl;
+            if(paras[random_init] == 0.0) {
+                // equilibrium initialization -> we are in XY model with p=2, meaning we have
+                // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
+                thrust::fill(x.begin(), x.begin()+n, equil_pos);
+
+            } else {
+                // random initialization
+                double p_ampl = paras[p0];
+
+                chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds >(
+                        chrono::system_clock::now().time_since_epoch()
+                );
+                auto seed = ms.count() % 10000;
+                thrust::counting_iterator<size_t> index_sequence_begin(seed * x.size());
+                // theta is uniformly distributed between 0 and 2 pi
+                thrust::transform(index_sequence_begin,
+                                  index_sequence_begin + n,
+                                  x.begin(),
+                                  rand_uni_values(range_min, range_max));
+                // impuls or angular velocity normal distributed around 0;
+                thrust::transform(index_sequence_begin + n,
+                                  index_sequence_begin + 2*n,
+                                  x.begin() + n,
+                                  rand_normal_values(p_ampl, 0, 1));
+
+            }
+        }
+    };
+
 public:
-    void print_info() override {
+
+    template<class State>
+    void map_state(State &x) {
+        // we map every q onto [-pi/2, pi/2]
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+    }
+
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        init_functor(n, M_PI/2, 0, 2 * M_PI)(paras, x);
+    }
+
+    void print_info() override{
         System::print_info();
         cout << "h = " << h << endl;
         cout << "J = " << J << endl;
@@ -987,9 +1291,16 @@ public:
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
-        xy_functor functor = xy_functor(System::eta, J, h);
-        this->universalStepOperations(x, dxdt, t, functor);
+        xy_functor functor = xy_functor(System::eta, J, h, p_XY, m);
+        System::derivative_calculation(x, dxdt, t, functor);
     }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        xy_force functor = xy_force(System::eta, J, h, p_XY, m);
+        System::force_calculation(x, dxdt, t, functor);
+    }
+
 
     template<class State>
     double calc_f_me(State &x) {
@@ -998,10 +1309,166 @@ public:
     }
 
     XY_model(map<Parameter,double>& paras)
-    : System(paras), J(paras[Parameter::J]), h(paras[alpha]) {
+    : System(paras), J(paras[Parameter::J]), h(paras[alpha]), m(paras[Parameter::m]), p_XY(paras[Parameter::p]) {
         cout << "Xy model constructor is called "<< endl;
         print_info();
     }
+};
+
+
+class XY_quench: public XY_model, public quench {
+public:
+    XY_quench(map<Parameter, double>& paras): XY_model(paras), quench(paras), System(paras) {
+        cout << "XY Quench System is constructed" << endl;
+    }
+    void print_info() override {
+        quench::print_info();
+        XY_model::print_info();
+    }
+
+};
+
+
+class XY_Silicon: virtual public XY_model {
+    // we only have to set the map functor new? And obviously the right p, m stuff
+    const double p_XY = 2.57;           // does this work? Can i just redeclare them here?
+    const double m = 2.0;
+
+    struct map_functor {        // TODO Question if this already works without redefining map_state?
+        template<class value_type>
+        __host__ __device__ value_type operator()(value_type q) {
+            return positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
+        }
+    };
+
+    template<class State, class Deriv>
+    void calc_drift(State &x, Deriv &dxdt, double t) {
+        cout << "Using p_XY = " << p_XY << endl;
+        XY_model::xy_functor functor = XY_model::xy_functor(System::eta, J, h, p_XY, m);
+        System::derivative_calculation(x, dxdt, t, functor);
+    }
+
+    template<class State>
+    void init_state(map<Parameter, double>& paras, State &x) {
+        double equil_pos = (7.0 / 18.0) * M_PI;
+        double range_min = - M_PI / 2;
+        double range_max = M_PI / 2;
+        init_functor(n, equil_pos, range_min, range_max)(paras, x);
+    }
+
+    XY_Silicon(map<Parameter,double>& paras): System(paras), XY_model(paras) {}
+};
+
+#define DIAG_DIST 11.18033988749895
+#define DIAG_PREF 1.4
+#define P_COS   2.5714285714285716
+
+class dipol_interaction: public NNN_System {
+    double p_mom;   // q * l dipole moment
+    double h;   // strength of anisotropy potential
+
+public:
+
+    struct dipol_functor {
+        double p_mom;
+        double h;
+        double eta;
+        dipol_functor(double eta, double p_mom, double h): eta(eta), p_mom(p_mom), h(h) {}
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+
+            // thrust::get<8>(tup) should get us the tuple with the 4 NNN, so we get the value with get<i>
+            double q_down_right = thrust::get<0>(thrust::get<8>(tup));
+            double q_down_left = thrust::get<1>(thrust::get<8>(tup));
+            double q_up_right = thrust::get<2>(thrust::get<8>(tup));
+            double q_up_left = thrust::get<0>(thrust::get<8>(tup));
+            double interaction = (DIAG_PREF * cos(q) * sin(q_down_right) + sin(q) * cos(q_down_right) +
+                            DIAG_PREF * cos(q) * sin(q_down_left) + sin(q) * cos(q_down_left) +
+                            DIAG_PREF * cos(q) * sin(q_up_right) + sin(q) * cos(q_up_right) +
+                            DIAG_PREF * cos(q) * sin(q_up_left) + sin(q) * cos(q_up_left)
+                            )  / DIAG_DIST;                         // NNN Interaction
+
+            interaction += 1.0 / 8.0 * (
+                    2 * cos(q) * sin(q_right) + sin(q) * cos(q_right) +         // right neighbor
+                    2 * cos(q) * sin(q_left) + sin(q) * cos(q_left)           // left neighbor
+            );
+            interaction += - (
+                     - cos(q) * sin(q_up) + sin(q) * cos(q_up) +         // up neighbor
+                     - cos(q) * sin(q_down) + sin(q) * cos(q_down));           // down neighbor
+
+            thrust::get<2>( tup ) = p;
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                       + P_COS * h * sin(P_COS * q) // bistable potential
+                                       - pow(p_mom, 2) * interaction;       // Interaction
+        }
+    };
+
+    struct potential_energy_functor {
+        const double J, h;
+
+        potential_energy_functor(const double J, const double h) : J(J), h(h) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double q_left =     thrust::get<1>(tup);
+            double q_right =    thrust::get<2>(tup);
+            double q_up =       thrust::get<3>(tup);
+            double q_down =     thrust::get<4>(tup);
+
+            // now here the logic for the energy
+            double E_pot = h * cos(P_COS * q);
+            // TODO not implemented
+            double E_interaction = 0;
+            thrust::get<5>(tup) = E_pot + E_interaction;
+        }
+    };
+
+    struct map_functor {
+        template<class value_type>
+        __host__ __device__ value_type operator()(value_type q) {
+            return positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
+        }
+    };
+
+    void print_info() override {
+        System::print_info();
+        cout << "h = " << h << endl;
+        cout << "p_mom = " << p_mom << endl;
+    }
+
+    template<class State, class Deriv>
+    void calc_drift(State &x, Deriv &dxdt, double t) {
+        dipol_functor functor = dipol_functor(System::eta, p_mom, h);
+        NNN_System::derivative_calculation(x, dxdt, t, functor);
+    }
+    template<class State>
+    void map_state(State &x) {
+        // maybe we don't have to redeclare map state again all the time?
+        // we map every q onto [-pi/2, pi/2]
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), map_functor());
+    }
+
+
+    template<class State>
+    double calc_f_me(State &x) {
+        auto functor = potential_energy_functor(J, h);
+        return System::calc_f_me(x, functor);
+    }
+
+    dipol_interaction(map<Parameter,double>& paras)
+    : NNN_System(paras), p_mom(paras[Parameter::J]), h(paras[alpha]) {
+        cout << "dipol model constructor is called "<< endl;
+        print_info();
+    }
+
 };
 
 
@@ -1051,6 +1518,28 @@ public:
         }
     };
 
+    struct linear_force {
+        const double J, alpha;
+
+        linear_force(const double J, const double alpha) :
+                J(J), alpha(alpha) {
+        }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            // Okay I think we have to think about where to % 2pi the system and I think i would like
+            // to do it here since I can then easier switch between the models and do not have to adjust the stepper
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<2>(tup);
+            double q_right = thrust::get<3>(tup);
+            double q_up = thrust::get<4>(tup);
+            double q_down = thrust::get<5>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<1>( tup ) =  -alpha * (2 * q)  // linear force
+                                    + interaction;       // Interaction
+        }
+    };
 
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -1058,8 +1547,14 @@ public:
 
         harmonic_trap_functor functor = harmonic_trap_functor(System::eta, alpha, J);
 
-        this->universalStepOperations(x, dxdt, t, functor);
+        System::derivative_calculation(x, dxdt, t, functor);
         timer.set_endpoint(functor_point);
+    }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        linear_force functor =linear_force(J, alpha);
+        System::force_calculation(x, dxdt, t, functor);
     }
 
     template<class Stoch>
@@ -1073,6 +1568,10 @@ public:
     quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const size_t lat_dim, const int init_step=0)
             : System(init_step, eta, T, lat_dim), alpha(alpha), J(J) {
         cout << "Lattice quadratic Trap System is constructed" << endl;
+    }
+
+    quadratic_trapped_lattice(map<Parameter, double> paras): System(paras), alpha(paras[Parameter::alpha]), J(paras[Parameter::J]) {
+        cout << "Lattice quadratic Trap System from parameter map is constructed" << endl;
     }
 
     double get_cur_T() const{

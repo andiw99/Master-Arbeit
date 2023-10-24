@@ -6,8 +6,8 @@
 #include "configs.h"
 
 int main() {
-
-    simulation sim = simulation(root);
+    typedef sin_functor transformation_functor;
+    simulation sim = simulation<transformation_functor>(root);
     sim.run(calcs);
 
     return 0;
