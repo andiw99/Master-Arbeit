@@ -41,5 +41,30 @@ public:
 };
 
 
+struct sin_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return sin(x);
+    }
+};
+
+struct cos_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return cos(x);
+    }
+};
+
+pair<double, double> calc_m(vector<double>& q_cell) {
+    pair<double, double> m;
+    m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0, plus<double>(), sin_functor());
+    m.second = transform_reduce(q_cell.begin(), q_cell.end(),  0, plus<double>(), cos_functor());
+    return m;
+}
+
+double squared(pair<double, double> m) {
+    return m.first * m.first + m.second * m.second;
+}
+
 
 #endif //LEARNINGPROJECT_CALCHANDLER_CPP

@@ -1641,7 +1641,7 @@ struct XY_pairs : public chain, public XY_model {
             }
 
             thrust::get<3>( tup ) = (-eta) * p                         // Friction
-                                    + h * sin(2 * q)                // on site potential
+                                    + 2 * h * sin(2 * q)                // on site potential
                                     - J * sin(q - q_partner);       // interaction
         }
     };

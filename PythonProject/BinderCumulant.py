@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/XY Very Detailed"
+    root = "../../Generated content/XY/XY Very Detailed"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,12 +43,12 @@ def main():
     interpol_dic = {}
     exclude_large_dists = 0
     exclude_small_dists = 0
-    min_temp = 9.0
+    min_temp = 0
     max_temp = 100.0
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-    r = 3
+    r = 4
     figsize = (1.2 *  6.4, 4.8)
 
     transparent_plots = False
@@ -141,10 +141,11 @@ def main():
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
     print(cum_dic.keys())
     line_nr = 0
+    shown_inds = np.linspace(0, len(cum_dic.keys()) - 1, r)
     for i,size in enumerate(cum_dic.keys()):
         # only plot every n-th
         interpol_dic[size] = np.interp(T_inter_arr, T, cum_dic[size])
-        if i%r == 0:
+        if i in shown_inds:
             # print(size, cum_dic[size])
             # interpolation
             ax.errorbar(T, cum_dic[size], yerr = cum_err_dic[size], ls="",
@@ -275,27 +276,27 @@ def main():
     fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=transparent_plots)
     plt.show()
 
+    # show nu vs L_max
+    L_max_lower = 5
+    L_max_upper = 50
+    L_max_upper = np.minimum(L_max_upper, np.max(size_arr))
+    nu_arr = []
+    L_max_arr = np.arange(L_max_lower, L_max_upper)
+    for L_max in L_max_arr:
+        diff_fit_arr = diff_arr[size_arr < L_max]
+        size_fit_arr = size_arr[size_arr < L_max]
+        popt, _ = curve_fit(linear_fit, np.log(size_fit_arr), np.log(diff_fit_arr))
+        nu = 1 / popt[0]
+        nu_arr.append(nu)
 
+    print(L_max_arr)
+    print(nu_arr)
 
-    #
-    ## Setze Tickmarken und Labels
-    #ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    #ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-    #
-    #
-    #ax.xaxis.set_major_locator(ticker.MultipleLocator(base=0.2))
-    #ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=0.04))
-    ## TODO minor locator muss
-    #ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
-    ## Füge Gitterlinien hinzu
-    #ax.grid(which='major', linestyle='--', alpha=0.5)
-    #for size in T_dic.keys():
-    #    ax.plot(T_dic[size], m_dic[size], ls="", marker="+")
-    #ax.set_xlabel("T")
-    #ax.set_ylabel(r"$\xi(T)$")
-    #ax.set_title("Magnetization on T")
-    #save_plot(root, "/mag.png")
-
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(L_max_arr, nu_arr)
+    ax.set_xlabel(r"$L_{max}$")
+    ax.set_ylabel(r"$\nu$")
+    configure_ax(fig, ax)
     plt.show()
 
 

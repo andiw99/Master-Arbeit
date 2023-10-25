@@ -6,7 +6,7 @@
 #include "configs.h"
 
 int main() {
-    typedef sin_functor transformation_functor;
+    typedef unity_functor transformation_functor;
     simulation sim = simulation<transformation_functor>(root);
     sim.run(calcs);
 

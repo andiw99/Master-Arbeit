@@ -22,14 +22,14 @@ def int_boltzmann_dist_x(x, beta, potential, x2_range):
     # so potential is now a function in x1, x2 and yields the total? potential
     # energy
     W = np.zeros(len(x))
-    for i,x_point in enumerate(x):
+    for i, x_point in enumerate(x):
         pot = functools.partial(potential, x2=x_point)
         # we now want to integrate e^-beta pot over the x2 range
-        W_x2 = np.exp(- beta * pot(x2_range))
+        W_x2 = np.sqrt(2 * np.pi / beta) * np.exp(- beta * pot(x2_range))
         print(W_x2)
-        exit()
         W_avg = np.trapz(W_x2, x2_range) / (x2_range[-1] - x2_range[0])
         W[i] = W_avg
+    print(W)
     return W
 
 def boltzmann_dist_2d(x1, x2, beta, potential):
@@ -53,9 +53,10 @@ def cos_pair_potential(x1, x2, h, J):
 
 
 def cos_combined_pair_potential(x1, x2, h, J):
-    return h * np.cos(2 * x1)  + h * np.cos(2 * x2) - J * np.cos(x1 - x2)
+    return h * np.cos(2 * x1) + h * np.cos(2 * x2) - J * np.cos(x1 - x2)
 
-
+def cos_potential_x(x, p_multi=2, h=20):
+    return  h * np.cos(p_multi * x)
 
 def filter_cut(x, x_cut, dx):
     # so in x there are always (x1, x2) pairs and we now want a cut
@@ -63,27 +64,25 @@ def filter_cut(x, x_cut, dx):
     # Therefore we filter only the pairs (x1, x2) with x2 in x2 - dx/2, x2 + dx/2
     x1 = x[0::2]        # all left lattice sites
     x2 = x[1::2]        # all right lattice sites
-    print(len(x1))
     x1 = x1[(x2 < x_cut + dx) & (x2 > x_cut - dx)]
 
-    print(len(x1), x1)
     return x1
 
 
 def main():
-    root = "../../Generated content/XY Pairs/Test/"
+    root = "../../Generated content/XY Pairs/Many/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
-    potential = cos_pair_potential
+    potential = cos_potential_x
     potential_total = cos_combined_pair_potential
     x_range = np.linspace(0, 2 * np.pi, 200)
     T = 20
     x = []
-    dx = 0.1        # we look at a cut of the distribution that is 0.1 thick
-    x2 = np.pi/2    # the cut is located around x2
+    dx = 0.1    # we look at a cut of the distribution that is 0.1 thick
+    x2 = np.pi / 2   # the cut is located around x2
     nr_bins = 100
-    x2_range = np.linspace(x2 - dx, x2 + dx, 10)
+    x2_range = np.linspace(x2 - dx, x2 + dx, 100)
 
     # first lets plot it in 3d to get a feeling for the distribution
     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
@@ -91,11 +90,8 @@ def main():
     pot_2d = functools.partial(potential_total, h=20, J=20)
     pot_vals = pot_2d(X1, X2)
     W = np.exp(-1/T * pot_vals)
-    print(pot_2d(np.pi/2, np.pi/2))
     boltz_2d = functools.partial(boltzmann_dist_2d, beta=1/T, potential=pot_2d)
-    print(boltz_2d(np.pi/2, np.pi/2))
     Z = dblquad(boltz_2d, 0, 2 * np.pi, 0, 2*np.pi)
-    print(Z)
     W /= Z[0]
 
     surf = ax.plot_surface(X1, X2, W, cmap=cm.coolwarm,
@@ -130,15 +126,19 @@ def main():
                     break
 
         beta = 1 / T
-        pot = functools.partial(potential, x2=x2, h=alpha, J=J)
+        pot_single = functools.partial(potential, h=alpha)
         pot_total = functools.partial(potential_total, h=alpha, J=J)
-        W_x = int_boltzmann_dist_x(x_range, beta, pot, x2_range)
+        W_x = int_boltzmann_dist_x(x_range, beta, pot_total, x2_range)
+        W_x_single = boltzmann_dist_x(x_range, beta, pot_single)
         Z = np.trapz(W_x, x_range)
+        Z_single = np.trapz(W_x_single, x_range)
         W_x /= Z
+        W_x_single /= Z_single
         fig, ax = plt.subplots(1, 1)
         x_start = filter_cut(x[0][2:], x2, dx)
         count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}")
-        ax.plot(x_range, W_x, label=f"T = {T:.2f}")
+        ax.plot(x_range, W_x, label=f"T = {T:.2f} \n$x_2 = ${x2:.2f}")
+        ax.plot(x_range, W_x_single, label=f"single particle dist")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
         ax.set_ylim(0, 1.5 * np.max(W_x))
         configure_ax(fig, ax)

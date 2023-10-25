@@ -32,12 +32,6 @@ calcHandler* create(Calc calc, const fs::path& root){
 }
 
 
-struct sin_functor {
-    template <class value_type>
-    value_type operator()(value_type x) {
-        return sin(x);
-    }
-};
 
 struct unity_functor {
     template <class value_type>

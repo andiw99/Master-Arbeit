@@ -21,13 +21,17 @@ class CorrLengthHandler : public calcHandler {
     vector<pair<int, int>> L_vec;
     vector<int> cutup_vec;
     ofstream corrList;
+    ofstream corr2ndList;
+    map<pair<int, int>, vector<pair<double, double>>> m_map = {};
     map<pair<int, int>, double*> ft_k_map;
     map<pair<int, int>, double*> ft_l_map;
     double Temp = 0;
 public:
     CorrLengthHandler(const fs::path& root): calcHandler(root) {
         corrList.open(root/"corr.lengths");
+        corr2ndList.open(root/"corr2nd.lengths");
         corrList << "T";
+        corr2ndList << "T";
         starting_k = (int) CorrLengthHandlerConfig["starting_k"];
         nr_Ls = (int)CorrLengthHandlerConfig["nr_Ls"];
     }
@@ -51,6 +55,7 @@ public:
             }
             L_vec.push_back(pair(Lx, Ly));      // TODO is this save or do I need to initialize the vector beforehand?
             corrList << "," << Lx << "," << Ly << "_y";
+            corr2ndList << "," << Lx << "," << Ly << "_y";
             cout << "Lx = " << Lx << "    Ly = " << Ly << endl;
         }
     }
@@ -111,7 +116,11 @@ public:
                 // fourier trafo
                 fftw_execute(plan);
                 sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
-            }
+
+                // stuff for m and chi
+                pair<double, double> m_L = calc_m(cell);
+                m_map[L_pair].push_back(m_L);
+                }
             }
 
     }
@@ -152,9 +161,6 @@ public:
             auto kx = p_to_vec(px);
             auto ky = p_to_vec(py);
 
-
-
-
             Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
             Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
             // index one is the correlation length
@@ -162,6 +168,22 @@ public:
             // We add it to a file that looks like
             // T    L1_x      L2      ...
             // 0.1  xix_11   xi_12   ...
+
+            // we now want to calculate the susceptibility for a given L_pair
+            auto m_vec = m_map[L_pair];
+            double chi = transform_reduce(m_vec.begin(), m_vec.end(),
+                                          0.0, plus<double>(),
+                                          [](::pair<double, double> m) -> double { return squared(m);}) / (Lx * Ly);
+
+            // so ft_k has Lx entries and ft_l Ly entries
+            // I atm don't know where the maximum is, could be at the start...
+            // lets just say it is at the second entry...
+            double Fx = ft_k_map[L_pair][1];
+            double Fy = ft_l_map[L_pair][1];
+            // chi is the same for both i think
+            double xix_2nd = 1 / (2 * sin(M_PI/ Lx)) * sqrt(chi/Fx - 1);
+            double xiy_2nd = 1 / (2 * sin(M_PI/ Ly)) * sqrt(chi/Fy - 1);
+
             if (L_pair.first == 128) {
                 print_vector(kx);
                 cout << endl;
@@ -173,6 +195,7 @@ public:
                 cout << "xi_y = " << paras_y(1) << endl;
             }
             corrList << "," << paras_x(1) << "," << paras_y(1);
+            corr2ndList << "," << xix_2nd << "," << xiy_2nd;        // It is insanely wrong since even the fourier transform is wrong!
         }
 
         // deallocate memory of the maps?

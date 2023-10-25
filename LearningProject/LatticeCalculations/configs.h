@@ -14,10 +14,10 @@ enum class Calc {
     QuenchProcess
 };
 // possible Calcs: BinderCumulant, CorrLength, SecondMomentCorr, StructFact
-// vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength, Calc::StructFact};
-vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
+vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLength, Calc::StructFact};
+// vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/XY Quench";
+fs::path root = "../../../Generated content/XY/XY Very Detailed";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
@@ -31,7 +31,9 @@ map<string, double> CorrLengthHandlerConfig {
 
 map<string, double> BinderHandlerConfig {
         {"starting_k", 8},
-        {"nr_Ls", 14}
+        {"nr_Ls", 14},
+        {"min_L", 3},
+        {"max_L", 20}
 };
 map<string, double> QuenchProcessHandlerConfig {
         {"cell_L", 128},
