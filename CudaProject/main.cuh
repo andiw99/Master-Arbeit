@@ -140,7 +140,7 @@ map<string, Parameter> string_to_parameter {
 };
 
 
-std::map<Parameter, double> readTxtFileToParameterMap(const path& filename) {
+std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {
     std::map<Parameter, double> paramMap;
     std::ifstream file(filename);
 
@@ -148,9 +148,16 @@ std::map<Parameter, double> readTxtFileToParameterMap(const path& filename) {
         std::cerr << "Error: Could not open the file." << std::endl;
         return paramMap;
     }
-
+    int currentLine = 0; // Track the current line number
     std::string line;
     while (std::getline(file, line)) {
+        // Skip lines until the desired startLine is reached
+        currentLine++;
+        if (currentLine < startLine) {
+            continue;
+        }
+
+
         std::istringstream iss(line);
         std::string parameter, value;
 
@@ -164,18 +171,19 @@ std::map<Parameter, double> readTxtFileToParameterMap(const path& filename) {
     return paramMap;
 }
 
-string readTxtFileToString(const path& filename) {
-    std::ifstream file(filename);
-    string content;
-    if (file.is_open()) {
-        content = string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
-        file.close();
+string readTxtFileToString(const std::string& filepath, int lineToRead = 1) {
+    std::ifstream file(filepath);
+    std::string line;
+    int currentLine = 0; // Track the current line number
 
-        std::cout << "Contents of the file:\n" << content << std::endl;
-    } else {
-        std::cerr << "Error opening the file." << std::endl;
+    if (file.is_open()) {
+        while (currentLine < lineToRead && std::getline(file, line)) {
+            currentLine++;
+        }
+        file.close();
     }
-    return content;
+
+    return line;
 }
 
 using namespace std;

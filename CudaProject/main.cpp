@@ -5,23 +5,21 @@
 // Created by andi on 13.08.23.
 //
 #include "Simulation.cuh"
-#include "parameters.cuh"
+
 
 
 int main(int argc, char* argv[]) {
     path filepath;
-    path sim_path_file;
+    typedef XY_model relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
-        sim_path_file = "parameters/para_path_" + (string)argv[1] + ".txt" ;
     } else {
         filepath = "parameters/para_set_0.txt";
-        sim_path_file = "parameters/para_path_0.txt";
     }
 
     // reading the parameters from the parameter file
-    map<Parameter, double> paras = readTxtFileToParameterMap(filepath);
-    fs::path simulation_path = readTxtFileToString(sim_path_file);
+    map<Parameter, double> paras = readTxtFileToParameterMap(filepath, 1);  // start at the second line
+    fs::path simulation_path = readTxtFileToString(filepath);
     int nr_save_values = (int)paras[Parameter::nr_saves];
     // typedefs
     typedef thrust::device_vector<double> state_type;
