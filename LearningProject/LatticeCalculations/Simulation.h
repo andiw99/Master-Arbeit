@@ -22,13 +22,18 @@ calcHandler* create(Calc calc, const fs::path& root){
         return new BinderHandler(root);
     } else if (calc == Calc::CorrLength) {
         return new CorrLengthHandler(root);
+    } else if (calc == Calc::CorrLengthXY) {
+        return new CorrLengthHandlerXY(root);
     } else if (calc == Calc::SecondMomentCorr) {
         return new secondCorrLenghtHandler(root);
     } else if (calc == Calc::StructFact) {
         return new StructFactHandler(root);
+    } else if (calc == Calc::StructFactXY) {
+        return new StructFactHandlerXY(root);
     } else if (calc == Calc::QuenchProcess) {
         return new QuenchProcessHandler(root);
     }
+    return nullptr;
 }
 
 

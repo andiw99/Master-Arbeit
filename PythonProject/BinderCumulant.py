@@ -50,7 +50,8 @@ def main():
     max_L_fit = 1000
     r = 4
     figsize = (1.2 *  6.4, 4.8)
-
+    L_max_lower = 20
+    L_max_upper = 50
     transparent_plots = False
 
     cum_path = root + "/" + name
@@ -126,22 +127,10 @@ def main():
 
 
     fig, ax = plt.subplots(1, 1, figsize = figsize)
-
-    # Setze Tickmarken und Labels
-    ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
-    ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-
-
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(base=0.2))
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=0.04))
-    # TODO minor locator muss
-    ax.yaxis.set_minor_locator((plt.MultipleLocator(0.2)))
-    # Füge Gitterlinien hinzu
-    ax.grid(which='major', linestyle='--', alpha=0.5)
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
     print(cum_dic.keys())
     line_nr = 0
-    shown_inds = np.linspace(0, len(cum_dic.keys()) - 1, r)
+    shown_inds = [int(i) for i in np.linspace(0, len(cum_dic.keys()) - 1, r)]
     for i,size in enumerate(cum_dic.keys()):
         # only plot every n-th
         interpol_dic[size] = np.interp(T_inter_arr, T, cum_dic[size])
@@ -157,15 +146,9 @@ def main():
     # get intersection
     T_inter, U_inter, i_inter = det_intersection(T_inter_arr, interpol_dic)
     mark_point(ax, T_inter, U_inter)
-    # mark_point(ax, T_inter, U_inter)
-    plt.xticks(list(plt.xticks()[0]) + [T_inter])
-
-    ax.set_xlim(np.min(T) - 0.02 * np.mean(T), np.max(T) + 0.02 * np.mean(T))
-    # ax.set_ylim(0.95, 2.5)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
-    ax.legend()
     configure_ax(fig, ax)
     fig.savefig(root + "/cum.png", format="png", dpi=300, transparent=transparent_plots)
     #save_plot(root, "/cum.pdf", format="pdf")
@@ -277,14 +260,13 @@ def main():
     plt.show()
 
     # show nu vs L_max
-    L_max_lower = 5
-    L_max_upper = 50
+
     L_max_upper = np.minimum(L_max_upper, np.max(size_arr))
     nu_arr = []
-    L_max_arr = np.arange(L_max_lower, L_max_upper)
+    L_max_arr = np.arange(L_max_lower + 2, L_max_upper+1)
     for L_max in L_max_arr:
-        diff_fit_arr = diff_arr[size_arr < L_max]
-        size_fit_arr = size_arr[size_arr < L_max]
+        diff_fit_arr = diff_arr[(size_arr <= L_max) & (size_arr >= L_max_lower)]
+        size_fit_arr = size_arr[(size_arr <= L_max) & (size_arr >= L_max_lower)]
         popt, _ = curve_fit(linear_fit, np.log(size_fit_arr), np.log(diff_fit_arr))
         nu = 1 / popt[0]
         nu_arr.append(nu)
@@ -293,7 +275,7 @@ def main():
     print(nu_arr)
 
     fig, ax = plt.subplots(1, 1)
-    ax.plot(L_max_arr, nu_arr)
+    ax.plot(L_max_arr, nu_arr, label=r"$L_{min} = $" + str(L_max_lower), linestyle="", marker="x")
     ax.set_xlabel(r"$L_{max}$")
     ax.set_ylabel(r"$\nu$")
     configure_ax(fig, ax)

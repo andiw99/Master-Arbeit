@@ -11,6 +11,7 @@
 #include "../configs.h"
 
 class StructFactHandler : public calcHandler {
+protected:
     fftw_complex *in, *out;
     fftw_plan plan;
     int n;
@@ -85,49 +86,23 @@ public:
         vector<double> cell = vector<double>(Lx * Ly, 0);
         for(int cell_nr = 0; cell_nr < nr_of_cells; cell_nr++) {
             extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
-            // printAsMatrix(cell, Ly, Lx);
-            for(int i = 0; i < Lx * Ly; i++) {
-                in[i][0] = cell[i];
-                in[i][1] = 0;
-            }
-/*            cout << endl << "fftw in array:" << endl;
-            printComplexMatrix(in, Ly, Lx);*/
-            fftw_execute(plan);
-/*            cout << endl << "fftw out array:" << endl;
-            printComplexMatrix(out, Ly, Lx);
-            cout << "ft_k_squared before:" << endl;
-            for(int i = 0; i < Lx; i++) {
-                cout << ft_k_squared_of_this_csv_file[i] << "  ";
-            }
-            cout << endl;*/
-            // get them values into the vectors
-            for(int i = 0; i < Lx; i++) {
-                // i counts in x dimension?
-                for(int j = 0; j < Ly; j++) {
-                    // we determine the col by i and sum over the rows by incrementing j 'average over y-direction'
-                    int k_ind = j * Lx + i;
-                    // I sum over k the squared absolute value
-                    // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
-                    ft_k_squared_of_this_csv_file[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
-                }
-            }
-            for(int i = 0; i < Ly; i++) {
-                for(int j = 0; j < Lx; j++) {
-                    // I want to average over the row? so i fix the row by constant i and increment j
-                    int l_ind = i * Lx + j;
-                    ft_l_squared_of_this_csv_file[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
-                }
-            }
-/*            cout << "ft_l_squared:" << endl;
-            for(int i = 0; i < Ly; i++) {
-                cout << ft_l_squared_of_this_csv_file[i] << "  ";
-            }
-            cout << endl;*/
-
+            cell_routine(cell, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
             // add them to the vectors that keep track of everything
             ft_squared_k.push_back(ft_k_squared_of_this_csv_file);
             ft_squared_l.push_back(ft_l_squared_of_this_csv_file);
         }
+    }
+
+    virtual void cell_routine(const vector<double> &cell, vector<double> &ft_k_squared_of_this_csv_file,
+                      vector<double> &ft_l_squared_of_this_csv_file) {
+        for(int i = 0; i < Lx * Ly; i++) {
+            in[i][0] = cell[i];
+            in[i][1] = 0;
+        }
+        fftw_execute(plan);
+        // get them values into the vectors
+
+        sum_and_add(Lx, Ly, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
     }
 
     void setting_post_routine() {
@@ -152,9 +127,29 @@ public:
         }
         write_to_file();
     }
-
     void post_routine() override {
         cout << "Calling CorrLengthHandler post routine (UNIMPLEMENTED)" << endl;
+    }
+
+    void sum_and_add(const int nx, const int ny, vector<double> &ft_k_cur, vector<double> &ft_l_cur) {
+        for(int i = 0; i < nx; i++) {
+            // i counts in x dimension?
+            for(int j = 0; j < ny; j++) {
+                // if i want to average over l i need to sum over the rows, so determine row i
+                int k_ind = j * nx + i;
+                // I sum over k the squared absolute value
+                // |sigma'_kl|^2 = (sqrt(sigma'_kl.real * sigma'_kl.real + sigma'_kl.imag * sigma'_kl.imag))^2
+                ft_k_cur[i] += ((out[k_ind][0] * out[k_ind][0]) + (out[k_ind][1] * out[k_ind][1]));
+            }
+        }
+        // TODO it should also be possible to write this in one loop with ft_sqaured_l[j] and l_ind = i * nx + j
+        for(int i = 0; i < ny; i++) {
+            // i counts in x dimension?
+            for(int j = 0; j < nx; j++) {
+                int l_ind = i * nx + j;
+                ft_l_cur[i] += ((out[l_ind][0] * out[l_ind][0]) + (out[l_ind][1] * out[l_ind][1]));
+            }
+        }
     }
 
     void write_to_file() {
@@ -187,6 +182,31 @@ public:
                 ofile << endl;
             }
         }
+    }
+
+};
+
+class StructFactHandlerXY : public StructFactHandler {
+    using StructFactHandler::StructFactHandler;
+
+    void cell_routine(const vector<double> &cell, vector<double> &ft_k_squared_of_this_csv_file,
+                              vector<double> &ft_l_squared_of_this_csv_file) override {
+        for(int i = 0; i < Lx * Ly; i++) {
+            in[i][0] = cos(cell[i]);
+            in[i][1] = 0;
+        }
+        fftw_execute(plan);
+        // get them values into the vectors
+
+        sum_and_add(Lx, Ly, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
+        for(int i = 0; i < Lx * Ly; i++) {
+            in[i][0] = sin(cell[i]);
+            in[i][1] = 0;
+        }
+        fftw_execute(plan);
+        // get them values into the vectors
+
+        sum_and_add(Lx, Ly, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
     }
 
 };

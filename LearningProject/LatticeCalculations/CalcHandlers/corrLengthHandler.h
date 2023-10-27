@@ -22,6 +22,8 @@ class CorrLengthHandler : public calcHandler {
     vector<int> cutup_vec;
     ofstream corrList;
     ofstream corr2ndList;
+    size_t nr_csv_files;
+protected:
     map<pair<int, int>, vector<pair<double, double>>> m_map = {};
     map<pair<int, int>, double*> ft_k_map;
     map<pair<int, int>, double*> ft_l_map;
@@ -65,7 +67,8 @@ public:
         // I need maps that hold the FTs of the size for one temp
         ft_k_map = {};
         ft_l_map = {};
-
+        vector<fs::path> csv_files = list_csv_files(setting_path);
+        nr_csv_files = csv_files.size();
     }
 
     void realization_routine(vector<double> &lat_q, double T, double t) override {
@@ -109,13 +112,7 @@ public:
                 vector<double> cell = vector<double>(Lx * Ly, 0);
                 extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
                 // TODO I think this is also not necessary?
-                for (int l = 0; l < Lx * Ly; l++) {
-                    in[l][0] = cell[l];
-                    in[l][1] = 0;
-                }
-                // fourier trafo
-                fftw_execute(plan);
-                sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
+                cell_routine(L_pair, in, out, plan, cell);
 
                 // stuff for m and chi
                 pair<double, double> m_L = calc_m(cell);
@@ -125,20 +122,40 @@ public:
 
     }
 
+    virtual void cell_routine(const pair<int, int> &L_pair, fftw_complex (*in), fftw_complex const (*out),
+                      fftw_plan plan, const vector<double> &cell) {
+        int Lx = L_pair.first;
+        int Ly = L_pair.second;
+        for (int l = 0; l < Lx * Ly; l++) {
+            in[l][0] = cell[l];
+            in[l][1] = 0;
+        }
+        // fourier trafo
+        fftw_execute(plan);
+                // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
+        // for XY model we have to have one sinus transformation on cell and do the trafo with it and one cosine
+        sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
+    }
+
     void setting_post_routine() {
         for(pair<int, int> L_pair : L_vec) {
             int Lx = L_pair.first;
             int Ly = L_pair.second;
+            // The total number of cells, or systems, is nr_csv_files * (dim_size_x * dim_size_y) / (Lx * Ly)
+            int nr_systems = nr_csv_files * (dim_size_x * dim_size_y) / (Lx * Ly);
             for(int l = 0; l < Lx; l++) {
                 // TODO average by number of csv files
-                ft_k_map[L_pair][l] /= (pow(Ly, 4));
+                // so average over all cells
+                // and average over the the averaged dimension, so y in the case of ft_k
+                ft_k_map[L_pair][l] /= (nr_systems * Ly);
             }
             for(int l = 0; l < Ly; l++) {
-                ft_l_map[L_pair][l] /= (pow(Lx, 4));
+                ft_l_map[L_pair][l] /= (nr_systems * Lx);
             }
         }
         // we now need to fit and write for every L
         corrList << endl << Temp;
+        corr2ndList << endl << Temp;
         cout << "Writing for temp = " << Temp << endl;
 
         for (pair<int, int> L_pair : L_vec) {
@@ -207,6 +224,7 @@ public:
 
     void post_routine() override {
         corrList.close();
+        corr2ndList.close();
     }
 
     vector<int> generate_L(int starting_k, int n, int nr_Ls) {
@@ -269,6 +287,36 @@ public:
         return k;
     }
 
+};
+
+class CorrLengthHandlerXY: public CorrLengthHandler {
+    using CorrLengthHandler::CorrLengthHandler;
+
+    void cell_routine(const pair<int, int> &L_pair, fftw_complex (*in), fftw_complex const (*out),
+                              fftw_plan plan, const vector<double> &cell) override {
+        int Lx = L_pair.first;
+        int Ly = L_pair.second;
+        for (int l = 0; l < Lx * Ly; l++) {
+            // first sx
+            in[l][0] = cos(cell[l]);
+            in[l][1] = 0;
+        }
+        // fourier trafo
+        fftw_execute(plan);
+        // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
+        // for XY model we have to have one sinus transformation on cell and do the trafo with it and one cosine
+        sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
+        for (int l = 0; l < Lx * Ly; l++) {
+            // then sy
+            in[l][0] = sin(cell[l]);
+            in[l][1] = 0;
+        }
+        // fourier trafo
+        fftw_execute(plan);
+        // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
+        // for XY model we have to have one sinus transformation on cell and do the trafo with it and one cosine
+        sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
+    }
 };
 
 #endif //LEARNINGPROJECT_CORRLENGTHHANDLER_H

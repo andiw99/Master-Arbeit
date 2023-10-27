@@ -139,7 +139,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/NER Very Long/Selected"
+    root = "../../Generated content/XY/XY Peak"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -250,8 +250,8 @@ def main():
     scaling_left = corr_scaling_left(Tl, T_c_est, nu_est, 2)
     ax.set_ylim(0, np.max(xi_arr) + 0.1 * np.max(xi_arr))
     print(scaling_right)
-    ax.plot(Tg, scaling_right)
-    ax.plot(Tl, scaling_left)
+    # ax.plot(Tg, scaling_right)
+    # ax.plot(Tl, scaling_left)
 
     plt.show()
 
