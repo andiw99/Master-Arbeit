@@ -8,11 +8,21 @@
 #include "parameters.cuh"
 
 
-int main() {
+int main(int argc, char* argv[]) {
+    path filepath;
+    path sim_path_file;
+    if (argc == 2) {
+        filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
+        sim_path_file = "parameters/para_path_" + (string)argv[1] + ".txt" ;
+    } else {
+        filepath = "parameters/para_set_0.txt";
+        sim_path_file = "parameters/para_path_0.txt";
+    }
+
     // reading the parameters from the parameter file
-    map<Parameter, double> paras = temp_scan_paras;
+    map<Parameter, double> paras = readTxtFileToParameterMap(filepath);
+    fs::path simulation_path = readTxtFileToString(sim_path_file);
     int nr_save_values = (int)paras[Parameter::nr_saves];
-    fs::path simulation_path = adaptive_tempscan_root;
     // typedefs
     typedef thrust::device_vector<double> state_type;
     typedef thrust_algebra algebra;

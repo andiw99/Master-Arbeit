@@ -318,20 +318,20 @@ public:
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin() + n, theta.begin() + n, zeta_2<double>(dt, eta, T));
 
         // the second one is doable with a lambda, i just need to recall how to write those...
-        double pref = sqrt(2 * T / eta * tau_2(dt, eta));
+        double pref = sqrt(2.0 * T * eta * tau_2(dt, eta));
         thrust::transform(theta.begin(), theta.begin() + n, theta.begin(), zeta_1<double>(pref));
     }
 
     template <class value_type>
     __host__ __device__
     value_type static tau_1(value_type dt, value_type eta) {
-        return 1.0 / eta * (1 - exp(- eta * dt));
+        return 1.0 / eta * (1.0 - exp(- eta * dt));
     }
 
     template <class value_type>
     __host__ __device__
     value_type static tau_2(value_type dt, value_type eta) {
-        return 1.0 / (2 * eta) * (1 - exp(-2 * eta * dt));
+        return 1.0 / (2.0 * eta) * (1.0 - exp(-2.0 * eta * dt));
     }
 
     template <class T>
@@ -340,7 +340,7 @@ public:
         T pref;
         zeta_1(T dt, T eta, T temp) {
             // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2 * temp * eta * tau_2(dt, eta));
         }
         zeta_1(T pref): pref(pref) {}
         __host__ __device__
@@ -357,10 +357,10 @@ public:
             // TODO the thing is those tau_1 and tau_2 are static as soon as we switched to a constant stepsize..
             Tau_1 = tau_1(dt, eta);
             Tau_2 = tau_2(dt, eta);
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2.0 * temp * eta);
         }
         zeta_2(T dt, T eta, T temp, T Tau_1, T Tau_2): dt(dt), Tau_1(Tau_1), Tau_2(Tau_2){
-            pref = sqrt(2 * temp * eta);
+            pref = sqrt(2.0 * temp / eta);
         }
         __host__ __device__
         T operator()(const T& x, const T& y) const {
@@ -1553,7 +1553,7 @@ public:
 
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
-        linear_force functor =linear_force(J, alpha);
+        linear_force functor = linear_force(J, alpha);
         System::force_calculation(x, dxdt, t, functor);
     }
 
@@ -1580,45 +1580,84 @@ public:
 };
 
 
-struct chain {
-    using rand = typename System::rand;
-    const double eta;
-    const double D;
-    // systemsize should probably be a template argument?
-    const size_t n;
-    const size_t lat_dim;
-    // needed to "advance the random engine" and generate different random numbers for the different steps
-    size_t step_nr;
-    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
-    // the current temperature
-    double T;
+struct chain : virtual public System {
+    using left = typename System::left;
+    using right = typename System::right;
 
-    struct neighbor : thrust::unary_function<size_t, size_t> {
-        size_t lattice_dim;
-        neighbor(size_t lat_dim): thrust::unary_function<size_t, size_t>(), lattice_dim(lat_dim) {}
-    };
-
-    struct left : public neighbor {
-        using neighbor::neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
-            // if we are at the left end of our chain, we need to use the right end as left neighbor
-            return (i == 0) ? i + lattice_dim - 1 : i - 1;
-        }
-    };
-
-    struct right :  public neighbor{
-        using neighbor::neighbor;
-        __host__ __device__ size_t operator()(size_t i) const {
-            return (i == lattice_dim - 1) ? i - (lattice_dim - 1) : i + 1;
-        }
-    };
-
-    chain(const double T, const double eta, const size_t lat_dim, const int init_step=0)
-            : T(T), step_nr(init_step), lat_dim(lat_dim), n(lat_dim), eta(eta), D(sqrt(2 * T * eta)) {
+    template<class State, class Deriv, class FunctorType>
+    void derivative_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::counting_iterator<size_t>(0)
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
     }
+
+    chain(map<Parameter, double> paras): System(paras) {}
 
 };
 
+struct XY_pairs : public chain, public XY_model {
+    double J;
+    double h;
+    struct XY_pair_functor {
+        const double J, h, eta;
+
+        XY_pair_functor(const double J, const double h, const double eta): J(J), h(h), eta(eta) {
+
+        }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            size_t i = thrust::get<6>(tup);
+            // depending on i either the left or the right neighbor is my partner
+            // even -> right .... uneven -> left
+            double q_partner = 0;
+            if (i % 2 == 0) {   // 5 is right
+                q_partner = thrust::get<5>(tup);
+            } else {            // 4 is left
+                q_partner = thrust::get<4>(tup);
+            }
+
+            thrust::get<3>( tup ) = (-eta) * p                         // Friction
+                                    + 2 * h * sin(2 * q)                // on site potential
+                                    - J * sin(q - q_partner);       // interaction
+        }
+    };
+
+public:
+    XY_pairs(map<Parameter,double>& paras) : chain(paras), XY_model(paras), System(paras),
+    J(paras[Parameter::J]), h(paras[Parameter::alpha]) {
+        cout << "XY_pairs system is constructed" << endl;
+    }
+
+    template<class State, class Deriv>
+    void calc_drift(State &x, Deriv &dxdt, double t) {
+        XY_pair_functor functor = XY_pair_functor(J, h, chain::eta);
+        chain::derivative_calculation(x, dxdt, t, functor);
+    }
+};
 
 struct quadratic_chain : public chain {
 public:
@@ -1650,108 +1689,13 @@ public:
     };
 
 
+public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
-
-
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n,
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left(lat_dim)
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right(lat_dim)
-                        )
-                )
-        )));
-        thrust::for_each(start, start + n, functor(eta, J));
-        step_nr++;
-        // cout << "x[1] = " << x[1] << endl;
-        // the problem is here, actually dxdt[0] = x[1] should be
-        // somehow dxdt is not set but i dont really get why
-        // cout << "dxdt[0] = " << dxdt[0] << endl;
+        functor Functor = functor(J, eta);
+        chain::derivative_calculation(x, dxdt, t, Functor);
     }
-
-    template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            // TODO will this already be initialized to zero without this statement?
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
-
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
-    }
-
-public:
-    quadratic_chain(const double T, const double eta, const double J, const size_t lat_dim, const int init_step=0)
-            : chain(T, eta, lat_dim, init_step), J(J) {
-    }
-
-    double get_cur_T() const{
-        return T;
-    }
-
-    size_t get_lattice_dim() const{
-        return lat_dim;
-    }
-
-    template<class State>
-    double calc_energy(const State &x) {
-        double E = 0;
-        for(int i = 0; i < lat_dim; i++) {
-            // add potential energy
-            E += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
-            // add kinetic energy
-            E += 0.5 * x[i + n] * x[i + n];
-        }
-        return E;
-    }
-
-    template<class State>
-    double calc_kinetic_energy(const State &x) {
-        double Ekin = 0;
-        for(int i = 0; i < lat_dim; i++) {
-            // add kinetic energy
-            Ekin += (0.5 * (x[i + n] * x[i + n]));
-        }
-        return Ekin;
-    }
-
-    template<class State>
-    double calc_potential_energy(const State &x) {
-        double Epot = 0;
-        for(int i = 0; i < lat_dim; i++) {
-            // add kinetic energy
-            Epot += J/2 * (x[i] - x[(i + 1) % lat_dim]) * (x[i] - x[(i + 1) % lat_dim]);
-
-        }
-        return Epot;
-    }
-    template<class State>
-    double calc_total_squared_dist(const State &x) {
-        double d2 = 0;
-        for(int i = 0; i < lat_dim - 1; i++) {
-            // add kinetic energy
-            d2 += (x[i] - x[i + 1]) * (x[i] - x[i + 1]);
-        }
-        return d2;
-    }
-
-
+    quadratic_chain(map<Parameter, double> paras): chain(paras), System(paras), J(paras[Parameter::J]) {}
 };
 
 
@@ -1779,48 +1723,11 @@ public:
         }
     };
 
-
-
-    template<class State, class Deriv, class Stoch>
-    void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {
-        thrust::counting_iterator<size_t> index_sequence_begin(step_nr * n);
-        if(step_nr == 0) {
-            thrust::fill(theta.begin(), theta.begin() + n, 0);
-        }
-
-        double D = sqrt(2 * T * eta);
-
-        thrust::transform(index_sequence_begin,
-                          index_sequence_begin + n,
-                          theta.begin() + n,
-                          rand(D));
-
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                x.begin() + n,
-                dxdt.begin(),
-                dxdt.begin() + n
-        )));
-        thrust::for_each(start, start + n, oscillator_chain_functor(eta, alpha));
-        step_nr++;
-    }
 public:
-    gpu_oscillator_chain(const double T, const double eta, const size_t lat_dim, const double alpha, const size_t init_step)
-            : chain(T, eta, lat_dim, init_step), alpha(alpha) {
+    gpu_oscillator_chain(map<Parameter, double> paras): chain(paras), System(paras), alpha(paras[Parameter::alpha]) {
     }
 
-    double get_cur_T() const{
-        return T;
-    }
-
-    size_t get_lattice_dim() const{
-        return lat_dim;
-    }
 };
-
-
-
-
 
 struct brownian_particel {
     const double eta, T;

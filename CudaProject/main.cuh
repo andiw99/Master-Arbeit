@@ -95,9 +95,88 @@ map<Parameter, string> parameter_names {
         {step_nr,"step_nr"},
         {run_nr,"run_nr"},
         {min_lat_factor,"min_lat_factor"},
-        {max_lat_factor,"max_lat_factor"}
-
+        {max_lat_factor,"max_lat_factor"},
+        {nr_ner_values, "nr_ner_values"},
+        {m, "m"},
+        {p, "p"}
 };
+
+map<string, Parameter> string_to_parameter {
+        {"dim_size_x", dim_size_x},
+        {"dim_size_y", dim_size_y},
+        {"total_size", total_size},
+        {"J", J},
+        {"Jy", Jy},
+        {"dt", dt},
+        {"end_time", end_time},
+        {"starting_temp", starting_temp},
+        {"end_temp", end_temp},
+        {"T", T},
+        {"alpha", alpha},
+        {"beta", Parameter::beta},
+        {"tau", tau},
+        {"eta", eta},
+        {"nr_saves", nr_saves},
+        {"nr_repeat", nr_repeat},
+        {"min_temp", min_temp},
+        {"max_temp", max_temp},
+        {"nr_runs", nr_runs},
+        {"K", K},
+        {"tol", tol},
+        {"random_init", random_init},
+        {"x0", x0},
+        {"p0", p0},
+        {"min_tau_factor", min_tau_factor},
+        {"max_tau_factor", max_tau_factor},
+        {"equil_time", equil_time},
+        {"logspaced", logspaced},
+        {"step_nr", step_nr},
+        {"run_nr", run_nr},
+        {"min_lat_factor", min_lat_factor},
+        {"max_lat_factor", max_lat_factor},
+        {"m", m},
+        {"p", p},
+        {"nr_ner_values", nr_ner_values}
+};
+
+
+std::map<Parameter, double> readTxtFileToParameterMap(const path& filename) {
+    std::map<Parameter, double> paramMap;
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open the file." << std::endl;
+        return paramMap;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string parameter, value;
+
+        if (std::getline(iss, parameter, ',') && std::getline(iss, value)) {
+            paramMap[string_to_parameter[parameter]] = stod(value);
+        }
+
+    }
+
+    file.close();
+    return paramMap;
+}
+
+string readTxtFileToString(const path& filename) {
+    std::ifstream file(filename);
+    string content;
+    if (file.is_open()) {
+        content = string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+        file.close();
+
+        std::cout << "Contents of the file:\n" << content << std::endl;
+    } else {
+        std::cerr << "Error opening the file." << std::endl;
+    }
+    return content;
+}
 
 using namespace std;
 /*
