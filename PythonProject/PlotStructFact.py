@@ -55,7 +55,7 @@ def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([]))
     return fig, axes
 
 def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True,
-            plot_struct = False):
+            plot_struct = False, cut_zero_impuls = False):
 
     if not parameters:
         T = 0
@@ -78,7 +78,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     py = py[~np.isnan(py)]
     ft_avg_x = np.array(df["ft_avg_x"])[indices]
     ft_avg_x = ft_avg_x[~np.isnan(ft_avg_x)]
-    # x = x[~numpy.isnan(x)]
+
     try:
         y_error = np.array(df["stddev_y"])
         y_error = y_error[~np.isnan(y_error)]
@@ -88,6 +88,14 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
         y_error = None
         x_error = None
 
+
+    if cut_zero_impuls:
+        ft_avg_y = ft_avg_y[px != 0]
+        y_error = y_error[px != 0]
+        px = px[px != 0]
+        ft_avg_x = ft_avg_x[py != 0]
+        x_error = x_error[py != 0]
+        py = py[py != 0]
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -147,6 +155,7 @@ def main():
     fitfunc = MF_lorentz
     errors_for_fit=False
     plot_struct = True
+    cut_zero_impuls = True
     nu_est = 0.8
     T_c_est = 0.7
     print(root_dirs)
@@ -182,7 +191,8 @@ def main():
                                                   savepath=dir_path + png_name,
                                                   cutoff=cutoff, fitfunc=fitfunc,
                                                   errors_for_fit=errors_for_fit,
-                                                  plot_struct=plot_struct)
+                                                  plot_struct=plot_struct,
+                                                  cut_zero_impuls=cut_zero_impuls)
                 T_arr.append(T)
                 xix_arr.append(xix)
                 xiy_arr.append(xiy)
@@ -253,6 +263,15 @@ def main():
     # ax.plot(Tg, scaling_right)
     # ax.plot(Tl, scaling_left)
 
+    fig, ax = plt.subplots(1, 1)
+    xix_inv = 1 / xix_sorted
+    xiy_inv = 1 / xiy_sorted
+    ax.plot(T_arr, xix_inv, ls="", marker="o", ms=4, fillstyle="none", color="C0")
+    ax.plot(T_arr, xiy_inv, ls="", marker="o", ms=4, fillstyle="none", color="C1")
+    ax.set_xlabel("T")
+    ax.set_ylabel(r"$\frac{1}{\xi(T)}$")
+    configure_ax(fig, ax)
+    plt.savefig(root + "/1_xi.png")
     plt.show()
 
 

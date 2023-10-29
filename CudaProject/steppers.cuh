@@ -505,8 +505,8 @@ public:
     using stepper::N;       // this is 2 * n so the size of a normal vector
     using stepper::stepper;
     typedef typename operations::template apply_drift<time_type> apply_drift;
-    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_q;
-    typedef typename operations::template apply_bbk_q<time_type> apply_bbk_p;
+    typedef typename operations::template apply_bbk_v1<time_type> apply_bbk_v1;
+    typedef typename operations::template apply_bbk_v2<time_type> apply_bbk_v2;
     size_t n;
     bool firststep = true;
 

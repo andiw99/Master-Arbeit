@@ -71,7 +71,7 @@ public:
         // I need the tau instead of the t here...
         calcFile << T;
         // now we have the full m_map for the temperature, leaves to calculate the binder cumulant aswell as errors
-        calc_write_cum(m_map, calcFile);
+        calc_write_cum();
         calcFile << endl;
 
     }
@@ -105,7 +105,7 @@ public:
 
 
 
-    void calc_write_cum (map<int, vector<pair<double, double>>> m_map, ofstream& cumsList) {
+    void calc_write_cum () {
         for(auto pair : m_map){
             double m_L2 = std::transform_reduce(pair.second.begin(), pair.second.end(),
                                                 0.0, // initial value for the reduction (sum)
@@ -131,7 +131,7 @@ public:
             m_L4_err = sqrt(m_L4_err);
             double cum = m_L4 / (m_L2 * m_L2);
             double cum_error = sqrt(pow(1 / m_L2 / m_L2 * m_L4_err, 2) + pow(2 * m_L4 / pow(m_L2, 3) * m_L2_err, 2));
-            cumsList << "," << cum << "," << cum_error;
+            calcFile << "," << cum << "," << cum_error;
         }
     }
 };

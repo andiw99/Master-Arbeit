@@ -60,7 +60,8 @@ enum Parameter {
     max_lat_factor,
     nr_ner_values,
     m,
-    p
+    p,
+    curand_random,
 };
 
 map<Parameter, string> parameter_names {
@@ -98,7 +99,8 @@ map<Parameter, string> parameter_names {
         {max_lat_factor,"max_lat_factor"},
         {nr_ner_values, "nr_ner_values"},
         {m, "m"},
-        {p, "p"}
+        {p, "p"},
+        {curand_random, "curand_random"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -136,7 +138,8 @@ map<string, Parameter> string_to_parameter {
         {"max_lat_factor", max_lat_factor},
         {"m", m},
         {"p", p},
-        {"nr_ner_values", nr_ner_values}
+        {"nr_ner_values", nr_ner_values},
+        {"curand_random", curand_random}
 };
 
 
@@ -401,7 +404,7 @@ struct thrust_operations {
     template<class time_type = double>
     struct apply_bbk_v2 {
         const time_type pref, dt;
-        apply_bbk_v2(time_type dt, time_type eta): dt(dt), pref(1.0  / (1.0 - 0.5 * eta * dt)){}
+        apply_bbk_v2(time_type dt, time_type eta): dt(dt), pref(1.0  / (1.0 + 0.5 * eta * dt)){}
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             thrust::get<0>(tup) = pref * (thrust::get<0>(tup) +             // v^n

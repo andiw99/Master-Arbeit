@@ -3,7 +3,8 @@
 # Get the input and output file names from the command line arguments
 input_file=${1:-"main.cu"}
 output_file=${2:-"main_script"}
-inter_file=${3:-"main.cpp"}
+para_set=${3:-"0"}
+inter_file=${4:-"main.cpp"}
 
 # transform cu to cpp
 hipify-perl systems-cuda.cuh > systems.cuh
@@ -18,7 +19,7 @@ if [ $? -eq 0 ]; then
     echo "Compilation successful"
     # run the simulation
     # save the output in variable output
-    output=$(./$output_file | tee /dev/tty)
+    output=$(./$output_file ${para_set} | tee /dev/tty)
     # cut only the last line, which is the save path
     rootpath=$(echo "$output" | tail -1)
 else

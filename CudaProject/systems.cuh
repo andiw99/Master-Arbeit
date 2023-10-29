@@ -37,6 +37,7 @@ public:
     const size_t dim_size_x;
     const size_t dim_size_y;
     thrust::device_vector<hiprandState> curand_states;
+    bool curand_random = false;
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
@@ -195,6 +196,7 @@ public:
     };
 
 
+
     template<class State, class Deriv, class Stoch>
     void operator()(const State &x, Deriv &dxdt, Stoch &theta, double t) {}
 
@@ -283,6 +285,7 @@ public:
         step_nr++;
     }
 
+
     template<class Stoch>
     void calc_diff_thrust(Stoch &theta, double t) {
         // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
@@ -302,10 +305,19 @@ public:
 
     }
     template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
+    void calc_diff_curand(Stoch &theta, double t) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, hiprand(D));
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        if(curand_random) {
+            calc_diff_curand(theta, t);
+        } else {
+            calc_diff_thrust(theta, t);
+        }
     }
 
     template<class Stoch>
@@ -398,16 +410,19 @@ public:
 
     System(map<Parameter, double>& paras) : step_nr((size_t)paras[Parameter::step_nr]), dim_size_x((size_t)paras[Parameter::dim_size_x]),
                                             dim_size_y((size_t)paras[Parameter::dim_size_y]), eta(paras[Parameter::eta]), T(paras[Parameter::T]),
-                                            n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
+                                            n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]),
+                                            curand_random((bool) paras[Parameter::curand_random]){
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-        curand_states = thrust::device_vector<hiprandState>(2 * n);  // TODO is this okay?
-        // counting iterator counting from 0 to n. Every lattice site needs its own state i think
-        // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
-        auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
-        // now we call hiprand init with sequence numbers from the counting iterator
-        thrust::for_each(sInit, sInit + 2*n, curand_setup(step_nr));      // now 2n, moare states should not be a problem and then we can use it also for the bbk random numbers?
-
+        cout << "Using curand_random: " << curand_random << endl;
+        if(curand_random) {
+            curand_states = thrust::device_vector<hiprandState>(2 * n);  // TODO is this okay?
+            auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
+            // counting iterator counting from 0 to n. Every lattice site needs its own state i think
+            // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
+            // now we call hiprand init with sequence numbers from the counting iterator
+            thrust::for_each(sInit, sInit + 2*n, curand_setup(step_nr));      // now 2n, moare states should not be a problem and then we can use it also for the bbk random numbers?
+        }
     }
 
     size_t get_dim_size_x() const{

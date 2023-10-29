@@ -81,7 +81,8 @@ def plot_theo_msd(df, parameters, savepath):
     axes.legend()
     name = str(dt + T)
     configure_ax(fig, axes)
-    save_plot(savepath, name)
+    create_directory_if_not_exists(savepath)
+    plt.savefig(os.path.join(savepath, name), format="png")
     plt.show()
 
 
@@ -99,13 +100,13 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 
 def main():
-    root = "../../Generated content/Linear Force/Euler/0.0001-4-many"
+    root = "../../Generated content/BBK/MSD/BBK/0.025"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
 
     a = 0
     b = 5
     T = 20
-    eta = 1
+    eta = 1.5
     alpha = 20
 
     fig, ax = plt.subplots(1, 1)
@@ -130,7 +131,7 @@ def main():
                 parameters = read_parameters_txt(txt_filepath)
 
                 # average and plot, actually no big deal
-                plot_theo_msd(df, parameters, root + "plots/")
+                plot_theo_msd(df, parameters, os.path.join(root, "plots/"))
                 #plot_trajectories(df, parameters)
 
     plotted_files = open(root + "/plotted_files.txt", "a")

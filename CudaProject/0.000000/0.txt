@@ -17,3 +17,4 @@ run_nr,0
 nr_ner_values,0
 m,0
 p,0
+curand_random,0

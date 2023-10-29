@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_model relax_system;
+    typedef quadratic_trapped_lattice relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
     } else {
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
 
     // templating..
-    RelaxationSimulation simulation = RelaxationSimulation<euler_combined,
+    RelaxationSimulation simulation = RelaxationSimulation<bbk_stepper,
             state_type,
             algebra, operations,
             relax_system>(paras, simulation_path);
