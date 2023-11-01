@@ -62,6 +62,13 @@ enum Parameter {
     m,
     p,
     curand_random,
+    subsystem_Lx,
+    subsystem_Ly,
+    subsystem_min_Lx,
+    subsystem_max_Lx,
+    nr_subsystem_sizes,
+    nr_subsystems,
+    x_y_factor
 };
 
 map<Parameter, string> parameter_names {
@@ -100,7 +107,14 @@ map<Parameter, string> parameter_names {
         {nr_ner_values, "nr_ner_values"},
         {m, "m"},
         {p, "p"},
-        {curand_random, "curand_random"}
+        {curand_random, "curand_random"},
+        {subsystem_Lx, "subsystem_Lx"},
+        {subsystem_Ly, "subsystem_Ly"},
+        {subsystem_min_Lx,"subsystem_min_Lx"},
+        {subsystem_max_Lx,"subsystem_max_Lx"},
+        {nr_subsystem_sizes,"nr_subsystem_sizes"},
+        {nr_subsystems,"nr_subsystems"},
+        {x_y_factor,"x_y_factor"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -139,7 +153,14 @@ map<string, Parameter> string_to_parameter {
         {"m", m},
         {"p", p},
         {"nr_ner_values", nr_ner_values},
-        {"curand_random", curand_random}
+        {"curand_random", curand_random},
+        {"subsystem_Lx", subsystem_Lx},
+        {"subsystem_Ly", subsystem_Ly},
+        {"subsystem_min_Lx", subsystem_min_Lx},
+        {"subsystem_max_Lx", subsystem_max_Lx},
+        {"nr_subsystem_sizes", nr_subsystem_sizes},
+        {"nr_subsystems", nr_subsystems},
+        {"x_y_factor", x_y_factor}
 };
 
 

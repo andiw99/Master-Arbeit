@@ -40,21 +40,39 @@ public:
 
     void pre_routine() override {
         // now this one has to be completely rewritten because here I need rectangular cells
-        cutup_vec = vector<int>(nr_Ls);
-        std::iota(std::begin(cutup_vec), std::end(cutup_vec), starting_k);
-        for (int cut_factor : cutup_vec) {
-            int Lx = dim_size_x / cut_factor;
-            int Ly = dim_size_y / cut_factor;
-            if (L_vec.size() > 0) {
-                if (L_vec.back().first - Lx < 2) {
-                    // if the difference is not enough, we set it to be 2 less
-                    Lx = L_vec.back().first - 2;
+        /*      cutup_vec = vector<int>(nr_Ls);
+          std::iota(std::begin(cutup_vec), std::end(cutup_vec), starting_k);
+            for (int cut_factor : cutup_vec) {
+                int Lx = dim_size_x / cut_factor;
+                int Ly = dim_size_y / cut_factor;
+                if (L_vec.size() > 0) {
+                    if (L_vec.back().first - Lx < 2) {
+                        // if the difference is not enough, we set it to be 2 less
+                        Lx = L_vec.back().first - 2;
+                    }
+                    if (L_vec.back().second - Ly < 2) {
+                        // if the difference is not enough, we set it to be 2 less
+                        Ly = L_vec.back().second - 2;
+                    }
                 }
-                if (L_vec.back().second - Ly < 2) {
-                    // if the difference is not enough, we set it to be 2 less
-                    Ly = L_vec.back().second - 2;
-                }
-            }
+                L_vec.push_back(pair(Lx, Ly));      // TODO is this save or do I need to initialize the vector beforehand?
+                corrList << "," << Lx << "," << Ly << "_y";
+                corr2ndList << "," << Lx << "," << Ly << "_y";
+                cout << "Lx = " << Lx << "    Ly = " << Ly << endl;
+            }*/
+
+
+    }
+
+    void directory_pre_routine(path directory_path) override {
+        double ratio_x_y = (double)dim_size_x / (double)dim_size_y;
+        cout << "ratio_x_y = " << ratio_x_y << endl;
+        int min_Lx = (int)CorrLengthHandlerConfig["min_Lx"];
+        int max_Lx = (int)CorrLengthHandlerConfig["max_Lx"];
+        vector<int> Lx_s = vector<int>(max_Lx - min_Lx);
+        iota(begin(Lx_s), end(Lx_s), min_Lx);
+        for (int Lx : Lx_s) {
+            int Ly = (int)((double)Lx * ratio_x_y);
             L_vec.push_back(pair(Lx, Ly));      // TODO is this save or do I need to initialize the vector beforehand?
             corrList << "," << Lx << "," << Ly << "_y";
             corr2ndList << "," << Lx << "," << Ly << "_y";

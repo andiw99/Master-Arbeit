@@ -94,7 +94,6 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     rows = [int(row) for row in rows]
     df = read_large_df(filepath, rows)
 
-    print(df)
     stretch = Lx/Ly
     if cell_L != 0:
         stretch = 1
@@ -109,9 +108,21 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
             parameters["T"] = df[ind][1]
             row = np.array(df[ind][2:])
 
+            actual_cell_L = config["cell_L"]
             if config["cell_L"]:
-                row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
+                if config["subsystem"]:
+                    subsystem_Lx = parameters["subsystem_Lx"]
+                    subsystem_Ly = parameters["subsystem_Ly"]
+                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"]))
+                    nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
+                    config["cell_L"] = nr_subsystems_per_row * subsystem_Lx
+                    nr_subsystems = nr_subsystems_per_row ** 2
+                    # we now need to extract a rectangular cell that is subsystem_Ly high and nr_subsystems * subsystem_Lx wide
+                    row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_subsystems, subsystem_Lx, subsystem_Ly, Lx, Ly)
+                else:
+                    row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
+            config["cell_L"] = actual_cell_L
             i += 1
     plt.tight_layout()
     fig.subplots_adjust(right=0.8)
@@ -135,6 +146,8 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
 
     textstr = ''
     wanted_paras=["dt", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
+    if config["subsystem"]:
+        wanted_paras.append("subsystem_Lx")
     for para in wanted_paras:
         try:
             textstr += para + "=" + str(parameters[para]) + "\n"
@@ -176,14 +189,10 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
     cell_L = int(config["cell_L"])
-    print("not resphaed row:")
-    print(row)
     if cell_L != 0:
         row = row.reshape((cell_L, cell_L))
     else:
         row = row.reshape((Ly, Lx))
-    print("reshaped row:")
-    print(row)
     chess_trafo = 0
     if config["chess_trafo"] == 1:
         chess_trafo = True
@@ -194,7 +203,6 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     if chess_trafo:
         print("doing chess trafo")
         row = chess_board_trafo(row)
-    print(row)
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
     elif config["angle"] == 1:
@@ -225,7 +233,7 @@ def save_plot(path, name, format="png"):
 
 def plot_name_paras(paras):
     fname = ""
-    wanted_paras=["cell_L", "T", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
+    wanted_paras=["cell_L","subsystem_Lx", "T", "J", "alpha", "beta", "eta", "tau", "Jy", "lat_dim"]
     for key in wanted_paras:
         try:
             if key == "T":
@@ -620,7 +628,24 @@ def extract_cell_from_rectangle(row_data, cell_nr, cell_L, Lx, Ly):
 
     return cell
 
+def extract_rectangle_from_rectangle(row_data, cell_nr, nr_cells, cell_Lx, cell_Ly, Lx, Ly):
+    Lx = int(Lx)
+    cell_Lx = int(cell_Lx)
+    rows = np.zeros((int(cell_Ly), cell_Lx * nr_cells))
 
+    # i can extract the rows of the our combines subcells
+    for row in range(int(cell_Ly)):
+        rows[row] = row_data[row * Lx:row * Lx + cell_Lx * nr_cells]
+
+    # we now somehow want to reshape this...
+    cells_per_row = int(np.sqrt(nr_cells))
+    row_length = cells_per_row * cell_Lx
+    system = []
+
+    for i in range(cells_per_row):
+        for j in range(int(cell_Ly)):
+            system.append(rows[j][i *  row_length: (i + 1) * row_length])
+    return np.array(system)
 def list_directory_names(path):
     paths = os.listdir(path)
     dirs = []

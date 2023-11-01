@@ -129,7 +129,7 @@ void calc_corr(vector<vector<value_type>> &f, result_type &C_x, result_type &C_y
 }
 
 
-vector<fs::path> list_dir_paths(const fs::path& root)
+vector<fs::path> list_dir_paths(const fs::path& root, bool recursive=true)
 {
     vector<fs::path> dir_paths;
 
@@ -144,8 +144,10 @@ vector<fs::path> list_dir_paths(const fs::path& root)
                 // check for the fucking .ipynb folders
                 if(entry.path().filename().string()[0] != '.') {
                     dir_paths.push_back(entry.path());
-                    vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
-                    dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+                    if(recursive){
+                        vector<fs::path> sub_dir_paths = list_dir_paths(entry.path());
+                        dir_paths.insert(dir_paths.end(), sub_dir_paths.begin(), sub_dir_paths.end());
+                    }
                 }
             }
         }
@@ -445,6 +447,17 @@ void printComplexMatrix(value_type(&arr)[size]) {
         std::cout << std::endl;
     }
 }
+template <class value_type1, class value_type2>
+void print_pair_vector(vector<pair<value_type1, value_type2>>  &vec){
+    cout << "vector size = " << vec.size();
+    for(int i = 0; i < vec.size(); i++) {
+        if (i % 10 == 0) {
+            cout << endl;
+        }
+        cout << "(" << vec[i].first << ", " << vec[i].second << ")   ";
+    }
+    cout << endl;
+}
 
 vector<double> get_frequencies(int nr_times) {
     vector<double> freqs;
@@ -697,6 +710,18 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
             cell[j * Lx + i] = lattice[ind % lattice.size()];
         }
     }
+}
+
+bool isCSVFileInCurrentDirectory(path& currentDirectory) {
+    // Iterate over the files in the current directory
+    for (const auto& entry : std::filesystem::directory_iterator(currentDirectory)) {
+        // Check if the file has a .csv extension
+        if (entry.is_regular_file() && entry.path().extension() == ".csv") {
+            return true;  // Found a .csv file
+        }
+    }
+
+    return false;  // No .csv file found in the current directory
 }
 
 fs::path findCsvFile(const fs::path& directory) {

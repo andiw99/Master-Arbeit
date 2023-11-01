@@ -26,12 +26,14 @@ public:
     calcHandler(const fs::path& root, size_t dim_size_x, size_t dim_size_y): root(root), dim_size_x(dim_size_x), dim_size_y(dim_size_y){
     }
     virtual void pre_routine() {}           // some initialization to do before starting to iterate over the settings
+    virtual void directory_pre_routine(fs::path directory_path){}
     virtual void setting_pre_routine(fs::path setting_path) {
         // we adapt that before the calculation for the setting, the Handler gets the path to do all the
         // things that might be unusual, like reading tau
     }   // something to do for every setting before iterating over the realizations
     virtual void realization_routine(vector<double> &lat_q, double T, double t) {}   // something to do for every realization of every setting
     virtual void setting_post_routine(){}   // something to do after we iterated over all realizations
+    virtual void directory_post_routine(){}
     virtual void post_routine() {}          // something to do after we are done with every setting
 
     void set_dims(size_t dimension_size_x, size_t dimension_size_y) {
@@ -57,8 +59,8 @@ struct cos_functor {
 
 pair<double, double> calc_m(vector<double>& q_cell) {
     pair<double, double> m;
-    m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0, plus<double>(), sin_functor());
-    m.second = transform_reduce(q_cell.begin(), q_cell.end(),  0, plus<double>(), cos_functor());
+    m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), cos_functor())  / (double)q_cell.size();
+    m.second = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), sin_functor()) / (double)q_cell.size();
     return m;
 }
 

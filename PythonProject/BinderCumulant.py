@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/XY/XY Weak Low"
+    root = "../../Generated content/Subsystem Test/Ordered Init Longer"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -42,88 +42,133 @@ def main():
     m_dic = {}
     interpol_dic = {}
     exclude_large_dists = 0
-    exclude_small_dists = 0
+    exclude_small_dists = 5
     min_temp = 0
     max_temp = 100.0
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-    r = 5
+    r = 7
     figsize = (1.2 *  6.4, 4.8)
     L_max_lower = 20
     L_max_upper = 50
     transparent_plots = False
 
     cum_path = root + "/" + name
-    xi_path = root + "/" + name2
 
     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-    df_xi = pd.read_csv(xi_path, delimiter=",", index_col=False)
 
     labels = df.columns.delete(0)
-    labels = labels[2*exclude_large_dists:len(labels)-2*exclude_small_dists]
-
-
-    xi_labels = df_xi.columns.delete(0)
-    xi_labels = xi_labels[2*xi_exclude_large_dists:len(xi_labels)-2*xi_exclude_small_dists]
+    print(labels)
+    # labels = labels[2*exclude_large_dists:len(labels)-2*exclude_small_dists]
+    print(labels)
     T = df["T"]
     for size in labels[::2]:
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
-    for size in xi_labels[::2]:
-        xix_dic[size] = np.array(df_xi[size])[np.argsort(T)]
-    for size in xi_labels[1::2]:
-        # remove the _y thingy
-        xiy_dic[size[:-2]] = np.array(df_xi[size])[np.argsort(T)]
     T = np.sort(T)
+
     # sort out temps
     for size in labels[::2]:
         cum_dic[size] = cum_dic[size][(min_temp < T) & (T < max_temp)]
         cum_err_dic[size] = cum_err_dic[size][(min_temp < T) & (T < max_temp)]
-    for size in xi_labels[::2]:
-        xix_dic[size] = xix_dic[size][(min_temp < T) & (T < max_temp)]
-        print(xix_dic[size])
-        print(T)
-    print(xi_labels[1::2])
-    for size in xi_labels[1::2]:
-        xiy_dic[size[:-2]] = xiy_dic[size[:-2]][(min_temp < T) & (T < max_temp)]
     T = T[(min_temp < T) & (T < max_temp)]
+    try:
+        xi_path = root + "/" + name2
+        df_xi = pd.read_csv(xi_path, delimiter=",", index_col=False)
 
-    #T_xi_inter, L_xi_dic = plot_intersection(T, r, root, xix_dic, xiy_dic)
+        T_xi = df_xi["T"]
 
-    # Okay we want to switch to deal with xi_x and xi_y seperately, so we need to interpolate xix for every size
-    # and then use our det_intersection method
+        xi_labels = df_xi.columns.delete(0)
+        xi_labels = xi_labels[2*xi_exclude_large_dists:len(xi_labels)-2*xi_exclude_small_dists]
+        for size in xi_labels[::2]:
+            xix_dic[size] = np.array(df_xi[size])[np.argsort(T_xi)]
+        for size in xi_labels[1::2]:
+            # remove the _y thingy
+            xiy_dic[size[:-2]] = np.array(df_xi[size])[np.argsort(T_xi)]
+        T_xi = np.sort(T_xi)
+        for size in xi_labels[::2]:
+            xix_dic[size] = xix_dic[size][(min_temp < T_xi) & (T_xi < max_temp)]
+        for size in xi_labels[1::2]:
+            xiy_dic[size[:-2]] = xiy_dic[size[:-2]][(min_temp < T_xi) & (T_xi < max_temp)]
+        T_xi = T_xi[(min_temp < T_xi) & (T_xi < max_temp)]
+
+        #T_xi_inter, L_xi_dic = plot_intersection(T, r, root, xix_dic, xiy_dic)
+
+        # Okay we want to switch to deal with xi_x and xi_y seperately, so we need to interpolate xix for every size
+        # and then use our det_intersection method
 
 
-    #plt.show()
+        #plt.show()
 
-    # make xix to L_xix
-    L_xix_dic = {}
-    L_xiy_dic = {}
-    for size in xix_dic.keys():
-        L_xix_dic[size] = int(size) / xix_dic[size]
-    for size in xiy_dic.keys():
-        L_xiy_dic[size] = int(size) / xiy_dic[size]
+        # make xix to L_xix
+        L_xix_dic = {}
+        L_xiy_dic = {}
+        for size in xix_dic.keys():
+            L_xix_dic[size] = int(size) / xix_dic[size]
+        for size in xiy_dic.keys():
+            L_xiy_dic[size] = int(size) / xiy_dic[size]
 
-    # plot for x direction
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
-    ax.set_title(r"$L/\xi_x$ on $\varepsilon$")
-    ax.set_xlabel(r"$\varepsilon$")
-    ax.set_ylabel(r"$L/\xi_x$")
-    T_x_intersec, L_xix_intersec = plt_inter(ax, fig, T, L_xix_dic, 300, r)
-    configure_ax(fig, ax)
-    fig.savefig(root + "/L_xix.png", format="png", dpi=300, transparent=transparent_plots)
-    plt.show()
+        # plot for x direction
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        ax.set_title(r"$L/\xi_x$ on $\varepsilon$")
+        ax.set_xlabel(r"$\varepsilon$")
+        ax.set_ylabel(r"$L/\xi_x$")
+        T_x_intersec, L_xix_intersec = plt_inter(ax, fig, T, L_xix_dic, 300, r)
+        configure_ax(fig, ax)
+        fig.savefig(root + "/L_xix.png", format="png", dpi=300, transparent=transparent_plots)
+        plt.show()
 
-    # plot for y direction
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
-    ax.set_title(r"$L/\xi_y$ on $\varepsilon$")
-    ax.set_xlabel(r"$\varepsilon$")
-    ax.set_ylabel(r"$L/\xi_y$")
-    T_y_intersec, L_xiy_intersec = plt_inter(ax, fig, T, L_xiy_dic, 300, r)
-    configure_ax(fig, ax)
-    fig.savefig(root + "/L_xiy.png", format="png", dpi=300, transparent=transparent_plots)
-    plt.show()
+        # plot for y direction
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        ax.set_title(r"$L/\xi_y$ on $\varepsilon$")
+        ax.set_xlabel(r"$\varepsilon$")
+        ax.set_ylabel(r"$L/\xi_y$")
+        T_y_intersec, L_xiy_intersec = plt_inter(ax, fig, T, L_xiy_dic, 300, r)
+        configure_ax(fig, ax)
+        fig.savefig(root + "/L_xiy.png", format="png", dpi=300, transparent=transparent_plots)
+        plt.show()
+
+        xix_num_diff_arr, xix_size_arr = calc_diff_at(T_x_intersec, T, L_xix_dic)
+        xiy_num_diff_arr, xiy_size_arr = calc_diff_at(T_y_intersec, T, L_xiy_dic)
+
+        # xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
+        xix_num_diff_arr = xix_num_diff_arr[xix_size_arr < max_L_fit]
+        xiy_num_diff_arr = xiy_num_diff_arr[xiy_size_arr < max_L_fit]
+        # xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
+        xix_size_arr = xix_size_arr[xix_size_arr < max_L_fit]
+        xiy_size_arr = xiy_size_arr[xiy_size_arr < max_L_fit]
+        # popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
+
+        print(xix_size_arr, xix_num_diff_arr)
+
+        popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
+        nu_x = 1 / popt_x[0]
+
+        print("xiy_size_arr: ", xiy_size_arr)
+        print("xiy_num_diff_arr: ", xiy_num_diff_arr)
+        popt_y, _ = curve_fit(linear_fit, np.log(xiy_size_arr), np.log(xiy_num_diff_arr))
+        nu_y = 1 / popt_y[0]
+
+        # plotting derivatives for both directions
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        ax.plot(xix_size_arr, xix_num_diff_arr, linestyle="", marker="+", color=colors[0])
+        ax.plot(xiy_size_arr, xiy_num_diff_arr, linestyle="", marker="x", color=colors[4])
+        L_x_fit = np.linspace(0, np.max(xix_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
+        L_y_fit = np.linspace(0, np.max(xiy_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
+        ax.plot(L_x_fit, poly(L_x_fit, 1 / nu_x, np.exp(popt_x[1])), label=rf"$\nu_x = {nu_x:.2f}$", color=colors[0])
+        ax.plot(L_y_fit, poly(L_y_fit, 1 / nu_y, np.exp(popt_y[1])), label=rf"$\nu_y = {nu_y:.2f}$", color=colors[4])
+
+        ax.set_xlabel("L")
+        ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
+        ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$ in x- and y-direction")
+        configure_ax(fig, ax)
+        fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=transparent_plots)
+        plt.show()
+    except:
+        pass
 
 
     fig, ax = plt.subplots(1, 1, figsize = figsize)
@@ -138,8 +183,8 @@ def main():
             # print(size, cum_dic[size])
             # interpolation
             ax.errorbar(T, cum_dic[size], yerr = cum_err_dic[size], ls="",
-                        marker="x", color=colors[2 * line_nr], ecolor="black", elinewidth=0, capsize=0)
-            ax.plot(T_inter_arr, interpol_dic[size], color=colors[2 * line_nr],
+                        marker="x", color=colors[(2 * line_nr) % len(colors)], ecolor="black", elinewidth=0, capsize=0)
+            ax.plot(T_inter_arr, interpol_dic[size], color=colors[(2 * line_nr) % len(colors)],
                     label=rf"L = {size}", linewidth=0.5)
             line_nr += 1
 
@@ -160,9 +205,7 @@ def main():
     # xi_num_diff_arr, xi_size_arr = calc_diff_at(T_xi_inter, T, L_xi_dic)
     # numercial diffs for x and y direction aswell as the size arrays
 
-    xix_num_diff_arr, xix_size_arr = calc_diff_at(T_x_intersec, T, L_xix_dic)
 
-    xiy_num_diff_arr, xiy_size_arr = calc_diff_at(T_y_intersec, T, L_xiy_dic)
     # fig, ax = plt.subplots(1, 1)
     # ax.plot(size_arr, diff_beta_arr)
     plt.show()
@@ -222,42 +265,7 @@ def main():
 
     # fitting L/xi
 
-    #xi_num_diff_arr_fit = xi_num_diff_arr[xi_size_arr < max_L_fit]
-    xix_num_diff_arr = xix_num_diff_arr[xix_size_arr < max_L_fit]
-    xiy_num_diff_arr = xiy_num_diff_arr[xiy_size_arr < max_L_fit]
-    #xi_size_fit_arr = xi_size_arr[xi_size_arr < max_L_fit]
-    xix_size_arr = xix_size_arr[xix_size_arr < max_L_fit]
-    xiy_size_arr = xiy_size_arr[xiy_size_arr < max_L_fit]
-    #popt, _ = curve_fit(linear_fit, np.log(xi_size_fit_arr), np.log(xi_num_diff_arr_fit))
-    nu = 1 / popt[0]
 
-    print(xix_size_arr, xix_num_diff_arr)
-
-    popt_x, _ = curve_fit(linear_fit, np.log(xix_size_arr), np.log(xix_num_diff_arr))
-    nu_x = 1 / popt_x[0]
-
-    print("xiy_size_arr: ", xiy_size_arr)
-    print("xiy_num_diff_arr: ", xiy_num_diff_arr)
-    popt_y, _ = curve_fit(linear_fit, np.log(xiy_size_arr), np.log(xiy_num_diff_arr))
-    nu_y = 1 / popt_y[0]
-
-    # plotting derivatives for both directions
-
-    fig, ax = plt.subplots(1, 1, figsize = figsize)
-
-    ax.plot(xix_size_arr, xix_num_diff_arr, linestyle="", marker="+", color=colors[0])
-    ax.plot(xiy_size_arr, xiy_num_diff_arr, linestyle="", marker="x", color=colors[4])
-    L_x_fit = np.linspace(0, np.max(xix_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
-    L_y_fit = np.linspace(0, np.max(xiy_size_arr) + 0.2 * np.max(xix_size_arr), num=101)
-    ax.plot(L_x_fit, poly(L_x_fit, 1 / nu_x, np.exp(popt_x[1])), label=rf"$\nu_x = {nu_x:.2f}$", color=colors[0])
-    ax.plot(L_y_fit, poly(L_y_fit, 1 / nu_y, np.exp(popt_y[1])), label=rf"$\nu_y = {nu_y:.2f}$", color=colors[4])
-
-    ax.set_xlabel("L")
-    ax.set_ylabel(r"$\frac{d (L/\xi)}{d \varepsilon}$")
-    ax.set_title(r"$\frac{d (L/\xi)}{d \varepsilon}$ for different System sizes $L$ in x- and y-direction")
-    configure_ax(fig, ax)
-    fig.savefig(root + "/critical_exponent_xi.png", format="png", dpi=250, transparent=transparent_plots)
-    plt.show()
 
     # show nu vs L_max
 
@@ -295,13 +303,17 @@ def calc_diff_at(T_inter, T, value_dic):
         # now we calculate a central difference with the nearest value
         # being in the center
         # check whether the index is at least greater than zero...
-        if index_nearest_T > 0:
+        if index_nearest_T == 0:
+            # vorwärtsdifferenz?
+            num_diff = (value_dic[size][index_nearest_T + 1] - value_dic[size][index_nearest_T]) / (T[index_nearest_T + 1] - T[index_nearest_T])
+
+        elif index_nearest_T == (len(T) - 1):
+            # rückwärtsdiff
+            num_diff = (value_dic[size][index_nearest_T] - value_dic[size][index_nearest_T - 1]) / (T[index_nearest_T] - T[index_nearest_T - 1])
+        else:
             num_diff = (value_dic[size][index_nearest_T + 1] -
                         value_dic[size][index_nearest_T - 1]) \
                        / (2 * (T[index_nearest_T + 1] - T[index_nearest_T]))
-        else:
-            # vorwärtsdifferenz?
-            num_diff = (value_dic[size][index_nearest_T + 1] - value_dic[size][index_nearest_T]) / (T[index_nearest_T + 1] - T[index_nearest_T])
         num_diff_arr.append(num_diff)
         size_arr.append(int(size))
     num_diff_arr = np.array(num_diff_arr)[np.argsort(size_arr)]

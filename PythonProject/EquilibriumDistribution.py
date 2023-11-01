@@ -32,7 +32,7 @@ def start_ani(event, ax, bars, x, nr_bins=100):
 
 
 def main():
-    root = "../../Generated content/BBK/Dist Convergence/Euler/0.0005"
+    root = "../../Generated content/BBK/Dist Convergence/BBK/0.05"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"

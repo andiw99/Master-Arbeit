@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_model relax_system;
+    typedef XY_subsystems relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
     } else {

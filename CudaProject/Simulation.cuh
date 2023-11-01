@@ -129,7 +129,8 @@ public:
             return;
         }
     }
-    void initialize() {
+
+    virtual void initialize() {
         // initialize the stepper, again the problem that depending on the type, I need to initialize differently
         // We do the heretical is_same initialization this time because partial template specialization is not a thing in c++
         // We could theoretically also create the stepper in the base class, but then we would have
@@ -225,7 +226,7 @@ class RelaxationSimulation : public Simulation<stepper_type, state_type, alg, op
     using Simulation::folder_path;
     vector<double> temps;
 
-    void initialize() {
+    void initialize() override {
         // init the taus i want the simultion to run over
         temps = linspace(paras[min_temp],
                              paras[max_temp], (int)paras[nr_runs] + 1);
@@ -240,7 +241,8 @@ public:
     void simulate() {
         // we need to initialize here or think of a different architecture since
         // if we initialize in the constructor we do not register the observers to the stepper
-        this->initialize();
+        cout << "Calling RelaxationSimulation simulate" << endl;
+        RelaxationSimulation::initialize();
         // runs the whole simulation, the sequence depends on the type of simulation we do
         for(auto T : temps) {
             // update the parameters so we create the correct systems and stuff
@@ -258,6 +260,55 @@ public:
     RelaxationSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
             Simulation(paras, simulation_path) {
     }
+};
+
+template <
+        template<class, class, class, class, class, class> class stepper_type,
+        class state_type, class alg, class oper,
+        class relax_sys >
+class SubsystemRelaxationSimulation : public RelaxationSimulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+    typedef RelaxationSimulation<stepper_type, state_type, alg, oper, relax_sys> RelaxationSimulation;
+    using Simulation::paras;
+    using Simulation::simulation_path;
+
+    vector<pair<size_t, size_t>> subsystem_sizes{};
+    double x_y_factor;
+    path rootpath;
+
+    void initialize() override {
+        vector<size_t> Lx_s = linspace((size_t)paras[subsystem_min_Lx], (size_t)paras[subsystem_max_Lx], (int)paras[nr_subsystem_sizes] + 1);
+        cout << "Sizes Lx:" << endl;
+        print_vector(Lx_s);
+        x_y_factor = paras[Parameter::x_y_factor];
+        for(size_t Lx : Lx_s) {
+            auto Ly = (size_t) ((double) Lx * x_y_factor);
+            subsystem_sizes.push_back(pair<size_t, size_t>(Lx, Ly));
+        }
+        // RelaxationSimulation::initialize(); we dont even need to call that since the Relaxation Simulation calls it anyway?
+    }
+public:
+    void simulate() {
+        // we need to initialize here or think of a different architecture since
+        // if we initialize in the constructor we do not register the observers to the stepper
+        cout << "Calling SubsystemRelaxationSimulation simulate" << endl;
+        initialize();
+        // runs the whole simulation, the sequence depends on the type of simulation we do
+        int nr_subsystems = (int)paras[Parameter::nr_subsystems];
+        for(auto L_pair : subsystem_sizes) {
+            // update the parameters so we create the correct systems and stuff
+            paras[Parameter::dim_size_y] = L_pair.second;
+            paras[Parameter::dim_size_x] = L_pair.first * nr_subsystems;
+            paras[Parameter::subsystem_Ly] = L_pair.second;
+            paras[Parameter::subsystem_Lx] = L_pair.first;
+            simulation_path = rootpath / to_string(L_pair.first);
+            RelaxationSimulation::simulate();
+        }
+    }
+    SubsystemRelaxationSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
+            RelaxationSimulation(paras, simulation_path), rootpath(simulation_path) {
+    }
+
 };
 
 template <

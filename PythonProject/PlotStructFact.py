@@ -147,7 +147,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/XY/XY Peak"
+    root = "../../Generated content/XY/XY Peak 50000"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -155,7 +155,7 @@ def main():
     fitfunc = MF_lorentz
     errors_for_fit=False
     plot_struct = True
-    cut_zero_impuls = True
+    cut_zero_impuls = False
     nu_est = 0.8
     T_c_est = 0.7
     print(root_dirs)

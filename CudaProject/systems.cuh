@@ -664,10 +664,6 @@ struct NNN_System: public System {
 
 
 struct constant_bath : public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
 public:
     const double alpha;
     const double beta;
@@ -747,10 +743,7 @@ public:
 
 
 struct coulomb_interaction : public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+
 public:
     const double alpha;
     const double beta;
@@ -997,10 +990,6 @@ public:
 
 
 struct anisotropic_coulomb_interaction : virtual public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
 public:
     const double alpha;
     const double beta;
@@ -1157,13 +1146,9 @@ inline value_type positive_modulo(value_type i, value_type n) {
 }
 
 class XY_model : virtual public System {
-    using left = typename System::left;
-    using right = typename System::right;
-    using up = typename System::up;
-    using down = typename System::down;
+protected:
     const double p_XY = 2;     // for the potential, will be 2 for bistable XY and 2.5 for silicon
     const double m = 1;     // prefactor for the interaction, important if we dont have the 2 pi periodicy
-protected:
 
     double J;
     double h;
@@ -1713,6 +1698,151 @@ public:
     quadratic_chain(map<Parameter, double> paras): chain(paras), System(paras), J(paras[Parameter::J]) {}
 };
 
+
+class subsystems : virtual public System {
+    // This one is supposed to simulate multiple small (isolated) systems in one run
+    // the only thing we have to change is how the neighbors are selected?
+protected:
+    size_t n0;      // subsystem size
+    size_t Lx, Ly;  // subsystem dimensions
+
+    using System::left;
+    using System::right;
+
+    struct neighbor {
+        size_t n0, Lx, Ly;
+    public:
+        neighbor(size_t n0, size_t Lx, size_t Ly): n0(n0), Lx(Lx), Ly(Ly) {}
+    };
+
+    struct up : public neighbor {
+        using neighbor::neighbor;
+        virtual __host__ __device__ size_t operator()(size_t i) const {
+            // okay lets see, lets first find out in which subsystem we are
+            // the position in this subsystem is
+            size_t subsystem_pos = i % n0;
+            // now it is just the up neighbor of subsystem_pos + subsystem_nr * n0
+            return (subsystem_pos < Lx) ? i + Lx * (Ly - 1) : i - Lx;
+        }
+    };
+    struct down : public neighbor {
+        using neighbor::neighbor;
+        virtual __host__ __device__ size_t operator()(size_t i) const {
+            // okay lets see, lets first find out in which subsystem we are
+            // the position in this subsystem is
+            size_t subsystem_pos = i % n0;
+            // now it is just the up neighbor of subsystem_pos + subsystem_nr * n0
+            return (subsystem_pos >= Lx * (Ly -1 )) ? i - Lx * (Ly - 1) : i + Lx;
+        }
+    };
+protected:
+
+    template<class State, class Deriv, class FunctorType>
+    void derivative_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                x.begin() + n,
+                dxdt.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(Lx)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(Lx)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                up(n0, Lx, Ly)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                down(n0, Lx, Ly)
+                        )
+                )
+        )));
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
+    template<class State, class Deriv, class FunctorType>
+    void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
+                x.begin(),
+                dxdt.begin() + n,
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                left(Lx)           // for left the dim_size in x-direction is important
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                right(Lx)          // for right the dim_size in x-direction is relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                System::up(dim_size_x, Ly)      // for up and down both dimension sizes are relevant
+                        )
+                ),
+                thrust::make_permutation_iterator(
+                        x.begin(),
+                        thrust::make_transform_iterator(
+                                thrust::counting_iterator<size_t>(0),
+                                System::down(dim_size_x, Ly)
+                        )
+                )
+        )));
+/*        auto left_inds = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), left(Lx));
+        auto right_inds = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), right(Lx));
+        auto up_inds = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), System::up(dim_size_x, Ly));
+        auto down_inds = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), System::down(dim_size_x, Ly));
+        for(int i = 0; i < dim_size_x * dim_size_y; i++) {
+            cout << "pos: " << i << "  left: " << left_inds[i] << "  right: " << right_inds[i] << "  up: " << up_inds[i] << "  down: " << down_inds[i] << endl;
+        }*/
+        thrust::for_each(start, start + n, functor);
+        step_nr++;
+    }
+
+public:
+    subsystems(map<Parameter, double> paras): System(paras), Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
+        n0 = Ly * Lx;
+        cout << "initializing subsystems with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
+        if (Ly != dim_size_y) {
+            cout << "dim_size_y has to be equal to L_y" << endl;
+            exit(0);
+        }
+    }
+};
+
+struct XY_subsystems : public subsystems, public XY_model {
+public:
+    XY_subsystems(map<Parameter, double> paras): subsystems(paras), XY_model(paras), System(paras) {}
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        xy_force functor = xy_force(System::eta, J, h, XY_model::p_XY, XY_model::m);
+        subsystems::force_calculation(x, dxdt, t, functor);
+    }
+};
 
 
 struct gpu_oscillator_chain : chain{
