@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystem Test/Ordered Init Longer"
+    root = "../../Generated content/Subsystems/First"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,8 +43,8 @@ def main():
     interpol_dic = {}
     exclude_large_dists = 0
     exclude_small_dists = 5
-    min_temp = 0
-    max_temp = 100.0
+    min_temp = 8.8
+    max_temp = 100
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000

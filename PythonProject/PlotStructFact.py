@@ -272,6 +272,15 @@ def main():
     ax.set_ylabel(r"$\frac{1}{\xi(T)}$")
     configure_ax(fig, ax)
     plt.savefig(root + "/1_xi.png")
+
+    fig, ax = plt.subplots(1, 1)
+    xi_inv = 1 / xi_sorted
+    ax.plot(np.log(T_arr), np.log(xix_inv), ls="", marker="o", ms=4, fillstyle="none", color="C0")
+    ax.set_xlabel("T")
+    ax.set_ylabel(r"$\frac{1}{\xi(T)}$")
+    configure_ax(fig, ax)
+    plt.savefig(root + "/1_xi_avg_log.png")
+
     plt.show()
 
 
