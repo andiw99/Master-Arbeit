@@ -5,12 +5,15 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Quenching/"
+    root = "../../Generated content/Testing Rectangular/Quench"
     name = "quench.process"
     png_name = "quench.png"
     root_dirs = os.listdir(root)
     print(root_dirs)
-
+    colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
+    size_factor = 0.8
+    max_t_tau = 1.01
+    min_t_tau = -0.01
     xi_avg_dic = {}
     t_tau_dic = {}
 
@@ -24,9 +27,9 @@ def main():
                 # We assume that we have one that is called 0.txt
                 paras = read_parameters_txt(dir_path + "/0.txt")
                 tau = paras["tau"]
-                t_eq = paras["t_eq"]
-                T_start = paras["starting_T"]
-                T_end = paras["end_T"]
+                t_eq = paras["equil_time"]
+                T_start = paras["starting_temp"]
+                T_end = paras["end_temp"]
                 print(paras)
                 t = np.array(df["t"])
                 # normalizing so the quench begins at zero:
@@ -42,14 +45,14 @@ def main():
                     else:
                         T[i] = T_start
 
-                xi_x = np.array(df["xi_x"][1:])
-                xi_y = np.array(df["xi_y"][1:])
+                xi_x = np.array(df["xi_x"])
+                xi_y = np.array(df["xi_y"])
                 xi = 1/2 * (xi_x + xi_y)
-                xi_y +=  1/4 * np.max(xi_x)     # for plotting
+                #xi_y +=  1/4 * np.max(xi_x)     # for plotting
 
                 fig, axes = plt.subplots(1, 1)
-                axes.plot(t_tau[1:], xi_x, ls="", marker=".", label=r"$\xi_x$", ms=2.5)
-                axes.plot(t_tau[1:], xi_y, ls="", marker=".", label=r"$\xi_y$", ms=2.5)
+                axes.plot(t_tau, xi_x, ls="", marker=".", label=r"$\xi_x$", ms=2.5)
+                axes.plot(t_tau, xi_y, ls="", marker=".", label=r"$\xi_y$", ms=2.5)
 
                 # Setze Tickmarken und Labels
                 axes.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
@@ -59,7 +62,9 @@ def main():
                 axes.xaxis.set_major_locator(ticker.MultipleLocator(base=maxt_tau / 4))
                 axes.xaxis.set_minor_locator(ticker.MultipleLocator(base=maxt_tau / 4 / 5))
                 # TODO minor locator muss
-                axes.yaxis.set_minor_locator((plt.MultipleLocator(0.01)))
+                xi_span = round(np.maximum(np.max(xi_x), np.max(xi_y)) - np.minimum(np.min(xi_x), np.min(xi_y)), 1)
+                axes.yaxis.set_major_locator((plt.MultipleLocator(xi_span / 4)))
+                axes.yaxis.set_minor_locator((plt.MultipleLocator(xi_span / 4 / 5)))
                 # Füge Gitterlinien hinzu
                 axes.grid(which='major', linestyle='--', alpha=0.5)
                 # second x axis for the temperature
@@ -75,7 +80,7 @@ def main():
                 axes.set_ylabel(r"$\xi$")
                 axes.set_xlabel(r"t$/ \tau_Q$")
                 axes.set_title(rf"Quench protocol $\tau_Q = {int(tau)}$")
-                save_plot(root + "plots/", str(tau) + ".png")
+                save_plot(root + "/plots/", str(tau) + ".png")
                 fig.legend()
                 plt.show()
 
@@ -83,7 +88,7 @@ def main():
                 t_tau_dic[tau] = t_tau
                 xi_avg_dic[tau] = xi
 
-    fig, axes = plt.subplots(1, 1)
+    fig, axes = plt.subplots(1, 1, figsize=(6.4 * size_factor, 4.8 * size_factor))
     # plot everything
 
     # Setze Tickmarken und Labels
@@ -91,11 +96,14 @@ def main():
                      labelsize=9)
     axes.tick_params(direction='in', which='minor', length=3, width=1,
                      labelsize=9)
-    axes.set_yscale("log")
+    # axes.set_yscale("log")
     maxt_tau = 1
     max_xi = 0.5
-    for tau in t_tau_dic.keys():
-        axes.plot(t_tau_dic[tau][1:], xi_avg_dic[tau], ls="", marker=".", label=rf"{tau}", ms=2.5)
+    for i, tau in enumerate(sorted(t_tau_dic.keys())):
+        xi_plot = xi_avg_dic[tau][(t_tau_dic[tau] < max_t_tau) & (t_tau_dic[tau] > min_t_tau)]
+        t_tau_plot = t_tau_dic[tau][(t_tau_dic[tau] < max_t_tau) & (t_tau_dic[tau] > min_t_tau)]
+        axes.plot(t_tau_plot, xi_plot, ls="", marker=".", ms=2.5, color=colors[2* i])
+        axes.plot([], [], ls="-", label=rf"{tau}", color=colors[2 * i])
         maxt_tau = np.maximum(int(np.max(t_tau_dic[tau])), maxt_tau)
         axes.xaxis.set_major_locator(ticker.MultipleLocator(base=maxt_tau / 4))
         axes.xaxis.set_minor_locator(ticker.MultipleLocator(base=maxt_tau / 4 / 5))
@@ -109,9 +117,10 @@ def main():
         axes.set_ylabel(r"$\xi$")
         axes.set_xlabel(r"t$/ \tau_Q$")
         axes.set_title(rf"Quench protocol")
-    axes.set_xlim(-0.5, 1.25)
-    fig.legend()
-    save_plot(root + "plots/", "together" + ".png")
+    axes.set_xlim(axes.get_xlim()[0], 1.5)
+    configure_ax(fig, axes)
+    axes.legend(loc="upper left")
+    fig.savefig(root + "/plots/together.png", format="png", transparent=False, dpi=300)
     plt.show()
 
 if __name__ == "__main__":

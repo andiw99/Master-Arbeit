@@ -54,31 +54,48 @@ def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([]))
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True):
+def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True,
+            plot_struct = False, cut_zero_impuls = False):
 
     if not parameters:
         T = 0
     else:
         T = parameters["T"]
 
+
+
     px = df["px"]
     px = np.array(px)
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
     # cutoff
     px = px[indices]
+    px = px[~np.isnan(px)]
     ft_avg_y = np.array(df["ft_avg_y"])[indices]
-
+    ft_avg_y = ft_avg_y[~np.isnan(ft_avg_y)]
 
     py = df["py"]
     py = np.array(py)[indices]
+    py = py[~np.isnan(py)]
     ft_avg_x = np.array(df["ft_avg_x"])[indices]
+    ft_avg_x = ft_avg_x[~np.isnan(ft_avg_x)]
+
     try:
         y_error = np.array(df["stddev_y"])
+        y_error = y_error[~np.isnan(y_error)]
         x_error = np.array(df["stddev_x"])
+        x_error = x_error[~np.isnan(x_error)]
     except:
         y_error = None
         x_error = None
 
+
+    if cut_zero_impuls:
+        ft_avg_y = ft_avg_y[px != 0]
+        y_error = y_error[px != 0]
+        px = px[px != 0]
+        ft_avg_x = ft_avg_x[py != 0]
+        x_error = x_error[py != 0]
+        py = py[py != 0]
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -110,16 +127,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # error of xi:
     xi_err = 1/2 * (xix_err + xiy_err)
     # plotting
-    fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
-    p = np.linspace(min(px), max(px), px.size)
-    lorentz_x = fitfunc(p, *popt_x)
-    lorentz_y = fitfunc(p, *popt_y)
-    axes[0].plot(p, lorentz_x, label="Lorentzian fit")
-    axes[1].plot(p, lorentz_y, label="Lorentzian fit")
-    axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
-    axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
-    plt.tight_layout()
-    plt.savefig(savepath, format="png")
+    if plot_struct:
+        fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
+        p = np.linspace(min(px), max(px), px.size)
+        lorentz_x = fitfunc(p, *popt_x)
+        lorentz_y = fitfunc(p, *popt_y)
+        axes[0].plot(p, lorentz_x, label="Lorentzian fit")
+        axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+        axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
+        axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
+        plt.tight_layout()
+        plt.savefig(savepath, format="png")
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
@@ -129,14 +147,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Coulomb/J=2/J=2/70 larger stepsize"
+    root = "../../Generated content/XY/XY Peak 50000"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
     cutoff =  np.pi
     fitfunc = MF_lorentz
     errors_for_fit=False
-
+    plot_struct = True
+    cut_zero_impuls = False
+    nu_est = 0.8
+    T_c_est = 0.7
     print(root_dirs)
     # arrays to save the xi corrsponding to T
     T_arr = []
@@ -169,8 +190,9 @@ def main():
                     xiy_err, xi, xi_err = analyze(df, parameters,
                                                   savepath=dir_path + png_name,
                                                   cutoff=cutoff, fitfunc=fitfunc,
-                                                  errors_for_fit=errors_for_fit)
-
+                                                  errors_for_fit=errors_for_fit,
+                                                  plot_struct=plot_struct,
+                                                  cut_zero_impuls=cut_zero_impuls)
                 T_arr.append(T)
                 xix_arr.append(xix)
                 xiy_arr.append(xiy)
@@ -195,7 +217,7 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
     print("Where")
-    span = np.max(T_arr) - np.min(T_arr)
+    span = np.maximum(np.max(T_arr) - np.min(T_arr), 0.05)
     print(span)
     print(np.max(xix_sorted))
     print(np.max(xiy_sorted))
@@ -218,7 +240,6 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
 
-    span = np.max(T_arr) - np.min(T_arr)
     ax.xaxis.set_major_locator(ticker.MultipleLocator(base=span / 4))
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=span / 4 / 5))
     # TODO minor locator muss
@@ -230,6 +251,36 @@ def main():
     ax.set_ylabel(r"$\xi(T)$")
     ax.set_title("Corr Length depending on T")
     save_plot(root, "/xi.png")
+
+    eps = (T_arr - T_c_est) / T_c_est
+    Tg = np.linspace(T_c_est, np.max(T_arr), 100)[1:]
+    Tl = np.linspace(T_c_est, np.min(T_arr), 100)[1:]
+    print(Tg)
+    scaling_right = corr_scaling_right(Tg, T_c_est, nu_est, 0.2)
+    scaling_left = corr_scaling_left(Tl, T_c_est, nu_est, 2)
+    ax.set_ylim(0, np.max(xi_arr) + 0.1 * np.max(xi_arr))
+    print(scaling_right)
+    # ax.plot(Tg, scaling_right)
+    # ax.plot(Tl, scaling_left)
+
+    fig, ax = plt.subplots(1, 1)
+    xix_inv = 1 / xix_sorted
+    xiy_inv = 1 / xiy_sorted
+    ax.plot(T_arr, xix_inv, ls="", marker="o", ms=4, fillstyle="none", color="C0")
+    ax.plot(T_arr, xiy_inv, ls="", marker="o", ms=4, fillstyle="none", color="C1")
+    ax.set_xlabel("T")
+    ax.set_ylabel(r"$\frac{1}{\xi(T)}$")
+    configure_ax(fig, ax)
+    plt.savefig(root + "/1_xi.png")
+
+    fig, ax = plt.subplots(1, 1)
+    xi_inv = 1 / xi_sorted
+    ax.plot(np.log(T_arr), np.log(xix_inv), ls="", marker="o", ms=4, fillstyle="none", color="C0")
+    ax.set_xlabel("T")
+    ax.set_ylabel(r"$\frac{1}{\xi(T)}$")
+    configure_ax(fig, ax)
+    plt.savefig(root + "/1_xi_avg_log.png")
+
     plt.show()
 
 

@@ -1,30 +1,30 @@
 cmake_minimum_required(VERSION 3.25)
 project(LearningProject)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
-include_directories(BathTemperature)
-include_directories(BrownianMotion)
-include_directories(Convergence)
+include_directories(Trash/BathTemperature)
+include_directories(Trash/BrownianMotion)
+include_directories(Trash/Convergence)
 include_directories(DomainSize)
-include_directories(FirstTry)
-include_directories(GPUTries)
-include_directories(HarmonicOscillator)
+include_directories(Trash/FirstTry)
+include_directories(Trash/GPUTries)
+include_directories(Trash/HarmonicOscillator)
 include_directories(Header)
-include_directories(LatticeModel)
-include_directories(Odeint)
-include_directories(SimpleInteraction)
+include_directories(Trash/LatticeModel)
+include_directories(Trash/Odeint)
+include_directories(Trash/SimpleInteraction)
 include_directories(Testing)
-include_directories(TwoStepMethod)
+include_directories(Trash/TwoStepMethod)
 
 add_executable(LearningProject
-        BathTemperature/Bath.cpp
-        BathTemperature/Bath.h
-        BrownianMotion/main.cpp
-        BrownianMotion/main.h
-        Convergence/ConvergenceCheck.cpp
-        Convergence/ConvergenceCheckDiffusion.cpp
-        Convergence/ConvergenceCheckDiffusion.h
+        Trash/BathTemperature/Bath.cpp
+        Trash/BathTemperature/Bath.h
+        Trash/BrownianMotion/main.cpp
+        Trash/BrownianMotion/main.h
+        Trash/Convergence/ConvergenceCheck.cpp
+        Trash/Convergence/ConvergenceCheckDiffusion.cpp
+        Trash/Convergence/ConvergenceCheckDiffusion.h
         DomainSize/CalcCorrelationFunction.cpp
         DomainSize/CalcDomainSize.cpp
         DomainSize/CalcDomainSize.h
@@ -32,40 +32,55 @@ add_executable(LearningProject
         DomainSize/FourierLatticeTrafo.h
         DomainSize/matplotlibcpp.h
         DomainSize/matplotlibtest.cpp
-        FirstTry/first_try.cpp
-        FirstTry/kzm_silicon_2d.cpp
-        FirstTry/Lattice.cpp
-        FirstTry/main.cpp
-        FirstTry/matrices.cpp
-        FirstTry/matrices.h
-        FirstTry/point_type.hpp
-        FirstTry/rng.cpp
-        FirstTry/rng.h
-        FirstTry/SolarSystem.cpp
-        FirstTry/Testclass.cpp
-        FirstTry/Testclass.h
-        FullInteraction/main.cpp
-        GPUTries/GPUTry.cpp
-        GPUTries/GPUTry.cu
-        GPUTries/GPUTry.h
-        HarmonicOscillator/main.cpp
-        HarmonicOscillator/main.h
+        Trash/FirstTry/first_try.cpp
+        Trash/FirstTry/kzm_silicon_2d.cpp
+        Trash/FirstTry/Lattice.cpp
+        Trash/FirstTry/main.cpp
+        Trash/FirstTry/matrices.cpp
+        Trash/FirstTry/matrices.h
+        Trash/FirstTry/point_type.hpp
+        Trash/FirstTry/rng.cpp
+        Trash/FirstTry/rng.h
+        Trash/FirstTry/SolarSystem.cpp
+        Trash/FirstTry/Testclass.cpp
+        Trash/FirstTry/Testclass.h
+        Trash/FullInteraction/main.cpp
+        Trash/GPUTries/GPUTry.cpp
+        Trash/GPUTries/GPUTry.cu
+        Trash/GPUTries/GPUTry.h
+        Trash/HarmonicOscillator/main.cpp
+        Trash/HarmonicOscillator/main.h
         "Header/Helpfunctions and Classes.h"
         Header/Solvers.h
         Header/Systems.h
-        LatticeModel/main.cpp
-        LatticeModel/main.h
-        Odeint/OdeintTest.cpp
-        Odeint/OdeintTest.h
-        SimpleInteraction/main.cpp
-        SimpleInteraction/main.h
-        SimpleInteraction/RightAndDown.cpp
-        SimpleInteraction/RightAndDown.h
+        Trash/LatticeModel/main.cpp
+        Trash/LatticeModel/main.h
+        Trash/Odeint/OdeintTest.cpp
+        Trash/Odeint/OdeintTest.h
+        Trash/SimpleInteraction/main.cpp
+        Trash/SimpleInteraction/main.h
+        Trash/SimpleInteraction/RightAndDown.cpp
+        Trash/SimpleInteraction/RightAndDown.h
         Testing/EigenCurveFitting.cpp
         Testing/EigenCurveFitting.h
         Testing/fftwMinimal.cpp
         Testing/fftwMinimal.h
         Testing/Polymorphism.cpp
         Testing/Polymorphism.h
-        TwoStepMethod/main.cpp
-        TwoStepMethod/main.h CurveFitting/Curvefitting.cpp CurveFitting/Curvefitting.h DomainSize/QuenchCorrLength.cpp DomainSize/QuenchCorrLength.h DomainSize/LatticeFFT.cpp DomainSize/LatticeFFT.h DomainSize/LatticeFFTError.cpp)
+        Trash/TwoStepMethod/main.cpp
+        Trash/TwoStepMethod/main.h CurveFitting/Curvefitting.cpp CurveFitting/Curvefitting.h DomainSize/QuenchCorrLength.cpp DomainSize/QuenchCorrLength.h DomainSize/LatticeFFT.cpp DomainSize/LatticeFFT.h DomainSize/LatticeFFTError.cpp
+        CurveFitting/ResidiualXi.cpp
+        CurveFitting/ResidiualXi.h
+        Testing/Factory.cpp
+        Testing/Factory.h
+        LatticeCalculations/Simulation.cpp
+        LatticeCalculations/Simulation.h
+        LatticeCalculations/CalcHandlers/calcHandler.h
+        LatticeCalculations/CalcHandlers/BinderHandler.h
+        LatticeCalculations/CalcHandlers/corrLengthHandler.h
+        LatticeCalculations/CalcHandlers/secondCorrLenghtHandler.h
+        LatticeCalculations/CalcHandlers/StructFactHandler.h
+        LatticeCalculations/configs.h
+        LatticeCalculations/CalcHandlers/QuenchProcessHandler.h
+        Testing/NeighborPerfCheck.cpp
+        Testing/NeighborPerfCheck.h)

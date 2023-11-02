@@ -2,7 +2,7 @@
 // Created by weitze73 on 08.06.23.
 //
 #include "main.cuh"
-#include "systems.cuh"
+#include "systems-cuda.cuh"
 #include "parameters.cuh"
 
 namespace fs = std::filesystem;
@@ -27,8 +27,12 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     size_t N = (size_t)paras["N"];
     paras["n"] = lattice_dim * lattice_dim;
     double dt_max = paras["dt"];
+    paras["seed"] = seed;
     // we initialize the system
-    system<lattice_dim> sys(
+    // how can we dynamically call the fitting construcotrs?
+    system<lattice_dim> sys = create<lattice_dim, system>(paras);
+
+    /*(
                 paras["starting_T"],
                 paras["end_T"],
                 paras["eta"],
@@ -38,7 +42,7 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
                 paras["tau"],
                 seed,
                 paras["t_eq"]
-            );
+            );*/
     // it does not make sense to quench for a certain time
     cout << "Starting Simulation for a " << lattice_dim << " by " << lattice_dim << " lattice from " <<
          paras["starting_T"] << " to " << paras["end_T"] << " for a time of " << sys.get_end_t() << endl;
@@ -89,23 +93,38 @@ void single_quench(map<string, double> paras, fs::path &save_dir, size_t seed = 
     // for the initial state, then two during start equilibrating, including the timepoint s_eq_t
     // then 11 of the quench, and then again two for the end equilibration
 
-    obs.writev2(sys, x, t);
-    Stepper.step_until(s_eq_t/2, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
-    Stepper.step_until(s_eq_t, sys, x, dt_max, t);
-    while(t < end_quench_t) {
-        // we step until sys_timepoint, write and increment for the next sys_timepoint
-        Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+    if(paras["video"] == 1.0) {
+        // here we want to save equidistant values so the write interval is just the end time divided by the number
+        // of save values
+        sys_timepoint = 0;
+        write_interval_sys = end_t / paras["nr_save_values"];
+        while(t < end_t) {
+            // we step until sys_timepoint, write and increment for the next sys_timepoint
+            Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+            obs.writev2(sys, x, t);
+            sys_timepoint += write_interval_sys;
+        }
+    } else {
         obs.writev2(sys, x, t);
-        sys_timepoint += write_interval_sys;
+        Stepper.step_until(s_eq_t/2, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
+        Stepper.step_until(s_eq_t, sys, x, dt_max, t);
+        while(t < end_quench_t) {
+            // we step until sys_timepoint, write and increment for the next sys_timepoint
+            Stepper.step_until(sys_timepoint, sys, x, dt_max, t);
+            obs.writev2(sys, x, t);
+            sys_timepoint += write_interval_sys;
+        }
+        cout << end_quench_t + e_eq_t/2 << endl;
+        Stepper.step_until(end_quench_t + e_eq_t/2, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
+        Stepper.step_until(end_t, sys, x, dt_max, t);
+        obs.writev2(sys, x, t);
     }
-    cout << end_quench_t + e_eq_t/2 << endl;
-    Stepper.step_until(end_quench_t + e_eq_t/2, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
-    Stepper.step_until(end_t, sys, x, dt_max, t);
-    obs.writev2(sys, x, t);
+
 
     // are we done now? no write parameters
+    paras["n"] = lattice_dim * lattice_dim;
     write_parameters(parafile, paras);
 }
 
@@ -186,7 +205,7 @@ void scan() {
         repeat< lattice_dim,
                 state_type, algebra, operations,
                 euler_combined,
-                gpu_bath,
+                anisotropic_coulomb_quench,
                 observer
                 >(paras, (int)paras["repeat"], 0, dirpath);
     }

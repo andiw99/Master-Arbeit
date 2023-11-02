@@ -85,6 +85,69 @@ public:
 };
 
 
+class A{
+public:
+    void run() {
+        cout << "running the virutal function?" << endl;
+    }
+    void repeat() {
+        this->run();
+    }
+};
+
+class B : public A {
+public:
+    B(int a) {
+        cout << "B constructor called with " << a << endl;
+    }
+    void run() {
+        cout << "calling the right shit fam" << endl;
+    }
+};
+
+class b : public B {
+public:
+    b(int x, int y) : B(x) {
+        cout << "b constructor called with " << x << "   " << y << endl;
+    }
+};
+
+class c : public B {
+public:
+    c(int x, double y) : B(x) {
+        cout << "b constructor called with " << x << "   " << y << endl;
+    }
+};
+
+
+class C : public A {
+public:
+    C(double a) {
+        cout << "C constructor called with " << a << endl;
+    }
+    void run() {
+        cout << "calling the right shit fam" << endl;
+    }
+};
+
+
+class Container {
+public:
+    vector<A*> observers;
+
+    template <class obsver>
+    void register_observer(obsver* obs) {
+        cout << "Registering observers" << endl;
+        obs->run();
+        observers.push_back(obs);
+        observers[0]->run();
+    }
+};
+
+class DerivedContainer: public Container {
+
+};
+
 int main(int argc, char* argv[]) {
 
     Child<5> child;
@@ -161,6 +224,55 @@ int main(int argc, char* argv[]) {
                                              [](int b) { return b * b; }); // reduction (sum)
 
     std::cout << "Sum of squares: " << sumOfSquares << std::endl;
+
+    B B_class{};
+    B_class.repeat();
+
+    B* derived = new B();
+    A* base = new A();
+    DerivedContainer container;
+    container.register_observer(derived);
+    container.register_observer(base);
+
+    int rows = 3;
+    int cols = 4;
+
+    double** matrix = new double*[rows];
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new double[cols];
+    }
+
+    // Initializing values
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = i * cols + j;
+        }
+    }
+
+    // Accessing and printing values
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << matrix[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // Deallocating memory
+    for (int i = 0; i < rows; ++i) {
+        delete[] matrix[i];
+    }
+    delete[] matrix;
+
+    double* testarray = new double[2];
+    testarray[0] = 0.0;
+    cout << "here?" << endl;
+    testarray[1] = 1.1;
+    cout << "or here?" << endl;
+    for(int l; l < 2; l++) {
+        cout << "what?" << endl;
+        cout << testarray[l] << endl;
+    }
+    delete[] testarray;
 
     return 0;
 

@@ -1,4 +1,0 @@
-# ninja log v5
-9	10227	1683299790633783459	CMakeFiles/CudaProject.dir/main.cu.o	92d52c92368fe44
-10227	10385	1683299790805787089	CMakeFiles/CudaProject.dir/cmake_device_link.o	7bc04e8b425d63ff
-10385	10685	1683299791105793421	CudaProject	305fd372fc5dade5

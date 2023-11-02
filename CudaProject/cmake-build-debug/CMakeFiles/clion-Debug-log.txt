@@ -1,1 +1,0 @@
-CMakeLists.txt not found in /home/andi/Documents/Master-Arbeit Code/Git/CudaProject Select CMakeLists.txt
