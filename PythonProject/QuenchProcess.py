@@ -109,9 +109,9 @@ def main():
         axes.set_ylabel(r"$\xi$")
         axes.set_xlabel(r"t$/ \tau_Q$")
         axes.set_title(rf"Quench protocol")
-        save_plot(root + "plots/", "together" + ".png")
     axes.set_xlim(-0.5, 1.25)
     fig.legend()
+    save_plot(root + "plots/", "together" + ".png")
     plt.show()
 
 if __name__ == "__main__":

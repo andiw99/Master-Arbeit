@@ -140,7 +140,6 @@ def main():
     fig, ax = plt.subplots(1, 1)
     ax.plot(size_arr, diff_beta_arr)
     plt.show()
-    exit()
 
 
     # fitting
@@ -170,8 +169,9 @@ def main():
     print(size_arr)
     ax.plot(size_arr, np.exp(linear_corr(np.log(size_arr), *popt_with_corr)))
     ax.set_xlabel("L")
-    ax.set_ylabel(r"$\frac{d U_L}{d }$")
+    ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
+    save_plot(root, "/critical_expnent.svg", format="svg")
     plt.show()
 
 
