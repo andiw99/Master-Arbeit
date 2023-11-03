@@ -18,16 +18,17 @@ class CorrLengthHandler : public calcHandler {
     // what does it do? I think this one calculates the correlation length for different cells for the L/xi plots
     int starting_k = 0;
     int nr_Ls = 10;
-    vector<pair<int, int>> L_vec;
     vector<int> cutup_vec;
+protected:
+    vector<pair<int, int>> L_vec;
     ofstream corrList;
     ofstream corr2ndList;
     size_t nr_csv_files;
-protected:
     map<pair<int, int>, vector<pair<double, double>>> m_map = {};
     map<pair<int, int>, double*> ft_k_map;
     map<pair<int, int>, double*> ft_l_map;
     double Temp = 0;
+    int nr_of_used_cells = 0;
 public:
     CorrLengthHandler(const fs::path& root): calcHandler(root) {
         corrList.open(root/"corr.lengths");
@@ -87,11 +88,6 @@ public:
         ft_l_map = {};
         vector<fs::path> csv_files = list_csv_files(setting_path);
         nr_csv_files = csv_files.size();
-    }
-
-    void realization_routine(vector<double> &lat_q, double T, double t) override {
-        Temp = T;
-        cout << "corrLength realization routine" << endl;
         for (pair<int, int> L_pair : L_vec) {
             // I have L values for the fourier transform i think
             int Lx = L_pair.first;
@@ -113,6 +109,13 @@ public:
             ft_k_map[L_pair] = ft_k;
             ft_l_map[L_pair] = ft_l;
         }
+        nr_of_used_cells = 0;
+    }
+
+    void realization_routine(vector<double> &lat_q, double T, double t) override {
+        Temp = T;
+        cout << "corrLength realization routine" << endl;
+
 
         for(pair<int, int> L_pair : L_vec) {
             // enumerate subsystems
@@ -135,6 +138,7 @@ public:
                 // stuff for m and chi
                 pair<double, double> m_L = calc_m(cell);
                 m_map[L_pair].push_back(m_L);
+                nr_of_used_cells += 1;
                 }
             }
 
@@ -156,6 +160,56 @@ public:
     }
 
     void setting_post_routine() {
+        average_setting();
+        // we now need to fit and write for every L
+        corrList << endl << Temp;
+        corr2ndList << endl << Temp;
+        cout << "Writing for temp = " << Temp << endl;
+
+        for (pair<int, int> L_pair : L_vec) {
+            double xix;
+            double xiy;
+
+            calc_corr_length(L_pair, xix, xiy);
+
+            double xix_2nd;
+            double xiy_2nd;
+
+            calc_2nd_corr_length(L_pair, xix_2nd, xiy_2nd);
+
+            corrList << "," << xix << "," << xiy;
+            corr2ndList << "," << xix_2nd << "," << xiy_2nd;        // It is insanely wrong since even the fourier transform is wrong!
+        }
+
+        deallocate_ft();
+    }
+
+    void calc_2nd_corr_length(pair<int, int> L_pair, double& xix, double& xiy) {
+        int Lx = L_pair.first;
+        int Ly = L_pair.second;
+        // index one is the correlation length
+        // we now have the correlation length for one temperature for one L
+        // We add it to a file that looks like
+        // T    L1_x      L2      ...
+        // 0.1  xix_11   xi_12   ...
+
+        // we now want to calculate the susceptibility for a given L_pair
+        auto m_vec = m_map[L_pair];
+        double chi = transform_reduce(m_vec.begin(), m_vec.end(),
+                                      0.0, plus<double>(),
+                                      [](::pair<double, double> m) -> double { return squared(m);}) / (Lx * Ly);
+
+        // so ft_k has Lx entries and ft_l Ly entries
+        // I atm don't know where the maximum is, could be at the start...
+        // lets just say it is at the second entry...
+        double Fx = ft_k_map[L_pair][1];
+        double Fy = ft_l_map[L_pair][1];
+        // chi is the same for both i think
+        xix = 1 / (2 * sin(M_PI/ Lx)) * sqrt(chi/Fx - 1);
+        xiy = 1 / (2 * sin(M_PI/ Ly)) * sqrt(chi/Fy - 1);
+    }
+
+    void average_setting() {
         for(pair<int, int> L_pair : L_vec) {
             int Lx = L_pair.first;
             int Ly = L_pair.second;
@@ -171,68 +225,36 @@ public:
                 ft_l_map[L_pair][l] /= (nr_systems * Lx);
             }
         }
-        // we now need to fit and write for every L
-        corrList << endl << Temp;
-        corr2ndList << endl << Temp;
-        cout << "Writing for temp = " << Temp << endl;
+    }
 
-        for (pair<int, int> L_pair : L_vec) {
-            // We do the fit with vectors...
+    void calc_corr_length(pair<int, int> L_pair, double& xix, double& xiy) {
+        // We do the fit with vectors...
 /*            vector<double> ft_vec_k = vector<double>(ft_k_map[L], ft_k_map[L] + sizeof(ft_k_map[L]) / (sizeof ft_k_map[L][0]));
             vector<double> ft_vec_l = vector<double>(ft_l_map[L], ft_l_map[L] + sizeof(ft_l_map[L]) / (sizeof ft_l_map[L][0]));*/
-            int Lx = L_pair.first;
-            int Ly = L_pair.second;
-            // fitting
-            // vectors for the parameters
-            auto qx = init_q(Lx);
-            auto px = vector<vector<array<double, 2>>>(
-                    Lx, vector<array<double, 2>>(Lx, array<double, 2>()));
-            fill_p(qx, px);
-            auto qy = init_q(Ly);
-            auto py = vector<vector<array<double, 2>>>(
-                    Ly, vector<array<double, 2>>(Ly, array<double, 2>()));
-            fill_p(qx, px);
-            fill_p(qy, py);
-            auto kx = p_to_vec(px);
-            auto ky = p_to_vec(py);
+        int Lx = L_pair.first;
+        int Ly = L_pair.second;
+        // fitting
+        // vectors for the parameters
+        auto qx = init_q(Lx);
+        auto px = vector<vector<array<double, 2>>>(
+                Lx, vector<array<double, 2>>(Lx, array<double, 2>()));
+        fill_p(qx, px);
+        auto qy = init_q(Ly);
+        auto py = vector<vector<array<double, 2>>>(
+                Ly, vector<array<double, 2>>(Ly, array<double, 2>()));
+        fill_p(qx, px);
+        fill_p(qy, py);
+        auto kx = p_to_vec(px);
+        auto ky = p_to_vec(py);
 
-            Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
-            Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
-            // index one is the correlation length
-            // we now have the correlation length for one temperature for one L
-            // We add it to a file that looks like
-            // T    L1_x      L2      ...
-            // 0.1  xix_11   xi_12   ...
+        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
+        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
 
-            // we now want to calculate the susceptibility for a given L_pair
-            auto m_vec = m_map[L_pair];
-            double chi = transform_reduce(m_vec.begin(), m_vec.end(),
-                                          0.0, plus<double>(),
-                                          [](::pair<double, double> m) -> double { return squared(m);}) / (Lx * Ly);
+        xix = paras_x(1);
+        xiy = paras_y(1);
+    }
 
-            // so ft_k has Lx entries and ft_l Ly entries
-            // I atm don't know where the maximum is, could be at the start...
-            // lets just say it is at the second entry...
-            double Fx = ft_k_map[L_pair][1];
-            double Fy = ft_l_map[L_pair][1];
-            // chi is the same for both i think
-            double xix_2nd = 1 / (2 * sin(M_PI/ Lx)) * sqrt(chi/Fx - 1);
-            double xiy_2nd = 1 / (2 * sin(M_PI/ Ly)) * sqrt(chi/Fy - 1);
-
-            if (L_pair.first == 128) {
-                print_vector(kx);
-                cout << endl;
-                print_array(ft_k_map[L_pair], Lx);
-                print_vector(ky);
-                cout << endl;
-                print_array(ft_l_map[L_pair], Ly);
-                cout << "xi_x = " << paras_x(1) << endl;
-                cout << "xi_y = " << paras_y(1) << endl;
-            }
-            corrList << "," << paras_x(1) << "," << paras_y(1);
-            corr2ndList << "," << xix_2nd << "," << xiy_2nd;        // It is insanely wrong since even the fourier transform is wrong!
-        }
-
+    void deallocate_ft(){
         // deallocate memory of the maps?
         for (pair<int, int> L_pair : L_vec) {
             delete[] ft_k_map[L_pair];
@@ -337,4 +359,66 @@ class CorrLengthHandlerXY: public CorrLengthHandler {
     }
 };
 
+class SurCorrLengthHandlerXY: public CorrLengthHandlerXY{
+    using CorrLengthHandlerXY::CorrLengthHandlerXY;
+    map<size_t, vector<tuple<double, double, double>>> size_T_corr_length_map{};
+    size_t subsystem_Lx;
+    double x_y_factor;
+
+    void pre_routine() override {
+        cout << "Calling SurCorrLenghtHandlerXY pre routine" << endl;
+    }
+
+    void directory_pre_routine(path directory_path) override {
+        fs::path txt_file = findFirstTxtFile(directory_path);
+        subsystem_Lx = (size_t)extractValueFromTxt(txt_file, "subsystem_Lx");
+        x_y_factor = extractValueFromTxt(txt_file, "x_y_factor");
+        cout << "calling directory pre routine of SurCorrlengthHandlerXY" << endl;
+        cout << "subsystem_Lx = " << subsystem_Lx << endl;
+        L_vec = {pair<int, int>((int)subsystem_Lx, (int) x_y_factor * subsystem_Lx)};
+        // if you now go through with the setting routines and stuff, you will be left with an m_map with one size
+        // and the block m's
+        size_T_corr_length_map[subsystem_Lx] = vector<tuple<double, double, double>>{};
+    }
+
+    void setting_post_routine() override {
+        // setting is in this case the temperature, so we write the temp to file after iterating over all realizations
+        // I need the tau instead of the t here...
+        // now we have the full m_map for the temperature, leaves to calculate the binder cumulant aswell as errors
+        average_setting();
+        cout << "T = " << Temp << "   " << "subsystem_size = " << subsystem_Lx << endl;
+        cout << "total cells used for this setting: " << nr_of_used_cells << endl;
+        // We want to fit xi now for the only L_pair we got (that is as large as the system)
+        double xix, xiy;
+        pair<int, int> L_pair = L_vec[0];       // L_vec should have only one entry
+        calc_corr_length(L_pair, xix, xiy);
+        size_T_corr_length_map[subsystem_Lx].push_back(tuple<double, double, double>(Temp, xix, xiy));
+        for(auto tuples : size_T_corr_length_map[subsystem_Lx]) {
+            cout << "(" << get<0>(tuples) << ", " << get<1>(tuples) << ", " << get<2>(tuples) << ")" << endl;
+        }
+        deallocate_ft();
+    }
+
+
+    void post_routine() override {
+        // and now we just have to write this stuff?
+        cout << "SurCorrLength post routine called" << endl;
+        for(auto entry : size_T_corr_length_map) {
+            cout << entry.first << endl;
+            corrList << "," << entry.first << "," << (int)((double)entry.first * x_y_factor) << "_y";
+        }
+        corrList << endl;
+        int nr_temps = (int)size_T_corr_length_map.begin()->second.size();
+        cout << "nr of temps: " << nr_temps << endl;
+        for(int i = 0; i < nr_temps; i++) {
+            corrList << get<0>(size_T_corr_length_map.begin()->second[i]); // accesses the temp of the i-th tuple
+            for(auto entry : size_T_corr_length_map) {
+                corrList << "," << get<1>(entry.second[i]) << "," << get<2>(entry.second[i]);
+            }
+            corrList << endl;
+        }
+        corrList.close();
+    }
+
+};
 #endif //LEARNINGPROJECT_CORRLENGTHHANDLER_H

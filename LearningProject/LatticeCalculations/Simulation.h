@@ -26,6 +26,8 @@ calcHandler* create(Calc calc, const fs::path& root){
         return new CorrLengthHandler(root);
     } else if (calc == Calc::CorrLengthXY) {
         return new CorrLengthHandlerXY(root);
+    } else if (calc == Calc::SurCorrLengthXY) {
+        return new SurCorrLengthHandlerXY(root);
     } else if (calc == Calc::SecondMomentCorr) {
         return new secondCorrLenghtHandler(root);
     } else if (calc == Calc::StructFact) {

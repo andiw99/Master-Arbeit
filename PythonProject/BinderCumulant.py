@@ -26,7 +26,8 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystems/First"
+    #root = "../../Generated content/Subsystems/Second"
+    root = "/media/andi/90D8E3C1D8E3A3A6/Users/andiw/Studium/Master/Master-Arbeit/Generated content/Subsystems/Third"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -41,14 +42,14 @@ def main():
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    exclude_large_dists = 0
-    exclude_small_dists = 5
+    exclude_large_dists = 1000
+    exclude_small_dists = 10
     min_temp = 8.8
     max_temp = 100
-    xi_exclude_large_dists = 0
+    xi_exclude_large_dists = 1
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-    r = 7
+    r = 3
     figsize = (1.2 *  6.4, 4.8)
     L_max_lower = 20
     L_max_upper = 50
@@ -59,17 +60,19 @@ def main():
     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
 
     labels = df.columns.delete(0)
-    print(labels)
+    labels = labels[::2]
+    labels = np.array([int(label) for label in labels])
+    labels = labels[(labels > exclude_small_dists) & (labels < exclude_large_dists)]
+    labels = [str(label) for label in labels] # lol
     # labels = labels[2*exclude_large_dists:len(labels)-2*exclude_small_dists]
-    print(labels)
     T = df["T"]
-    for size in labels[::2]:
+    for size in labels:
         cum_dic[size] = np.array(df[size])[np.argsort(T)]
         cum_err_dic[size] = np.array(df[size + "_err"])[np.argsort(T)]
     T = np.sort(T)
 
     # sort out temps
-    for size in labels[::2]:
+    for size in labels:
         cum_dic[size] = cum_dic[size][(min_temp < T) & (T < max_temp)]
         cum_err_dic[size] = cum_err_dic[size][(min_temp < T) & (T < max_temp)]
     T = T[(min_temp < T) & (T < max_temp)]
@@ -340,8 +343,9 @@ def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
     x_intersec, y_intersec, intersec_ind = det_intersection(x_inter, y_dic_inter)
 
     # plotting
+    shown_inds = [int(i) for i in np.linspace(0, len(y_dic.keys()) - 1, r)]
     for i, key in enumerate(y_dic.keys()):
-        if not i % r:
+        if i in shown_inds:
             ax.plot(x, y_dic[key], ls="", marker="x", c=colors[i // r])         # discrete points
             ax.plot(x_inter, y_dic_inter[key], c=colors[i // r], label=key, linewidth=1)   # interpolated line
     mark_point(ax, x_intersec, y_intersec)
