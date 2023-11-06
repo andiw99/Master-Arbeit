@@ -19,19 +19,19 @@ enum class Calc {
 };
 // possible Calcs: BinderCumulant, CorrLength, SecondMomentCorr, StructFact
 //vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLengthXY, Calc::StructFactXY};
-//vector<Calc> calcs = {Calc::SurBinderCumulant};
-vector<Calc> calcs = {Calc::SurCorrLengthXY};
-//vector<Calc> calcs = {Calc::StructFactXY};
-// vector<Calc> calcs = {Calc::StructFact, Calc::QuenchProcess};
+//vector<Calc> calcs = {Calc::SurBinderCumulant, Calc::SurCorrLengthXY};
+//vector<Calc> calcs = {Calc::SurCorrLengthXY};
+vector<Calc> calcs = {Calc::StructFactXY};
+//vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
 //fs::path root = "../../../Generated content/Subsystems/Second/";
 fs::path root = "/media/andi/90D8E3C1D8E3A3A6/Users/andiw/Studium/Master/Master-Arbeit/Generated content/"
-                "Subsystems/Test";
+                "XY/XY Quench";
                 //"XY/XY Equilibration Comparison/10000 0.0025/";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
-        {"cutup", 6}
+        {"cutup", 2}
 };
 
 map<string, double> CorrLengthHandlerConfig {

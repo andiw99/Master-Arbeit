@@ -249,6 +249,7 @@ public:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        cout << "force calculation in System called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
@@ -1343,9 +1344,15 @@ class XY_Silicon: virtual public XY_model {
 
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
-        cout << "Using p_XY = " << p_XY << endl;
         XY_model::xy_functor functor = XY_model::xy_functor(System::eta, J, h, p_XY, m);
         System::derivative_calculation(x, dxdt, t, functor);
+    }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        XY_model::xy_force functor = XY_model::xy_force(System::eta, J, h, p_XY, m);
+        cout << "functor initialized with p_XY = " << p_XY << "  m = " << m << endl;
+        force_calculation(x, dxdt, t, functor);
     }
 
     template<class State>
@@ -1779,6 +1786,7 @@ protected:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
+        cout << "force calculation in subsystems called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
@@ -1844,6 +1852,10 @@ public:
     }
 };
 
+struct XY_silicon_subsystems : public subsystems, public XY_Silicon {
+public:
+    XY_silicon_subsystems(map<Parameter, double> paras): subsystems(paras), XY_Silicon(paras), System(paras) {}
+};
 
 struct gpu_oscillator_chain : chain{
 public:

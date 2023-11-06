@@ -5,7 +5,7 @@
 #include "Simulation.cuh"
 #include "parameters.cuh"
 
-int main() {
+int main(int argc, char* argv[]) {
     path filepath;
     typedef XY_quench quench_system;
     if (argc == 2) {
@@ -17,6 +17,8 @@ int main() {
     // reading the parameters from the parameter file
     map<Parameter, double> paras = readTxtFileToParameterMap(filepath, 1);  // start at the second line
     fs::path simulation_path = readTxtFileToString(filepath);
+    int nr_save_values = (int)paras[Parameter::nr_saves];
+
     // typedefs
     typedef thrust::device_vector<double> state_type;
     typedef thrust_algebra algebra;
