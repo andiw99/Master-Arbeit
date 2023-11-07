@@ -131,6 +131,33 @@ public:
 };
 
 
+class ParentA {
+public:
+    virtual void universalOP() {
+        cout << "universal parent method" << endl;
+    }
+};
+
+class DerivedB : virtual public ParentA {
+public:
+    virtual void specificOP() {
+        cout << "Derived B specific OP" << endl;
+        universalOP();
+    }
+};
+
+class DerivedC : virtual public ParentA {
+public:
+    void universalOP() override {
+        cout << "universal OP override" << endl;
+    }
+};
+
+class DerivedBC : public DerivedB, public DerivedC {
+};
+
+
+
 class Container {
 public:
     vector<A*> observers;
@@ -225,13 +252,8 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Sum of squares: " << sumOfSquares << std::endl;
 
-    B B_class{};
-    B_class.repeat();
-
-    B* derived = new B();
     A* base = new A();
     DerivedContainer container;
-    container.register_observer(derived);
     container.register_observer(base);
 
     int rows = 3;
@@ -273,6 +295,12 @@ int main(int argc, char* argv[]) {
         cout << testarray[l] << endl;
     }
     delete[] testarray;
+
+
+    DerivedBC derived{};
+    derived.specificOP();
+
+
 
     return 0;
 

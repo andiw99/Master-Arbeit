@@ -1784,6 +1784,8 @@ protected:
         step_nr++;
     }
 
+public:
+
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
         cout << "force calculation in subsystems called" << endl;
@@ -1829,8 +1831,6 @@ protected:
         thrust::for_each(start, start + n, functor);
         step_nr++;
     }
-
-public:
     subsystems(map<Parameter, double> paras): System(paras), Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
         n0 = Ly * Lx;
         cout << "initializing subsystems with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
