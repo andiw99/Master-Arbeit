@@ -134,9 +134,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    #root = "../../Generated content/Defense/Quench Small"
-    root = ("/media/andi/90D8E3C1D8E3A3A6/Users/andiw/"
-            "Studium/Master/Master-Arbeit/Generated content/XY/XY Quench/")    #root = "../../Generated content/Trash/New/Overdamped Quenching 2"
+    root = "../../Generated content/XY/XY Quench"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"
@@ -144,7 +142,7 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
-    min_tau = 5
+    min_tau = 100
     plot_struct = False
     print(root_dirs)
     config = {

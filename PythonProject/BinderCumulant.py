@@ -26,9 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    #root = "../../Generated content/Subsystems/Second"
-    root = ("/media/andi/90D8E3C1D8E3A3A6/Users/andiw/"
-            "Studium/Master/Master-Arbeit/Generated content/Subsystems/Third")
+    root = "../../Generated content/Subsystems/Fourth"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -43,8 +41,8 @@ def main():
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    exclude_large_dists = 1000
-    exclude_small_dists = 10
+    exclude_large_dists = 46
+    exclude_small_dists = 15
     min_temp = 8.8
     max_temp = 100
     xi_exclude_large_dists = 1

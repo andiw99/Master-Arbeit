@@ -1332,6 +1332,7 @@ public:
 
 class XY_Silicon: virtual public XY_model {
     // we only have to set the map functor new? And obviously the right p, m stuff
+public:
     const double p_XY = 2.57;           // does this work? Can i just redeclare them here?
     const double m = 2.0;
 
@@ -1854,7 +1855,15 @@ public:
 
 struct XY_silicon_subsystems : public subsystems, public XY_Silicon {
 public:
-    XY_silicon_subsystems(map<Parameter, double> paras): subsystems(paras), XY_Silicon(paras), System(paras) {}
+    XY_silicon_subsystems(map<Parameter, double> paras) : XY_model(paras),
+                                                          subsystems(paras),
+                                                          XY_Silicon(paras),
+                                                          System(paras) {}
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        xy_force functor = xy_force(System::eta, J, h, XY_Silicon::p_XY, XY_Silicon::m);
+        subsystems::force_calculation(x, dxdt, t, functor);
+    }
 };
 
 struct gpu_oscillator_chain : chain{

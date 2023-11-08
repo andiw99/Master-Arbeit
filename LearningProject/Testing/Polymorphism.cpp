@@ -131,9 +131,36 @@ public:
 };
 
 
+class ParentTemplateA {
+public:
+    template <class value_type>
+    void universalOP(value_type x) {
+        cout << "universal parentTemplate method" << endl;
+    }
+};
+
+class DerivedTemplateB : virtual public ParentTemplateA {
+public:
+    virtual void specificOP() {
+        cout << "DerivedTemplate B specific OP" << endl;
+        universalOP(1.0);
+    }
+};
+
+class DerivedTemplateC : virtual public ParentTemplateA {
+public:
+    template <class value_type>
+    void universalOP(value_type x) {
+        cout << "universal OP override" << endl;
+    }
+};
+
+class DerivedTemplateBC : public DerivedTemplateB, public DerivedTemplateC {
+};
+
 class ParentA {
 public:
-    virtual void universalOP() {
+    virtual void universalOP(double x) {
         cout << "universal parent method" << endl;
     }
 };
@@ -142,21 +169,19 @@ class DerivedB : virtual public ParentA {
 public:
     virtual void specificOP() {
         cout << "Derived B specific OP" << endl;
-        universalOP();
+        universalOP(1.0);
     }
 };
 
 class DerivedC : virtual public ParentA {
 public:
-    void universalOP() override {
+    void universalOP(double x) override {
         cout << "universal OP override" << endl;
     }
 };
 
 class DerivedBC : public DerivedB, public DerivedC {
 };
-
-
 
 class Container {
 public:
@@ -300,6 +325,8 @@ int main(int argc, char* argv[]) {
     DerivedBC derived{};
     derived.specificOP();
 
+    DerivedTemplateBC derivedTemplated{};
+    derivedTemplated.specificOP();
 
 
     return 0;
