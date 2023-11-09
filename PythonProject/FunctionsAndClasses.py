@@ -90,7 +90,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     Ly = parameters["dim_size_y"]
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
-    rows = np.linspace(0, nr_rows-1, nr_of_meshs, endpoint=True)
+    rows = np.linspace(0, nr_rows, nr_of_meshs, endpoint=True)
     rows = [int(row) for row in rows]
     df = read_large_df(filepath, rows)
 

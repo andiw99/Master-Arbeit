@@ -249,7 +249,6 @@ public:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
-        cout << "force calculation in System called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
@@ -1172,7 +1171,7 @@ protected:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
 
-            double interaction = J * (
+            double interaction = J * m * (
                     +   sin(m * (q - q_up))   + sin(m * (q - q_down))
                     +   sin(m * (q - q_left)) + sin(m * (q - q_right))
             );
@@ -1343,6 +1342,12 @@ public:
         }
     };
 
+    template<class State>
+    void map_state(State &x) {
+        // we map every q onto [-pi/2, pi/2]
+        thrust::transform(x.begin(), x.begin() + n, x.begin(), XY_Silicon::map_functor());
+    }
+
     template<class State, class Deriv>
     void calc_drift(State &x, Deriv &dxdt, double t) {
         XY_model::xy_functor functor = XY_model::xy_functor(System::eta, J, h, p_XY, m);
@@ -1352,7 +1357,6 @@ public:
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
         XY_model::xy_force functor = XY_model::xy_force(System::eta, J, h, p_XY, m);
-        cout << "functor initialized with p_XY = " << p_XY << "  m = " << m << endl;
         force_calculation(x, dxdt, t, functor);
     }
 
@@ -1789,7 +1793,6 @@ public:
 
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
-        cout << "force calculation in subsystems called" << endl;
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
                 x.begin(),
                 dxdt.begin() + n,
