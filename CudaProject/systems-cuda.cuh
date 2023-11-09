@@ -1369,6 +1369,12 @@ public:
     }
 
     XY_Silicon(map<Parameter,double>& paras): System(paras), XY_model(paras) {}
+
+    void print_info() override {
+        XY_model::print_info();
+        cout << "p_XY = " << p_XY << endl;
+        cout << "m = " << m << endl;
+    }
 };
 
 #define DIAG_DIST 11.18033988749895
