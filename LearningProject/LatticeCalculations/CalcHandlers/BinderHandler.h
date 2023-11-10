@@ -74,6 +74,13 @@ public:
         T = temp;
     }
 
+    virtual pair<double, double> calc_m(vector<double>& q_cell) {
+        pair<double, double> m;
+        m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), cos_functor())  / (double)q_cell.size();
+        m.second = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), sin_functor()) / (double)q_cell.size();
+        return m;
+    }
+
     void setting_post_routine() override {
         // setting is in this case the temperature, so we write the temp to file after iterating over all realizations
         // I need the tau instead of the t here...
@@ -153,7 +160,19 @@ public:
     }
 };
 
-class SurBinderHandler : public BinderHandler {
+#define p_XY 2.57
+class BinderHandlerSilicon : virtual public BinderHandler {
+public:
+    pair<double, double> calc_m(vector<double>& q_cell) override{
+        pair<double, double> m;
+        m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), sin_functor(p_XY / 2.0))  / (double)q_cell.size();
+        m.second = 0;
+        return m;
+    }
+    using BinderHandler::BinderHandler;
+};
+
+class SurBinderHandler : virtual public BinderHandler {
     using BinderHandler::BinderHandler;
     map<size_t, vector<tuple<double, double, double>>> size_T_cum_map;
     size_t subsystem_Lx;
@@ -211,6 +230,12 @@ class SurBinderHandler : public BinderHandler {
         }
         calcFile.close();
     }
+};
+
+class SurBinderHandlerSilicon : public SurBinderHandler, public BinderHandlerSilicon{
+public:
+    SurBinderHandlerSilicon(fs::path root) : BinderHandlerSilicon(root), SurBinderHandler(root),
+                                                             BinderHandler(root) {}
 };
 
 #endif //LEARNINGPROJECT_BINDERHANDLER_CPP

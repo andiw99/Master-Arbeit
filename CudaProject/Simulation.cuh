@@ -43,7 +43,7 @@ public:
     Simulation(paras, simulation_path) {
         this->seed = seed;
     }
-
+public:
     virtual void simulate() {
         // I probably will have some repeated code for simulate, since actually i only iterate over a tau or
         // T vector and call repeat, rest is handled by specific run implementation
@@ -168,7 +168,7 @@ template <
             template<class, class, class,class, class, class> class stepper_type,
             class state_type, class alg, class oper,
                     class quench_sys >
-class QuenchSimulation : public Simulation<stepper_type, state_type, alg, oper, quench_sys> {
+class QuenchSimulation : virtual public Simulation<stepper_type, state_type, alg, oper, quench_sys> {
     typedef Simulation<stepper_type, state_type, alg, oper, quench_sys> Simulation;
     using Simulation::paras;
     using Simulation::simulation_path;
@@ -219,7 +219,7 @@ template <
         template<class, class, class, class, class, class> class stepper_type,
         class state_type, class alg, class oper,
         class relax_sys >
-class RelaxationSimulation : public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
+class RelaxationSimulation : virtual public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
     typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
     using Simulation::paras;
     using Simulation::simulation_path;
@@ -310,6 +310,122 @@ public:
     }
 
 };
+
+template <
+        template<class, class, class, class, class, class> class stepper_type,
+        class state_type, class alg, class oper,
+        class relax_sys >
+class SubsystemSimulation : virtual public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+    using Simulation::paras;
+    using Simulation::simulation_path;
+
+public:
+    vector<pair<size_t, size_t>> subsystem_sizes{};
+    double x_y_factor;
+
+    path rootpath;
+    void initialize_subsystems() {
+        vector<size_t> Lx_s = linspace((size_t)paras[subsystem_min_Lx], (size_t)paras[subsystem_max_Lx], (int)paras[nr_subsystem_sizes] + 1);
+        cout << "Sizes Lx:" << endl;
+        print_vector(Lx_s);
+        x_y_factor = paras[Parameter::x_y_factor];
+        for(size_t Lx : Lx_s) {
+            auto Ly = (size_t) ((double) Lx * x_y_factor);
+            subsystem_sizes.push_back(pair<size_t, size_t>(Lx, Ly));
+        }
+        // RelaxationSimulation::initialize(); we dont even need to call that since the Relaxation Simulation calls it anyway?
+    }
+    void simulate_subsystems() {
+        // we need to initialize here or think of a different architecture since
+        // if we initialize in the constructor we do not register the observers to the stepper
+        cout << "Calling SubsystemRelaxationSimulation simulate" << endl;
+        initialize_subsystems();
+        // runs the whole simulation, the sequence depends on the type of simulation we do
+        int nr_subsystems = (int)paras[Parameter::nr_subsystems];
+        for(auto L_pair : subsystem_sizes) {
+            // update the parameters so we create the correct systems and stuff
+            paras[Parameter::dim_size_y] = L_pair.second;
+            paras[Parameter::dim_size_x] = L_pair.first * nr_subsystems;
+            paras[Parameter::subsystem_Ly] = L_pair.second;
+            paras[Parameter::subsystem_Lx] = L_pair.first;
+            simulation_path = rootpath / to_string(L_pair.first);
+            this->simulate();
+        }
+    }
+    SubsystemSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
+            rootpath(simulation_path), Simulation(paras, simulation_path) {
+    }
+
+};
+
+/*
+template <
+        template<class, class, class, class, class, class> class stepper_type,
+        class state_type, class alg, class oper,
+        class relax_sys >
+class SubsystemQuenchSimulation : public QuenchSimulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+    typedef QuenchSimulation<stepper_type, state_type, alg, oper, relax_sys> QuenchSimulation;
+    using Simulation::paras;
+    using Simulation::simulation_path;
+
+    vector<pair<size_t, size_t>> subsystem_sizes{};
+    double x_y_factor;
+    path rootpath;
+
+    void initialize() override {
+        vector<size_t> Lx_s = linspace((size_t)paras[subsystem_min_Lx], (size_t)paras[subsystem_max_Lx], (int)paras[nr_subsystem_sizes] + 1);
+        cout << "Sizes Lx:" << endl;
+        print_vector(Lx_s);
+        x_y_factor = paras[Parameter::x_y_factor];
+        for(size_t Lx : Lx_s) {
+            auto Ly = (size_t) ((double) Lx * x_y_factor);
+            subsystem_sizes.push_back(pair<size_t, size_t>(Lx, Ly));
+        }
+        // RelaxationSimulation::initialize(); we dont even need to call that since the Relaxation Simulation calls it anyway?
+    }
+public:
+    void simulate() {
+        // we need to initialize here or think of a different architecture since
+        // if we initialize in the constructor we do not register the observers to the stepper
+        cout << "Calling SubsystemRelaxationSimulation simulate" << endl;
+        initialize();
+        // runs the whole simulation, the sequence depends on the type of simulation we do
+        int nr_subsystems = (int)paras[Parameter::nr_subsystems];
+        for(auto L_pair : subsystem_sizes) {
+            // update the parameters so we create the correct systems and stuff
+            paras[Parameter::dim_size_y] = L_pair.second;
+            paras[Parameter::dim_size_x] = L_pair.first * nr_subsystems;
+            paras[Parameter::subsystem_Ly] = L_pair.second;
+            paras[Parameter::subsystem_Lx] = L_pair.first;
+            simulation_path = rootpath / to_string(L_pair.first);
+            QuenchSimulation::simulate();
+        }
+    }
+    SubsystemQuenchSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
+            QuenchSimulation(paras, simulation_path), rootpath(simulation_path) {
+    }
+
+};
+*/
+
+template <
+        template<class, class, class, class, class, class> class stepper_type,
+        class state_type, class alg, class oper,
+        class relax_sys >
+class SubsystemQuenchSimulation : public QuenchSimulation<stepper_type, state_type, alg, oper, relax_sys>,
+                                    public SubsystemSimulation<stepper_type, state_type, alg, oper, relax_sys> {
+    typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+    typedef QuenchSimulation<stepper_type, state_type, alg, oper, relax_sys> QuenchSimulation;
+    typedef SubsystemSimulation<stepper_type, state_type, alg, oper, relax_sys> SubsystemSimulation;
+public:
+    using SubsystemSimulation::initialize;
+    SubsystemQuenchSimulation(map<Parameter, double>& paras, fs::path& simulation_path):    QuenchSimulation(paras, simulation_path),
+                                                                                            SubsystemSimulation(paras, simulation_path),
+                                                                                            Simulation(paras, simulation_path) {}
+};
+
 
 template <
         template<class, class, class, class, class, class> class stepper_type,

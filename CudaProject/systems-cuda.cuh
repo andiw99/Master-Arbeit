@@ -1875,6 +1875,22 @@ public:
     }
 };
 
+struct XY_silicon_subsystems_quench : public XY_silicon_subsystems, public quench {
+public:
+    void print_info() override {
+        XY_silicon_subsystems::print_info();
+        quench::print_info();
+    }
+
+    XY_silicon_subsystems_quench(map<Parameter, double> paras) : quench(paras),
+                                                                 XY_silicon_subsystems(paras),
+                                                                 XY_model(paras),
+                                                                 System(paras){
+        cout << "XY_silicon_subsystems_quench system constructed";
+    }
+
+};
+
 struct gpu_oscillator_chain : chain{
 public:
     const double alpha;

@@ -136,8 +136,8 @@ public:
                 cell_routine(L_pair, in, out, plan, cell);
 
                 // stuff for m and chi
-                pair<double, double> m_L = calc_m(cell);
-                m_map[L_pair].push_back(m_L);
+                // pair<double, double> m_L = calc_m(cell);
+                // m_map[L_pair].push_back(m_L);
                 nr_of_used_cells += 1;
                 }
             }

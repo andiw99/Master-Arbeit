@@ -44,9 +44,12 @@ public:
 
 
 struct sin_functor {
+    double p;
+    sin_functor(double p): p(p) {}
+    sin_functor(): p(1.0) {}
     template <class value_type>
     value_type operator()(value_type x) {
-        return sin(x);
+        return sin(p*x);
     }
 };
 
@@ -57,12 +60,7 @@ struct cos_functor {
     }
 };
 
-pair<double, double> calc_m(vector<double>& q_cell) {
-    pair<double, double> m;
-    m.first = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), cos_functor())  / (double)q_cell.size();
-    m.second = transform_reduce(q_cell.begin(), q_cell.end(),  0.0, plus<double>(), sin_functor()) / (double)q_cell.size();
-    return m;
-}
+
 
 double squared(pair<double, double> m) {
     return m.first * m.first + m.second * m.second;

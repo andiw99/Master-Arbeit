@@ -9,6 +9,7 @@
 enum class Calc {
     BinderCumulant,
     SurBinderCumulant,
+    SurBinderCumulantSilicon,
     CorrLength,
     CorrLengthXY,
     SurCorrLengthXY,
@@ -19,12 +20,12 @@ enum class Calc {
 };
 // possible Calcs: BinderCumulant, CorrLength, SecondMomentCorr, StructFact
 //vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLengthXY, Calc::StructFactXY};
-//vector<Calc> calcs = {Calc::SurBinderCumulant, Calc::SurCorrLengthXY};
+vector<Calc> calcs = {Calc::SurBinderCumulantSilicon, Calc::SurCorrLengthXY};
 //vector<Calc> calcs = {Calc::SurCorrLengthXY};
-vector<Calc> calcs = {Calc::StructFactXY};
+//vector<Calc> calcs = {Calc::StructFactXY};
 //vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/XY/XY Quench/";
+fs::path root = "../../../Generated content/Subsystems/Silicon Fourth/";
                 //"XY/XY Equilibration Comparison/10000 0.0025/";
 
 map<string, double> StructFactConfig {

@@ -22,6 +22,8 @@ calcHandler* create(Calc calc, const fs::path& root){
         return new BinderHandler(root);
     } else if (calc == Calc::SurBinderCumulant) {
         return new SurBinderHandler(root);
+    } else if (calc == Calc::SurBinderCumulantSilicon) {
+        return new SurBinderHandlerSilicon(root);
     } else if (calc == Calc::CorrLength) {
         return new CorrLengthHandler(root);
     } else if (calc == Calc::CorrLengthXY) {
