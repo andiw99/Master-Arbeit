@@ -134,7 +134,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/XY/XY Quench"
+    root = "../../Generated content/Subsystems/Quench/100"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"
@@ -142,7 +142,8 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
-    min_tau = 100
+    min_tau = 64
+    max_tau = 1000
     plot_struct = False
     print(root_dirs)
     config = {
@@ -208,8 +209,8 @@ def main():
 
     # fitting linear fit
     print(xi_err_sorted)
-    xi_fit = xi_sorted[tau_arr > min_tau]
-    tau_fit_arr = tau_arr[tau_arr > min_tau]
+    xi_fit = xi_sorted[(tau_arr > min_tau) & (tau_arr < max_tau)]
+    tau_fit_arr = tau_arr[(tau_arr > min_tau) & (tau_arr < max_tau)]
     if not errors_for_fit:
         xi_err_sorted = None
     popt, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xi_fit), sigma=xi_err_sorted)

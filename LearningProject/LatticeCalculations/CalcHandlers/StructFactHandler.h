@@ -18,6 +18,7 @@ protected:
     size_t Lx;         // TODO it should not just stand here but whatever
     size_t Ly;
     int cutup;
+    bool subsystems;
     vector<vector<double>>  ft_squared_k;
     vector<vector<double>>  ft_squared_l;
     vector<double>          mean_ft_squared_k = {};
@@ -35,7 +36,7 @@ public:
         // -> define cells per row/col to stay true to the ratio?
         Lx = (int) StructFactConfig["cell_L"];
         cutup = (int)StructFactConfig["cutup"];
-
+        subsystems = (bool)StructFactConfig["subsystems"];
     }
 
     void pre_routine() override {
@@ -45,15 +46,21 @@ public:
     }
 
     void setting_pre_routine(fs::path setting_path) override {
-        if (cutup == 0) {
-            Lx = dim_size_x;
-            Ly = dim_size_y;
-            cout << "cell Lx equals system size Lx = " << Lx << endl;
-            cout << "cell Ly equals system size Ly = " << Ly << endl;
+        fs::path txt_file = findFirstTxtFile(setting_path);
+        if(subsystems) {
+            Lx = (size_t)extractValueFromTxt(txt_file, "subsystem_Lx");
+            Ly = (size_t)extractValueFromTxt(txt_file, "subsystem_Ly");
         } else {
-            // so cutup is something like 2, meaning 2 cells per row
-            Lx = dim_size_x / cutup;
-            Ly = dim_size_y / cutup;
+            if (cutup == 0) {
+                Lx = dim_size_x;
+                Ly = dim_size_y;
+                cout << "cell Lx equals system size Lx = " << Lx << endl;
+                cout << "cell Ly equals system size Ly = " << Ly << endl;
+            } else {
+                // so cutup is something like 2, meaning 2 cells per row
+                Lx = dim_size_x / cutup;
+                Ly = dim_size_y / cutup;
+            }
         }
         // we need a map that maps the system size to the vector containing all the m values
         // it has to be reset for every setting / temperature

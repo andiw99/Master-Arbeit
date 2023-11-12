@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../JuliaProject/.idea/JuliaProject.iml" filepath="$PROJECT_DIR$/../JuliaProject/.idea/JuliaProject.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/PythonProject.iml" filepath="$PROJECT_DIR$/.idea/PythonProject.iml" />
+      <module fileurl="file://$USER_HOME$/Waffenhandelimspessart/.idea/Waffenhandelimspessart.iml" filepath="$USER_HOME$/Waffenhandelimspessart/.idea/Waffenhandelimspessart.iml" />
     </modules>
   </component>
 </project>
