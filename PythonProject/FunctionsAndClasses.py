@@ -113,10 +113,12 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                 if config["subsystem"]:
                     subsystem_Lx = parameters["subsystem_Lx"]
                     subsystem_Ly = parameters["subsystem_Ly"]
-                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"]))
+                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
+                    max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
+                    nr_subsystems_per_col = np.minimum(int(config["cell_L"] / subsystem_Ly), max_nr_subsystems_per_col)
                     config["cell_L"] = nr_subsystems_per_row * subsystem_Lx
-                    nr_subsystems = nr_subsystems_per_row ** 2
+                    nr_subsystems = nr_subsystems_per_row * nr_subsystems_per_col
                     # we now need to extract a rectangular cell that is subsystem_Ly high and nr_subsystems * subsystem_Lx wide
                     row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_subsystems, subsystem_Lx, subsystem_Ly, Lx, Ly)
                 else:
@@ -171,6 +173,7 @@ def plot_colormesh(ax, row, parameters, config):
         chess_trafo = True
     elif config["chess_trafo"] == -1:
         # 'auto', so infering fom J
+        print("J = ", parameters["J"])
         chess_trafo = parameters["J"] < 0
         print("auto chess trafo yields: chess_trafo=", chess_trafo)
     if chess_trafo:
@@ -198,7 +201,7 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         chess_trafo = True
     elif config["chess_trafo"] == -1:
         # 'auto', so infering fom J
-        chess_trafo = np.sign(parameters["J"]) != np.sign(parameters["Jy"])
+        chess_trafo = parameters["J"] < 0
         print("auto chess trafo yields: chess_trafo=", chess_trafo)
     if chess_trafo:
         print("doing chess trafo")

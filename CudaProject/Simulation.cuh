@@ -306,7 +306,7 @@ public:
         }
     }
     SubsystemRelaxationSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :
-            RelaxationSimulation(paras, simulation_path), rootpath(simulation_path) {
+            RelaxationSimulation(paras, simulation_path), Simulation(paras, simulation_path), rootpath(simulation_path) {
     }
 
 };

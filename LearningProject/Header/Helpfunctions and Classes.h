@@ -305,6 +305,17 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
     }
 }
 
+template <class container>
+void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
+    int dim_size_y = vec.size() / dim_size_x;
+    for (int i = 0; i < dim_size_y/2; i++) {            // row
+        for (int j = 0; j < dim_size_x/2; j++) {        // col
+            vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
+            vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
+        }
+    }
+}
+
 template <class value_type, template<class, class> class container, class Functor>
 void trafo_rectangular(container<value_type, std::allocator<value_type>>& vec, Functor functor) {
     // useless, just use transform

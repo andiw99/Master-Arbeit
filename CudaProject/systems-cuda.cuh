@@ -1154,10 +1154,13 @@ protected:
     double h;
 
     struct xy_functor {
-        const double J, h, eta, p_XY, m;
+        const double Jx, Jy, h, eta, p_XY, m;
 
         xy_functor(const double eta, const double J, const double h, const double p_XY, const double m) :
-        J(J), h(h), eta(eta), p_XY(p_XY), m(m) { }
+        Jx(J), Jy(J), h(h), eta(eta), p_XY(p_XY), m(m) { }
+
+        xy_functor(const double eta, const double Jx, const double Jy, const double h, const double p_XY, const double m) :
+                Jx(Jx), Jy(Jy), h(h), eta(eta), p_XY(p_XY), m(m) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -1171,9 +1174,9 @@ protected:
             double q_up = thrust::get<6>(tup);
             double q_down = thrust::get<7>(tup);
 
-            double interaction = J * m * (
-                    +   sin(m * (q - q_up))   + sin(m * (q - q_down))
-                    +   sin(m * (q - q_left)) + sin(m * (q - q_right))
+            double interaction =  m * (
+                        Jy * (sin(m * (q - q_up))   + sin(m * (q - q_down)))
+                    +   Jx * (sin(m * (q - q_left)) + sin(m * (q - q_right)))
             );
             thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
                                     + p_XY * h * sin(p_XY * q) // bistable potential
@@ -1182,10 +1185,13 @@ protected:
     };
 
     struct xy_force {
-        const double J, h, eta, p_XY, m;
+        const double Jx, Jy, h, eta, p_XY, m;
 
         xy_force(const double eta, const double J, const double h, const double p_XY, const double m) :
-                J(J), h(h), eta(eta), p_XY(p_XY), m(m) {
+                Jx(J), Jy(J), h(h), eta(eta), p_XY(p_XY), m(m) {
+        }
+        xy_force(const double eta, const double Jx, const double Jy, const double h, const double p_XY, const double m) :
+                Jx(Jx), Jy(Jy), h(h), eta(eta), p_XY(p_XY), m(m) {
         }
 
         template<class Tup>
@@ -1197,9 +1203,9 @@ protected:
             double q_right = thrust::get<3>(tup);
             double q_up = thrust::get<4>(tup);
             double q_down = thrust::get<5>(tup);
-            double interaction = J * (
-                    +   sin(m * (q - q_up))   + sin(m * (q - q_down))
-                    +   sin(m * (q - q_left)) + sin(m * (q - q_right))
+            double interaction = m * (
+                        Jy * (sin(m * (q - q_up))   + sin(m * (q - q_down)))
+                    +   Jx * (sin(m * (q - q_left)) + sin(m * (q - q_right)))
             );
             thrust::get<1>( tup ) = p_XY * h * sin(p_XY * q) // bistable potential
                                     - interaction;       // Interaction
@@ -1207,9 +1213,10 @@ protected:
     };
 
     struct potential_energy_functor {
-        const double J, h;
+        const double Jx, Jy, h;
 
-        potential_energy_functor(const double J, const double h) : J(J), h(h) { }
+        potential_energy_functor(const double J, const double h) : Jx(J), Jy(J), h(h) { }
+        potential_energy_functor(const double Jx, const double Jy, const double h) : Jx(Jx), Jy(Jy), h(h) { }
 
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) {
@@ -1221,7 +1228,7 @@ protected:
 
             // now here the logic for the energy
             double E_pot = h * cos(2 * q);
-            double E_interaction = J * (cos(q - q_left) + cos(q - q_right) + cos(q - q_up) + cos(q - q_down));
+            double E_interaction = Jx * (cos(q - q_left) + cos(q - q_right)) + Jy * (cos(q - q_up) + cos(q - q_down));
             thrust::get<5>(tup) = E_pot + E_interaction;
         }
     };
@@ -1245,6 +1252,10 @@ protected:
                 // equilibrium initialization -> we are in XY model with p=2, meaning we have
                 // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
                 thrust::fill(x.begin(), x.begin()+n, equil_pos);
+                if(paras[Parameter::J] < 0) {
+                    cout << "initializing with chess trafo" << endl;
+                    chess_trafo_rectangular(x, paras[Parameter::dim_size_x]);
+                }
 
             } else {
                 // random initialization
@@ -1376,6 +1387,25 @@ public:
         cout << "m = " << m << endl;
     }
 };
+
+class XY_Silicon_anisotrop: virtual public XY_Silicon {
+public:
+    const double Jx, Jy;
+    XY_Silicon_anisotrop(map<Parameter,double>& paras): System(paras), XY_model(paras), XY_Silicon(paras), Jx(paras[Parameter::J]), Jy(paras[Parameter::Jy]) {}
+    template<class State, class Deriv>
+    void calc_drift(State &x, Deriv &dxdt, double t) {
+        XY_model::xy_functor functor = XY_model::xy_functor(System::eta, Jx, Jy, h, p_XY, m);
+        System::derivative_calculation(x, dxdt, t, functor);
+    }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        XY_model::xy_force functor = XY_model::xy_force(System::eta, Jx, Jy, h, p_XY, m);
+        force_calculation(x, dxdt, t, functor);
+    }
+
+};
+
 
 #define DIAG_DIST 11.18033988749895
 #define DIAG_PREF 1.4
@@ -1862,6 +1892,7 @@ public:
     }
 };
 
+
 struct XY_silicon_subsystems : public subsystems, public XY_Silicon {
 public:
     XY_silicon_subsystems(map<Parameter, double> paras) : XY_model(paras),
@@ -1871,6 +1902,20 @@ public:
     template<class State, class Deriv>
     void calc_force(State &x, Deriv &dxdt, double t) {
         xy_force functor = xy_force(System::eta, J, h, XY_Silicon::p_XY, XY_Silicon::m);
+        subsystems::force_calculation(x, dxdt, t, functor);
+    }
+};
+
+struct XY_silicon_anisotrop_subsystems : public subsystems, public XY_Silicon_anisotrop {
+public:
+    XY_silicon_anisotrop_subsystems(map<Parameter, double> paras) : XY_model(paras),
+                                                            subsystems(paras),
+                                                            XY_Silicon(paras),
+                                                            XY_Silicon_anisotrop(paras),
+                                                            System(paras) {}
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        xy_force functor = xy_force(System::eta, Jx, Jy, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems::force_calculation(x, dxdt, t, functor);
     }
 };

@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystems/Silicon Fivth"
+    root = "../../Generated content/Subsystems/Silicon Sixth"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -41,11 +41,11 @@ def main():
     cum_err_dic = {}
     m_dic = {}
     interpol_dic = {}
-    exclude_large_dists = 46
+    exclude_large_dists = 100
     exclude_small_dists = 5
     min_temp = 1.8
     max_temp = 2.3
-    xi_exclude_large_dists = 1
+    xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
     r = 3
