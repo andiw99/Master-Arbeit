@@ -95,7 +95,10 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     df = read_large_df(filepath, rows)
 
     stretch = Lx/Ly
-    if cell_L != 0:
+    if config["subsystem"]:
+        stretch = parameters["subsystem_Lx"] / parameters["subsystem_Ly"]
+        print("stretch = " , stretch)
+    elif cell_L != 0:
         stretch = 1
     fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
     i = 0
@@ -123,6 +126,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                     row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_subsystems, subsystem_Lx, subsystem_Ly, Lx, Ly)
                 else:
                     row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
+            print(row)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
             config["cell_L"] = actual_cell_L
             i += 1
@@ -192,7 +196,9 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
     cell_L = int(config["cell_L"])
-    if cell_L != 0:
+    if config["subsystem"]:
+        pass
+    elif cell_L != 0:
         row = row.reshape((cell_L, cell_L))
     else:
         row = row.reshape((Ly, Lx))
@@ -205,7 +211,11 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         print("auto chess trafo yields: chess_trafo=", chess_trafo)
     if chess_trafo:
         print("doing chess trafo")
-        row = chess_board_trafo(row)
+        if config["subsystem"]:
+            row = chess_board_trafo_rectangular_subsystems(row, int(parameters["subsystem_Lx"]), int(parameters["subsystem_Ly"]))
+        else:
+            row = chess_board_trafo(row)
+        print(row)
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
     elif config["angle"] == 1:
@@ -333,15 +343,39 @@ def chess_board_trafo(x):
     :return: void
     """
     # in place trafo vermutlich langsamer als neues array aber egal
-
-    for i in range(x.shape[0] // 2):
-        for j in range(x.shape[1] // 2):
+    nr_rows = int(np.ceil(x.shape[0] / 2))
+    nr_cols = int(np.ceil(x.shape[1] / 2))
+    for i in range(nr_rows):
+        for j in range(nr_cols):
             # we iterate over all even values with even i, j
-            x[2 * i][2 * j] *= (-1)
-            # we iterate over lattice sites with odd indices
-            x[2 * i + 1][2 * j + 1] *= (-1)
+            try:
+                x[2 * i][2 * j] *= (-1)
+                # we iterate over lattice sites with odd indices
+                x[2 * i + 1][2 * j + 1] *= (-1)
+            except IndexError:
+                pass
 
     # Lol we have to return this since it is not in place
+    return x
+
+
+def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
+    """
+    We expect the ready 2D array?
+    :param x:
+    :return:
+    """
+    subsystems_per_row = x.shape[1] // subsystem_Lx
+    subsystems_per_col = x.shape[0] // subsystem_Ly
+    print(subsystems_per_row, "  ", subsystems_per_col)
+    for row in range(subsystems_per_row):
+        for col in range(subsystems_per_col):
+            # extract i-th subsystem
+            subsystem = x[col * subsystem_Ly : (col+1) * subsystem_Ly, row * subsystem_Lx : (row+1) * subsystem_Lx]
+            subsystem = chess_board_trafo(subsystem)
+            if ((subsystem_Lx % 2 != 0) & (row % 2 != 0)):
+                subsystem = (-1) * subsystem
+            x[col * subsystem_Ly : (col+1) * subsystem_Ly, row * subsystem_Lx : (row+1) * subsystem_Lx] = subsystem
     return x
 
 
@@ -636,7 +670,7 @@ def extract_rectangle_from_rectangle(row_data, cell_nr, nr_cells, cell_Lx, cell_
     cell_Lx = int(cell_Lx)
     rows = np.zeros((int(cell_Ly), cell_Lx * nr_cells))
 
-    # i can extract the rows of the our combines subcells
+    # i can extract the rows of our combined subcells
     for row in range(int(cell_Ly)):
         rows[row] = row_data[row * Lx:row * Lx + cell_Lx * nr_cells]
 
