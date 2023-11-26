@@ -43,10 +43,10 @@ int pymod(int a, int b) {
 
 
 template <class T>
-void print_vector(vector<T> vec) {
+void print_vector(vector<T> vec, int breakpoint = 20) {
     cout << vec.size() << endl;
     for(int i = 0; i < vec.size(); i++) {
-        if(i % 20 == 0) {
+        if(i % breakpoint == 0) {
             cout << "\n";
         }
         cout << vec[i] << ", ";
@@ -297,21 +297,17 @@ void chess_trafo(container<value_type, std::allocator<value_type>>& vec) {
 template <class value_type, template<class, class> class container>
 void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& vec, size_t dim_size_x) {
     int dim_size_y = vec.size() / dim_size_x;
-    int nr_rows = (int)round(dim_size_y / 2);
-    int nr_cols = (int)round(dim_size_x / 2);
+    int nr_rows = (int)round(dim_size_y / 2.0);
+    int nr_cols = (int)round(dim_size_x / 2.0);
+    cout << "nr rows = " << nr_rows << "  " << "nr cols" << nr_cols << endl;
 
     for (int i = 0; i < nr_rows; i++) {            // row
         for (int j = 0; j < nr_cols; j++) {        // col
             vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
-            if((nr_cols % 2 == 1) || (nr_rows % 2 == 1)) {
-                if ((i > (nr_rows - 1)) || (j > (nr_cols - 1))) {
-                    continue;
-                } else {
-                    vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
-                }
-            } else {
-                vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
+            if((nr_cols % 2 == 1) & (j == (nr_cols - 1)) || ((nr_rows % 2 == 1)) & (i == (nr_rows - 1))) {
+                continue;
             }
+            vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
         }
     }
 }
@@ -319,9 +315,15 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
     int dim_size_y = vec.size() / dim_size_x;
-    for (int i = 0; i < dim_size_y/2; i++) {            // row
-        for (int j = 0; j < dim_size_x/2; j++) {        // col
+    int nr_rows = (int)round(dim_size_y / 2.0);
+    int nr_cols = (int)round(dim_size_x / 2.0);
+
+    for (int i = 0; i < nr_rows; i++) {            // row
+        for (int j = 0; j < nr_cols; j++) {        // col
             vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
+            if((nr_cols % 2 == 1) & (j == (nr_cols - 1)) || ((nr_rows % 2 == 1)) & (i == (nr_rows - 1))) {
+                continue;
+            }
             vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
         }
     }

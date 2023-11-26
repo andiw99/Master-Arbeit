@@ -128,13 +128,11 @@ public:
             fftw_plan plan;
             plan = fftw_plan_dft_2d(Ly, Lx, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
             // loop over cell and extract fourier trafo of the subsystem
-
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
                 vector<double> cell = vector<double>(Lx * Ly, 0);
                 extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
                 // TODO I think this is also not necessary?
                 cell_routine(L_pair, in, out, plan, cell);
-
                 // stuff for m and chi
                 // pair<double, double> m_L = calc_m(cell);
                 // m_map[L_pair].push_back(m_L);
@@ -375,7 +373,7 @@ class SurCorrLengthHandlerXY: public CorrLengthHandlerXY{
         x_y_factor = extractValueFromTxt(txt_file, "x_y_factor");
         cout << "calling directory pre routine of SurCorrlengthHandlerXY" << endl;
         cout << "subsystem_Lx = " << subsystem_Lx << endl;
-        L_vec = {pair<int, int>((int)subsystem_Lx, (int) x_y_factor * subsystem_Lx)};
+        L_vec = {pair<int, int>((int)subsystem_Lx, (int) (x_y_factor * subsystem_Lx))};
         // if you now go through with the setting routines and stuff, you will be left with an m_map with one size
         // and the block m's
         size_T_corr_length_map[subsystem_Lx] = vector<tuple<double, double, double>>{};

@@ -61,7 +61,8 @@ def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([]))
     axy.legend()
     return fig, axes
 
-def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True, plot=False):
+def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian,
+            errors_for_fit=True, plot=False, cut_zero_impuls=False):
 
 
     px = df["px"]
@@ -69,18 +70,33 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
     # cutoff
     px = px[indices]
+    px = px[~np.isnan(px)]
     ft_avg_y = np.array(df["ft_avg_y"])[indices]
+    ft_avg_y = ft_avg_y[~np.isnan(ft_avg_y)]
 
 
     py = df["py"]
     py = np.array(py)[indices]
+    py = py[~np.isnan(py)]
     ft_avg_x = np.array(df["ft_avg_x"])[indices]
+    ft_avg_x = ft_avg_x[~np.isnan(ft_avg_x)]
+
     try:
         y_error = np.array(df["stddev_y"])
+        y_error = y_error[~np.isnan(y_error)]
         x_error = np.array(df["stddev_x"])
+        x_error = x_error[~np.isnan(x_error)]
     except:
         y_error = None
         x_error = None
+
+    if cut_zero_impuls:
+        ft_avg_y = ft_avg_y[px != 0]
+        y_error = y_error[px != 0]
+        px = px[px != 0]
+        ft_avg_x = ft_avg_x[py != 0]
+        x_error = x_error[py != 0]
+        py = py[py != 0]
 
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -134,7 +150,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Subsystems/Quench/400"
+    root = "../../Generated content/Subsystems/Quench AA/200"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"
@@ -142,9 +158,10 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
-    min_tau = 64
+    min_tau = 0
     max_tau = 1000
-    plot_struct = False
+    plot_struct = True
+    cut_zero_impuls = True
     print(root_dirs)
     config = {
         "ylabelsize": 14,
@@ -186,7 +203,8 @@ def main():
                                                   savepath=dir_path + png_name,
                                                   cutoff=cutoff, fitfunc=fitfunc,
                                                   errors_for_fit=errors_for_fit,
-                                                  plot=plot_struct)
+                                                  plot=plot_struct,
+                                                  cut_zero_impuls=cut_zero_impuls)
 
                 tau_arr.append(parameters["tau"])
                 xix_arr.append(xix)
@@ -213,6 +231,8 @@ def main():
     tau_fit_arr = tau_arr[(tau_arr > min_tau) & (tau_arr < max_tau)]
     if not errors_for_fit:
         xi_err_sorted = None
+    print(tau_fit_arr)
+    print(xi_fit)
     popt, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xi_fit), sigma=xi_err_sorted)
     print("FITTING RESULTS")
 

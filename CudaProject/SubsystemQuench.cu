@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_silicon_subsystems_quench quench_system;
+    typedef XY_silicon_anisotrop_subsystems_quench quench_system;
     if (argc == 2) {
         filepath = "parameters/para_quench_set_" + (string)argv[1] + ".txt" ;
     } else {

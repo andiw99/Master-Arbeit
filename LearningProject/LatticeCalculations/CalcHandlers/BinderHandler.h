@@ -19,6 +19,7 @@ public:
     vector<int> L_vec;
     map<int, vector<pair<double, double>>> m_map = {};
     double T;
+    double x_y_factor = 1;
 
     BinderHandler(fs::path root): calcHandler(root) {
         starting_k = (int) BinderHandlerConfig["starting_k"];
@@ -49,6 +50,8 @@ public:
         iota(begin(Ls), end(Ls), min_L);
         L_vec = Ls;
         init_file_header(calcFile, L_vec);
+        fs::path txt_file = findFirstTxtFile(directory_path);
+        x_y_factor = extractValueFromTxt(txt_file, "x_y_factor");
     }
 
     void setting_pre_routine(fs::path setting_path) override {
@@ -59,16 +62,17 @@ public:
 
     void realization_routine(vector<double> &lat_q, double temp, double t) override {
         // for every subsystem size L we need to iterate over the lattice and extract all m's
-        for(int L : L_vec) {
-            int nr_cells = (int)(dim_size_x * dim_size_y / (L * L));
+        for(int Lx : L_vec) {
+            int Ly = (int) (Lx * x_y_factor);
+            int nr_cells = (int)(dim_size_x * dim_size_y / (Lx * Ly));
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
                 // now we are in the ith cell and can start calculating the local magnetization powers
                 // it might be easiest and maybe also the most efficient to extract the spins of the cell
                 // out of the large lattice
-                vector<double> q_cell = vector<double>(L * L, 0);
-                extract_cell(lat_q, q_cell, cell_nr, L, L, dim_size_x);
+                vector<double> q_cell = vector<double>(Lx * Ly, 0);
+                extract_cell(lat_q, q_cell, cell_nr, Lx, Ly, dim_size_x);
                 pair<double, double> m_L = calc_m(q_cell);
-                m_map[L].push_back(m_L);
+                m_map[Lx].push_back(m_L);
             }
         }
         T = temp;
@@ -183,6 +187,7 @@ class SurBinderHandler : virtual public BinderHandler {
 
     void directory_pre_routine(path directory_path) override {
         fs::path txt_file = findFirstTxtFile(directory_path);
+        x_y_factor = extractValueFromTxt(txt_file, "x_y_factor");
         subsystem_Lx = (size_t)extractValueFromTxt(txt_file, "subsystem_Lx");
 
         cout << "calling directory pre routine" << endl;

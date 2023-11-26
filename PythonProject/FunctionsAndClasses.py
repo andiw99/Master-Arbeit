@@ -9,6 +9,7 @@ import matplotlib.ticker as ticker
 from matplotlib.colors import BoundaryNorm
 import matplotlib
 from itertools import product
+from IPython import embed
 
 # import matplotlib; matplotlib.use("TkAgg")
 
@@ -68,11 +69,14 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def read_large_df(filepath, rows):
+def read_large_df(filepath, rows=None):
     df = []
     with open(filepath) as f:
         for i, line in enumerate(f):
-            if i in rows:
+            if rows:
+                if i in rows:
+                    df.append(string_to_array(line[:-2]))
+            else:
                 df.append(string_to_array(line[:-2]))
     return df
 
@@ -126,7 +130,6 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                     row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_subsystems, subsystem_Lx, subsystem_Ly, Lx, Ly)
                 else:
                     row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
-            print(row)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
             config["cell_L"] = actual_cell_L
             i += 1
@@ -215,7 +218,6 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
             row = chess_board_trafo_rectangular_subsystems(row, int(parameters["subsystem_Lx"]), int(parameters["subsystem_Ly"]))
         else:
             row = chess_board_trafo(row)
-        print(row)
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
     elif config["angle"] == 1:
@@ -371,11 +373,31 @@ def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
     for row in range(subsystems_per_row):
         for col in range(subsystems_per_col):
             # extract i-th subsystem
-            subsystem = x[col * subsystem_Ly : (col+1) * subsystem_Ly, row * subsystem_Lx : (row+1) * subsystem_Lx]
+            print(x)
+            #embed()
+            subsystem = x[row * subsystem_Ly : (row+1) * subsystem_Ly, col * subsystem_Lx : (col+1) * subsystem_Lx]
             subsystem = chess_board_trafo(subsystem)
-            if ((subsystem_Lx % 2 != 0) & (row % 2 != 0)):
-                subsystem = (-1) * subsystem
-            x[col * subsystem_Ly : (col+1) * subsystem_Ly, row * subsystem_Lx : (row+1) * subsystem_Lx] = subsystem
+            print(subsystem)
+            #if ((subsystem_Lx % 2 != 0) & (row % 2 != 0)) | ((subsystem_Ly % 2 != 0) & (col % 2 != 0)):
+            #    subsystem = (-1) * subsystem
+            #if (subsystem_Ly % 2 != 0) & (subsystem_Lx % 2 == 0) & (row % 2 != 0):
+            #    # case uneven y, flip uneven rows
+            #    subsystem = (-1) * subsystem
+            #elif (subsystem_Lx % 2 != 0) & (subsystem_Ly % 2 == 0) & (col % 2 != 0):
+            #    # case uneven x, flip uneven cols
+            #    subsystem = (-1) * subsystem
+            #elif (subsystem_Lx % 2 != 0) & (subsystem_Ly % 2 != 0) & ((col + row) % 2 != 0):
+            #    # case both uneven, flip uneven cols
+            #    print("flipping systems with col + row uneven ", row, " ", col)
+            #    subsystem = (-1) * subsystem
+            if (subsystem_Lx % 2 != 0):
+                if ((subsystems_per_row % 2 != 0) & ((row + col) % 2 != 0)):
+                    subsystem = (-1) * subsystem
+                elif ((subsystems_per_row % 2 == 0) & ((col) % 2 != 0)):
+                    print("flipping...")
+                    subsystem = (-1) * subsystem
+
+            x[row * subsystem_Ly : (row+1) * subsystem_Ly, col * subsystem_Lx : (col+1) * subsystem_Lx] = subsystem
     return x
 
 

@@ -1,5 +1,6 @@
 import os
 import csv
+from FunctionsAndClasses import *
 
 def has_rows_of_different_lengths(file_path):
     with open(file_path, 'r') as csvfile:
@@ -23,5 +24,5 @@ def delete_files_with_rows_of_different_lengths(directory):
     print(f"Checked {nr_files} files, deleted {deleted}")
 
 # Example: Provide the path to the directory
-directory_path = "../../Generated content/Subsystems/Silicon AA"
+directory_path = "../../Generated content/Subsystems/Silicon AA2"
 delete_files_with_rows_of_different_lengths(directory_path)

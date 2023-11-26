@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystems/Silicon AA"
+    root = "../../Generated content/Subsystems/Silicon AA Even"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -48,7 +48,7 @@ def main():
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-    r = 6
+    r = 3
     figsize = (1.2 *  6.4, 4.8)
     L_max_lower = 20
     L_max_upper = 50
@@ -185,8 +185,8 @@ def main():
             # print(size, cum_dic[size])
             # interpolation
             ax.errorbar(T, cum_dic[size], yerr = cum_err_dic[size], ls="",
-                        marker="x", color=colors[(2 * line_nr) % len(colors)], ecolor="black", elinewidth=0, capsize=0)
-            ax.plot(T_inter_arr, interpol_dic[size], color=colors[(2 * line_nr) % len(colors)],
+                        marker="x", color=colors[line_nr % len(colors)], ecolor="black", elinewidth=0, capsize=0)
+            ax.plot(T_inter_arr, interpol_dic[size], color=colors[(line_nr) % len(colors)],
                     label=rf"L = {size}", linewidth=0.5)
             line_nr += 1
 
@@ -345,8 +345,8 @@ def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
     shown_inds = [int(i) for i in np.linspace(0, len(y_dic.keys()) - 1, r)]
     for i, key in enumerate(y_dic.keys()):
         if i in shown_inds:
-            ax.plot(x, y_dic[key], ls="", marker="x", c=colors[i // r])         # discrete points
-            ax.plot(x_inter, y_dic_inter[key], c=colors[i // r], label=key, linewidth=1)   # interpolated line
+            ax.plot(x, y_dic[key], ls="", marker="x", c=colors[i])         # discrete points
+            ax.plot(x_inter, y_dic_inter[key], c=colors[i], label=key, linewidth=1)   # interpolated line
     mark_point(ax, x_intersec, y_intersec)
 
     return x_intersec, y_intersec

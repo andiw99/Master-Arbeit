@@ -1758,29 +1758,24 @@ protected:
     using System::right;
 
     struct neighbor {
-        size_t n0, Lx, Ly;
+        size_t Lx, Ly;
     public:
-        neighbor(size_t n0, size_t Lx, size_t Ly): n0(n0), Lx(Lx), Ly(Ly) {}
+        neighbor(size_t Lx, size_t Ly): Lx(Lx), Ly(Ly) {}
     };
 
     struct up : public neighbor {
         using neighbor::neighbor;
         virtual __host__ __device__ size_t operator()(size_t i) const {
-            // okay lets see, lets first find out in which subsystem we are
-            // the position in this subsystem is
-            size_t subsystem_pos = i % n0;
             // now it is just the up neighbor of subsystem_pos + subsystem_nr * n0
-            return (subsystem_pos < Lx) ? i + Lx * (Ly - 1) : i - Lx;
+            // Lx and Ly are the dimensions of the combined system
+            return (i < Lx) ? i + Lx * (Ly - 1) : i - Lx;
         }
     };
     struct down : public neighbor {
         using neighbor::neighbor;
         virtual __host__ __device__ size_t operator()(size_t i) const {
-            // okay lets see, lets first find out in which subsystem we are
-            // the position in this subsystem is
-            size_t subsystem_pos = i % n0;
             // now it is just the up neighbor of subsystem_pos + subsystem_nr * n0
-            return (subsystem_pos >= Lx * (Ly -1 )) ? i - Lx * (Ly - 1) : i + Lx;
+            return (i >= Lx * (Ly - 1)) ? i - Lx * (Ly - 1) : i + Lx;
         }
     };
 protected:
@@ -1810,14 +1805,14 @@ protected:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(n0, Lx, Ly)      // for up and down both dimension sizes are relevant
+                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(n0, Lx, Ly)
+                                down(dim_size_x, dim_size_y)
                         )
                 )
         )));
@@ -1932,6 +1927,23 @@ public:
                                                                  XY_model(paras),
                                                                  System(paras){
         cout << "XY_silicon_subsystems_quench system constructed";
+    }
+
+};
+
+struct XY_silicon_anisotrop_subsystems_quench : public XY_silicon_anisotrop_subsystems, public quench {
+public:
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_quench(map<Parameter, double> paras) : quench(paras),
+    XY_silicon_anisotrop_subsystems(paras),
+    XY_Silicon(paras),
+    XY_model(paras),
+    System(paras){
+        cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 
 };
