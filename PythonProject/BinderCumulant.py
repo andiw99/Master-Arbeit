@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystems/Silicon AA Even"
+    root = "../../Generated content/Subsystems/Silicon AA Even 2 Short"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)

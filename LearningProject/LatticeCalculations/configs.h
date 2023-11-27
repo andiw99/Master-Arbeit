@@ -20,12 +20,12 @@ enum class Calc {
 };
 // possible Calcs: BinderCumulant, CorrLength, SecondMomentCorr, StructFact
 //vector<Calc> calcs = {Calc::BinderCumulant, Calc::CorrLengthXY, Calc::StructFactXY};
-//vector<Calc> calcs = {Calc::SurBinderCumulantSilicon, Calc::SurCorrLengthXY};
+vector<Calc> calcs = {Calc::SurBinderCumulantSilicon, Calc::SurCorrLengthXY};
 //vector<Calc> calcs = {Calc::SurCorrLengthXY};
-vector<Calc> calcs = {Calc::StructFactXY};
+//vector<Calc> calcs = {Calc::StructFactXY};
 //vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Subsystems/Quench AA/200";
+fs::path root = "../../../Generated content/Subsystems/Silicon AA Even 2 Short";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
@@ -37,7 +37,8 @@ map<string, double> CorrLengthHandlerConfig {
         {"starting_k", 10},
         {"nr_Ls", 20},
         {"min_Lx", 5},
-        {"max_Lx", 40}
+        {"max_Lx", 40},
+        {"cut_zero_impuls", 0}
 };
 
 map<string, double> BinderHandlerConfig {

@@ -141,8 +141,9 @@ Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, vector<double>& ft_va
     return fit_matrix<LorentzianPeakFunctor>(X_Y_vals);
 }
 
-Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, double* ft_values, int L) {
+Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, double* ft_values) {
     // constrtuct the matrix that holds the k and ft values
+    int L = k_values.size();
     Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
     X_Y_vals = construct_matrix(k_values, ft_values, L);
     return fit_matrix<LorentzianPeakFunctor>(X_Y_vals);

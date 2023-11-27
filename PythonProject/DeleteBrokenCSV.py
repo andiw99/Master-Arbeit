@@ -24,5 +24,5 @@ def delete_files_with_rows_of_different_lengths(directory):
     print(f"Checked {nr_files} files, deleted {deleted}")
 
 # Example: Provide the path to the directory
-directory_path = "../../Generated content/Subsystems/Silicon AA2"
+directory_path = "../../Generated content/Subsystems/Silicon AA Even 2 Short"
 delete_files_with_rows_of_different_lengths(directory_path)

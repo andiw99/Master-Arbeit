@@ -128,6 +128,7 @@ public:
             fftw_plan plan;
             plan = fftw_plan_dft_2d(Ly, Lx, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
             // loop over cell and extract fourier trafo of the subsystem
+
             for(int cell_nr = 0; cell_nr < nr_cells; cell_nr++) {
                 vector<double> cell = vector<double>(Lx * Ly, 0);
                 extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
@@ -138,8 +139,10 @@ public:
                 // m_map[L_pair].push_back(m_L);
                 nr_of_used_cells += 1;
                 }
-            }
-
+/*            delete[] in;
+            delete[] out;
+            fftw_destroy_plan(plan);*/
+        }
     }
 
     virtual void cell_routine(const pair<int, int> &L_pair, fftw_complex (*in), fftw_complex const (*out),
@@ -244,12 +247,34 @@ public:
         fill_p(qy, py);
         auto kx = p_to_vec(px);
         auto ky = p_to_vec(py);
-
-        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair], Lx);
-        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair], Ly);
+        cout << "where?" << endl;
+        print_vector(ky);
+        double* ft_k_fit;
+        double* ft_l_fit;
+        if(CorrLengthHandlerConfig["cut_zero_impuls"]) {
+            // allocate memory of L-1 for the fts
+            ft_k_fit = new double[Lx-1];
+            ft_l_fit = new double[Ly-1];
+            // copy values from the ft_k_map into ft_k
+            copy(ft_k_map[L_pair] + 1, ft_k_map[L_pair] + Lx, ft_k_fit);
+            copy(ft_l_map[L_pair] + 1, ft_l_map[L_pair] + Ly, ft_l_fit);
+            // remove first value form ks
+            kx.erase(kx.begin());
+            ky.erase(ky.begin());
+            // size for fitting
+        } else {
+            ft_k_fit = ft_k_map[L_pair];
+            ft_l_fit = ft_l_map[L_pair];
+        }
+        print_vector(ky);
+        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
+        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_fit);
 
         xix = paras_x(1);
         xiy = paras_y(1);
+
+        //delete[] ft_k_fit;
+        //delete[] ft_l_fit;
     }
 
     void deallocate_ft(){
