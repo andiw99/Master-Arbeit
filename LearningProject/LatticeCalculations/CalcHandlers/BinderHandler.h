@@ -205,7 +205,7 @@ class SurBinderHandler : virtual public BinderHandler {
         // now we have the full m_map for the temperature, leaves to calculate the binder cumulant aswell as errors
         vector<double> cum, cum_error;
         cout << "T = " << T << "   " << "subsystem_size = " << subsystem_Lx << endl;
-        print_pair_vector(m_map[subsystem_Lx]);
+        //print_pair_vector(m_map[subsystem_Lx]);
         calc_cum(cum, cum_error);
         // we insert into the vector of size_T_cum_map for the current size, which is dim_size_x the triplet with the
         // current temperature, the cumulant and stuff.

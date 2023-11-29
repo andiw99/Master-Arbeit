@@ -150,7 +150,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Subsystems/Quench AA/200"
+    root = "../../Generated content/Subsystems/Quench AA/200 small"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"
@@ -158,10 +158,10 @@ def main():
     cutoff = np.pi
     fitfunc = MF_lorentz
     errors_for_fit = False
-    min_tau = 0
-    max_tau = 1000
+    min_tau = 5
+    max_tau = 200
     plot_struct = True
-    cut_zero_impuls = True
+    cut_zero_impuls = False
     print(root_dirs)
     config = {
         "ylabelsize": 14,

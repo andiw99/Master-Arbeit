@@ -115,12 +115,13 @@ public:
         int run_nr = (int)paras[Parameter::run_nr];
         // we just write the parameters first
         close_stream();
-        open_stream(folderpath / construct_filename(run_nr) + ".txt"));
+        string filename = construct_filename(run_nr);
+        open_stream(folderpath / (filename + ".txt"));
         write_parameters(ofile, paras);
         // dont forget to close!;
         close_stream();
 
-        open_stream(folderpath / construct_filename(run_nr) + ".csv"));
+        open_stream(folderpath / (filename + ".csv"));
     }
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {

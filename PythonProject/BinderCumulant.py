@@ -26,7 +26,7 @@ def det_intersection(x, y_dic):
 
 
 def main():
-    root = "../../Generated content/Subsystems/Silicon AA Even 2"
+    root = "../../Generated content/Subsystems/Silicon AA Even 10000"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -48,7 +48,7 @@ def main():
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-    r = 3
+    r = 7
     figsize = (1.2 *  6.4, 4.8)
     L_max_lower = 20
     L_max_upper = 50
@@ -57,7 +57,7 @@ def main():
     cum_path = root + "/" + name
 
     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-
+    print(df)
     labels = df.columns.delete(0)
     labels = labels[::2]
     labels = np.array([int(label) for label in labels])
@@ -177,6 +177,7 @@ def main():
     T_inter_arr = np.linspace(np.min(T), np.max(T), 300)
     print(cum_dic.keys())
     line_nr = 0
+
     shown_inds = [int(i) for i in np.linspace(0, len(cum_dic.keys()) - 1, r)]
     for i,size in enumerate(cum_dic.keys()):
         # only plot every n-th
@@ -184,6 +185,9 @@ def main():
         if i in shown_inds:
             # print(size, cum_dic[size])
             # interpolation
+            print("Cumulant:", size)
+            print(T)
+            print(cum_dic[size])
             ax.errorbar(T, cum_dic[size], yerr = cum_err_dic[size], ls="",
                         marker="x", color=colors[line_nr % len(colors)], ecolor="black", elinewidth=0, capsize=0)
             ax.plot(T_inter_arr, interpol_dic[size], color=colors[(line_nr) % len(colors)],

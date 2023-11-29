@@ -1204,7 +1204,7 @@ protected:
             double q_up = thrust::get<4>(tup);
             double q_down = thrust::get<5>(tup);
             double interaction = m * (
-                        Jy * (sin(m * (q - q_up))   + sin(m * (q - q_down)))
+                        Jy * (sin(mf * (q - q_up))   + sin(m * (q - q_down)))
                     +   Jx * (sin(m * (q - q_left)) + sin(m * (q - q_right)))
             );
             thrust::get<1>( tup ) = p_XY * h * sin(p_XY * q) // bistable potential
@@ -1352,7 +1352,7 @@ public:
             return positive_modulo((q + M_PI/2), M_PI) - M_PI/2;
         }
     };
-
+n
     template<class State>
     void map_state(State &x) {
         // we map every q onto [-pi/2, pi/2]

@@ -114,8 +114,6 @@ public:
 
     void realization_routine(vector<double> &lat_q, double T, double t) override {
         Temp = T;
-        cout << "corrLength realization routine" << endl;
-
 
         for(pair<int, int> L_pair : L_vec) {
             // enumerate subsystems
@@ -247,8 +245,7 @@ public:
         fill_p(qy, py);
         auto kx = p_to_vec(px);
         auto ky = p_to_vec(py);
-        cout << "where?" << endl;
-        print_vector(ky);
+
         double* ft_k_fit;
         double* ft_l_fit;
         if(CorrLengthHandlerConfig["cut_zero_impuls"]) {
@@ -269,6 +266,9 @@ public:
         print_vector(ky);
         Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
         Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_fit);
+
+        // Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_map[L_pair]);
+        // Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_map[L_pair]);
 
         xix = paras_x(1);
         xiy = paras_y(1);
