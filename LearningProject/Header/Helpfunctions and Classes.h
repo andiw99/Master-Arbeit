@@ -129,6 +129,30 @@ void calc_corr(vector<vector<value_type>> &f, result_type &C_x, result_type &C_y
 }
 
 
+string get_current_time() {
+    auto timepoint = chrono::system_clock::now().time_since_epoch();
+    auto hour = chrono::duration_cast<chrono::hours>(timepoint) % 24;
+    auto minute = chrono::duration_cast<chrono::minutes>(timepoint) % 60;
+    auto second = chrono::duration_cast<chrono::seconds>(timepoint) % 60;
+    auto millisecond = chrono::duration_cast<chrono::milliseconds>(timepoint) % 1000;
+
+    string hour_str = to_string(hour.count());
+    if (hour.count() < 10) {
+        hour_str = "0" + hour_str;
+    }
+    string minute_str = to_string(minute.count());
+    if (minute.count() < 10) {
+        minute_str = "0" + minute_str;
+    }
+    string seconds_str = to_string(second.count());
+    if (second.count() < 10) {
+        seconds_str = "0" + seconds_str;
+    }
+    string milliseconds_str = to_string(millisecond.count());
+    return hour_str + ":" + minute_str + ":" + seconds_str + ":" + milliseconds_str;
+}
+
+
 vector<fs::path> list_dir_paths(const fs::path& root, bool recursive=true)
 {
     vector<fs::path> dir_paths;
@@ -872,7 +896,10 @@ int findHighestCSVNumber(const string& folderPath) {
             if (entry.path().extension() == ".csv") {
                 // Extract the numeric part of the filename (excluding the extension)
                 string numberPart = entry.path().stem().string();
-
+                auto pos = numberPart.find('-');
+                if(pos != string::npos) {
+                    numberPart = numberPart.substr(0, pos);
+                }
                 try {
                     // Convert the numeric part to an integer
                     int number = stoi(numberPart);

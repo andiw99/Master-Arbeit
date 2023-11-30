@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <vector>
 #include <numeric>
+#include <boost/asio/ip/host_name.hpp>
+#include "../Header/Helpfunctions and Classes.h"
 
 using namespace std;
 
@@ -329,6 +331,18 @@ int main(int argc, char* argv[]) {
     derivedTemplated.specificOP();
 
 
+
+    const auto host_name = boost::asio::ip::host_name();
+    cout << host_name << endl;
+
+    auto timepoint = chrono::system_clock::now().time_since_epoch();
+    auto hour = duration_cast<hours>(timepoint) % 24;
+    auto minute = duration_cast<minutes>(timepoint) % 60;
+    auto second = duration_cast<seconds>(timepoint) % 60;
+    auto millisecond = duration_cast<milliseconds>(timepoint) % 1000;
+
+    cout << "current time: " << hour.count() << ":" << minute.count() << ":" << second.count() << ":" << millisecond.count() << endl;
+    cout << "current time: " << get_current_time();
     return 0;
 
 }

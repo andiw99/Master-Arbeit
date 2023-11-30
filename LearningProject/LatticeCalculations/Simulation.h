@@ -137,7 +137,7 @@ public:
                 handler->directory_pre_routine(directory_path);
             }
             auto directories = list_dir_paths(directory_path);
-            print_vector(directories);
+            sort(directories.begin(), directories.end());
             for (auto path : directories) {
                 cout << "Before inner directory routine" << endl;
                 cout << path << endl;
@@ -175,13 +175,13 @@ public:
 
     void realization_routine(path &csv_path) {// find out if chess_trafo should be true or not
 
-        ifstream file = safe_read(csv_path, true);
+        ifstream file = safe_read(csv_path, false);
         double T, t;
         // TODO okay we only read in the last line here, so it doesnt work for the quench.process
 // plot atm, but i guess we could fix that in the future?
         cout << "probably here?" << endl;
         auto lat_q = readDoubleValuesAt(file, -1,  T, t);
-        cout << "T = " << T << "   t = " << t << endl;
+        //cout << "T = " << T << "   t = " << t << endl;
         if(chessTrafo) {
             chess_trafo_rectangular(lat_q, dim_size_x);
         }

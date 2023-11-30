@@ -5,6 +5,7 @@
 #ifndef CUDAPROJECT_OBSERVERS_CUH
 #define CUDAPROJECT_OBSERVERS_CUH
 
+#include <boost/asio/ip/host_name.hpp>
 
 
 void write_parameters(ofstream& file, map<Parameter, double> paras) {
@@ -114,12 +115,13 @@ public:
         int run_nr = (int)paras[Parameter::run_nr];
         // we just write the parameters first
         close_stream();
-        open_stream(folderpath / (to_string(run_nr) + ".txt"));
+        string filename = construct_filename(run_nr);
+        open_stream(folderpath / (filename + ".txt"));
         write_parameters(ofile, paras);
         // dont forget to close!;
         close_stream();
 
-        open_stream(folderpath / (to_string(run_nr) + ".csv"));
+        open_stream(folderpath / (filename + ".csv"));
     }
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
@@ -146,6 +148,11 @@ public:
     string get_name() override {
         return "standard observer";
     }
+
+    string construct_filename(int run_nr) {
+        return to_string(run_nr) + "-" + get_current_time() + "-" + boost::asio::ip::host_name();
+    }
+
 };
 
 
