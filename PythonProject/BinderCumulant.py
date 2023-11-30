@@ -48,11 +48,9 @@ def main():
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
-<<<<<<< HEAD
+
     r = 5
-=======
-    r = 7
->>>>>>> 94d06b29a8996735b2a7342c74d0153acd3a443a
+
     figsize = (1.2 *  6.4, 4.8)
     L_max_lower = 20
     L_max_upper = 50

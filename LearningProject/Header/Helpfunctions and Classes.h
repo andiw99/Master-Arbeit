@@ -135,6 +135,7 @@ string get_current_time() {
     auto minute = chrono::duration_cast<chrono::minutes>(timepoint) % 60;
     auto second = chrono::duration_cast<chrono::seconds>(timepoint) % 60;
     auto millisecond = chrono::duration_cast<chrono::milliseconds>(timepoint) % 1000;
+    auto microsecond = chrono::duration_cast<chrono::microseconds>(timepoint) % 1000;
 
     string hour_str = to_string(hour.count());
     if (hour.count() < 10) {
@@ -149,7 +150,8 @@ string get_current_time() {
         seconds_str = "0" + seconds_str;
     }
     string milliseconds_str = to_string(millisecond.count());
-    return hour_str + ":" + minute_str + ":" + seconds_str + ":" + milliseconds_str;
+    string microseconds_str = to_string(microsecond.count());
+    return hour_str + ":" + minute_str + ":" + seconds_str + ":" + milliseconds_str + ":" + microseconds_str;
 }
 
 
