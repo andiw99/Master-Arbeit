@@ -259,12 +259,23 @@ vector<double> readDoubleValuesAt(ifstream& file, int ind, double& T, double& t)
 
     stringstream llss(line);
     string token;
+    int nr_errors = 0;
     while (std::getline(llss, token, ',')) {
         if(token != "t") {
-            double value = stod(token);
-
+            double value;
+            try {
+                value = stod(token);
+            } catch (std::invalid_argument iaex) {
+                std::cout << "Caught an error!" << std::endl;
+                value = 0;
+                nr_errors++;
+            }
             values.push_back(value);
         }
+    }
+    if(nr_errors > 2) {
+        cout << "too many stod Errors!" << endl;
+        exit(0);
     }
     // we delete the last value as it is the temperature
     // or do we need the temperature?
