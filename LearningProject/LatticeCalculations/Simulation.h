@@ -179,7 +179,6 @@ public:
         double T, t;
         // TODO okay we only read in the last line here, so it doesnt work for the quench.process
 // plot atm, but i guess we could fix that in the future?
-        cout << "probably here?" << endl;
         auto lat_q = readDoubleValuesAt(file, -1,  T, t);
         //cout << "T = " << T << "   t = " << t << endl;
         if(chessTrafo) {

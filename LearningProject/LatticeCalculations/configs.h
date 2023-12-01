@@ -25,12 +25,12 @@ enum class Calc {
 vector<Calc> calcs = {Calc::StructFactXY};
 //vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Subsystems/Quench AA";
+fs::path root = "../../../Generated content/Silicon/Amplitude";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
-        {"cutup", 1},
-        {"subsystems", 1}
+        {"cutup", 2},
+        {"subsystems", 0}
 };
 
 map<string, double> CorrLengthHandlerConfig {

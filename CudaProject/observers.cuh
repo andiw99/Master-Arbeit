@@ -150,7 +150,13 @@ public:
     }
 
     string construct_filename(int run_nr) {
-        return to_string(run_nr) + "-" + get_current_time() + "-" + boost::asio::ip::host_name();
+        string job_id_str;
+        if (const char* job_id = std::getenv("SLURM_JOB_ID")){
+            job_id_str = string(job_id);
+        } else {
+            job_id_str = "local";
+        }
+        return to_string(run_nr) + "-" + get_current_time() + "-" + job_id_str + "-" + boost::asio::ip::host_name();
     }
 
 };
