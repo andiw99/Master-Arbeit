@@ -86,6 +86,16 @@ public:
         cout << "deleting " << this->get_name() << endl;
         close_stream();
     }
+
+    string construct_filename(int run_nr) {
+        string job_id_str;
+        if (const char* job_id = std::getenv("SLURM_JOB_ID")){
+            job_id_str = string(job_id);
+        } else {
+            job_id_str = "local";
+        }
+        return to_string(run_nr) + "-" + get_current_time() + "-" + job_id_str + "-" + boost::asio::ip::host_name();
+    }
 };
 
 template <class system, class State>
@@ -115,7 +125,7 @@ public:
         int run_nr = (int)paras[Parameter::run_nr];
         // we just write the parameters first
         close_stream();
-        string filename = construct_filename(run_nr);
+        string filename = obsver::construct_filename(run_nr);
         open_stream(folderpath / (filename + ".txt"));
         write_parameters(ofile, paras);
         // dont forget to close!;
@@ -149,15 +159,6 @@ public:
         return "standard observer";
     }
 
-    string construct_filename(int run_nr) {
-        string job_id_str;
-        if (const char* job_id = std::getenv("SLURM_JOB_ID")){
-            job_id_str = string(job_id);
-        } else {
-            job_id_str = "local";
-        }
-        return to_string(run_nr) + "-" + get_current_time() + "-" + job_id_str + "-" + boost::asio::ip::host_name();
-    }
 
 };
 
@@ -314,6 +315,48 @@ public:
     }
 
     };
+
+template <class system, class State>
+class cum_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+public:
+    cum_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
+        cout << "cum observer init called" << endl;
+        ofile << "t,U_L" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        write_interval = end_t / (double)nr_values;
+    }
+
+    string get_name() override {
+        return "cum observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            ofile << t << "," << sys.calc_binder(x) << endl;
+            timepoint += write_interval;
+        }
+    }
+
+};
 
 /*class quench_observer : public observer {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer

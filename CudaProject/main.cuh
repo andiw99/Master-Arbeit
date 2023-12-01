@@ -68,7 +68,8 @@ enum Parameter {
     subsystem_max_Lx,
     nr_subsystem_sizes,
     nr_subsystems,
-    x_y_factor
+    x_y_factor,
+    nr_cum_values,
 };
 
 map<Parameter, string> parameter_names {
@@ -114,7 +115,8 @@ map<Parameter, string> parameter_names {
         {subsystem_max_Lx,"subsystem_max_Lx"},
         {nr_subsystem_sizes,"nr_subsystem_sizes"},
         {nr_subsystems,"nr_subsystems"},
-        {x_y_factor,"x_y_factor"}
+        {x_y_factor,"x_y_factor"},
+        {nr_cum_values, "nr_cum_values"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -160,7 +162,8 @@ map<string, Parameter> string_to_parameter {
         {"subsystem_max_Lx", subsystem_max_Lx},
         {"nr_subsystem_sizes", nr_subsystem_sizes},
         {"nr_subsystems", nr_subsystems},
-        {"x_y_factor", x_y_factor}
+        {"x_y_factor", x_y_factor},
+        {"nr_cum_values", nr_cum_values}
 };
 
 
@@ -244,6 +247,7 @@ struct container_algebra {
             op(s1[n], s2[n], s3[n], s4[n]);
     }
 };
+
 
 /*
  * Now we need a "Thrust Algebra", will this be doable? I still need to figure out what my statetype is and how I
@@ -764,7 +768,6 @@ state_initializer<state_type>* create_state_initializer(int random, map<Paramete
         return new equilibrium_initializer<state_type> (paras);
     }
 }
-
 
 
 

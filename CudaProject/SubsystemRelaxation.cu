@@ -34,6 +34,7 @@ int main(int argc, char* argv[]) {
             new runtime_observer<relax_system, state_type>();
 
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
+    auto* cum_obs = new cum_observer<relax_system, state_type>(paras[nr_cum_values]);
 
     // templating..
     SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<bbk_stepper,
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
     simulation.register_observer(relax_obs);
     simulation.register_observer(runtime_obs);
     simulation.register_observer(ner_obs);
+    simulation.register_observer(cum_obs);
     simulation.simulate();
     return 0;
 }

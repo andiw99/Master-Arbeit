@@ -336,7 +336,6 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
     int dim_size_y = vec.size() / dim_size_x;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
-    cout << "nr rows = " << nr_rows << "  " << "nr cols" << nr_cols << endl;
 
     for (int i = 0; i < nr_rows; i++) {            // row
         for (int j = 0; j < nr_cols; j++) {        // col
@@ -772,6 +771,20 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
         }
     }
 }
+template <class container1, class container2>
+void extract_cell(container1& lattice, container2& cell, int cell_nr, int Lx, int Ly, int dim_size_x) {
+    int cells_per_row = dim_size_x / Lx;
+    int cell_in_row = cell_nr % cells_per_row;
+    // determine in which rom number we are
+    int row = cell_nr / cells_per_row;
+    for(int j = 0; j < Ly; j++) {
+        // extract values of j-th row
+        for(int i = 0; i < Lx; i++) {
+            int ind = dim_size_x * (row * Lx + j) + i + cell_in_row * Lx;
+            cell[j * Lx + i] = lattice[ind % lattice.size()];
+        }
+    }
+}
 
 bool isCSVFileInCurrentDirectory(path& currentDirectory) {
     // Iterate over the files in the current directory
@@ -1098,5 +1111,23 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
         }
     }
 }
+
+struct sin_functor {
+    double p;
+    sin_functor(double p): p(p) {}
+    sin_functor(): p(1.0) {}
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return sin(p*x);
+    }
+};
+
+struct cos_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return cos(x);
+    }
+};
+
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

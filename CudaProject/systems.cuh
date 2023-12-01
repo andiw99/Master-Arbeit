@@ -540,6 +540,12 @@ public:
         return m;
     }
 
+    template<class State>
+    double calc_binder(State &x) {
+        // No implementation here?
+        return 0;
+    }
+
     double test() {
         return 1.0;
     }
@@ -1184,6 +1190,17 @@ protected:
         }
     };
 
+    template <class T>
+    struct sin_functor_thrust
+    {
+        sin_functor_thrust(double p): p(p) {}
+        sin_functor_thrust(): p(1.0) {}
+        double p;
+        __host__ __device__
+        T operator()(const T& x) const {
+            return sin(p * x);
+        }
+    };
     struct xy_force {
         const double Jx, Jy, h, eta, p_XY, m;
 
@@ -1913,6 +1930,47 @@ public:
         xy_force functor = xy_force(System::eta, Jx, Jy, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems::force_calculation(x, dxdt, t, functor);
     }
+
+    template<class State>
+    double calc_binder(State& x) {
+        // We return the average over the subsystems we have?
+        // so we need to extract the subsystems and calc m, average at the end
+        // actually we should implement this for the normal XY model and make it useable for everything
+        // ahh difficult becauso polymorphism doenst work and we inherit from two classes
+        // hmmm decisions...
+        // we also cannot really reuse the methods from our lattice calculations because we want to use
+        // gpu methods
+        // i think for now we will only implement it for this class...
+        int nr_subsystems = dim_size_x / Lx;
+        vector<double> m_vec{};
+        for(int i = 0; i < nr_subsystems; i++) {
+            // for every subsystem we need to extract it
+            vector<double> cell(Lx * Ly);
+            extract_cell(x, cell, i, Lx, Ly, dim_size_x);
+            // could work right? :)
+            // chess trafo
+            chess_trafo_rectangular(cell, Lx);
+            // calc m
+            double m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+            m_vec.push_back(m);
+        }
+
+        double m_L2 = std::transform_reduce(m_vec.begin(), m_vec.end(),
+                                            0.0, // initial value for the reduction (sum)
+                                            std::plus<double>(), // transformation (square)
+                                            [](double m) -> double { return m * m; });
+        m_L2 /= m_vec.size();
+        double m_L4 = std::transform_reduce(m_vec.begin(), m_vec.end(),
+                                            0.0, // initial value for the reduction (sum)
+                                            std::plus<>(), // transformation (square)
+                                            [](double m) { return (pow(m, 4)); });
+        m_L4 /= m_vec.size();
+
+        double cum = m_L4 / (m_L2 * m_L2);
+
+        return cum;
+    }
+
 };
 
 struct XY_silicon_subsystems_quench : public XY_silicon_subsystems, public quench {
