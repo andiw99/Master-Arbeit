@@ -247,6 +247,8 @@ public:
         step_nr++;
     }
 
+
+
     template<class State, class Deriv, class FunctorType>
     void force_calculation(State &x, Deriv &dxdt, double t, FunctorType functor) {
         BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
@@ -1258,10 +1260,10 @@ protected:
     };
 
     struct init_functor {
-        size_t n;
+        size_t n, dim_size_x;
         double equil_pos, range_min, range_max;
 
-        init_functor(size_t n, double equil_pos, double range_min, double range_max): n(n), equil_pos(equil_pos), range_min(range_min), range_max(range_max) {}
+        init_functor(size_t n, double equil_pos, double range_min, double range_max, size_t dim_size_x): n(n), equil_pos(equil_pos), range_min(range_min), range_max(range_max), dim_size_x(dim_size_x) {}
         template<class State>
         void operator()(map<Parameter, double>& paras, State &x) {
             cout << "XY init_state is called with equil_pos = " << equil_pos << endl;
@@ -1271,7 +1273,7 @@ protected:
                 thrust::fill(x.begin(), x.begin()+n, equil_pos);
                 if(paras[Parameter::J] < 0) {
                     cout << "initializing with chess trafo" << endl;
-                    chess_trafo_rectangular(x, paras[Parameter::dim_size_x]);
+                    chess_trafo_rectangular(x, dim_size_x);
                 }
 
             } else {
@@ -1308,7 +1310,7 @@ public:
 
     template<class State>
     void init_state(map<Parameter, double>& paras, State &x) {
-        init_functor(n, M_PI/2, 0, 2 * M_PI)(paras, x);
+        init_functor(n, M_PI/2, 0, 2 * M_PI, dim_size_x)(paras, x);
     }
 
     void print_info() override{
@@ -1393,7 +1395,7 @@ public:
         double equil_pos = (7.0 / 18.0) * M_PI;
         double range_min = - M_PI / 2;
         double range_max = M_PI / 2;
-        init_functor(n, equil_pos, range_min, range_max)(paras, x);
+        init_functor(n, equil_pos, range_min, range_max, dim_size_x)(paras, x);
     }
 
     XY_Silicon(map<Parameter,double>& paras): System(paras), XY_model(paras) {}
@@ -1883,6 +1885,89 @@ public:
         thrust::for_each(start, start + n, functor);
         step_nr++;
     }
+
+    struct subsystem_index : thrust::unary_function<size_t, size_t> {
+        const size_t dim_size_x, Lx, subsystem_ind;
+        subsystem_index(size_t dimension_size_x, size_t Lx, size_t subsystem_ind):
+                thrust::unary_function<size_t, size_t>(), dim_size_x(dimension_size_x), Lx(Lx), subsystem_ind(subsystem_ind){
+        }
+        virtual __host__ __device__ size_t operator()(size_t i) const {
+            // first we need to know the row of the index
+            int row = i / Lx;
+            int col = i % Lx;
+            int index_in_whole_system = row * dim_size_x + subsystem_ind * Lx + col;
+            return index_in_whole_system;
+        }
+    };
+    struct subsystem_running_index : thrust::unary_function<size_t, size_t> {
+        const size_t dim_size_x, Lx, Ly;
+        subsystem_running_index(size_t dimension_size_x, size_t Lx, size_t Ly):
+                thrust::unary_function<size_t, size_t>(), dim_size_x(dimension_size_x), Lx(Lx), Ly(Ly){
+        }
+        __host__ __device__ size_t operator()(size_t i) const {
+            // first we need to know in which system we are
+            size_t sys_nr = i  /  (Lx * Ly);
+            size_t pos_in_subsystem = i % (Lx * Ly);
+            size_t row = pos_in_subsystem / Lx;
+            size_t col = pos_in_subsystem % Lx;
+            size_t index_in_whole_system = sys_nr * Lx + row * dim_size_x + col;
+            return index_in_whole_system;
+        }
+    };
+
+    struct running_chess_trafo : thrust::unary_function<size_t, size_t> {
+        size_t dim_size_x, Lx;
+        running_chess_trafo(size_t dimension_size_x, size_t Lx):
+                thrust::unary_function<size_t, size_t>(),
+                        dim_size_x(dimension_size_x), Lx(Lx){
+        }
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) const {
+            // first we need to know in which system we are
+            if (dim_size_x % 2 == 1) {
+                // if it is uneven we can just trafo every even
+                if(thrust::get<1>(tup) % 2 == 0) {
+                    thrust::get<0>(tup) = (-1) * thrust::get<0>(tup);
+                }
+            } else {
+                // else we trafo in even rows even indices and in uneven rows
+                // uneven indices
+                int ind = thrust::get<1>(tup);
+                int row_even = (ind / Lx) % 2;
+                if(ind % 2 - row_even == 0) {
+                    thrust::get<0>(tup) = (-1) * thrust::get<0>(tup) ;
+                }
+            }
+        }
+    };
+
+    struct running_chess_trafo_iterator : thrust::unary_function<thrust::tuple<double, size_t>, double> {
+        size_t dim_size_x, Lx;
+        running_chess_trafo_iterator(size_t dimension_size_x, size_t Lx):
+                thrust::unary_function<thrust::tuple<double, size_t>, double>(),
+                dim_size_x(dimension_size_x), Lx(Lx){
+        }
+        template<class Tup>
+        __host__ __device__ double operator()(Tup tup) const {
+            // first we need to know in which system we are
+            if (dim_size_x % 2 == 1) {
+                // if it is uneven we can just trafo every even
+                if(thrust::get<1>(tup) % 2 == 0) {
+                    return (-1) * thrust::get<0>(tup);
+                }
+            } else {
+                // else we trafo in even rows even indices and in uneven rows
+                // uneven indices
+                int ind = thrust::get<1>(tup);
+                int row_even = (ind / Lx) % 2;
+                if(ind % 2 - row_even == 0) {
+                    return (-1) * thrust::get<0>(tup) ;
+                }
+            }
+            return  thrust::get<0>(tup);
+        }
+    };
+
     subsystems(map<Parameter, double> paras): System(paras), Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
         n0 = Ly * Lx;
         cout << "initializing subsystems with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
@@ -1941,20 +2026,49 @@ public:
         // we also cannot really reuse the methods from our lattice calculations because we want to use
         // gpu methods
         // i think for now we will only implement it for this class...
+        bool gpu = true;
         int nr_subsystems = dim_size_x / Lx;
         vector<double> m_vec{};
+        // damn is this already it for the cell?
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+        auto subsystem_inds = thrust::make_transform_iterator(
+                thrust::counting_iterator<size_t>(0),
+                subsystem_running_index(dim_size_x, Lx, Ly)
+        );
+/*        for (int j = 0; j < dim_size_x * Ly; j++) {
+            cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell[j] << endl;
+        }*/
+        // doing chess trafo
+        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        /*thrust::for_each(tuple, tuple + (dim_size_x * Ly), running_chess_trafo(dim_size_x, Lx));*/
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+/*        for (int j = 0; j < dim_size_x * Ly; j++) {
+            cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell_trafo[j] << endl;
+        }*/
         for(int i = 0; i < nr_subsystems; i++) {
             // for every subsystem we need to extract it
-            vector<double> cell(Lx * Ly);
-            extract_cell(x, cell, i, Lx, Ly, dim_size_x);
-            // could work right? :)
-            // chess trafo
-            chess_trafo_rectangular(cell, Lx);
-            // calc m
-            double m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+            double m;
+            if (gpu) {
+                m = thrust::transform_reduce(cell_trafo + i * (Lx * Ly), cell_trafo + (i+1) * (Lx * Ly),
+                                             sin_functor_thrust<double>(XY_Silicon::p_XY /  2.0), 0.0, thrust::plus<double>()) / ((double) (Lx * Ly));
+                // cout << "m =" << m << endl;
+            } else {
+                vector<double> cell(Lx * Ly);
+                extract_cell(x, cell, i, Lx, Ly, dim_size_x);
+                // could work right? :)
+                // chess trafo
+                chess_trafo_rectangular(cell, Lx);
+                // calc m
+                m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+            }
             m_vec.push_back(m);
         }
-
         double m_L2 = std::transform_reduce(m_vec.begin(), m_vec.end(),
                                             0.0, // initial value for the reduction (sum)
                                             std::plus<double>(), // transformation (square)

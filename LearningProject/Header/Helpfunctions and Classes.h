@@ -341,6 +341,8 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
         for (int j = 0; j < nr_cols; j++) {        // col
             vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
             if((nr_cols % 2 == 1) & (j == (nr_cols - 1)) || ((nr_rows % 2 == 1)) & (i == (nr_rows - 1))) {
+                cout << "row " << i << "  col "<< j << endl;
+                cout << "missed index:" << (2*i+1) * dim_size_x + 2 * j + 1;
                 continue;
             }
             vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
@@ -350,14 +352,16 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
 
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
-    int dim_size_y = vec.size() / dim_size_x;
+    int dim_size_y = vec.size() / 2 / dim_size_x;       // TODO important, this only works for the simulation!
+    cout << "dim_size_x:" << dim_size_x << endl;
+    cout << "dim_size_y:" << dim_size_y << endl;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
 
     for (int i = 0; i < nr_rows; i++) {            // row
         for (int j = 0; j < nr_cols; j++) {        // col
             vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
-            if((nr_cols % 2 == 1) & (j == (nr_cols - 1)) || ((nr_rows % 2 == 1)) & (i == (nr_rows - 1))) {
+            if((dim_size_x % 2 == 1) & (j == (nr_cols - 1)) || ((dim_size_y % 2 == 1)) & (i == (nr_rows - 1))) {
                 continue;
             }
             vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven

@@ -10,6 +10,7 @@ from matplotlib.colors import BoundaryNorm
 import matplotlib
 from itertools import product
 from IPython import embed
+from scipy.interpolate import interp1d
 
 # import matplotlib; matplotlib.use("TkAgg")
 
@@ -120,7 +121,8 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                 if config["subsystem"]:
                     subsystem_Lx = parameters["subsystem_Lx"]
                     subsystem_Ly = parameters["subsystem_Ly"]
-                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
+                    print(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
+                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5)
                     max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
                     nr_subsystems_per_col = np.minimum(int(config["cell_L"] / subsystem_Ly), max_nr_subsystems_per_col)
@@ -740,6 +742,51 @@ def second_order_num_diff(x, y):
             dy_dx = (y[i] - y[i - 1]) / h
         dif[i] = dy_dx
     return dif
+
+
+def find_fwhm(x, y):
+    """
+    Find the full width at half maximum (FWHM) of a symmetric peak.
+
+    Parameters:
+    - x: Array of x-values
+    - y: Array of y-values
+
+    Returns:
+    - fwhm: Full width at half maximum
+    """
+    # Find the index of the maximum y-value
+    max_index = np.argmax(y)
+    min_index = np.argmin(y)
+    max_value = y[max_index]
+    min_value = y[min_index]
+    max_value = max_value - min_value
+    # Define an interpolation function
+    interpolate = interp1d(x, y - max_value / 2, kind='cubic')
+    print(interpolate)
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(x, interpolate(x))
+    ax.plot(x, y - max_value/2, ls="", marker="x", ms="1")
+
+    # Find the roots (x-values) of the interpolation
+    # Evaluate the interpolation at a set of points
+    sample_points = np.linspace(min(x)/(1.5), max(x)/(1.5), 2000000)
+    sample_values = interpolate(sample_points)
+
+    # Find the indices where the sign changes (roots)
+    sign_changes = np.where(np.diff(np.sign(sample_values)))[0]
+
+    # Find the two roots closest to the maximum x-value
+    closest_roots = sample_points[sign_changes]
+    closest_roots = closest_roots[np.argsort(np.abs(closest_roots - x[max_index]))[:2]]
+
+    ax.plot(closest_roots, interpolate(closest_roots), marker="o")
+    plt.show()
+    # Calculate FWHM
+    fwhm = np.abs(closest_roots[1] - closest_roots[0])
+
+    return fwhm
+
 
 def main():
     print("This file is made to import, not to execute")

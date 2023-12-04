@@ -3,11 +3,13 @@ import glob
 from matplotlib import pyplot as plt
 
 def main():
-    root = "../../Generated content/Subsystems/Cumulant Test"
+    root = "../../Generated content/Subsystems/Cumulant2"
     ending = "cum"
 
     size_dirs =sorted(os.listdir(root))
     print(size_dirs)
+
+    t_upper_limit = 5000
 
     cum_map = {}
     t_map = {}
@@ -28,19 +30,26 @@ def main():
             cumulant = np.zeros(nr_cum_values+1)
             t_arr = np.zeros(nr_cum_values+1)
             for cum_path in cum_files:
+                print(cum_path)
                 df = pd.read_csv(cum_path, delimiter=",", index_col=False)
                 cum = df["U_L"]
+                print(len(df["U_L"]))
+                print(len(cumulant))
                 cumulant += cum
                 t_arr = df["t"]
             # averaging
             cumulant /= len(cum_files)
+            print(cumulant)
             cum_map[(Lx, T)] = cumulant
             t_map[(Lx, T)] = t_arr
 
     fig, ax = plt.subplots(1, 1)
 
-    ax.set_xlim(0, np.max(t_arr))
-    z = 3
+    if t_upper_limit:
+        ax.set_xlim(0, t_upper_limit)
+    else:
+        ax.set_xlim(0, np.max(t_arr))
+    z = 2.1
     prev_size_temp = 0
     for size_temp in cum_map.keys():
         ax.plot(t_map[size_temp], cum_map[size_temp], label=f"Lx={size_temp[0]},  T = {size_temp[1]}")
@@ -50,7 +59,7 @@ def main():
             # prev is the smaller L so b > 0
             t_map[prev_size_temp] = b ** z * t_map[prev_size_temp]
 
-            ax.plot(t_map[prev_size_temp], cum_map[prev_size_temp], linestyle="dotted", label=f"Lx={prev_size_temp[0]},  T = {prev_size_temp[1]}  rescaled")
+            ax.plot(t_map[prev_size_temp], cum_map[prev_size_temp], linestyle="dotted", label=f"Lx={prev_size_temp[0]},  T = {prev_size_temp[1]}  rescaled z = {z}")
         prev_size_temp = size_temp
 
     configure_ax(fig, ax)
