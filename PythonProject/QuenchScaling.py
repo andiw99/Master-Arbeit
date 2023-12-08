@@ -150,7 +150,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Subsystems/Quench AA/200 small"
+    root = "../../Generated content/Subsystems/Quench AA/1200/"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"
@@ -160,8 +160,10 @@ def main():
     errors_for_fit = False
     min_tau = 5
     max_tau = 200
-    plot_struct = True
-    cut_zero_impuls = False
+    min_tau_show = -10
+    max_tau_show = 10000
+    plot_struct = False
+    cut_zero_impuls = True
     print(root_dirs)
     config = {
         "ylabelsize": 14,
@@ -216,6 +218,7 @@ def main():
                 Jx_Jy = 1 / (np.sqrt(parameters["J"] / parameters["Jy"]))
 
     print("Where ticks")
+    tau_arr = np.array(tau_arr)
 
     xix_sorted = np.array(xix_arr)[np.argsort(tau_arr)]
     xiy_sorted = np.array(xiy_arr)[np.argsort(tau_arr)]
@@ -264,7 +267,10 @@ def main():
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
 
-
+    # plot for the averaged
+    tau_mask = (tau_arr > min_tau_show) & (tau_arr < max_tau_show)
+    tau_arr = tau_arr[tau_mask]
+    xi_sorted = xi_sorted[tau_mask]
     ax.set_yscale("log")
     ax.set_xscale("log")
     # TODO minor locator muss

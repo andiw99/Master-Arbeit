@@ -135,6 +135,7 @@ string get_current_time() {
     auto minute = chrono::duration_cast<chrono::minutes>(timepoint) % 60;
     auto second = chrono::duration_cast<chrono::seconds>(timepoint) % 60;
     auto millisecond = chrono::duration_cast<chrono::milliseconds>(timepoint) % 1000;
+    auto microsecond = chrono::duration_cast<chrono::microseconds>(timepoint) % 1000;
 
     string hour_str = to_string(hour.count());
     if (hour.count() < 10) {
@@ -149,7 +150,8 @@ string get_current_time() {
         seconds_str = "0" + seconds_str;
     }
     string milliseconds_str = to_string(millisecond.count());
-    return hour_str + ":" + minute_str + ":" + seconds_str + ":" + milliseconds_str;
+    string microseconds_str = to_string(microsecond.count());
+    return hour_str + ":" + minute_str + ":" + seconds_str + ":" + milliseconds_str + ":" + microseconds_str;
 }
 
 
@@ -283,12 +285,23 @@ vector<double> readDoubleValuesAt(ifstream& file, int ind, double& T, double& t)
 
     stringstream llss(line);
     string token;
+    int nr_errors = 0;
     while (std::getline(llss, token, ',')) {
         if(token != "t") {
-            double value = stod(token);
-
+            double value;
+            try {
+                value = stod(token);
+            } catch (std::invalid_argument iaex) {
+                std::cout << "Caught an error!" << std::endl;
+                value = 0;
+                nr_errors++;
+            }
             values.push_back(value);
         }
+    }
+    if(nr_errors > 2) {
+        cout << "too many stod Errors!" << endl;
+        exit(0);
     }
     // we delete the last value as it is the temperature
     // or do we need the temperature?
@@ -323,7 +336,6 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
     int dim_size_y = vec.size() / dim_size_x;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
-    cout << "nr rows = " << nr_rows << "  " << "nr cols" << nr_cols << endl;
 
     for (int i = 0; i < nr_rows; i++) {            // row
         for (int j = 0; j < nr_cols; j++) {        // col
@@ -338,14 +350,16 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
 
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
-    int dim_size_y = vec.size() / dim_size_x;
+    int dim_size_y = vec.size() / 2 / dim_size_x;       // TODO important, this only works for the simulation!
+    cout << "dim_size_x:" << dim_size_x << endl;
+    cout << "dim_size_y:" << dim_size_y << endl;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
 
     for (int i = 0; i < nr_rows; i++) {            // row
         for (int j = 0; j < nr_cols; j++) {        // col
             vec[2*i * dim_size_x + 2 * j] *= (-1);      // both indices even
-            if((nr_cols % 2 == 1) & (j == (nr_cols - 1)) || ((nr_rows % 2 == 1)) & (i == (nr_rows - 1))) {
+            if((dim_size_x % 2 == 1) & (j == (nr_cols - 1)) || ((dim_size_y % 2 == 1)) & (i == (nr_rows - 1))) {
                 continue;
             }
             vec[(2*i+1) * dim_size_x + 2 * j + 1] *= (-1); // both indices uneven
@@ -759,6 +773,20 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
         }
     }
 }
+template <class container1, class container2>
+void extract_cell(container1& lattice, container2& cell, int cell_nr, int Lx, int Ly, int dim_size_x) {
+    int cells_per_row = dim_size_x / Lx;
+    int cell_in_row = cell_nr % cells_per_row;
+    // determine in which rom number we are
+    int row = cell_nr / cells_per_row;
+    for(int j = 0; j < Ly; j++) {
+        // extract values of j-th row
+        for(int i = 0; i < Lx; i++) {
+            int ind = dim_size_x * (row * Lx + j) + i + cell_in_row * Lx;
+            cell[j * Lx + i] = lattice[ind % lattice.size()];
+        }
+    }
+}
 
 bool isCSVFileInCurrentDirectory(path& currentDirectory) {
     // Iterate over the files in the current directory
@@ -1085,5 +1113,23 @@ void fill_p(const vector<vector<array<double, 2>>> &q, vector<vector<array<doubl
         }
     }
 }
+
+struct sin_functor {
+    double p;
+    sin_functor(double p): p(p) {}
+    sin_functor(): p(1.0) {}
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return sin(p*x);
+    }
+};
+
+struct cos_functor {
+    template <class value_type>
+    value_type operator()(value_type x) {
+        return cos(x);
+    }
+};
+
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

@@ -43,22 +43,6 @@ public:
 };
 
 
-struct sin_functor {
-    double p;
-    sin_functor(double p): p(p) {}
-    sin_functor(): p(1.0) {}
-    template <class value_type>
-    value_type operator()(value_type x) {
-        return sin(p*x);
-    }
-};
-
-struct cos_functor {
-    template <class value_type>
-    value_type operator()(value_type x) {
-        return cos(x);
-    }
-};
 
 
 
