@@ -11,6 +11,7 @@ import matplotlib
 from itertools import product
 from IPython import embed
 from scipy.interpolate import interp1d
+from scipy.optimize import minimize
 
 # import matplotlib; matplotlib.use("TkAgg")
 
@@ -522,13 +523,93 @@ def configure_ax(fig, ax, config=None):
     ax.legend(fontsize=config["legendfontsize"])
     plt.tight_layout()
 
+def det_intersection(x, y_dic):
+    min_total_dist = np.max(list(y_dic.values())[0])        # starting value for the min
+    x_inter = 0
+    y_inter = 0
+    i_inter = 0
+    for (i, x_val) in enumerate(x):
+        total_dist = 0
+        for key1 in y_dic.keys():
+            for key2 in y_dic.keys():
+                total_dist += np.abs(y_dic[key1][i] - y_dic[key2][i])
+        total_dist /= len(y_dic.keys()) ** 2
+        if (total_dist < min_total_dist) & (i > 1):
+            min_total_dist = total_dist
+            x_inter = x_val
+            y_inter = list(y_dic.values())[0][i]
+            i_inter = i
+    return x_inter, y_inter, i_inter
 
-def mark_point(ax, x, y, c="C0"):
+def calc_diff_at(T_inter, T, value_dic):
+    size_arr = []
+
+    diff_beta_arr = []
+    num_diff_arr = []
+    for size in value_dic.keys():
+        # okay we now think of a better method for numerical differentiation
+        # first we look for the data point that is the closest to the intersection
+        nearest_T_for_size, index_nearest_T = \
+            find_nearest_value_and_index(T, T_inter)
+        # now we calculate a central difference with the nearest value
+        # being in the center
+        # check whether the index is at least greater than zero...
+        if index_nearest_T == 0:
+            # vorwärtsdifferenz?
+            num_diff = (value_dic[size][index_nearest_T + 1] - value_dic[size][index_nearest_T]) / (T[index_nearest_T + 1] - T[index_nearest_T])
+
+        elif index_nearest_T == (len(T) - 1):
+            # rückwärtsdiff
+            num_diff = (value_dic[size][index_nearest_T] - value_dic[size][index_nearest_T - 1]) / (T[index_nearest_T] - T[index_nearest_T - 1])
+        else:
+            num_diff = (value_dic[size][index_nearest_T + 1] -
+                        value_dic[size][index_nearest_T - 1]) \
+                       / (2 * (T[index_nearest_T + 1] - T[index_nearest_T]))
+        num_diff_arr.append(num_diff)
+        size_arr.append(int(size))
+    num_diff_arr = np.array(num_diff_arr)[np.argsort(size_arr)]
+    size_arr = np.sort(size_arr)
+    return num_diff_arr, size_arr
+
+def interpolate_and_minimize(data_sets, res=1000):
+    """
+    Determine the intersection of different sets of discrete x-y values.
+    """
+    # Extract x and y values from each data set
+    x_values = [data_sets[size][data_sets[size].keys()[0]] for size in sorted(data_sets.keys())]
+    y_values = [data_sets[size][data_sets[size].keys()[1]] for size in sorted(data_sets.keys())]
+
+    # Find common x range
+    common_x = np.unique(np.concatenate(x_values))
+    x_range = np.linspace(common_x[0], common_x[-1], res)
+    # Interpolate y values for each data set on the common x range
+    interpolated_y_values = [interp1d(x, y, kind='cubic')(x_range) for x, y in zip(x_values, y_values)]
+    dif = []
+    y_mean = []
+
+    for i in range(len(x_range)):
+        # we just f-in calculate the error for every x
+        y_vals = [y_set[i] for y_set in interpolated_y_values]
+        diff = 0
+        for j in range(len(y_vals)):
+            for i in range(len(y_vals)):
+                diff += abs(y_vals[i] - y_vals[j]) ** 2
+        dif.append(diff)
+        y_mean.append(np.mean(y_vals))
+    min_ind = np.argmin(dif)
+    y_intersect = y_mean[min_ind]
+    x_intersect = x_range[min_ind]
+
+
+    # Return the common x values and intersection y values
+    return x_range, y_intersect, x_intersect, interpolated_y_values
+
+def mark_point(ax, x, y, c="C0", label=""):
     ax.scatter(x, y, c=c)
     y_low = ax.get_ylim()[0]
     x_low = ax.get_xlim()[0]
     print("mark point called")
-    ax.plot([x, x], [y_low, y], c=c, ls='--', lw=2, alpha=0.75)
+    ax.plot([x, x], [y_low, y], c=c, ls='--', lw=2, alpha=0.75, label=label)
     ax.plot([x_low, x], [y, y], c=c, ls='--', lw=2, alpha=0.75)
 
 def remove_origin_ticks(ax):

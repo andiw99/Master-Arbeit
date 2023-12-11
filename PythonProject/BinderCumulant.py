@@ -5,28 +5,8 @@ from scipy.optimize import curve_fit
 import matplotlib.ticker as ticker
 
 
-def det_intersection(x, y_dic):
-    min_total_dist = np.max(list(y_dic.values())[0])        # starting value for the min
-    x_inter = 0
-    y_inter = 0
-    i_inter = 0
-    for (i, x_val) in enumerate(x):
-        total_dist = 0
-        for key1 in y_dic.keys():
-            for key2 in y_dic.keys():
-                total_dist += np.abs(y_dic[key1][i] - y_dic[key2][i])
-        total_dist /= len(y_dic.keys()) ** 2
-        if (total_dist < min_total_dist) & (i > 1):
-            min_total_dist = total_dist
-            x_inter = x_val
-            y_inter = list(y_dic.values())[0][i]
-            i_inter = i
-    return x_inter, y_inter, i_inter
-
-
-
 def main():
-    root = "../../Generated content/Silicon/Subsystems/New Paras"
+    root = "../../Generated content/Silicon/Subsystems/New Paras2"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)
@@ -44,7 +24,7 @@ def main():
     exclude_large_dists = 100
     exclude_small_dists = 10
     min_temp = 0
-    max_temp = 112.3
+    max_temp = 12
     xi_exclude_large_dists = 0
     xi_exclude_small_dists = 0
     max_L_fit = 1000
@@ -198,7 +178,7 @@ def main():
     # get intersection
     T_inter, U_inter, i_inter = det_intersection(T_inter_arr, interpol_dic)
     print("Critical Temperature T_c = ", T_inter)
-    mark_point(ax, T_inter, U_inter)
+    mark_point(ax, T_inter, U_inter, label=rf"$T_c = $ {T_inter:.3f}")
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
@@ -262,8 +242,8 @@ def main():
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
-    configure_ax(fig, ax, config)
     ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
+    configure_ax(fig, ax, config)
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
     fig.savefig(root + "/critical_exponent.png", format="png", dpi=250, transparent=transparent_plots)
     plt.show()
@@ -294,35 +274,6 @@ def main():
     plt.show()
 
 
-def calc_diff_at(T_inter, T, value_dic):
-    size_arr = []
-
-    diff_beta_arr = []
-    num_diff_arr = []
-    for size in value_dic.keys():
-        # okay we now think of a better method for numerical differentiation
-        # first we look for the data point that is the closest to the intersection
-        nearest_T_for_size, index_nearest_T = \
-            find_nearest_value_and_index(T, T_inter)
-        # now we calculate a central difference with the nearest value
-        # being in the center
-        # check whether the index is at least greater than zero...
-        if index_nearest_T == 0:
-            # vorwärtsdifferenz?
-            num_diff = (value_dic[size][index_nearest_T + 1] - value_dic[size][index_nearest_T]) / (T[index_nearest_T + 1] - T[index_nearest_T])
-
-        elif index_nearest_T == (len(T) - 1):
-            # rückwärtsdiff
-            num_diff = (value_dic[size][index_nearest_T] - value_dic[size][index_nearest_T - 1]) / (T[index_nearest_T] - T[index_nearest_T - 1])
-        else:
-            num_diff = (value_dic[size][index_nearest_T + 1] -
-                        value_dic[size][index_nearest_T - 1]) \
-                       / (2 * (T[index_nearest_T + 1] - T[index_nearest_T]))
-        num_diff_arr.append(num_diff)
-        size_arr.append(int(size))
-    num_diff_arr = np.array(num_diff_arr)[np.argsort(size_arr)]
-    size_arr = np.sort(size_arr)
-    return num_diff_arr, size_arr
 
 def plt_inter(ax, fig, x, y_dic, res=1000, r=1):
     """

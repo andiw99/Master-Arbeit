@@ -209,7 +209,7 @@ class SurBinderHandler : virtual public BinderHandler {
         calc_cum(cum, cum_error);
         // we insert into the vector of size_T_cum_map for the current size, which is dim_size_x the triplet with the
         // current temperature, the cumulant and stuff.
-        cout << "Setting post routine for T = " << T  << endl;
+        cout << " Binder Setting post routine for T = " << T  << endl;
         size_T_cum_map[subsystem_Lx].push_back(tuple<double, double, double>(T, cum[0], cum_error[0]));
         cout << "subsystem size = " << subsystem_Lx << endl;
         for(auto tuples : size_T_cum_map[subsystem_Lx]) {

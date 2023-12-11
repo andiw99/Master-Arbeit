@@ -161,7 +161,7 @@ def main():
     min_tau = 5
     max_tau = 200
     min_tau_show = -10
-    max_tau_show = 10000
+    max_tau_show = 3000
     plot_struct = False
     cut_zero_impuls = True
     print(root_dirs)
@@ -231,17 +231,32 @@ def main():
     # fitting linear fit
     print(xi_err_sorted)
     xi_fit = xi_sorted[(tau_arr > min_tau) & (tau_arr < max_tau)]
+    xix_fit = xix_sorted[(tau_arr > min_tau) & (tau_arr < max_tau)]
+    xiy_fit = xiy_sorted[(tau_arr > min_tau) & (tau_arr < max_tau)]
     tau_fit_arr = tau_arr[(tau_arr > min_tau) & (tau_arr < max_tau)]
     if not errors_for_fit:
         xi_err_sorted = None
     print(tau_fit_arr)
     print(xi_fit)
     popt, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xi_fit), sigma=xi_err_sorted)
+    popt_x, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xix_fit))
+    popt_y, _ = curve_fit(linear_fit, np.log(tau_fit_arr), np.log(xiy_fit))
     print("FITTING RESULTS")
 
     print(popt)
+
+
+    # plot for the averaged
+    tau_mask = (tau_arr > min_tau_show) & (tau_arr < max_tau_show)
+    tau_arr = tau_arr[tau_mask]
+    xi_sorted = xi_sorted[tau_mask]
+    xix_sorted = xix_sorted[tau_mask]
+    xiy_sorted = xiy_sorted[tau_mask]
+    xix_err_sorted = xix_err_sorted[tau_mask]
+    xiy_err_sorted = xiy_err_sorted[tau_mask]
+
     # plotting
-    fig, ax = plt.subplots(1, 1, figsize=(1.5 * 6.4, 1.5 * 4.8))
+    fig, ax = plt.subplots(1, 1)
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
@@ -256,21 +271,19 @@ def main():
     ax.grid(which='major', linestyle='--', alpha=0.5)
     ax.errorbar(tau_arr, xix_sorted, yerr=xix_err_sorted, ls="", marker="x", color="C0", ecolor="black", capsize=3)
     ax.errorbar(tau_arr, xiy_sorted, yerr=xiy_err_sorted, ls="", marker="x", color="C1", ecolor="black", capsize=3)
-    ax.plot(tau_arr, poly(tau_arr, popt[0], np.exp(popt[1])), color="C3", label="fit")
+    ax.plot(tau_arr, poly(tau_arr, popt_x[0], np.exp(popt_x[1])), color="C0", label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}")
+    ax.plot(tau_arr, poly(tau_arr, popt_y[0], np.exp(popt_y[1])), color="C1",
+            label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}")
     ax.set_xlabel(r"$\tau_Q$")
     ax.set_ylabel(r"$\xi(\tau_Q)$")
     ax.set_title("Corr Length depending on Quench time")
+    plt.legend()
     save_plot(root, "/xix-xiy.png")
     # plotting xi
     fig, ax = plt.subplots(1, 1)
     # Setze Tickmarken und Labels
     ax.tick_params(direction='in', which='both', length=6, width=2, labelsize=9)
     ax.tick_params(direction='in', which='minor', length=3, width=1, labelsize=9)
-
-    # plot for the averaged
-    tau_mask = (tau_arr > min_tau_show) & (tau_arr < max_tau_show)
-    tau_arr = tau_arr[tau_mask]
-    xi_sorted = xi_sorted[tau_mask]
     ax.set_yscale("log")
     ax.set_xscale("log")
     # TODO minor locator muss
@@ -293,19 +306,54 @@ def main():
 
     # Now we also want to plot the ratio of xi_x / xi_y vs tau_Q and J_x / J_y
 
-    xi_ratio = xix_sorted / xiy_sorted
-    print(xi_ratio)
+    #xi_ratio = xix_sorted / xiy_sorted
+    #print(xi_ratio)
+    #print(tau_arr)
+    #fig, ax = plt.subplots(1, 1)
+    #ax.set_xscale("log")
+    #ax.set_xlabel(r"$\tau_Q$")
+    #ax.set_ylabel(r"$\frac{\xi_y}{\xi_x}$")\\\\ß\ß?
+    #ax.set_title("Ratio of correlation lengths vs ratio of coupling constants")
+    #ax.plot(tau_arr[:-1], xi_ratio, ls="", marker="x", label=r"$\frac{\xi_y}{\xi_x}$")
+    #ax.plot((tau_arr[0], tau_arr[-2]), (Jx_Jy, Jx_Jy), label=r"$\sqrt{\frac{J_y}{J_x}}$")
+    #configure_ax(fig, ax)
+    #plt.show()
+
+    # okay we want to plot the exponent depending on which taus we take in
+    tau_arr = tau_arr[:-1]
     print(tau_arr)
-    fig, ax = plt.subplots(1, 1)
+    exponents = []
+    exponents_x = []
+    exponents_y = []
+    min_taus = []
+    for i in range(len(tau_arr)):
+        tau_fit = tau_arr[i:]
+        xi_fit = xi_sorted[i:]
+        xix_fit = xix_sorted[i:]
+        xiy_fit = xiy_sorted[i:]
+        if len(tau_fit) < 3:
+            print("breaking")
+            break
+        popt, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xi_fit))
+        popt_x, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xix_fit))
+        popt_y, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xiy_fit))
+        exponent, exponent_x, exponent_y = popt[0], popt_x[0], popt_y[0]
+        min_tau = tau_fit[0]
+        exponents.append(exponent)
+        exponents_x.append(exponent_x)
+        exponents_y.append(exponent_y)
+        min_taus.append(min_tau)
+
+
+    fig, ax  = plt.subplots(1, 1)
+    ax.plot(min_taus, exponents, ls="", marker="x", color="C0", label="combined")
+    ax.plot(min_taus, exponents_x, ls="", marker="x", color="C1", label="x")
+    ax.plot(min_taus, exponents_y, ls="", marker="x", color="C2", label="y")
+    ax.set_ylabel(r"$\frac{\nu}{1 + \nu z}$")
+    ax.set_xlabel(r"$min(\tau_Q)$")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\tau_Q$")
-    ax.set_ylabel(r"$\frac{\xi_y}{\xi_x}$")
-    ax.set_title("Ratio of correlation lengths vs ratio of coupling constants")
-    ax.plot(tau_arr[:-1], xi_ratio, ls="", marker="x", label=r"$\frac{\xi_y}{\xi_x}$")
-    ax.plot((tau_arr[0], tau_arr[-2]), (Jx_Jy, Jx_Jy), label=r"$\sqrt{\frac{J_y}{J_x}}$")
     configure_ax(fig, ax)
     plt.show()
-
 
 if __name__ == "__main__":
     main()

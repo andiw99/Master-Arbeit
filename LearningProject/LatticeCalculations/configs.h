@@ -25,7 +25,7 @@ vector<Calc> calcs = {Calc::SurBinderCumulantSilicon, Calc::SurCorrLengthXY};
 //vector<Calc> calcs = {Calc::StructFactXY};
 //vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Silicon/Subsystems/New Paras/";
+fs::path root = "../../../Generated content/Silicon/Subsystems/New Paras2/";
 
 map<string, double> StructFactConfig {
         {"cell_L", 128},
