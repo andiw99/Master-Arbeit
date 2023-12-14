@@ -10,9 +10,10 @@ def process_file(file_path, threshold):
     Process a single file and calculate the average after the given threshold.
     """
     df = pd.read_csv(file_path)
-    df = df[df['time'] >= threshold]
-    average_value = df['value'].mean()
-    return average_value
+    df = df[df['t'] >= threshold]
+    nr_values = df.size // 2
+    average_value = df['U_L'].mean()
+    return average_value, nr_values
 
 
 def process_size_folder(size_folder, threshold):
@@ -25,14 +26,23 @@ def process_size_folder(size_folder, threshold):
         temp_folder_path = os.path.join(size_folder, temp_folder)
         if os.path.isdir(temp_folder_path):
             temp_average = []
+            nr_avg_values = []
             for file_name in os.listdir(temp_folder_path):
                 if file_name.endswith('.cum'):
                     file_path = os.path.join(temp_folder_path, file_name)
-                    average_value = process_file(file_path, threshold)
+                    average_value, nr_values = process_file(file_path, threshold)
+                    print(file_path)
+                    print(average_value)
                     temp_average.append(average_value)
+                    nr_avg_values.append(nr_values)
             if temp_average:
+                print("mean:", np.mean(temp_average))
                 result['T'].append(float(temp_folder))
-                result['U_L'].append(np.mean(temp_average))
+                U_L = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
+                result['U_L'].append(U_L)
+
+    result['U_L'] = np.array(result['U_L'])[np.argsort(result['T'])]
+    result['T'] = np.sort(result['T'])
 
     return result
 
@@ -40,8 +50,8 @@ def process_size_folder(size_folder, threshold):
 
 
 def main():
-    simulation_folder = 'Simulation'
-    threshold = 5  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Time Integral2/'
+    threshold = 10000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
 
@@ -51,8 +61,9 @@ def main():
         size_folder_path = os.path.join(simulation_folder, size_folder)
         if os.path.isdir(size_folder_path):
             size_result = process_size_folder(size_folder_path, threshold)
-            results[int(size_folder)] = {"T": size_result["T"], "U_L": size_result["U_L"]}
+            results[int(size_folder)] = size_result
 
+    print(results)
 
     x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(results)
     print("Critical Temperature T_c = ", T_intersection)
@@ -78,7 +89,7 @@ def main():
         cum_dic[size] = results[size]["U_L"]
 
 
-    diff_arr, size_arr = calc_diff_at(T_intersection, results.values()["T"], cum_dic)
+    diff_arr, size_arr = calc_diff_at(T_intersection, list(results.values())[0]["T"], cum_dic)
     diff_fit_arr = diff_arr[size_arr < max_L_fit]
     size_arr_fit = size_arr[size_arr < max_L_fit]
 
@@ -91,6 +102,7 @@ def main():
     fig, ax = plt.subplots(1, 1)
     L_fit = np.linspace(0, np.max(size_arr) + 0.2 * np.max(size_arr), 101)
     ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
+    ax.plot(size_arr , diff_arr, linestyle="", marker="x", color=colors[0])
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
