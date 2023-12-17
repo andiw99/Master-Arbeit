@@ -12,7 +12,10 @@ def process_file(file_path, threshold):
     df = pd.read_csv(file_path)
     df = df[df['t'] >= threshold]
     nr_values = df.size // 2
-    average_value = df['U_L'].mean()
+    if nr_values < 1:
+        average_value = 0
+    else:
+        average_value = df['U_L'].mean()
     return average_value, nr_values
 
 
@@ -36,9 +39,11 @@ def process_size_folder(size_folder, threshold):
                     temp_average.append(average_value)
                     nr_avg_values.append(nr_values)
             if temp_average:
+                print("all averages:", temp_average)
                 print("mean:", np.mean(temp_average))
-                result['T'].append(float(temp_folder))
                 U_L = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
+                print("weighted average: ", U_L)
+                result['T'].append(float(temp_folder))
                 result['U_L'].append(U_L)
 
     result['U_L'] = np.array(result['U_L'])[np.argsort(result['T'])]
@@ -50,10 +55,11 @@ def process_size_folder(size_folder, threshold):
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Time Integral2/'
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Time Integral3/'
     threshold = 10000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
+    linewidth = 1
 
     results = {}
 
@@ -63,24 +69,25 @@ def main():
             size_result = process_size_folder(size_folder_path, threshold)
             results[int(size_folder)] = size_result
 
-    print(results)
 
     x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(results)
     print("Critical Temperature T_c = ", T_intersection)
+
+    print(results)
 
     fig, ax = plt.subplots(1, 1)
 
     for i,size in enumerate(sorted(results.keys())):
         ax.plot(results[size]["T"], results[size]["U_L"], linestyle="", marker="x", color=colors[i])
-        ax.plot(x_range, U_L_interpolated[i], color=colors[i], label=rf"L = {size}")
+        ax.plot(x_range, U_L_interpolated[i], color=colors[i], label=rf"L = {size}", linewidth=linewidth)
 
 
     mark_point(ax, T_intersection, U_L_intersection)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
-    configure_ax(fig, ax)
     fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
+    configure_ax(fig, ax)
     plt.show()
 
     # constructing cum dic

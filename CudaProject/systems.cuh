@@ -20,6 +20,11 @@
 #include <chrono>
 #include <stdio.h>
 #include <hiprand_kernel.h>
+#include <hip/hip_runtime.h>
+#include <hipfft.h>
+
+
+// #include "cufft_utils.h"
 
 using namespace std;
 
@@ -454,6 +459,15 @@ public:
     };
 
     template <class T>
+    struct sum_square_complex
+    {
+        __host__ __device__
+        double operator()(const T& x, double y) const {
+            return y + x.x * x.x + x.y * x.y;
+        }
+    };
+
+    template <class T>
     struct kinetic_energy
     {
         __host__ __device__
@@ -548,6 +562,12 @@ public:
         return 0;
     }
 
+    template<class State>
+    void calc_xi(State& x, double& xix, double& xiy) {
+        xix = 0;
+        xiy = 0;
+    }
+
     double test() {
         return 1.0;
     }
@@ -558,6 +578,11 @@ public:
 
     double get_eta() {
         return eta;
+    }
+
+    ~System() {
+        //hipDeviceSynchronize();
+        cout << "System destroyed" << endl;
     }
 };
 
@@ -1968,6 +1993,15 @@ public:
         }
     };
 
+    struct real_to_complex {
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) const {
+            thrust::get<0>(tup).x = thrust::get<1>(tup);
+            thrust::get<0>(tup).y = 0.0;
+            printf("%.4f   ", thrust::get<0>(tup).x);
+        }
+    };
+
     subsystems(map<Parameter, double> paras): System(paras), Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
         n0 = Ly * Lx;
         cout << "initializing subsystems with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
@@ -2037,10 +2071,10 @@ public:
                         subsystem_running_index(dim_size_x, Lx, Ly)
                 )
         );
-        auto subsystem_inds = thrust::make_transform_iterator(
+/*        auto subsystem_inds = thrust::make_transform_iterator(
                 thrust::counting_iterator<size_t>(0),
                 subsystem_running_index(dim_size_x, Lx, Ly)
-        );
+        );*/
 /*        for (int j = 0; j < dim_size_x * Ly; j++) {
             cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell[j] << endl;
         }*/
@@ -2083,6 +2117,122 @@ public:
         double cum = m_L4 / (m_L2 * m_L2);
 
         return cum;
+    }
+
+    struct cos_real_to_complex {
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) const {
+            thrust::get<0>(tup).x = cos(thrust::get<1>(tup));
+            thrust::get<0>(tup).y = 0.0;
+        }
+    };
+
+    struct sin_real_to_complex {
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) const {
+            thrust::get<0>(tup).x = sin(thrust::get<1>(tup));
+            thrust::get<0>(tup).y = 0.0;
+        }
+    };
+
+    template<class State>
+    void calc_xi(State& x, double& xix, double& xiy) {
+        using dim_t = std::array<int, 2>;
+        dim_t fft_size = {(int)Lx, (int)Ly};
+        // data is x
+        int batch_size = (int) (Lx * Ly);     // so if I understand correctly the batch size is the number of multiple
+        // ffts running at the same time. so since I want to do a fft for every subsystem, my batch size will
+        // be the number of subsystems?
+
+        // sum vector for alter, this will be the squared ft
+        cout << "before defining sum vector" << endl;
+        thrust::device_vector<double> sum(Lx * Ly);
+
+        hipfftHandle plan;
+        hipfftCreate(&plan);
+        hipfftPlanMany(&plan, fft_size.size(), fft_size.data(),
+                      nullptr, 1, 0,
+                      nullptr, 1, 0,
+                      HIPFFT_C2C, batch_size);
+
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+
+        // from cell trafo we need to somehow create a pointer to complex<double>
+        // workaraound -> device vector erstellen
+        thrust::device_vector<hipfftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+
+        // fill input vector with the real part being cos of theta
+        BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+
+        cout << "before first fft" << endl;
+        // execute FFT
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()), thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD);
+        cout << "before device synchronize" << endl;
+        hipDeviceSynchronize();
+
+        cout << "before first sum" << endl;
+        for(int i = 0; i < (dim_size_x / Lx); i++) {
+            thrust::transform(output_vector.begin() + i * batch_size,
+                              output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
+        }
+
+        // Now everything again for the sin part?
+        input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+
+        cout << "before second fft" << endl;
+        // execute fft
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD); // fft into output vector
+        hipDeviceSynchronize();
+         // sum up
+        cout << "before second sum" << endl;
+        for(int i = 0; i < (dim_size_x / Lx); i++) {
+            thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
+        }
+
+        thrust::host_vector<double> host_sum(sum);
+
+        double* ft_squared_k = new double[Lx];
+        double* ft_squared_l = new double[Ly];
+
+        for(int i = 0; i < Lx; i++) {
+            for(int j = 0; j < Ly; j++) {
+                int k_ind = j * Lx + i;
+                ft_squared_k[i] += host_sum[k_ind];
+                ft_squared_l[j] += host_sum[k_ind];
+            }
+        }
+
+        auto kx = get_frequencies_fftw_order(Lx);
+        auto ky = get_frequencies_fftw_order(Ly);
+
+        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_squared_k);
+        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_squared_l);
+
+
+        xix = paras_x(1);
+        xiy = paras_y(1);
+
+        // hipfftDestroy(plan);
+        // hipDeviceReset();
+        delete[] ft_squared_k;
+        delete[] ft_squared_l;
+        hipfftDestroy(plan);
+        // hipDeviceReset();
+
+        cout << "xix " << xix << "  xiy " << xiy << endl;
     }
 
 };

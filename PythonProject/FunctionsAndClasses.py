@@ -576,18 +576,12 @@ def interpolate_and_minimize(data_sets, res=1000):
     Determine the intersection of different sets of discrete x-y values.
     """
     # Extract x and y values from each data set
-    print(sorted(list(data_sets.keys())))
     x_values = [data_sets[size][list(data_sets[size].keys())[0]] for size in sorted(list(data_sets.keys()))]
     y_values = [data_sets[size][list(data_sets[size].keys())[1]] for size in sorted(list(data_sets.keys()))]
-    print(x_values)
-    print(y_values)
     # Find common x range TODO thats totally wrong right?
     common_x = np.unique(np.concatenate(x_values))
-    print(common_x)
     x_range = np.linspace(common_x[0], common_x[-1], res)
-    print(x_range)
     # Interpolate y values for each data set on the common x range
-    print(interp1d(x_values[0], y_values[0], kind='linear')(x_range))
 
     interpolated_y_values = [interp1d(x, y, kind='linear', fill_value='extrapolate')(x_range) for x,y in zip(x_values, y_values)]
     dif = []

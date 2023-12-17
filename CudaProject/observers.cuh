@@ -358,6 +358,50 @@ public:
 
 };
 
+template <class system, class State>
+class corr_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+public:
+    corr_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".corr"));
+        cout << "cum observer init called" << endl;
+        ofile << "t,xix,xiy" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        write_interval = end_t / (double)nr_values;
+    }
+
+    string get_name() override {
+        return "corr observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            double xix, xiy;
+            sys.calc_xi(x, xix, xiy);
+            ofile << t << "," << xix << xiy << endl;
+            timepoint += write_interval;
+        }
+    }
+
+};
+
 /*class quench_observer : public observer {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here

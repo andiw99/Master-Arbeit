@@ -12,7 +12,7 @@ hipify-perl $input_file > $inter_file
 # ./hipify-clang $input_file --cuda-path=/usr/local/cuda -- -std=c++17
 
 # Compile the c++ file with hipcc
-hipcc -I /opt/rocm/include/ -std=c++17  $inter_file -o $output_file
+hipcc -I /opt/rocm/include/hiprand -I /opt/rocm/include/hipfft/ -std=c++17  $inter_file -o $output_file -lhipfft
 
 # Check if the compilation was successful
 if [ $? -eq 0 ]; then
