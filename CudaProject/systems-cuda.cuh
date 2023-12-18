@@ -2138,14 +2138,14 @@ public:
     template<class State>
     void calc_xi(State& x, double& xix, double& xiy) {
         using dim_t = std::array<int, 2>;
-        dim_t fft_size = {(int)Lx, (int)Ly};
+        dim_t fft_size = {(int)Ly, (int)Lx};
         // data is x
-        int batch_size = (int) (Lx * Ly);     // so if I understand correctly the batch size is the number of multiple
+        int nr_batches = (int) (dim_size_x / Lx);     // so if I understand correctly the batch size is the number of multiple
+        int batch_size = fft_size[0] * fft_size[1];
         // ffts running at the same time. so since I want to do a fft for every subsystem, my batch size will
         // be the number of subsystems?
 
         // sum vector for alter, this will be the squared ft
-        cout << "before defining sum vector" << endl;
         thrust::device_vector<double> sum(Lx * Ly);
 
         cufftHandle plan;
@@ -2153,7 +2153,7 @@ public:
         cufftPlanMany(&plan, fft_size.size(), fft_size.data(),
                       nullptr, 1, 0,
                       nullptr, 1, 0,
-                      CUFFT_C2C, batch_size);
+                      CUFFT_C2C, nr_batches);
 
         auto cell = thrust::make_permutation_iterator(
                 x.begin(),
@@ -2173,14 +2173,19 @@ public:
         BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
 
-        cout << "before first fft" << endl;
         // execute FFT
-        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()), thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
-        cout << "before device synchronize" << endl;
+        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
         cudaDeviceSynchronize();
 
-        cout << "before first sum" << endl;
-        for(int i = 0; i < (dim_size_x / Lx); i++) {
+        /*cout << endl << endl;
+        thrust::host_vector<cufftComplex> host_output(output_vector);
+        cout << "cos transform fft output: " << endl;
+        for(int i = 0; i < n; i++) {
+            cout << host_output[i].x << "  " << host_output[i].y << endl;
+        }*/
+
+        for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size,
                               output_vector.begin() + (i + 1) * batch_size,
                               sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
@@ -2190,23 +2195,48 @@ public:
         input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
 
-        cout << "before second fft" << endl;
         // execute fft
         cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
                      thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD); // fft into output vector
         cudaDeviceSynchronize();
+
+/*        host_output = thrust::host_vector<cufftComplex>(output_vector);
+        thrust::host_vector<cufftComplex> host_input(input_vector);
+        cout << endl << endl;
+        cout << "sin transform fft output: " << endl;
+        for(int i = 0; i < n; i++) {
+            if (i % batch_size == 0) {
+                cout << endl;
+            }
+            cout << *(cell_trafo + i) << "   " << host_input[i].x << "   " << host_input[i].y << "   " << host_output[i].x << "  " << host_output[i].y << endl;
+        }*/
+
          // sum up
-        cout << "before second sum" << endl;
-        for(int i = 0; i < (dim_size_x / Lx); i++) {
+        for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
                               sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
         }
 
         thrust::host_vector<double> host_sum(sum);
 
+        for(int i = 0; i < batch_size; i++) {
+            host_sum[i] /= nr_batches;
+        }
+
+/*        cout << endl << endl;
+        for(int i = 0; i < batch_size; i++) {
+            cout << host_sum[i] << endl;
+        }*/
+
         double* ft_squared_k = new double[Lx];
         double* ft_squared_l = new double[Ly];
-
+        for(int i = 0; i < Lx; i++) {
+            ft_squared_k[i] = 0.0;
+        }
+        // cout << endl;
+        for(int i = 0; i < Ly; i++) {
+            ft_squared_l[i] = 0.0;
+        }
         for(int i = 0; i < Lx; i++) {
             for(int j = 0; j < Ly; j++) {
                 int k_ind = j * Lx + i;
@@ -2214,7 +2244,17 @@ public:
                 ft_squared_l[j] += host_sum[k_ind];
             }
         }
-
+        // cout << endl;
+        for(int i = 0; i < Lx; i++) {
+            ft_squared_k[i] /= Ly;
+            // cout << ft_squared_k[i] << "  ";
+        }
+        //cout << endl;
+        for(int i = 0; i < Ly; i++) {
+            ft_squared_l[i] /= Lx;
+            // cout << ft_squared_l[i] << "  ";
+        }
+        // cout << endl;
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
 
@@ -2227,12 +2267,15 @@ public:
 
         // cufftDestroy(plan);
         // cudaDeviceReset();
+        //cudaFree(input_pointer);
+        //cudaFree(output_pointer);
         delete[] ft_squared_k;
         delete[] ft_squared_l;
         cufftDestroy(plan);
         // cudaDeviceReset();
 
         cout << "xix " << xix << "  xiy " << xiy << endl;
+        //exit(0);
     }
 
 };

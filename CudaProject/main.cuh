@@ -70,6 +70,7 @@ enum Parameter {
     nr_subsystems,
     x_y_factor,
     nr_cum_values,
+    nr_corr_values,
 };
 
 map<Parameter, string> parameter_names {
@@ -116,7 +117,8 @@ map<Parameter, string> parameter_names {
         {nr_subsystem_sizes,"nr_subsystem_sizes"},
         {nr_subsystems,"nr_subsystems"},
         {x_y_factor,"x_y_factor"},
-        {nr_cum_values, "nr_cum_values"}
+        {nr_cum_values, "nr_cum_values"},
+        {nr_corr_values, "nr_corr_values"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -163,7 +165,8 @@ map<string, Parameter> string_to_parameter {
         {"nr_subsystem_sizes", nr_subsystem_sizes},
         {"nr_subsystems", nr_subsystems},
         {"x_y_factor", x_y_factor},
-        {"nr_cum_values", nr_cum_values}
+        {"nr_cum_values", nr_cum_values},
+        {"nr_corr_values", nr_corr_values}
 };
 
 

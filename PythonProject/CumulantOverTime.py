@@ -3,8 +3,9 @@ import glob
 from matplotlib import pyplot as plt
 
 def main():
-    root = "../../Generated content/Subsystems/Cumulant2"
-    ending = "cum"
+    root = "../../Generated content/Test/Test6"
+    ending = "corr"
+    value = "xix"
 
     size_dirs =sorted(os.listdir(root))
     print(size_dirs)
@@ -19,7 +20,7 @@ def main():
         for temp_dir in temp_dirs:
             temp_path = os.path.join(size_path, temp_dir)
 
-            cum_files = glob.glob(f"{temp_path}/*.cum")
+            cum_files = glob.glob(f"{temp_path}/*.{ending}")
             para_path = glob.glob(f"{temp_path}/*.txt")[0]
             parameters = read_parameters_txt(para_path)
             nr_cum_values = int(parameters["nr_cum_values"])
@@ -32,8 +33,8 @@ def main():
             for cum_path in cum_files:
                 print(cum_path)
                 df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-                cum = df["U_L"]
-                print(len(df["U_L"]))
+                cum = df[value]
+                print(len(df[value]))
                 print(len(cumulant))
                 cumulant += cum
                 t_arr = df["t"]

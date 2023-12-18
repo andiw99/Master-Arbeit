@@ -160,7 +160,7 @@ public:
         txt_file = findFirstTxtFile(setting_path);
         double J = extractValueFromTxt(txt_file, "J");
         if(J < 0) {
-            chessTrafo = true;
+            chessTrafo = false;
         } else {
             chessTrafo = false;
         }

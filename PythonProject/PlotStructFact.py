@@ -146,14 +146,14 @@ def prepare_data(cut_zero_impuls, cutoff, df):
 
 def main():
     # parameters
-    root = "../../Generated content/Silicon/Amplitude/50000 rand 2"
+    root = "../../Generated content/Test/Test2/32"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
     cutoff =  np.pi
     fitfunc = MF_lorentz
     errors_for_fit=False
-    plot_struct = False
+    plot_struct = True
     cut_zero_impuls = True
     nu_est = 0.8
     T_c_est = 0.7

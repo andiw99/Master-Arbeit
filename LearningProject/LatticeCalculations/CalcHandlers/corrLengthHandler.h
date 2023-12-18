@@ -131,6 +131,7 @@ public:
                 vector<double> cell = vector<double>(Lx * Ly, 0);
                 extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
                 // TODO I think this is also not necessary?
+                chess_trafo_rectangular(cell, Lx, Ly);
                 cell_routine(L_pair, in, out, plan, cell);
                 // stuff for m and chi
                 // pair<double, double> m_L = calc_m(cell);
@@ -243,8 +244,8 @@ public:
                 Ly, vector<array<double, 2>>(Ly, array<double, 2>()));
         fill_p(qx, px);
         fill_p(qy, py);
-        auto kx = p_to_vec(px);
-        auto ky = p_to_vec(py);
+        auto kx = get_frequencies_fftw_order(Lx);
+        auto ky = get_frequencies_fftw_order(Ly);
 
         double* ft_k_fit;
         double* ft_l_fit;
@@ -262,6 +263,15 @@ public:
         } else {
             ft_k_fit = ft_k_map[L_pair];
             ft_l_fit = ft_l_map[L_pair];
+            cout << endl;
+            for(int i = 0; i < Lx; i++) {
+                cout << ft_k_fit[i] << "   ";
+            }
+            cout << endl;
+            for(int i = 0; i < Ly; i++) {
+                cout << ft_l_fit[i] << "   ";
+            }
+            cout << endl;
         }
         print_vector(ky);
         Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
@@ -368,11 +378,19 @@ class CorrLengthHandlerXY: public CorrLengthHandler {
         fftw_execute(plan);
         // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
         // for XY model we have to have one sinus transformation on cell and do the trafo with it and one cosine
+        cout << endl << "cos transform fft output: " << endl;
+        for(int i = 0; i < Lx * Ly; i++) {
+            cout << out[i][0] << "  " << out[i][1] << endl;
+        }
         sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
         for (int l = 0; l < Lx * Ly; l++) {
             // then sy
             in[l][0] = sin(cell[l]);
             in[l][1] = 0;
+        }
+        cout << endl << "sin transform fft output: " << endl;
+        for(int i = 0; i < Lx * Ly; i++) {
+            cout << cell[i] << "   " << in[i][0] << "   " << in[i][1] << "   " << out[i][0] << "  " << out[i][1] << endl;
         }
         // fourier trafo
         fftw_execute(plan);

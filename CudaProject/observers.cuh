@@ -395,7 +395,7 @@ public:
         if(t > timepoint) {
             double xix, xiy;
             sys.calc_xi(x, xix, xiy);
-            ofile << t << "," << xix << xiy << endl;
+            ofile << t << "," << xix << "," << xiy << endl;
             timepoint += write_interval;
         }
     }
