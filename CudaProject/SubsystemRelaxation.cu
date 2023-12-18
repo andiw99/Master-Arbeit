@@ -35,7 +35,8 @@ int main(int argc, char* argv[]) {
 
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
     auto* cum_obs = new cum_observer<relax_system, state_type>(paras[nr_cum_values]);
-    auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_cum_values]);
+    auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
+    auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 
     // templating..
     SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<bbk_stepper,
@@ -47,6 +48,7 @@ int main(int argc, char* argv[]) {
     simulation.register_observer(ner_obs);
     simulation.register_observer(cum_obs);
     simulation.register_observer(corr_obs);
+    simulation.register_observer(ft_obs);
     simulation.simulate();
     return 0;
 }

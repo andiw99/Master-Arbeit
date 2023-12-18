@@ -2278,6 +2278,103 @@ public:
         //exit(0);
     }
 
+    template<class State>
+    void calc_ft(State& x, double* ft_k, double* ft_l) {
+        using dim_t = std::array<int, 2>;
+        dim_t fft_size = {(int)Ly, (int)Lx};
+        // data is x
+        int nr_batches = (int) (dim_size_x / Lx);     // so if I understand correctly the batch size is the number of multiple
+        int batch_size = fft_size[0] * fft_size[1];
+        // ffts running at the same time. so since I want to do a fft for every subsystem, my batch size will
+        // be the number of subsystems?
+
+        // sum vector for alter, this will be the squared ft
+        thrust::device_vector<double> sum(Lx * Ly);
+
+        cufftHandle plan;
+        cufftCreate(&plan);
+        cufftPlanMany(&plan, fft_size.size(), fft_size.data(),
+                      nullptr, 1, 0,
+                      nullptr, 1, 0,
+                      CUFFT_C2C, nr_batches);
+
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+
+        // from cell trafo we need to somehow create a pointer to complex<double>
+        // workaraound -> device vector erstellen
+        thrust::device_vector<cufftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+
+        // fill input vector with the real part being cos of theta
+        BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+
+        // execute FFT
+        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
+        cudaDeviceSynchronize();
+
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size,
+                              output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+        }
+
+        // Now everything again for the sin part?
+        input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+
+        // execute fft
+        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD); // fft into output vector
+        cudaDeviceSynchronize();
+
+        // sum up
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+        }
+
+        thrust::host_vector<double> host_sum(sum);
+
+        for(int i = 0; i < batch_size; i++) {
+            host_sum[i] /= nr_batches;
+        }
+
+        for(int i = 0; i < Lx; i++) {
+            ft_k[i] = 0.0;
+        }
+        // cout << endl;
+        for(int i = 0; i < Ly; i++) {
+            ft_l[i] = 0.0;
+        }
+        for(int i = 0; i < Lx; i++) {
+            for(int j = 0; j < Ly; j++) {
+                int k_ind = j * Lx + i;
+                ft_k[i] += host_sum[k_ind];
+                ft_l[j] += host_sum[k_ind];
+            }
+        }
+        // cout << endl;
+        for(int i = 0; i < Lx; i++) {
+            ft_k[i] /= Ly;
+        }
+        //cout << endl;
+        for(int i = 0; i < Ly; i++) {
+            ft_l[i] /= Lx;
+        }
+
+        cufftDestroy(plan);
+
+    }
+
 };
 
 struct XY_silicon_subsystems_quench : public XY_silicon_subsystems, public quench {

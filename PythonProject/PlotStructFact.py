@@ -13,8 +13,6 @@ def lorentz_ft(x, xi, a, b):
 def MF_lorentz(x, xi, a):
     return a * xi / (1 + (x) ** 2 * xi ** 2)
 
-def critical_amplitude(eps, xi0):
-    return xi0 / (eps ** 1)
 
 def fit_lorentz(p, ft, fitfunc=lorentzian, errors=None):
     try:

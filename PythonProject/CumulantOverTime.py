@@ -3,14 +3,14 @@ import glob
 from matplotlib import pyplot as plt
 
 def main():
-    root = "../../Generated content/Test/Test6"
+    root = "../../Generated content/Test/Test7"
     ending = "corr"
     value = "xix"
 
     size_dirs =sorted(os.listdir(root))
     print(size_dirs)
 
-    t_upper_limit = 5000
+    t_upper_limit = 0
 
     cum_map = {}
     t_map = {}

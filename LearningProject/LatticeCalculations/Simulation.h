@@ -65,6 +65,7 @@ class simulation {
     fs::path root;
     size_t dim_size_x;
     size_t dim_size_y;
+    size_t Lx;
     bool chessTrafo = true;
     vector<fs::path> root_directories;
     vector<calcHandler*> handlers = {};
@@ -151,6 +152,7 @@ public:
         cout << "found txt file (setting routine): " << txt_file << endl;
         dim_size_x = (size_t)extractValueFromTxt(txt_file, "dim_size_x");
         dim_size_y = (size_t)extractValueFromTxt(txt_file, "dim_size_y");
+        Lx = (size_t)extractValueFromTxt(txt_file, "subsystem_Lx");
         for (auto handler : handlers) {
             handler->set_dims(dim_size_x, dim_size_y);
             handler->setting_pre_routine(setting_path);
@@ -160,7 +162,7 @@ public:
         txt_file = findFirstTxtFile(setting_path);
         double J = extractValueFromTxt(txt_file, "J");
         if(J < 0) {
-            chessTrafo = false;
+            chessTrafo = true;
         } else {
             chessTrafo = false;
         }
@@ -182,7 +184,7 @@ public:
         auto lat_q = readDoubleValuesAt(file, -1,  T, t);
         //cout << "T = " << T << "   t = " << t << endl;
         if(chessTrafo) {
-            chess_trafo_rectangular(lat_q, dim_size_x);
+            chess_trafo_rectangular_subsystems(lat_q, dim_size_x, dim_size_y, Lx);
         }
         transform(lat_q.cbegin(), lat_q.cend(), lat_q.begin(), transform_functor());
         // calling the calcs... it would be even more efficient if I had to cycle over the

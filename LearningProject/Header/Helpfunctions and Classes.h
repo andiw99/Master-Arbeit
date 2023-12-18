@@ -388,6 +388,48 @@ void chess_trafo_rectangular(container& vec, size_t dim_size_x, size_t dim_size_
     }
 }
 
+template <class container>
+void chess_trafo_rectangular_ptr(container& vec, size_t dim_size_x, size_t dim_size_y) {
+    int nr_rows = (int)round(dim_size_y / 2.0);
+    int nr_cols = (int)round(dim_size_x / 2.0);
+
+    for (int i = 0; i < nr_rows; i++) {            // row
+        for (int j = 0; j < nr_cols; j++) {        // col
+            (*(vec[2*i * dim_size_x + 2 * j])) *= (-1);      // both indices even
+            if((dim_size_x % 2 == 1) & (j == (nr_cols - 1)) || ((dim_size_y % 2 == 1)) & (i == (nr_rows - 1))) {
+                continue;
+            }
+            (*(vec[(2*i+1) * dim_size_x + 2 * j + 1])) *= (-1); // both indices uneven
+        }
+    }
+}
+
+template <class value_type>
+void extract_cell_ptrs(vector<value_type>& lattice, vector<value_type*>& cell, int cell_nr, int Lx, int Ly, int dim_size_x) {
+    int cells_per_row = dim_size_x / Lx;
+    int cell_in_row = cell_nr % cells_per_row;
+    // determine in which rom number we are
+    int row = cell_nr / cells_per_row;
+    for(int j = 0; j < Ly; j++) {
+        // extract values of j-th row
+        for(int i = 0; i < Lx; i++) {
+            int ind = dim_size_x * (row * Lx + j) + i + cell_in_row * Lx;
+            cell[j * Lx + i] = &(*(lattice.begin() + (ind % lattice.size())));
+        }
+    }
+}
+
+template <class container>
+void chess_trafo_rectangular_subsystems(container& vec, size_t dim_size_x, size_t dim_size_y, size_t Lx) {
+    int nr_subsystems = dim_size_x / Lx;
+    for(int i = 0; i < nr_subsystems; i++) {
+        vector<double*> cell_ptrs(Lx * dim_size_y);
+        extract_cell_ptrs(vec, cell_ptrs, i, Lx, dim_size_y, dim_size_x);
+        chess_trafo_rectangular_ptr(cell_ptrs, Lx, dim_size_y);
+    }
+}
+
+
 template <class value_type, template<class, class> class container, class Functor>
 void trafo_rectangular(container<value_type, std::allocator<value_type>>& vec, Functor functor) {
     // useless, just use transform
@@ -814,6 +856,9 @@ void extract_cell(vector<value_type>& lattice, vector<value_type>& cell, int cel
         }
     }
 }
+
+
+
 template <class container1, class container2>
 void extract_cell(container1& lattice, container2& cell, int cell_nr, int Lx, int Ly, int dim_size_x) {
     int cells_per_row = dim_size_x / Lx;

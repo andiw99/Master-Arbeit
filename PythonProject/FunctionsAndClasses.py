@@ -868,6 +868,57 @@ def find_fwhm(x, y):
 
     return fwhm
 
+def critical_amplitude(eps, xi0):
+    return xi0 / (eps ** 1)
+
+def process_file(file_path, threshold, key='t', value='U_L'):
+    """
+    Process a single file and calculate the average after the given threshold.
+    """
+    df = pd.read_csv(file_path)
+    df = df[df[key] >= threshold]
+    nr_values = df.shape[0]
+    if nr_values < 1:
+        average_value = 0
+    else:
+        print(df[value])
+        average_value = df[value].mean()
+    return average_value, nr_values
+
+
+def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum'):
+    """
+    Process all files in a size folder and return a dictionary with temperature and average values.
+    """
+    result = {key: [], value: []}
+
+    for temp_folder in os.listdir(size_folder):
+        temp_folder_path = os.path.join(size_folder, temp_folder)
+        if os.path.isdir(temp_folder_path):
+            temp_average = []
+            nr_avg_values = []
+            for file_name in os.listdir(temp_folder_path):
+                if file_name.endswith(file_ending):
+                    file_path = os.path.join(temp_folder_path, file_name)
+                    average_value, nr_values = process_file(file_path, threshold, 't', value)
+                    print(file_path)
+                    print(average_value)
+                    temp_average.append(average_value)
+                    nr_avg_values.append(nr_values)
+            if temp_average:
+                print("all averages:", temp_average)
+                print("mean:", np.mean(temp_average))
+                val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
+                print("weighted average: ", val_avg)
+                result[key].append(float(temp_folder))
+                result[value].append(val_avg)
+
+    result[value] = np.array(result[value])[np.argsort(result[key])]
+    result[key] = np.sort(result[key])
+
+    return result
+
+
 
 def main():
     print("This file is made to import, not to execute")

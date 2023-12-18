@@ -5,54 +5,6 @@ import numpy as np
 from FunctionsAndClasses import *
 from scipy.optimize import curve_fit
 
-def process_file(file_path, threshold):
-    """
-    Process a single file and calculate the average after the given threshold.
-    """
-    df = pd.read_csv(file_path)
-    df = df[df['t'] >= threshold]
-    nr_values = df.size // 2
-    if nr_values < 1:
-        average_value = 0
-    else:
-        average_value = df['U_L'].mean()
-    return average_value, nr_values
-
-
-def process_size_folder(size_folder, threshold):
-    """
-    Process all files in a size folder and return a dictionary with temperature and average values.
-    """
-    result = {'T': [], 'U_L': []}
-
-    for temp_folder in os.listdir(size_folder):
-        temp_folder_path = os.path.join(size_folder, temp_folder)
-        if os.path.isdir(temp_folder_path):
-            temp_average = []
-            nr_avg_values = []
-            for file_name in os.listdir(temp_folder_path):
-                if file_name.endswith('.cum'):
-                    file_path = os.path.join(temp_folder_path, file_name)
-                    average_value, nr_values = process_file(file_path, threshold)
-                    print(file_path)
-                    print(average_value)
-                    temp_average.append(average_value)
-                    nr_avg_values.append(nr_values)
-            if temp_average:
-                print("all averages:", temp_average)
-                print("mean:", np.mean(temp_average))
-                U_L = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
-                print("weighted average: ", U_L)
-                result['T'].append(float(temp_folder))
-                result['U_L'].append(U_L)
-
-    result['U_L'] = np.array(result['U_L'])[np.argsort(result['T'])]
-    result['T'] = np.sort(result['T'])
-
-    return result
-
-
-
 
 def main():
     simulation_folder = '../../Generated content/Silicon/Subsystems/Time Integral3/'

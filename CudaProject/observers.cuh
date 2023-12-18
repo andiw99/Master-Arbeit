@@ -378,7 +378,7 @@ public:
 
         close_stream();
         open_stream(folderpath / (obsver::construct_filename(run_nr) + ".corr"));
-        cout << "cum observer init called" << endl;
+        cout << "corr observer init called" << endl;
         ofile << "t,xix,xiy" << endl;
 
         // I think this will have less performance impact than an if statement catching the first observer operation
@@ -399,7 +399,72 @@ public:
             timepoint += write_interval;
         }
     }
+};
 
+template <class system, class State>
+class ft_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+    size_t Lx;
+    size_t Ly;
+public:
+    ft_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        cout << "ft observer init called" << endl;
+        ofile << "t;ft_k;ft_l" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        Lx = paras[subsystem_Lx];
+        Ly = paras[subsystem_Ly];
+        write_interval = end_t / (double)nr_values;
+    }
+
+    string get_name() override {
+        return "ft observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            double *ft_k, *ft_l;
+            ft_k = new double[Lx];
+            ft_l = new double[Ly];
+
+            sys.calc_ft(x, ft_k, ft_l);
+            ofile << t << ";";
+            for(int i = 0; i < Lx; i++) {
+                if(i == 0) {
+                    ofile << ft_k[i];
+                } else {
+                    ofile << "," << ft_k[i];
+                }
+            }
+            ofile << ";";
+            for(int j = 0; j < Ly; j++) {
+                if(j == 0) {
+                    ofile << ft_l[j];
+                } else {
+                    ofile << "," << ft_l[j];
+                }
+            }
+            ofile << endl;
+            timepoint += write_interval;
+        }
+    }
 };
 
 /*class quench_observer : public observer {

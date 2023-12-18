@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
     int count = 0;
     {
         timer timer;
-        for(int i = 0; i < 2000000; i++) {
+        for (int i = 0; i < 2000000; i++) {
             if (count < i) {
                 count++;
             } else {
@@ -245,12 +245,13 @@ int main(int argc, char* argv[]) {
     printf("%f", fckn_testdouble);
     cout << "hello?" << endl;
     cout << time(NULL) % 10000 << endl;
+
 #include <chrono>
 
 // ...
 
     using namespace std::chrono;
-    milliseconds ms = duration_cast< milliseconds >(
+    milliseconds ms = duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
     );
 
@@ -261,32 +262,31 @@ int main(int argc, char* argv[]) {
     cout << a / b << endl;
 
 
-
     std::vector<int> input = {1, 2, 3, 4, 5};
 
     int sumOfSquares = std::transform_reduce(input.begin(), input.end(),
 
                                              0, // initial value for the reduction (sum)
-                                              std::plus<int>(), // transformation (square)
+                                             std::plus<int>(), // transformation (square)
                                              [](int b) { return b * b; }); // reduction (sum)
     std::vector<double> input2 = {1, 2, 3, 4, 5};
 
     double dsumOfSquares = std::transform_reduce(input2.begin(), input2.end(),
 
-                                             0, // initial value for the reduction (sum)
-                                             std::plus<int>(), // transformation (square)
-                                             [](int b) { return b * b; }); // reduction (sum)
+                                                 0, // initial value for the reduction (sum)
+                                                 std::plus<int>(), // transformation (square)
+                                                 [](int b) { return b * b; }); // reduction (sum)
 
     std::cout << "Sum of squares: " << sumOfSquares << std::endl;
 
-    A* base = new A();
+    A *base = new A();
     DerivedContainer container;
     container.register_observer(base);
 
     int rows = 3;
     int cols = 4;
 
-    double** matrix = new double*[rows];
+    double **matrix = new double *[rows];
     for (int i = 0; i < rows; ++i) {
         matrix[i] = new double[cols];
     }
@@ -312,24 +312,12 @@ int main(int argc, char* argv[]) {
     }
     delete[] matrix;
 
-    double* testarray = new double[2];
-    testarray[0] = 0.0;
-    cout << "here?" << endl;
-    testarray[1] = 1.1;
-    cout << "or here?" << endl;
-    for(int l; l < 2; l++) {
-        cout << "what?" << endl;
-        cout << testarray[l] << endl;
-    }
-    delete[] testarray;
-
 
     DerivedBC derived{};
     derived.specificOP();
 
     DerivedTemplateBC derivedTemplated{};
     derivedTemplated.specificOP();
-
 
 
     const auto host_name = boost::asio::ip::host_name();
@@ -341,8 +329,39 @@ int main(int argc, char* argv[]) {
     auto second = duration_cast<seconds>(timepoint) % 60;
     auto millisecond = duration_cast<milliseconds>(timepoint) % 1000;
 
-    cout << "current time: " << hour.count() << ":" << minute.count() << ":" << second.count() << ":" << millisecond.count() << endl;
-    cout << "current time: " << get_current_time();
-    return 0;
+    cout << "current time: " << hour.count() << ":" << minute.count() << ":" << second.count() << ":"
+         << millisecond.count() << endl;
+    cout << "current time: " << get_current_time() << endl;
+
+    std::vector<double> data = {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9};
+
+    // Define the range of the subset using iterators
+    auto subset_begin = data.begin() + 2;  // Iterator pointing to the third element
+    auto subset_end = data.begin() + 6;    // Iterator pointing to the seventh element
+
+    // Create a set of pointers to the subset
+
+    vector<int> inds = {3, 6, 7};
+
+    std::vector<double*> subset_pointers(3);
+    int j = 0;
+    for (auto ind : inds) {
+        subset_pointers[j] = (&(*(data.begin() + ind)));
+        j++;
+    }
+
+    // Print the values in the subset using the pointers
+    std::cout << "Subset values: ";
+    for (int i= 0; i < subset_pointers.size(); i++) {
+        std::cout << *(subset_pointers[i]) << " ";
+        *(subset_pointers[i]) = 1.0;
+    }
+
+    cout << endl << "Values:" << endl;
+    for(auto thing : data) {
+        cout << thing << "  " ;
+    }
+
+    std::cout << std::endl;
 
 }
