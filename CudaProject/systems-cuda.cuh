@@ -1790,10 +1790,11 @@ public:
     }
 
     XY_silicon_anisotrop_subsystems_quench_obc(map<Parameter, double> paras) : quench(paras),
-                                                                           XY_silicon_anisotrop_subsystems(paras),
+                                                                           XY_silicon_anisotrop_subsystems_obc(paras),
                                                                            XY_Silicon(paras),
                                                                            XY_model(paras),
                                                                            subsystems(paras),
+                                                                           System_OBC(paras),
                                                                            System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
