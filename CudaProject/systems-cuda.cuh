@@ -796,7 +796,7 @@ public:
 };
 
 class XY_model : virtual public System {
-protected:
+public:
     const double p_XY = 2;     // for the potential, will be 2 for bistable XY and 2.5 for silicon
     const double m = 1;     // prefactor for the interaction, important if we dont have the 2 pi periodicy
 
@@ -1777,6 +1777,24 @@ public:
     XY_model(paras),
     subsystems(paras),
     System(paras){
+        cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
+    }
+
+};
+
+struct XY_silicon_anisotrop_subsystems_quench_obc : public XY_silicon_anisotrop_subsystems_obc, public quench {
+public:
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_quench_obc(map<Parameter, double> paras) : quench(paras),
+                                                                           XY_silicon_anisotrop_subsystems(paras),
+                                                                           XY_Silicon(paras),
+                                                                           XY_model(paras),
+                                                                           subsystems(paras),
+                                                                           System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 

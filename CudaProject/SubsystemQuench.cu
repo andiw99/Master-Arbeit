@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_silicon_anisotrop_subsystems_quench quench_system;
+    typedef XY_silicon_anisotrop_subsystems_quench_obc quench_system;
     if (argc == 2) {
         filepath = "parameters/para_quench_set_" + (string)argv[1] + ".txt" ;
     } else {
@@ -30,6 +30,9 @@ int main(int argc, char* argv[]) {
             new quench_observer<quench_system, state_type>(nr_save_values);
     auto* runtime_obs =
             new runtime_observer<quench_system, state_type>();
+    auto* cum_obs = new cum_observer<relax_system, state_type>(paras[nr_cum_values]);
+    auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
+    auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
     // templating..
@@ -39,6 +42,9 @@ int main(int argc, char* argv[]) {
                                                 quench_system>(paras, simulation_path);
     simulation.register_observer(quench_obs);
     simulation.register_observer(runtime_obs);
+    simulation.register_observer(cum_obs);
+    simulation.register_observer(corr_obs);
+    simulation.register_observer(ft_obs);
     simulation.simulate_subsystems();
 
     return 0;
