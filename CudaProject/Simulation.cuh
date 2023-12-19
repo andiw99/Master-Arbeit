@@ -6,6 +6,7 @@
 #define CUDAPROJECT_SIMULATION_CUH
 #include "main.cuh"
 #include "systems.cuh"
+#include "deprecated-systems.cuh"
 #include "steppers.cuh"
 #include "observers.cuh"
 

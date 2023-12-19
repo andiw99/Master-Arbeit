@@ -13,6 +13,43 @@
 
 using namespace std;
 
+
+struct ParentClass {
+public:
+    struct parentFunctor {
+        void operator()(double x) {
+            cout << "parent Functor" << endl;
+        }
+    };
+};
+
+struct SpecializedParentClass: virtual public ParentClass {
+public:
+    struct parentFunctor {
+        void operator()(double x) {
+            cout << "specialized Functor called" << endl;
+        }
+    };
+};
+
+struct directChildClass : public ParentClass {
+public:
+    void operation(double x) {
+        parentFunctor()(x);
+    }
+};
+
+struct specializedChildClass : public SpecializedParentClass {
+public:
+    void operation(double x) {
+        parentFunctor()(x);
+    }
+};
+
+
+struct usedClass: public specializedChildClass {
+};
+
 template <size_t lat_dim>
 struct Parent {
 public:
@@ -363,5 +400,8 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << std::endl;
+
+    usedClass childClass;
+    childClass.operation(2.0);
 
 }

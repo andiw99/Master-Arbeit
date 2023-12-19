@@ -584,6 +584,7 @@ void print_pair_vector(vector<pair<value_type1, value_type2>>  &vec){
     cout << endl;
 }
 
+
 vector<double> get_frequencies(int nr_times) {
     vector<double> freqs;
     for(int i = 0; i < nr_times; i++) {
