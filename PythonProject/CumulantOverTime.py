@@ -3,7 +3,7 @@ import glob
 from matplotlib import pyplot as plt
 
 def main():
-    root = "../../Generated content/Test/Test7"
+    root = "../../Generated content/Test/Test7/"
     ending = "corr"
     value = "xix"
 
@@ -16,33 +16,35 @@ def main():
     t_map = {}
     for size_dir in size_dirs:
         size_path = os.path.join(root, size_dir)
-        temp_dirs = os.listdir(size_path)
-        for temp_dir in temp_dirs:
-            temp_path = os.path.join(size_path, temp_dir)
-
-            cum_files = glob.glob(f"{temp_path}/*.{ending}")
-            para_path = glob.glob(f"{temp_path}/*.txt")[0]
-            parameters = read_parameters_txt(para_path)
-            nr_cum_values = int(parameters["nr_cum_values"])
-            Lx = int(parameters["subsystem_Lx"])
-            T = parameters["T"]
-            print(cum_files)
-            # averageing over the cumulant files
-            cumulant = np.zeros(nr_cum_values+1)
-            t_arr = np.zeros(nr_cum_values+1)
-            for cum_path in cum_files:
-                print(cum_path)
-                df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-                cum = df[value]
-                print(len(df[value]))
-                print(len(cumulant))
-                cumulant += cum
-                t_arr = df["t"]
-            # averaging
-            cumulant /= len(cum_files)
-            print(cumulant)
-            cum_map[(Lx, T)] = cumulant
-            t_map[(Lx, T)] = t_arr
+        if os.path.isdir(size_path):
+            temp_dirs = os.listdir(size_path)
+            for temp_dir in temp_dirs:
+                temp_path = os.path.join(size_path, temp_dir)
+                print(temp_path)
+                cum_files = glob.glob(f"{temp_path}/*.{ending}")
+                para_path = glob.glob(f"{temp_path}/*.txt")[0]
+                parameters = read_parameters_txt(para_path)
+                nr_cum_values = int(parameters[f"nr_{ending}_values"])
+                print("nr of values: ", nr_cum_values)
+                Lx = int(parameters["subsystem_Lx"])
+                T = parameters["T"]
+                print(cum_files)
+                # averageing over the cumulant files
+                cumulant = np.zeros(nr_cum_values+1)
+                t_arr = np.zeros(nr_cum_values+1)
+                for cum_path in cum_files:
+                    print(cum_path)
+                    df = pd.read_csv(cum_path, delimiter=",", index_col=False)
+                    cum = df[value]
+                    print("len df value:", len(df[value]))
+                    print(len(cumulant))
+                    cumulant += cum
+                    t_arr = df["t"]
+                # averaging
+                cumulant /= len(cum_files)
+                print(cumulant)
+                cum_map[(Lx, T)] = cumulant
+                t_map[(Lx, T)] = t_arr
 
     fig, ax = plt.subplots(1, 1)
 
@@ -62,8 +64,8 @@ def main():
                 t_arr = b ** z * t_map[prev_size_temp]
                 ax.plot(np.array(t_arr), np.array(cum_map[prev_size_temp]), linestyle="dotted", label=f"Lx={prev_size_temp[0]},  T = {prev_size_temp[1]}  rescaled z = {z}")
         prev_size_temp = size_temp
-
     configure_ax(fig, ax)
+    plt.savefig(root + f"{ending}-over-time.png", format="png")
     plt.show()
 
     # okay we now will try to evaluate the error between the two sets
