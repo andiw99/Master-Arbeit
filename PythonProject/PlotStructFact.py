@@ -4,41 +4,11 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.ticker as ticker
 
-def lorentzian(x, a, x0, gamma):
-    return a * (gamma**2 / ((x - x0)**2 + gamma**2))
-
-def lorentz_ft(x, xi, a, b):
-    return b + a * xi ** 2 / (1 + (x) ** 2 * xi ** 2)
-
-def MF_lorentz(x, xi, a):
-    return a * xi / (1 + (x) ** 2 * xi ** 2)
 
 
-def fit_lorentz(p, ft, fitfunc=lorentzian, errors=None):
-    try:
-        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
-        perr = np.sqrt(np.diag(pcov))
 
-    except RuntimeError:
-        exit()
-        # function has form of a delta peak
-        # we delete the largest value
-        ind = np.argmax(ft)
 
-        ft = np.insert(ft, ind + 1, 1/2 * ft[ind])
-        ft = np.insert(ft, ind, 1 / 2 * ft[ind])
-        p = np.insert(p, ind + 1, p[ind] + 1/2 * p[ind + 1])
-        p = np.insert(p, ind, (p[ind] + 1 / 2 * p[ind-1]))
 
-        #ft = np.delete(ft, ind)
-        #p = np.delete(p, ind)
-        print("had to insert values")
-        print(p)
-
-        # maybe not cut off the maximum but insert values?
-
-        return fit_lorentz(p, ft)
-    return popt, perr
 
 def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([])):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))

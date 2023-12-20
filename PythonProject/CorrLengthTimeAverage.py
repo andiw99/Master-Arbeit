@@ -10,7 +10,7 @@ import matplotlib.ticker as ticker
 
 def main():
     # parameters
-    simulation_folder = "../../Generated content/Silicon/Amplitude/CorrTimeIntegral"
+    simulation_folder = "../../Generated content/Silicon/Amplitude/CorrTimeIntegral/"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(simulation_folder)
@@ -30,13 +30,19 @@ def main():
         size_folder_path = os.path.join(simulation_folder, size_folder)
         if os.path.isdir(size_folder_path):
             size_result = process_size_folder(size_folder_path, threshold, key='T', value="xix", file_ending=".corr")
-            results_x[int(size_folder)] = size_result
+            try:
+                results_x[int(size_folder)] = size_result
+            except ValueError:
+                pass
 
     for size_folder in os.listdir(simulation_folder):
         size_folder_path = os.path.join(simulation_folder, size_folder)
         if os.path.isdir(size_folder_path):
             size_result = process_size_folder(size_folder_path, threshold, key='T', value="xiy", file_ending=".corr")
-            results_y[int(size_folder)] = size_result
+            try:
+                results_y[int(size_folder)] = size_result
+            except ValueError:
+                pass
 
     print(results_x)
     print(results_y)
@@ -99,7 +105,7 @@ def main():
         ax.set_ylim((pre_ylim_min, np.max(xix_sorted) * 1.05))
         ax.set_title("Corr Length depending on T")
         ax.legend()
-        save_plot(simulation_folder, "/xix-xiy-time-average.png")
+        save_plot(simulation_folder, f"/xix-xiy-time-average-{keyx}.png")
 
         plt.show()
 

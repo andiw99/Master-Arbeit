@@ -12,6 +12,8 @@ from itertools import product
 from IPython import embed
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
+from scipy.optimize import curve_fit
+
 
 # import matplotlib; matplotlib.use("TkAgg")
 
@@ -918,7 +920,75 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
 
     return result
 
+def average_ft(folderpath, ending=".ft"):
+    files = os.listdir(folderpath)
+    t_ft_k = {}
+    t_ft_l= {}
+    first_file = True
+    nr_files = 0
+    for file in (files):
+        if file.endswith(".ft"):
+            filepath = os.path.join(folderpath, file)
+            df = pd. read_csv(filepath, sep=";")
+            for j, t in enumerate(df['t']):
+                if first_file:
+                    t_ft_k[t] = string_to_array(df["ft_k"][j])
+                    t_ft_l[t] = string_to_array(df["ft_l"][j])
+                else:
+                    t_ft_k[t] += string_to_array(df["ft_k"][j])
+                    t_ft_l[t] += string_to_array(df["ft_l"][j])
+            first_file = False
+            nr_files += 1
+    # average
+    for t in t_ft_k:
+        t_ft_k[t] /= nr_files
+        t_ft_l[t] /= nr_files
+    return t_ft_k, t_ft_l
 
+
+def get_frequencies_fftw_order(nr_times):
+    K = nr_times // 2
+    freqs = []
+    for i in range(nr_times):
+        if i + K < nr_times:
+            ind = i + K
+        else:
+            ind = i - K
+        freqs.append(2 * np.pi * (ind - nr_times/2) / nr_times)
+    return freqs
+
+def lorentzian(x, a, x0, gamma):
+    return a * (gamma**2 / ((x - x0)**2 + gamma**2))
+def lorentz_ft(x, xi, a, b):
+    return b + a * xi ** 2 / (1 + (x) ** 2 * xi ** 2)
+
+def MF_lorentz(x, xi, a):
+    return a * xi / (1 + (x) ** 2 * xi ** 2)
+def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
+    try:
+        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
+        perr = np.sqrt(np.diag(pcov))
+
+    except RuntimeError:
+        exit()
+        # function has form of a delta peak
+        # we delete the largest value
+        ind = np.argmax(ft)
+
+        ft = np.insert(ft, ind + 1, 1/2 * ft[ind])
+        ft = np.insert(ft, ind, 1 / 2 * ft[ind])
+        p = np.insert(p, ind + 1, p[ind] + 1/2 * p[ind + 1])
+        p = np.insert(p, ind, (p[ind] + 1 / 2 * p[ind-1]))
+
+        #ft = np.delete(ft, ind)
+        #p = np.delete(p, ind)
+        print("had to insert values")
+        print(p)
+
+        # maybe not cut off the maximum but insert values?
+
+        return fit_lorentz(p, ft)
+    return popt, perr
 
 def main():
     print("This file is made to import, not to execute")

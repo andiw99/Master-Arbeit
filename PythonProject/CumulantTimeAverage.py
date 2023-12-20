@@ -7,11 +7,13 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Time Integral3/'
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Small/Binder'
     threshold = 10000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
+    min_T = 0
+    max_T = 0
 
     results = {}
 
@@ -25,21 +27,32 @@ def main():
     x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(results)
     print("Critical Temperature T_c = ", T_intersection)
 
-    print(results)
-
     fig, ax = plt.subplots(1, 1)
 
+    y_upper_lim = 0
+    y_lower_lim = np.infty
     for i,size in enumerate(sorted(results.keys())):
-        ax.plot(results[size]["T"], results[size]["U_L"], linestyle="", marker="x", color=colors[i])
+        T = np.array(results[size]["T"])
+        U_L = np.array(results[size]["U_L"])
+        ax.plot(T, U_L, linestyle="", marker="x", color=colors[i])
         ax.plot(x_range, U_L_interpolated[i], color=colors[i], label=rf"L = {size}", linewidth=linewidth)
+        if max_T:
+            y_upper_lim = np.maximum(np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
+            y_lower_lim = np.minimum(np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
 
 
-    mark_point(ax, T_intersection, U_L_intersection)
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
     fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
+    if min_T:
+        ax.set_xlim(min_T, ax.get_xlim()[1])
+        ax.set_ylim(0.9 * y_lower_lim, 1.1 * y_upper_lim)
+    if max_T:
+        ax.set_xlim(ax.get_xlim()[0], max_T)
+        ax.set_ylim(0.9 * y_lower_lim, 1.1 * y_upper_lim)
     configure_ax(fig, ax)
+    mark_point(ax, T_intersection, U_L_intersection)
     plt.show()
 
     # constructing cum dic

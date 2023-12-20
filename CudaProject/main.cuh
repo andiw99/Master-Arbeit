@@ -605,6 +605,8 @@ struct rand_uni_values
     }
 };
 
+
+
 template <class State, size_t n>
 void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
 
@@ -775,6 +777,10 @@ state_initializer<state_type>* create_state_initializer(int random, map<Paramete
     }
 }
 
-
+template <class value_type>
+__host__ __device__
+inline value_type positive_modulo(value_type i, value_type n) {
+    return fmod((fmod(i, n) + n), n);
+}
 
 #endif //CUDAPROJECT_MAIN_CUH
