@@ -1728,7 +1728,7 @@ public:
 
 };
 
-struct XY_silicon_anisotrop_subsystems_obc : public subsystems_obc, public XY_silicon_anisotrop_subsystems{
+struct XY_silicon_anisotrop_subsystems_obc : public subsystems_obc, virtual public XY_silicon_anisotrop_subsystems{
 public:
     XY_silicon_anisotrop_subsystems_obc(map<Parameter, double> paras) :
                                                                     XY_silicon_anisotrop_subsystems(paras),
@@ -1791,6 +1791,7 @@ public:
 
     XY_silicon_anisotrop_subsystems_quench_obc(map<Parameter, double> paras) : quench(paras),
                                                                            XY_silicon_anisotrop_subsystems_obc(paras),
+                                                                           XY_silicon_anisotrop_subsystems(paras),
                                                                            XY_Silicon(paras),
                                                                            XY_model(paras),
                                                                            subsystems(paras),
