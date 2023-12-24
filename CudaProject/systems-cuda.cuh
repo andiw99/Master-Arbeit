@@ -436,6 +436,14 @@ public:
         return dim_size_x;
     }
 
+    virtual size_t get_Lx() const{
+        return dim_size_x;
+    }
+
+    virtual size_t get_Ly() const{
+        return dim_size_y;
+    }
+
     size_t get_dim_size_y() const{
         return dim_size_y;
     }
@@ -617,6 +625,70 @@ struct System_OBC: virtual public System {
     };
 };
 
+struct System_anitemp: virtual public System {
+public:
+    thrust::device_vector<double> D;
+    struct curand
+    {
+        double mu, sigma;
+
+        __host__ __device__
+        curand(double mu = 0.0, double sigma = 1.0) : mu(mu), sigma(sigma) {};
+
+        template<class Tuple>
+        __device__
+        float operator()(Tuple tup) const
+        {
+            curandState local_state = thrust::get<1>(tup);
+            // in this class the D is location dempendent
+            thrust::get<0>(tup) = thrust::get<2>(tup) * curand_normal(&local_state);
+            thrust::get<1>(tup) = local_state;
+        }
+    };
+    template<class Stoch>
+    void calc_diff_thrust(Stoch &theta, double t) {
+        // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
+        // as it will probably improve nothing
+        chrono::microseconds mus = chrono::duration_cast<chrono::microseconds >(
+                chrono::system_clock::now().time_since_epoch()
+        );
+        // TODO are you still using this seed? Why is it not possible to get it to work with the default random
+        // engine just advancing? Maybe just switch to curand?
+        long seed = (mus.count() % 10000000) * 1000000000;
+        thrust::counting_iterator<size_t> index_sequence_begin(seed);
+
+        thrust::transform(index_sequence_begin,
+                          index_sequence_begin + n,
+                          theta.begin() + n,
+                          rand(System::D));
+
+    }
+
+    template<class Stoch>
+    void calc_diff_curand(Stoch &theta, double t) {
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
+        // TODO does it work with start + n?
+        thrust::for_each(start, start + n, curand());
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        if(curand_random) {
+            calc_diff_curand(theta, t);
+        } else {
+            calc_diff_thrust(theta, t);
+        }
+    }
+
+    System_anitemp(map<Parameter, double>& paras) : System(paras) {
+        D = thrust::device_vector<double>(n);
+        thrust::fill(D.begin(), D.end(), System::D);
+    }
+    void print_info() override {
+        System::print_info();
+    }
+};
+
 struct NNN_System: public System {
     using System::System;       // inherit constructor
 
@@ -792,6 +864,86 @@ public:
 
     double get_end_quench_time() {
         return end_quench_t;
+    }
+};
+
+struct quench_ani : virtual public System_anitemp, virtual public quench {
+    void print_info() override {
+        System_anitemp::print_info();
+        cout << "T_start = " << T_start << endl;
+        cout << "T_end = " << T_end << endl;
+        cout << "s_eq_t = " << s_eq_t << endl;
+        cout << "e_eq_t = " << e_eq_t << endl;
+        cout << "t_quench = " << t_quench << endl;
+        cout << "end_quench_t = " << end_quench_t << endl;
+        cout << "tau = " << tau << endl;
+    }
+    double linear_T(double t) {
+        if(s_eq_t < t && t < end_quench_t) {
+            // if we are in the quench phase, we reduce T
+            System::T = T_start - (t - s_eq_t)/tau;
+        }
+        return System::T;
+    }
+
+    template<class Stoch, class FunctorType>
+    void calc_diff(Stoch &theta, double t, FunctorType functor) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        // okay here we need the logic on how to calculate the D for the different stuffs, probably with a functor
+        // that is then implemented in the child classes?
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D.begin(), thrust::counting_iterator<size_t>(0)));
+        thrust::for_each(tuple, tuple + n, functor);
+        System_anitemp::calc_diff(theta, t);
+    }
+
+public:
+    quench_ani(map<Parameter, double>& paras): System_anitemp(paras), quench(paras), System(paras) {
+        t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;
+    }
+
+};
+
+struct quench_left_right : virtual public quench_ani {
+    double T_diff;
+public:
+    struct  quench_functor  {
+        double s_eq_t, T_end, T_start, T_diff, tau, t, eta;
+        size_t Lx;
+        quench_functor(double s_eq_t, double T_end, double T_start, double T_diff, double tau,
+                       size_t Lx, double t, double eta):
+        s_eq_t(s_eq_t), T_end(T_end), T_start(T_start), T_diff(T_diff), tau(tau), t(t), eta(eta), Lx(Lx) {}
+
+        template<class Tup>
+        __host__ __device__
+        void operator()(Tup tup) {
+                // we have a tuple of D and a counting iterator so we know the place in the lattice
+                // how can we model the temperature?
+                if(s_eq_t <= t) {
+                    // we need to know how far we are from the left end of our subsystem
+                    // it will just be i % Lx?
+                    int lx = thrust::get<1>(tup) % Lx;
+                    double T = max((T_start + lx * (T_diff / (double)Lx)) - (t - s_eq_t) / tau, T_end);
+                    thrust::get<0>(tup) = sqrt(2 * eta * T);
+                }
+        }
+    };
+    template<class Stoch>
+    void calc_diff(Stoch&theta, double t) {
+        quench_functor functor(quench::s_eq_t, quench::T_end, quench::T_start, T_diff, quench::tau, get_Lx(),
+                               t, eta);
+        quench_ani::calc_diff(theta, t, functor);
+    }
+
+    quench_left_right(map<Parameter, double>& paras) : quench_ani(paras), quench(paras),
+    System(paras), System_anitemp(paras) {
+        T_diff = 0.5 * (T_start - T_end);
+        // we will initialize the system with the anisotrope temperature
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D.begin(), thrust::counting_iterator<size_t>(0)));
+        // the time that will enter the functor will be the s_eq_t so that the if statement works
+        quench_functor functor(quench::s_eq_t, quench::T_end, quench::T_start, T_diff, quench::tau, get_Lx(),
+                               quench::s_eq_t, eta);
+        thrust::for_each(tuple, tuple + n, functor);
     }
 };
 
@@ -1065,12 +1217,12 @@ public:
 
 };
 
-class subsystems {
+class subsystems: virtual public System {
     // This one is supposed to simulate multiple small (isolated) systems in one run
     // the only thing we have to change is how the neighbors are selected?
 protected:
     size_t n0;      // subsystem size
-    size_t Lx, Ly;  // subsystem dimensions
+    const size_t Lx, Ly;  // subsystem dimensions
 
 
 public:
@@ -1166,10 +1318,20 @@ public:
         }
     };
 
-    subsystems(map<Parameter, double> paras): Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
+    subsystems(map<Parameter, double> paras): System(paras), Lx((size_t)paras[subsystem_Lx]), Ly((size_t)paras[subsystem_Ly]) {
         n0 = Ly * Lx;
     }
+
+    size_t get_Lx() const override {
+        return Lx;
+    }
+
+    size_t get_Ly() const override {
+        return Ly;
+    }
+
 };
+
 class subsystems_pbc : virtual public System, virtual public subsystems {
 public:
     template<class State, class Deriv, class FunctorType>
@@ -1728,6 +1890,7 @@ public:
 
 };
 
+
 struct XY_silicon_anisotrop_subsystems_obc : public subsystems_obc, virtual public XY_silicon_anisotrop_subsystems{
 public:
     XY_silicon_anisotrop_subsystems_obc(map<Parameter, double> paras) :
@@ -1797,6 +1960,30 @@ public:
                                                                            subsystems(paras),
                                                                            System_OBC(paras),
                                                                            System(paras){
+        cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
+    }
+
+};
+
+struct XY_silicon_anisotrop_subsystems_quench_LR_obc : public XY_silicon_anisotrop_subsystems_obc, public quench_left_right {
+public:
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_quench_LR_obc(map<Parameter, double> paras) :   quench(paras),
+                                                                                    quench_ani(paras),
+                                                                                    quench_left_right(paras),
+                                                                                    XY_silicon_anisotrop_subsystems_obc(paras),
+                                                                                    XY_silicon_anisotrop_subsystems(paras),
+                                                                                    XY_Silicon(paras),
+                                                                                    XY_model(paras),
+                                                                                    subsystems(paras),
+                                                                                    System_OBC(paras),
+                                                                                    System_anitemp(paras),
+                                                                                    System(paras){
+>>>>>>> 20f0f4d725e3bd97caa5b5f18eb8ec704d4b5f1e
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 

@@ -777,6 +777,10 @@ state_initializer<state_type>* create_state_initializer(int random, map<Paramete
     }
 }
 
-
+template <class value_type>
+__host__ __device__
+inline value_type positive_modulo(value_type i, value_type n) {
+    return fmod((fmod(i, n) + n), n);
+}
 
 #endif //CUDAPROJECT_MAIN_CUH
