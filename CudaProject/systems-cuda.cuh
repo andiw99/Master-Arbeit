@@ -583,7 +583,7 @@ public:
         return eta;
     }
 
-    virtual const double get_end_t() {
+    virtual double get_end_t() {
         return end_t;
     }
 
@@ -869,7 +869,7 @@ public:
         return (T_start - T_end) * tau;
     }
 
-    double const get_end_t() override {
+    double get_end_t() override {
         // the total time are the two equilibriate times + the quench time
         return s_eq_t + e_eq_t + t_quench;
     }
