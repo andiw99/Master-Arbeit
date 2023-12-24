@@ -665,18 +665,18 @@ public:
     }
 
     template<class Stoch>
-    void calc_diff_curand(Stoch &theta, double t) {
-        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
+    void calc_diff_curand(Stoch &theta, Stoch& D_vec, double t) {
+        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin(), D_vec.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, curand());
     }
 
     template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
+    void calc_diff(Stoch &theta, Stoch &D_vec, double t) {
         if(curand_random) {
-            calc_diff_curand(theta, t);
+            calc_diff_curand(theta, D_vec, t);
         } else {
-            calc_diff_thrust(theta, t);
+            calc_diff_thrust(theta, D_vec, t);
         }
     }
 
@@ -893,7 +893,7 @@ struct quench_ani : virtual public System_anitemp, virtual public quench {
         // that is then implemented in the child classes?
         auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D.begin(), thrust::counting_iterator<size_t>(0)));
         thrust::for_each(tuple, tuple + n, functor);
-        System_anitemp::calc_diff(theta, t);
+        System_anitemp::calc_diff(theta, D, t);
     }
 
 public:
@@ -1890,7 +1890,6 @@ public:
 
 };
 
-
 struct XY_silicon_anisotrop_subsystems_obc : public subsystems_obc, virtual public XY_silicon_anisotrop_subsystems{
 public:
     XY_silicon_anisotrop_subsystems_obc(map<Parameter, double> paras) :
@@ -1983,7 +1982,6 @@ public:
                                                                                     System_OBC(paras),
                                                                                     System_anitemp(paras),
                                                                                     System(paras){
->>>>>>> 20f0f4d725e3bd97caa5b5f18eb8ec704d4b5f1e
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 
