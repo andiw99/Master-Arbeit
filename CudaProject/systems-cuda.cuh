@@ -35,9 +35,8 @@ public:
 
     // needed to "advance the random engine" and generate different random numbers for the different steps
     size_t step_nr;
-    double T;
+    double T, D, end_t;
     const double eta;
-    double D;
     // possibility of different sizes in the different directions
     const size_t dim_size_x;
     const size_t dim_size_y;
@@ -418,7 +417,7 @@ public:
     System(map<Parameter, double>& paras) : step_nr((size_t)paras[Parameter::step_nr]), dim_size_x((size_t)paras[Parameter::dim_size_x]),
                                             dim_size_y((size_t)paras[Parameter::dim_size_y]), eta(paras[Parameter::eta]), T(paras[Parameter::T]),
                                             n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]),
-                                            curand_random((bool) paras[Parameter::curand_random]){
+                                            curand_random((bool) paras[Parameter::curand_random]), end_t(paras[Parameter::end_time]){
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
         cout << "Using curand_random: " << curand_random << endl;
@@ -499,7 +498,6 @@ public:
     }
 
 
-
     template<class State, class Functor>
     double calc_f_me(State &x, Functor functor) {
         // ah okay damn, the energy depends on the system and the interaction potential
@@ -576,9 +574,6 @@ public:
         xiy = 0;
     }
 
-    double test() {
-        return 1.0;
-    }
 
     size_t get_step_nr() {
         return step_nr;
@@ -586,6 +581,10 @@ public:
 
     double get_eta() {
         return eta;
+    }
+
+    virtual const double get_end_t() {
+        return end_t;
     }
 
     ~System() {
@@ -683,9 +682,9 @@ public:
         }
         set_T();
         if(curand_random) {
-            calc_diff_curand(theta, D_vec, t);
+            calc_diff_curand(theta, t);
         } else {
-            calc_diff_thrust(theta, D_vec, t);
+            calc_diff_thrust(theta, t);
         }
     }
 
@@ -855,20 +854,22 @@ public:
     }
 
     quench(map<Parameter, double>& paras): System(paras),
-                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]), s_eq_t(paras[Parameter::equil_time]),
-                                        e_eq_t(paras[Parameter::equil_time]), T_start(paras[Parameter::starting_temp]) {
+                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]),
+                                        s_eq_t(paras[Parameter::equil_time]),
+                                        e_eq_t(paras[Parameter::equil_time]),
+                                        T_start(paras[Parameter::starting_temp]) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;
     }
 
-    double get_quench_time() {
+    virtual double get_quench_time() {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
         cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
         return (T_start - T_end) * tau;
     }
 
-    double const get_end_t() const{
+    double const get_end_t() override {
         // the total time are the two equilibriate times + the quench time
         return s_eq_t + e_eq_t + t_quench;
     }
@@ -958,6 +959,15 @@ public:
         thrust::for_each(tuple, tuple + n, functor);
         set_T();
     }
+
+    double get_quench_time() override {
+        cout << "running get_quench_time of quench_left_right:" << endl;
+        cout << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "T_diff = " << T_diff << endl;
+        cout << "tau = " << tau << endl << endl;
+        return (T_start + T_diff + T_end) * tau;
+
+    }
+
 };
 
 class XY_model : virtual public System {
