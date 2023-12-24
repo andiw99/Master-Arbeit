@@ -627,7 +627,7 @@ struct System_OBC: virtual public System {
 
 struct System_anitemp: virtual public System {
 public:
-    thrust::device_vector<double> D;
+    thrust::device_vector<double> D_vec ;
     struct curand
     {
         double mu, sigma;
@@ -665,14 +665,23 @@ public:
     }
 
     template<class Stoch>
-    void calc_diff_curand(Stoch &theta, Stoch& D_vec, double t) {
+    void calc_diff_curand(Stoch &theta, double t) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin(), D_vec.begin()));
         // TODO does it work with start + n?
         thrust::for_each(start, start + n, curand());
     }
 
+    void set_T() {
+        double D_avg = thrust::reduce(D_vec.begin(), D_vec.end(), 0.0, thrust::plus<double>()) / (double)n;
+        double T_avg = D_avg * D_avg / (2 * eta);
+        System::T = T_avg;
+    }
     template<class Stoch>
-    void calc_diff(Stoch &theta, Stoch &D_vec, double t) {
+    void calc_diff(Stoch &theta, double t) {
+        for (int i = 0; i < n; i++) {
+            cout << D_vec[i] << "    ";
+        }
+        set_T();
         if(curand_random) {
             calc_diff_curand(theta, D_vec, t);
         } else {
@@ -680,9 +689,11 @@ public:
         }
     }
 
+
+
     System_anitemp(map<Parameter, double>& paras) : System(paras) {
-        D = thrust::device_vector<double>(n);
-        thrust::fill(D.begin(), D.end(), System::D);
+        D_vec = thrust::device_vector<double>(n);
+        thrust::fill(D_vec.begin(), D_vec.end(), System::D);
     }
     void print_info() override {
         System::print_info();
@@ -891,9 +902,9 @@ struct quench_ani : virtual public System_anitemp, virtual public quench {
         // I think this should work? We change the D of the System and then just calc the random numbers
         // okay here we need the logic on how to calculate the D for the different stuffs, probably with a functor
         // that is then implemented in the child classes?
-        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D.begin(), thrust::counting_iterator<size_t>(0)));
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D_vec.begin(), thrust::counting_iterator<size_t>(0)));
         thrust::for_each(tuple, tuple + n, functor);
-        System_anitemp::calc_diff(theta, D, t);
+        System_anitemp::calc_diff(theta, t);
     }
 
 public:
@@ -938,12 +949,14 @@ public:
     quench_left_right(map<Parameter, double>& paras) : quench_ani(paras), quench(paras),
     System(paras), System_anitemp(paras) {
         T_diff = 0.5 * (T_start - T_end);
+        cout << "Constructing quench left right. T_diff is " << T_diff << endl;
         // we will initialize the system with the anisotrope temperature
-        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D.begin(), thrust::counting_iterator<size_t>(0)));
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(D_vec.begin(), thrust::counting_iterator<size_t>(0)));
         // the time that will enter the functor will be the s_eq_t so that the if statement works
         quench_functor functor(quench::s_eq_t, quench::T_end, quench::T_start, T_diff, quench::tau, get_Lx(),
                                quench::s_eq_t, eta);
         thrust::for_each(tuple, tuple + n, functor);
+        set_T();
     }
 };
 
