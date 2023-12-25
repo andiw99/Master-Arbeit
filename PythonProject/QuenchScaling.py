@@ -150,7 +150,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
 
 def main():
     # parameters
-    root = "../../Generated content/Subsystems/Quench AA/1200/"
+    root = "../../Generated content/Silicon/Quench/Left-Right/600"
 
     name = "struct.fact"
     png_name = "struct.fact-fit2"

@@ -871,7 +871,7 @@ public:
 
     double get_end_t() override {
         // the total time are the two equilibriate times + the quench time
-        return s_eq_t + e_eq_t + t_quench;
+        return (double)(s_eq_t + e_eq_t + t_quench);
     }
 
     double get_end_quench_time() {
@@ -1539,7 +1539,7 @@ public:
     }
 
     subsystems_obc(map<Parameter, double> paras): System_OBC(paras), System(paras), subsystems(paras) {
-        cout << "initializing subsystems pbc with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
+        cout << "initializing subsystems obc with sizes: " << Lx << " x " << Ly << " = " << n0 << endl;
         if (Ly != dim_size_y) {
             cout << "dim_size_y has to be equal to L_y" << endl;
             exit(0);
@@ -1782,12 +1782,12 @@ public:
         }
         // cout << endl;
         for(int i = 0; i < Lx; i++) {
-            ft_squared_k[i] /= Ly;
+            ft_squared_k[i] /=  pow(Ly, 4);
             // cout << ft_squared_k[i] << "  ";
         }
         //cout << endl;
         for(int i = 0; i < Ly; i++) {
-            ft_squared_l[i] /= Lx;
+            ft_squared_l[i] /=  pow(Lx, 4);
             // cout << ft_squared_l[i] << "  ";
         }
         // cout << endl;
@@ -1900,11 +1900,11 @@ public:
         }
         // cout << endl;
         for(int i = 0; i < Lx; i++) {
-            ft_k[i] /= Ly;
+            ft_k[i] /= pow(Ly, 4);
         }
         //cout << endl;
         for(int i = 0; i < Ly; i++) {
-            ft_l[i] /= Lx;
+            ft_l[i] /= pow(Lx, 4);
         }
 
         cufftDestroy(plan);
