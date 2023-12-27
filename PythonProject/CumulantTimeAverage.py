@@ -12,8 +12,8 @@ def main():
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0
-    max_T = 0
+    min_T = 0.948
+    max_T = 0.956
 
     results = {}
 
@@ -40,6 +40,8 @@ def main():
             y_upper_lim = np.maximum(np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
             y_lower_lim = np.minimum(np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
 
+    y_span = y_upper_lim - y_lower_lim
+    print(y_upper_lim, ", ", y_lower_lim)
 
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
@@ -47,10 +49,10 @@ def main():
     fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
     if min_T:
         ax.set_xlim(min_T, ax.get_xlim()[1])
-        ax.set_ylim(0.9 * y_lower_lim, 1.1 * y_upper_lim)
+        ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
     if max_T:
         ax.set_xlim(ax.get_xlim()[0], max_T)
-        ax.set_ylim(0.9 * y_lower_lim, 1.1 * y_upper_lim)
+        ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
     configure_ax(fig, ax)
     mark_point(ax, T_intersection, U_L_intersection)
     plt.show()

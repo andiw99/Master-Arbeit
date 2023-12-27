@@ -615,7 +615,6 @@ struct System_OBC: virtual public System {
             return (i < dim_size_x) ? i : i - dim_size_x;
         }
     };
-
     struct down : public vert_neighbor {
         using vert_neighbor::vert_neighbor;
         virtual __host__ __device__ size_t operator()(size_t i) const {
@@ -1516,14 +1515,14 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                System::up(dim_size_x, Ly)      // for up and down both dimension sizes are relevant
+                                up(dim_size_x, Ly)      // for up and down both dimension sizes are relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                System::down(dim_size_x, Ly)
+                                down(dim_size_x, Ly)
                         )
                 )
         )));
