@@ -12,8 +12,8 @@ def main():
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0
-    max_T = 0
+    min_T = 0.94
+    max_T = 0.96
 
     results = {}
 
