@@ -74,10 +74,6 @@ public:
         // simulation, so we might have a 'state initializer' object as member of the base class
         paras[Parameter::step_nr] = step_nr;
         paras[Parameter::run_nr] = nr;
-        double end_t = this->get_end_t();
-        cout << "Starting run with parameters:" << endl;
-        printMap(paras);
-        state_type x(2 * n);                            // N is not a parameter anymore
         // 2. Initialize the stepper and the system (and open new file for the observer)
         // the stepper is already initialized, but i think it should have a reset button?
         stepper->print_stepper_info();
@@ -87,9 +83,14 @@ public:
         // sys<lat_dim> Sys = create<lat_dim, sys>(paras, step_nr);   // seed?
         // we try to create only with the map...
 
+        state_type x(2 * n);                            // N is not a parameter anymore
         sys Sys = sys(paras);
         Sys.print_info();
         Sys.init_state(paras, x);           // init state via correct state initializer that was created in repeat
+
+        double end_t = Sys.get_end_t();
+        cout << "Starting run with parameters:" << endl;
+        printMap(paras);
 
         for(auto obs : obsvers) {
             // calling init rather than open stream.

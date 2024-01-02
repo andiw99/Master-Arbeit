@@ -240,6 +240,13 @@ def find_first_csv_file(folder_path):
 
     return None
 
+def find_first_txt_file(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".txt"):
+                return os.path.join(root, file)
+    return None  # Return None if no .txt file is found
+
 def make_dir(path):
     try:
         os.makedirs(path)
@@ -970,6 +977,9 @@ def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
         perr = np.sqrt(np.diag(pcov))
 
     except RuntimeError:
+        print("RuntimeError in your function fit_lorentz. Maybe no fit possible because"
+              " of to many fluctuations or because it is just flat. Returning 0")
+        return (0, 0, 0), None
         exit()
         # function has form of a delta peak
         # we delete the largest value
@@ -989,6 +999,43 @@ def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
 
         return fit_lorentz(p, ft)
     return popt, perr
+
+def pi_formatter(value, ticknumber):
+    fraction = value / np.pi
+    fraction = fraction.as_integer_ratio()
+    if fraction[0] == 0:
+        return "0"
+    elif fraction[0] < 0:
+        return r"$-\frac{" + str(abs(fraction[0])) +  "}{" + str(fraction[1]) + "} \pi$"
+    else:
+        return r"$\frac{" + str(fraction[0]) +  "}{" + str(fraction[1]) + "} \pi$"
+
+def cut_zero_imp(p, ft, ft_err=None):
+    p, ft = np.array(p), np.array(ft)
+    ft = ft[p != 0]
+    if ft_err:
+        ft_err = np.array(ft_err)
+        ft_err = ft_err[p != 0]
+        p = p[p != 0]
+        return p, ft, ft_err
+    else:
+        p = p[p != 0]
+        return p, ft
+
+
+def rescale_t(t, tau, t_eq, zoom = 1):
+    total_time = np.max(t)
+    t = np.array(t) - t_eq
+    new_t = []
+    # the values that sit between t_eq and total_time - t_eq shall be scaled
+    new_t += list(t[t < 0])
+    new_t += list(t[(t > 0) & (
+            t < total_time - 2 * t_eq)] / tau * zoom)
+    new_t += list(t[t >= total_time - 2 * t_eq] - (
+            1 - zoom / tau) * (
+                          total_time - 2 * t_eq))
+    return np.array(new_t)
+
 
 def main():
     print("This file is made to import, not to execute")

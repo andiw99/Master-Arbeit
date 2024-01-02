@@ -249,7 +249,7 @@ public:
         return (T_start - T_end) * tau;
     }
 
-    double get_end_t(){
+    double get_end_t() override {
         // the total time are the two equilibriate times + the quench time
         return s_eq_t + e_eq_t + t_quench;
     }

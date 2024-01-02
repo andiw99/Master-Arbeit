@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from FunctionsAndClasses import *
-
+from matplotlib.ticker import MultipleLocator
 def double_well(x, alpha, beta):
     return 1/2 * alpha*  (x ** 4 - beta * x **2)
 
@@ -27,6 +27,12 @@ def cos_potential(q, h, p, interval):
     q = (q - minimum) % span + minimum
     return h * np.cos(p * q)
 
+def sin_potential(q, h, p, interval):
+    minimum = np.min(interval)
+    maximum = np.max(interval)
+    span = maximum - minimum
+    q = (q - minimum) % span + minimum
+    return h * np.sin(p * q)
 
 def shifted_double_well(q, alpha, beta, shift):
     x_pos = q[q >= 0] - shift
@@ -174,14 +180,39 @@ def main():
     q = np.linspace(- 3/4 * np.pi, 3/4 * np.pi, 200)
     interval = (- np.pi / 2, np.pi / 2)
     p = 2.5
+    p_sin = p / 2
+    m = np.sin(p_sin * q)
     V = cos_potential(q, 1, p, interval)
 
     ax.plot(q, V, label=f"p = {p:.2f}")
+    ax.plot(q, m, label=f"m", linestyle="dashed")
     ax.set_title(r"Cos on site potential")
     ax.set_xlabel(r"$\vartheta$")
     ax.set_ylabel(r"$V(\vartheta)$")
     ax.vlines([-np.pi/2, np.pi/2], -1.2, 1.2, linestyles="dashed", color="black")
     configure_ax(fig, ax)
+    plt.show()
+
+    fig, ax = plt.subplots(1, 1)
+    q = np.linspace(- 5/4 * np.pi, 1/4 * np.pi, 200)
+    interval = (- np.pi / 2, np.pi / 2)
+    p = 2.57
+    p_sin = p / 2
+    V = cos_potential(q, 1, p, interval)
+    m = sin_potential(q, 1, p_sin, interval)
+    q += np.pi / 2
+
+    ax.plot(q, V, label=f"p = {p:.2f}")
+    ax.plot(q, m, label=f"m", linestyle="dashed")
+    ax.set_xlabel(r"$\vartheta$")
+    ax.set_ylabel(r"$V(\vartheta)$")
+    ax.vlines(0, -1.2, 1.2, linestyles="dashed", color="black")
+    configure_ax(fig, ax)
+    ax.set_title(r"")
+    ax.xaxis.set_major_locator(MultipleLocator(base=np.pi/4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+    ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+
     plt.show()
 
     fig, ax = plt.subplots(1, 1)
