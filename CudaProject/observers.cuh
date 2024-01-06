@@ -128,7 +128,7 @@ public:
         string filename = obsver::construct_filename(run_nr);
         open_stream(folderpath / (filename + ".txt"));
         write_parameters(ofile, paras);
-        ofile << system << "," << sys.get_name() << endl;
+        ofile << "system" << "," << sys.get_name() << endl;
         // dont forget to close!;
         close_stream();
 

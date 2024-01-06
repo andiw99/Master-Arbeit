@@ -587,7 +587,7 @@ public:
         return end_t;
     }
 
-    virtual string get_name() {
+    virtual string get_name() const {
         return "system";
     }
 
@@ -1640,7 +1640,7 @@ public:
         xy_force functor = xy_force(System::eta, J, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems_pbc::force_calculation(x, dxdt, t, functor);
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_subsystems";
     }
 };
@@ -1983,7 +1983,7 @@ public:
         cufftDestroy(plan);
 
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems";
     }
 };
@@ -2004,7 +2004,7 @@ public:
         xy_force functor = xy_force(System::eta, Jx, Jy, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems_obc::force_calculation(x, dxdt, t, functor);
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_obc";
     }
 };
@@ -2023,7 +2023,7 @@ public:
                                                                  System(paras){
         cout << "XY_silicon_subsystems_quench system constructed";
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_subsystems_quench";
     }
 };
@@ -2044,7 +2044,7 @@ public:
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench";
     }
 };
@@ -2066,7 +2066,7 @@ public:
                                                                            System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench_obc";
     }
 };
@@ -2091,7 +2091,7 @@ public:
                                                                                     System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench_LR_obc";
     }
 };
@@ -2116,7 +2116,7 @@ public:
                                                                                     System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-    string get_name() override {
+    string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench_center_obc";
     }
 };
