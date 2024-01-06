@@ -18,7 +18,7 @@ from scipy.optimize import curve_fit
 # import matplotlib; matplotlib.use("TkAgg")
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
-
+markers = [".", "x", "+", "*", "D", "1", "2", "v", "^"]
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)
@@ -277,7 +277,7 @@ def list_folders_and_subfolders(directory_path):
 
     for root, dirs, files in os.walk(directory_path):
         for dir_name in dirs:
-            if dir_name[0] != ".":
+            if (dir_name[0] != ".") & (dir_name != "plots"):
                 folder_list.append(os.path.join(root, dir_name))
 
     return folder_list
@@ -1034,7 +1034,8 @@ def rescale_t(t, tau, t_eq, zoom = 1):
     new_t += list(t[t >= total_time - 2 * t_eq] - (
             1 - zoom / tau) * (
                           total_time - 2 * t_eq))
-    return np.array(new_t)
+    t_q_s = (total_time - 2 * t_eq) / tau * zoom
+    return np.array(new_t), t_q_s
 
 
 def main():

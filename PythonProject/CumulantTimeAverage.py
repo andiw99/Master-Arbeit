@@ -7,13 +7,13 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Small/Binder'
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Small3/Binder2'
     threshold = 10000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0.94
-    max_T = 0.96
+    min_T = 0.947
+    max_T = 0.957
 
     results = {}
 

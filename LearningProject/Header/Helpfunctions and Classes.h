@@ -355,8 +355,6 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
     int dim_size_y = vec.size() / 2 / dim_size_x;       // TODO important, this only works for the simulation!
-    cout << "dim_size_x:" << dim_size_x << endl;
-    cout << "dim_size_y:" << dim_size_y << endl;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
 
@@ -372,8 +370,6 @@ void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
 }
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x, size_t dim_size_y) {
-    cout << "dim_size_x:" << dim_size_x << endl;
-    cout << "dim_size_y:" << dim_size_y << endl;
     int nr_rows = (int)round(dim_size_y / 2.0);
     int nr_cols = (int)round(dim_size_x / 2.0);
 

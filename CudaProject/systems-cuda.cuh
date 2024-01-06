@@ -587,6 +587,10 @@ public:
         return end_t;
     }
 
+    virtual string get_name() {
+        return "system";
+    }
+
     ~System() {
         //cudaDeviceSynchronize();
         cout << "System destroyed" << endl;
@@ -979,20 +983,30 @@ public:
         void operator()(Tup tup) {
             // we have a tuple of D and a counting iterator so we know the place in the lattice
             // how can we model the temperature?
+            // printf("%s \n", "We are here");
+            // printf("s_eq_t: %4.4f time :%4.4f", s_eq_t, t);
+            // printf("%s \n", (s_eq_t <= t) ? "true" : "false");
             if(s_eq_t <= t) {
+                // printf("%s \n", "Inside If");
                 // we need to know in which subsystem we are or what the center is
                 size_t ind = thrust::get<1>(tup);
+                // printf("%s \n", "After get");
                 // row
                 int row = ind / dim_size_x;
                 // col
                 int col = ind % Lx;
                 // x_dist
-                int x_dist = abs(col-center_col);
+                // printf("%s \n", "Before Abs");
+                int x_dist = abs((col-center_col));
                 // y_dist
-                int y_dist = abs(row-center_row);
+                int y_dist = abs((row-center_row));
                 // dist
-                int dist = sqrt(x_dist * x_dist + y_dist * y_dist);
+                //printf("%s \n", "After abs");
+                double dist = sqrt((double)(x_dist * x_dist + y_dist * y_dist));
+                //printf("%s \n", "Before exp usage");
                 double T = max(T_start + (T_diff * exp(-(double)(dist * dist) / (2 * sigma * sigma))) - (t - s_eq_t) / tau, T_end);
+                //printf("T = %4.4f \n", T);
+                //printf("%s \n", "After T print");
                 thrust::get<0>(tup) = sqrt(2 * eta * T);
             }
         }
@@ -1018,7 +1032,7 @@ public:
     }
 
     double get_quench_time() override {
-        cout << "running get_quench_time of quench_left_right:" << endl;
+        cout << "running get_quench_time of quench_center:" << endl;
         cout << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "T_diff = " << T_diff << endl;
         cout << "tau = " << tau << endl << endl;
         return (T_start + T_diff - T_end) * tau;
@@ -1626,6 +1640,9 @@ public:
         xy_force functor = xy_force(System::eta, J, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems_pbc::force_calculation(x, dxdt, t, functor);
     }
+    string get_name() override {
+        return "XY_silicon_subsystems";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems : public subsystems_pbc, public XY_Silicon_anisotrop {
@@ -1966,7 +1983,9 @@ public:
         cufftDestroy(plan);
 
     }
-
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems_obc : public subsystems_obc, virtual public XY_silicon_anisotrop_subsystems{
@@ -1985,7 +2004,9 @@ public:
         xy_force functor = xy_force(System::eta, Jx, Jy, h, XY_Silicon::p_XY, XY_Silicon::m);
         subsystems_obc::force_calculation(x, dxdt, t, functor);
     }
-
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems_obc";
+    }
 };
 
 struct XY_silicon_subsystems_quench : public XY_silicon_subsystems, public quench {
@@ -2002,7 +2023,9 @@ public:
                                                                  System(paras){
         cout << "XY_silicon_subsystems_quench system constructed";
     }
-
+    string get_name() override {
+        return "XY_silicon_subsystems_quench";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems_quench : public XY_silicon_anisotrop_subsystems, public quench {
@@ -2021,6 +2044,9 @@ public:
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
 
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems_quench";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems_quench_obc : public XY_silicon_anisotrop_subsystems_obc, public quench {
@@ -2040,7 +2066,9 @@ public:
                                                                            System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems_quench_obc";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems_quench_LR_obc : public XY_silicon_anisotrop_subsystems_obc, public quench_left_right {
@@ -2063,7 +2091,9 @@ public:
                                                                                     System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems_quench_LR_obc";
+    }
 };
 
 struct XY_silicon_anisotrop_subsystems_quench_center_obc : public XY_silicon_anisotrop_subsystems_obc, public quench_center {
@@ -2086,7 +2116,9 @@ public:
                                                                                     System(paras){
         cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
     }
-
+    string get_name() override {
+        return "XY_silicon_anisotrop_subsystems_quench_center_obc";
+    }
 };
 
 #endif //CUDAPROJECT_SYSTEMS_CUDA_CUH

@@ -273,7 +273,7 @@ public:
             }
             cout << endl;
         }
-        print_vector(ky);
+
         Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
         Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_l_fit);
 
@@ -378,20 +378,20 @@ class CorrLengthHandlerXY: public CorrLengthHandler {
         fftw_execute(plan);
         // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
         // for XY model we have to have one sinus transformation on cell and do the trafo with it and one cosine
-        cout << endl << "cos transform fft output: " << endl;
+/*        cout << endl << "cos transform fft output: " << endl;
         for(int i = 0; i < Lx * Ly; i++) {
             cout << out[i][0] << "  " << out[i][1] << endl;
-        }
+        }*/
         sum_and_add(Lx, Ly, out, ft_k_map[L_pair], ft_l_map[L_pair]);
         for (int l = 0; l < Lx * Ly; l++) {
             // then sy
             in[l][0] = sin(cell[l]);
             in[l][1] = 0;
         }
-        cout << endl << "sin transform fft output: " << endl;
+/*        cout << endl << "sin transform fft output: " << endl;
         for(int i = 0; i < Lx * Ly; i++) {
             cout << cell[i] << "   " << in[i][0] << "   " << in[i][1] << "   " << out[i][0] << "  " << out[i][1] << endl;
-        }
+        }*/
         // fourier trafo
         fftw_execute(plan);
         // out is basically    s~_kl^x and k and l are just the sum over which dimension it runs
