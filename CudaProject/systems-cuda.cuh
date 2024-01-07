@@ -583,7 +583,7 @@ public:
         return eta;
     }
 
-    virtual double get_end_t() {
+    virtual double get_end_t() const {
         return end_t;
     }
 
@@ -862,19 +862,19 @@ public:
         end_quench_t = t_quench + s_eq_t;
     }
 
-    virtual double get_quench_time() {
+    virtual double get_quench_time() const {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
         cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
         return (T_start - T_end) * tau;
     }
 
-    double get_end_t() override {
+    double get_end_t() const override {
         // the total time are the two equilibriate times + the quench time
         return (double)(s_eq_t + e_eq_t + t_quench);
     }
 
-    double get_end_quench_time() {
+    double get_end_quench_time() const {
         return end_quench_t;
     }
 };
@@ -953,7 +953,7 @@ public:
         set_T();
     }
 
-    double get_quench_time() override {
+    double get_quench_time() const override {
         cout << "running get_quench_time of quench_left_right:" << endl;
         cout << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "T_diff = " << T_diff << endl;
         cout << "tau = " << tau << endl << endl;
@@ -1031,7 +1031,7 @@ public:
         set_T();
     }
 
-    double get_quench_time() override {
+    double get_quench_time() const override {
         cout << "running get_quench_time of quench_center:" << endl;
         cout << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "T_diff = " << T_diff << endl;
         cout << "tau = " << tau << endl << endl;

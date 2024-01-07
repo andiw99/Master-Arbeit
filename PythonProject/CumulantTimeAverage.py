@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 
 def main():
     simulation_folder = '../../Generated content/Silicon/Subsystems/Small3/Binder2'
-    threshold = 10000  # Example threshold value, adjust as needed
+    threshold = 100000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
@@ -18,10 +18,11 @@ def main():
     results = {}
 
     for size_folder in os.listdir(simulation_folder):
-        size_folder_path = os.path.join(simulation_folder, size_folder)
-        if os.path.isdir(size_folder_path):
-            size_result = process_size_folder(size_folder_path, threshold)
-            results[int(size_folder)] = size_result
+        if (size_folder[0] != ".") & (size_folder != "plots"):
+            size_folder_path = os.path.join(simulation_folder, size_folder)
+            if os.path.isdir(size_folder_path):
+                size_result = process_size_folder(size_folder_path, threshold)
+                results[int(size_folder)] = size_result
 
 
     x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(results)

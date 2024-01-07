@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
             new runtime_observer<quench_system, state_type>();
     auto* cum_obs = new cum_observer<relax_system, state_type>(paras[nr_cum_values]);
     auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
-    auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
+    auto* ft_obs = new quench_ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
     // templating..
