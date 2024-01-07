@@ -3,7 +3,7 @@ import numpy as np
 from FunctionsAndClasses import *
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Left-Right"
+    simulation_path = "../../Generated content/Silicon/Quench/OBC"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -18,34 +18,42 @@ def main():
     size_y_dic = {}
 
     for size in os.listdir(simulation_path):
-        if size != "plots":
+        if (size != "plots") & (size[0] != "."):
             sizepath = os.path.join(simulation_path, size)
             if os.path.isdir(sizepath):
                 for setting in os.listdir(sizepath):
-                    settingpath = os.path.join(sizepath, setting)
-                    if os.path.isdir(settingpath):
-                        t_xix[setting] = {}
-                        t_xiy[setting] = {}
-                        ft_k, ft_l = average_ft(settingpath)
-                        for t in ft_k:
-                            p_k = get_frequencies_fftw_order(len(ft_k[t]))
-                            if cut_zero_impuls:
-                                p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
-                            popt_x, perr_x = fit_lorentz(p_k, ft_k[t])
-                            xix = np.abs(popt_x[0])
-                            t_xix[setting][t] = xix
-                        for t in ft_l:
-                            p_l = get_frequencies_fftw_order(len(ft_l[t]))
-                            if cut_zero_impuls:
-                                p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
-                            popt_y, perr_y = fit_lorentz(p_l, ft_l[t])
-                            xiy = np.abs(popt_y[0])
-                            t_xiy[setting][t] = xiy
-                size_x_dic[int(size)] = t_xix.copy()
-                size_y_dic[int(size)] = t_xiy.copy()
-    print(t_xiy)
-    print("\n\n")
-    print(t_xiy.keys())
+                    if (setting != "plots") & (setting[0] != "."):
+                        settingpath = os.path.join(sizepath, setting)
+
+                        parapath = find_first_txt_file(simulation_path)
+                        parameters = read_parameters_txt(parapath)
+
+                        Lx = parameters["subsystem_Lx"]
+                        Ly = parameters["subsystem_Ly"]
+
+                        if os.path.isdir(settingpath):
+                            t_xix[setting] = {}
+                            t_xiy[setting] = {}
+                            ft_k, ft_l = average_ft(settingpath)
+                            for t in ft_k:
+                                p_k = get_frequencies_fftw_order(len(ft_k[t]))
+                                if cut_zero_impuls:
+                                    p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
+                                popt_x, perr_x = fit_lorentz(p_k, ft_k[t])
+                                xix = np.minimum(np.abs(popt_x[0]), Lx)
+                                t_xix[setting][t] = xix
+                            for t in ft_l:
+                                p_l = get_frequencies_fftw_order(len(ft_l[t]))
+                                if cut_zero_impuls:
+                                    p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
+                                popt_y, perr_y = fit_lorentz(p_l, ft_l[t])
+                                xiy = np.minimum(np.abs(popt_y[0]), Ly)
+                                t_xiy[setting][t] = xiy
+                    size_x_dic[int(size)] = t_xix.copy()
+                    size_y_dic[int(size)] = t_xiy.copy()
+    # print(t_xiy)
+    # print("\n\n")
+    # print(t_xiy.keys())
 
 
     t_eq = 0
@@ -89,7 +97,7 @@ def main():
     ax.set_title("Time during quench is scaled")
     ax.set_ylabel(r"$\xi_x$")
     ax.set_xlabel(r"$t \qquad \qquad \qquad \qquad \qquad \qquad t/\tau \qquad \qquad  \qquad \qquad \qquad \qquad t $")
-    fig.savefig(simulation_path + "/xix-quench-process.png", format="png", dpi=300)
+    fig.savefig(simulation_path + "/xix-process.png", format="png", dpi=300)
     plt.show()
 
     fig, ax = plt.subplots(1, 1)
@@ -122,10 +130,62 @@ def main():
     ax.vlines((0, t_q_s), ax.get_ylim()[0], ax.get_ylim()[1], linestyles="dashed", color="grey", alpha=0.5)
     ax.set_ylabel(r"$\xi_y$")
     ax.set_xlabel(r"$t \qquad \qquad \qquad \qquad \qquad \qquad t/\tau \qquad \qquad  \qquad \qquad \qquad \qquad t $")
-    fig.savefig(simulation_path + "/xiy-quench-process.png", format="png", dpi=300)
+    fig.savefig(simulation_path + "/xiy-process.png", format="png", dpi=300)
     plt.show()
 
+    if quench:
+        figx, axx = plt.subplots(1, 1)
+        figy, axy = plt.subplots(1, 1)
+        axx.set_yscale("log")
+        axy.set_yscale("log")
+        axx.set_xscale("log")
+        axy.set_xscale("log")
+        tau_arr = []
+        xix_after_quench_dic = {}
+        xiy_after_quench_dic = {}
+        for marker_ind, size in enumerate(size_y_dic):
+            # okay i want to show the scaling so I extract the xi after t_quench
+            # do i still know t_quench?
+            t_xix = size_x_dic[size]
+            t_xiy = size_y_dic[size]
+
+            xix_after_quench_dic[size] = []
+            xiy_after_quench_dic[size] = []
+
+            keys = np.array(list(t_xix.keys()))[np.argsort([float(key) for key in t_xix.keys()])]
+            for i, tau in enumerate(keys):
+                t = np.array(list(t_xix[tau].keys()))
+                t_after_quench = np.max(t) - t_eq
+                xix_arr = np.array(list(t_xix[tau].values()))      # this is all the xi after time
+                xiy_arr = np.array(list(t_xiy[tau].values()))
+                xix = xix_arr[t > t_after_quench][0]
+                xiy = xiy_arr[t > t_after_quench][0]
+                xix_after_quench_dic[size].append(xix)
+                xiy_after_quench_dic[size].append(xiy)
+                if marker_ind == 0:
+                    tau_arr.append(float(tau))
+            tau_arr = np.array(tau_arr)
+            # do the fitting
+            popt_x, _ = curve_fit(linear_fit, np.log(tau_arr), np.log(np.array(xix_after_quench_dic[size])))
+            popt_y, _ = curve_fit(linear_fit, np.log(tau_arr), np.log(np.array(xiy_after_quench_dic[size])))
+
+            axx.plot(tau_arr, xix_after_quench_dic[size], linestyle="",     color="C" + str(marker_ind), marker=markers[marker_ind], label=f"{size}")
+            axy.plot(tau_arr, xiy_after_quench_dic[size], linestyle="",     color="C" + str(marker_ind), marker=markers[marker_ind], label=f"{size}")
+            axx.plot(tau_arr, poly(tau_arr, popt_x[0], np.exp(popt_x[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}" )
+            axy.plot(tau_arr, poly(tau_arr, popt_y[0], np.exp(popt_y[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}" )
+
+    axx.set_xlabel(r"$\tau$")
+    axx.set_ylabel(r"$\xi_x$")
+    axy.set_xlabel(r"$\tau$")
+    axy.set_ylabel(r"$\xi_y$")
+
+    configure_ax(figx, axx)
+    configure_ax(figy, axy)
+
+    figx.savefig(simulation_path + "/xix-quench-scaling.png", format="png", dpi=300)
+    figy.savefig(simulation_path + "/xiy-quench-scaling.png", format="png", dpi=300)
 
 
+    plt.show()
 if __name__ == "__main__":
     main()

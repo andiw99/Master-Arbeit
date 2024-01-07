@@ -87,15 +87,15 @@ def read_large_df(filepath, rows=None):
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
 
     para_filepath = os.path.splitext(filepath)[0] + ".txt"
-    parameters = read_parameters_txt(para_filepath)
+    parameters = read_parameters_txt(para_filepath, skipfooter=1)
 
     # extract parameters out of config
     nr_of_meshs = config["nr_of_meshs"]
     cell_L = config["cell_L"]
     parameters["cell_L"] = cell_L
-    nr_rows = parameters["nr_saves"]
-    Lx = parameters["dim_size_x"]
-    Ly = parameters["dim_size_y"]
+    nr_rows = int(parameters["nr_saves"])
+    Lx = int(parameters["dim_size_x"])
+    Ly = int(parameters["dim_size_y"])
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
     rows = np.linspace(0, nr_rows, nr_of_meshs, endpoint=True)
@@ -327,11 +327,11 @@ def read_parameters(filepath, nr_parameters):
     return para_set
 
 
-def read_parameters_txt(filepath):
+def read_parameters_txt(filepath, skipfooter=1):
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
     para_set = {}
     for label in df.index:
-        para_set[label] = df.loc[label, 1]
+        para_set[label] = float(df.loc[label, 1])
     return para_set
 
 
@@ -385,11 +385,9 @@ def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
     for row in range(subsystems_per_row):
         for col in range(subsystems_per_col):
             # extract i-th subsystem
-            print(x)
             #embed()
             subsystem = x[row * subsystem_Ly : (row+1) * subsystem_Ly, col * subsystem_Lx : (col+1) * subsystem_Lx]
             subsystem = chess_board_trafo(subsystem)
-            print(subsystem)
             #if ((subsystem_Lx % 2 != 0) & (row % 2 != 0)) | ((subsystem_Ly % 2 != 0) & (col % 2 != 0)):
             #    subsystem = (-1) * subsystem
             #if (subsystem_Ly % 2 != 0) & (subsystem_Lx % 2 == 0) & (row % 2 != 0):

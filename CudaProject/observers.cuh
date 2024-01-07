@@ -163,8 +163,6 @@ public:
 
 };
 
-
-
 template <class system, class State>
 class relax_observer : public standard_observer<system, State> {
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
@@ -463,6 +461,89 @@ public:
                 }
             }
             ofile << endl;
+            timepoint += write_interval;
+        }
+    }
+};
+
+template <class system, class State>
+class quench_ft_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+    double end_quench_t;
+    double quench_t;
+    double s_eq_t;
+    size_t Lx;
+    size_t Ly;
+public:
+    quench_ft_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        cout << "quench ft observer init called" << endl;
+        ofile << "t;ft_k;ft_l" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        Lx = paras[subsystem_Lx];
+        Ly = paras[subsystem_Ly];
+
+        end_quench_t = sys.get_end_quench_time();
+        quench_t = sys.get_quench_time();
+        s_eq_t = end_quench_t - quench_t;
+        // the starting write interval is chosen so that 10% of the nr_values lie in the starting equilibration
+        write_interval = s_eq_t / ((double)nr_values * 0.1);
+    }
+
+    string get_name() override {
+        return "quench ft observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            double *ft_k, *ft_l;
+            ft_k = new double[Lx];
+            ft_l = new double[Ly];
+
+            sys.calc_ft(x, ft_k, ft_l);
+            ofile << t << ";";
+            for(int i = 0; i < Lx; i++) {
+                if(i == 0) {
+                    ofile << ft_k[i];
+                } else {
+                    ofile << "," << ft_k[i];
+                }
+            }
+            ofile << ";";
+            for(int j = 0; j < Ly; j++) {
+                if(j == 0) {
+                    ofile << ft_l[j];
+                } else {
+                    ofile << "," << ft_l[j];
+                }
+            }
+            ofile << endl;
+
+            // here we adjust the write interval depending on where we are?
+            if (timepoint > s_eq_t) {
+                // case that we are during the quench, we want 80 % of values to lie here
+                write_interval = quench_t / ((double)nr_values * 0.8);
+            } else if (timepoint > end_quench_t) {
+                // we are in equilibration phase after quench, again 10% of values
+                write_interval = s_eq_t / ((double)nr_values * 0.1);
+            }
             timepoint += write_interval;
         }
     }
