@@ -503,6 +503,7 @@ public:
         end_quench_t = sys.get_end_quench_time();
         quench_t = sys.get_quench_time();
         s_eq_t = end_quench_t - quench_t;
+        cout << "end_quench_t " << end_quench_t << "  quench_t " << quench_t << "  s_eq_t " << s_eq_t << endl;
         // the starting write interval is chosen so that 10% of the nr_values lie in the starting equilibration
         write_interval = s_eq_t / ((double)nr_values * 0.1);
     }
@@ -537,12 +538,13 @@ public:
             ofile << endl;
 
             // here we adjust the write interval depending on where we are?
-            if (timepoint > s_eq_t) {
+            if (end_quench_t > timepoint > s_eq_t) {
                 // case that we are during the quench, we want 80 % of values to lie here
                 write_interval = quench_t / ((double)nr_values * 0.8);
             } else if (timepoint > end_quench_t) {
                 // we are in equilibration phase after quench, again 10% of values
                 write_interval = s_eq_t / ((double)nr_values * 0.1);
+
             }
             timepoint += write_interval;
         }

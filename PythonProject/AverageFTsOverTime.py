@@ -3,7 +3,7 @@ import numpy as np
 from FunctionsAndClasses import *
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/OBC"
+    simulation_path = "../../Generated content/Silicon/Quench/OBC2"
     cut_zero_impuls = True
     quench = True
     scale_time = True

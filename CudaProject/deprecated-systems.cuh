@@ -6,7 +6,7 @@
 #define CUDAPROJECT_DEPRECATED_SYSTEMS_CUH
 
 #include "main.cuh"
-#include "systems.cuh"
+#include "systems-cuda.cuh"
 
 using namespace std;
 
@@ -249,7 +249,7 @@ public:
         return (T_start - T_end) * tau;
     }
 
-    double get_end_t(){
+    double get_end_t() const override {
         // the total time are the two equilibriate times + the quench time
         return s_eq_t + e_eq_t + t_quench;
     }

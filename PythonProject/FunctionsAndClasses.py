@@ -331,7 +331,10 @@ def read_parameters_txt(filepath, skipfooter=1):
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
     para_set = {}
     for label in df.index:
-        para_set[label] = float(df.loc[label, 1])
+        try:
+            para_set[label] = float(df.loc[label, 1])
+        except ValueError:
+            pass
     return para_set
 
 

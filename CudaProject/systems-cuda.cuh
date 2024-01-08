@@ -1874,17 +1874,10 @@ public:
         xix = paras_x(1);
         xiy = paras_y(1);
 
-        // cufftDestroy(plan);
-        // cudaDeviceReset();
-        //cudaFree(input_pointer);
-        //cudaFree(output_pointer);
         delete[] ft_squared_k;
         delete[] ft_squared_l;
         cufftDestroy(plan);
-        // cudaDeviceReset();
 
-        cout << "xix " << xix << "  xiy " << xiy << endl;
-        //exit(0);
     }
 
     template<class State>
