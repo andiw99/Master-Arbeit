@@ -15,8 +15,12 @@ def main():
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(simulation_folder)
     nu_est = 0.8
-    T_c_est = 0.9
-    cut_zero_impuls = False
+    T_c_est_min = 0.95
+    T_c_est_max = 0.956
+    T_min_fit_min = 0.96
+    T_min_fit_max = 0.965
+    res = 100
+    cut_zero_impuls = True
     print(root_dirs)
 
     threshold = 50000  # Example threshold value, adjust as needed
@@ -37,7 +41,7 @@ def main():
                 size_result_x = process_size_folder(size_folder_path, threshold, key='T', value="xix", file_ending=".corr")
                 size_result_y = process_size_folder(size_folder_path, threshold, key='T', value="xiy", file_ending=".corr")
 
-                T_arr, xix_ft_arr, xiy_ft_arr = process_size_folder_ft(cut_zero_impuls, simulation_folder,
+                T_arr, xix_ft_arr, xiy_ft_arr = process_size_folder_ft(cut_zero_impuls,
                                                                        size_folder_path, threshold)
 
                 try:
@@ -62,7 +66,7 @@ def main():
         # okay fitting the amplitudes
         # lets say criticical Temperature is just the maximum of the correlation length
 
-        T_c = T_c_est
+        T_c = 1/2 * (T_c_est_min + T_c_est_max)
 
         eps_array = (T_arr - T_c) / T_c
         print(eps_array)
@@ -107,7 +111,8 @@ def main():
         ax.set_xlabel("T")
         ax.set_ylabel(r"$\xi(T)$")
         ax.set_ylim((pre_ylim_min, np.max(xix_sorted) * 1.05))
-        ax.set_title("Corr Length depending on T")
+        ax.set_title(r"Corr Length depending on T, $\xi$ on run")
+        ax.plot([], [], linestyle="", marker="", label=rf"$L_x = {keyx}$")
         ax.legend()
         save_plot(simulation_folder, f"/xix-xiy-time-average-{keyx}.png")
 
@@ -125,22 +130,16 @@ def main():
         # okay fitting the amplitudes
         # lets say criticical Temperature is just the maximum of the correlation length
 
-        T_c = T_c_est
-
-        eps_array = (T_arr - T_c) / T_c
-        print(eps_array)
-        xix_fit = xix_sorted[eps_array > 0]
-        print(xix_fit)
-        xiy_fit = xiy_sorted[eps_array > 0]
-        eps_fit = eps_array[eps_array > 0]
-        popt_x, _ = curve_fit(critical_amplitude, eps_fit, xix_fit)
-        popt_y, _ = curve_fit(critical_amplitude, eps_fit, xiy_fit)
-
+        T_c_x, T_min_fit_x, eps_array_x, eps_fit_x, popt_x, xix_fit = best_fit(T_arr, T_c_est_max, T_c_est_min, T_min_fit_max,
+                                                                       T_min_fit_min, res, xix_sorted)
+        print("T_c_x = ", T_c_x)
+        print("T_min_fit_x = ", T_min_fit_x)
+        T_c_y, T_min_fit_y, eps_array_y, eps_fit_y, popt_y, xiy_fit = best_fit(T_arr, T_c_est_max, T_c_est_min, T_min_fit_max,
+                                                                       T_min_fit_min, res, xiy_sorted)
+        print("T_c_y = ", T_c_y)
+        print("T_min_fit_y = ", T_min_fit_y)
         xi0_x = popt_x[0]
         xi0_y = popt_y[0]
-
-        print(popt_x)
-        print(popt_y)
 
         print("xi_x / xi_y = ", xi0_x / xi0_y)
         # plotting
@@ -163,23 +162,52 @@ def main():
                     capsize=3)
         print(critical_amplitude(eps_array, xi0_x))
         pre_ylim_min = ax.get_ylim()[0]
-        T_plot = np.linspace(T_c + eps, np.max(T_arr), 200)
-        eps_plot = (T_plot - T_c) / T_c
-        ax.plot(T_plot, critical_amplitude(eps_plot, xi0_x), color="C0", label=rf"$\xi^+_x = {xi0_x:.2f}$")
-        ax.plot(T_plot, critical_amplitude(eps_plot, xi0_y), color="C1", label=rf"$\xi^+_y = {xi0_y:.2f}$")
-        ax.vlines(T_c, pre_ylim_min, np.max(xix_sorted) * 1.05, linestyles="dashed", alpha=0.2, colors="black",
-                  label=rf"$T_c  = ${T_c}")
+        T_plot_x = np.linspace(T_c_x + eps, np.max(T_arr), 200)
+        eps_plot_x = (T_plot_x - T_c_x) / T_c_x
+        ax.plot(T_plot_x, critical_amplitude(eps_plot_x, xi0_x), color="C0", label=rf"$\xi^+_x = {xi0_x:.2f}$")
+        T_plot_y = np.linspace(T_c_y + eps, np.max(T_arr), 200)
+        eps_plot_y = (T_plot_y - T_c_y) / T_c_y
+        ax.plot(T_plot_y, critical_amplitude(eps_plot_y, xi0_y), color="C1", label=rf"$\xi^+_y = {xi0_y:.2f}$")
+        ax.vlines(T_c_x, pre_ylim_min, np.max(xix_sorted) * 1.05, linestyles="dashed", alpha=0.2, colors="C0",
+                  label=rf"$T_c  = ${T_c_x}")
+        ax.vlines(T_c_y, pre_ylim_min, np.max(xix_sorted) * 1.05, linestyles="dashed", alpha=0.2, colors="C1",
+                  label=rf"$T_c  = ${T_c_y:.3f}")
         ax.plot([], [], label=rf"$\xi^+_x / \xi^+_y = {(xi0_x / xi0_y):.2f}$", linestyle="")
         ax.set_xlabel("T")
         ax.set_ylabel(r"$\xi(T)$")
         ax.set_ylim((pre_ylim_min, np.max(xix_sorted) * 1.05))
-        ax.set_title("Corr Length depending on T")
+        ax.set_title("Corr Length depending on T, (ft) on run")
+        ax.plot([], [], linestyle="", marker="", label=rf"$L_x = {sizex}$")
         ax.legend()
         save_plot(simulation_folder, f"/xix-xiy-ft-time-average-{keyx}.png")
 
         plt.show()
 
-def process_size_folder_ft(cut_zero_impuls, simulation_folder, size_folder_path, threshold):
+
+def best_fit(T_arr, T_c_est_max, T_c_est_min, T_min_fit_max, T_min_fit_min, res, xi_sorted):
+    T_c_ests = np.linspace(T_c_est_min, T_c_est_max, num=res, endpoint=True)
+    T_mins_fit = np.linspace(T_min_fit_min, T_min_fit_max, num=res, endpoint=True)
+    min_mse = np.infty
+    T_c_best = 0
+    T_min_best = 0
+    popt = ()
+    for T_c in T_c_ests:
+        for T_min_fit in T_mins_fit:
+            if T_min_fit > T_c:
+                eps_array = (T_arr - T_c) / T_c
+                xi_fit = xi_sorted[(eps_array > 0) & (T_arr > T_min_fit)]
+                eps_fit = eps_array[(eps_array > 0) & (T_arr > T_min_fit)]
+                cur_popt, cur_pcov, infodict, _, _ = curve_fit(critical_amplitude, eps_fit, xi_fit, full_output=True)
+                mse = np.mean(infodict["fvec"] ** 2)
+                if mse < min_mse:
+                    T_c_best = T_c
+                    T_min_best = T_min_fit
+                    popt = cur_popt
+                    min_mse = mse
+    return T_c_best, T_min_best, eps_array, eps_fit, popt, xi_fit
+
+
+def process_size_folder_ft(cut_zero_impuls, size_folder_path, threshold):
     xix_ft_arr = []
     xiy_ft_arr = []
     T_arr = []
@@ -187,7 +215,7 @@ def process_size_folder_ft(cut_zero_impuls, simulation_folder, size_folder_path,
         if (temp != "plots") & (temp[0] != "."):
             settingpath = os.path.join(size_folder_path, temp)
             if os.path.isdir(settingpath):
-                parapath = find_first_txt_file(simulation_folder)
+                parapath = find_first_txt_file(settingpath)
                 parameters = read_parameters_txt(parapath)
 
                 Lx = parameters["subsystem_Lx"]

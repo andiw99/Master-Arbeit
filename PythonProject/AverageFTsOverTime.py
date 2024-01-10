@@ -3,7 +3,7 @@ import numpy as np
 from FunctionsAndClasses import *
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/OBC2"
+    simulation_path = "../../Generated content/Silicon/Quench/OBC3"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -13,6 +13,8 @@ def main():
     quench_zoom = 20
     y_scale = "log"
     y_lower_lim = 0.05
+    min_tau_fit = 0.1
+    max_tau_fit = np.infty
 
     size_x_dic = {}
     size_y_dic = {}
@@ -24,7 +26,7 @@ def main():
                 for setting in os.listdir(sizepath):
                     if (setting != "plots") & (setting[0] != "."):
                         settingpath = os.path.join(sizepath, setting)
-
+                        print(settingpath)
                         parapath = find_first_txt_file(simulation_path)
                         parameters = read_parameters_txt(parapath)
 
@@ -158,21 +160,24 @@ def main():
                 t_after_quench = np.max(t) - t_eq
                 xix_arr = np.array(list(t_xix[tau].values()))      # this is all the xi after time
                 xiy_arr = np.array(list(t_xiy[tau].values()))
-                xix = xix_arr[t > t_after_quench][0]
-                xiy = xiy_arr[t > t_after_quench][0]
+                xix = xix_arr[t <= t_after_quench][-1]
+                xiy = xiy_arr[t <= t_after_quench][-1]
                 xix_after_quench_dic[size].append(xix)
                 xiy_after_quench_dic[size].append(xiy)
                 if marker_ind == 0:
                     tau_arr.append(float(tau))
             tau_arr = np.array(tau_arr)
+            xix_fit = np.array(xix_after_quench_dic[size])[(tau_arr > min_tau_fit) & (tau_arr < max_tau_fit)]
+            xiy_fit = np.array(xiy_after_quench_dic[size])[(tau_arr > min_tau_fit) & (tau_arr < max_tau_fit)]
+            tau_fit = tau_arr[(tau_arr > min_tau_fit) & (tau_arr < max_tau_fit)]
             # do the fitting
-            popt_x, _ = curve_fit(linear_fit, np.log(tau_arr), np.log(np.array(xix_after_quench_dic[size])))
-            popt_y, _ = curve_fit(linear_fit, np.log(tau_arr), np.log(np.array(xiy_after_quench_dic[size])))
+            popt_x, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xix_fit))
+            popt_y, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xiy_fit))
 
             axx.plot(tau_arr, xix_after_quench_dic[size], linestyle="",     color="C" + str(marker_ind), marker=markers[marker_ind], label=f"{size}")
             axy.plot(tau_arr, xiy_after_quench_dic[size], linestyle="",     color="C" + str(marker_ind), marker=markers[marker_ind], label=f"{size}")
-            axx.plot(tau_arr, poly(tau_arr, popt_x[0], np.exp(popt_x[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}" )
-            axy.plot(tau_arr, poly(tau_arr, popt_y[0], np.exp(popt_y[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}" )
+            axx.plot(tau_fit, poly(tau_fit, popt_x[0], np.exp(popt_x[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}" )
+            axy.plot(tau_fit, poly(tau_fit, popt_y[0], np.exp(popt_y[1])),  color="C" + str(marker_ind), label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}" )
 
     axx.set_xlabel(r"$\tau$")
     axx.set_ylabel(r"$\xi_x$")
@@ -180,12 +185,11 @@ def main():
     axy.set_ylabel(r"$\xi_y$")
 
     configure_ax(figx, axx)
-    configure_ax(figy, axy)
-
     figx.savefig(simulation_path + "/xix-quench-scaling.png", format="png", dpi=300)
+
+    configure_ax(figy, axy)
     figy.savefig(simulation_path + "/xiy-quench-scaling.png", format="png", dpi=300)
-
-
     plt.show()
+
 if __name__ == "__main__":
     main()

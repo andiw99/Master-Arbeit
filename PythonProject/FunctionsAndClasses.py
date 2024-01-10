@@ -93,24 +93,30 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     nr_of_meshs = config["nr_of_meshs"]
     cell_L = config["cell_L"]
     parameters["cell_L"] = cell_L
-    nr_rows = int(parameters["nr_saves"])
+    with open(filepath, "rbU") as f:
+        nr_rows = sum(1 for _ in f)
+    print("nr of rows: ", nr_rows)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
-    rows = np.linspace(0, nr_rows, nr_of_meshs, endpoint=True)
+    rows = np.linspace(0, nr_rows, nr_of_meshs, endpoint=False)
     rows = [int(row) for row in rows]
     df = read_large_df(filepath, rows)
-
     stretch = Lx/Ly
     if config["subsystem"]:
-        stretch = parameters["subsystem_Lx"] / parameters["subsystem_Ly"]
+        stretch = np.minimum(parameters["subsystem_Lx"], cell_L) / parameters["subsystem_Ly"]
         print("stretch = " , stretch)
     elif cell_L != 0:
         stretch = 1
-    fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
+    if nr_of_meshs == 2:
+        fig, axes = plt.subplots(2, 1, figsize=[2 + 10 * stretch, 10])
+    else:
+        fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
     i = 0
     for axs in (axes):
+        if nr_of_meshs == 2:
+            axs = [axs]
         for ax in (axs):
             ind = i
 
@@ -128,11 +134,22 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                     max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5)
                     max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
-                    nr_subsystems_per_col = np.minimum(int(config["cell_L"] / subsystem_Ly), max_nr_subsystems_per_col)
-                    config["cell_L"] = nr_subsystems_per_row * subsystem_Lx
+                    if nr_subsystems_per_row == 0:
+                        nr_subsystems_per_row = 1
+                        nr_subsystems_per_col = 1
+                    else:
+                        nr_subsystems_per_col = np.minimum(int(config["cell_L"] / subsystem_Ly), max_nr_subsystems_per_col)
+                    print(nr_subsystems_per_col)
+                    print(nr_subsystems_per_row)
                     nr_subsystems = nr_subsystems_per_row * nr_subsystems_per_col
                     # we now need to extract a rectangular cell that is subsystem_Ly high and nr_subsystems * subsystem_Lx wide
                     row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_subsystems, subsystem_Lx, subsystem_Ly, Lx, Ly)
+                    if config["cell_L"] < subsystem_Lx:
+                        print(row.shape)
+                        row = extract_rectangle_from_rectangle(row.flatten(), 0, 1, config["cell_L"], subsystem_Ly, subsystem_Lx, subsystem_Ly)
+                        print(row.shape)
+                    else:
+                        config["cell_L"] = nr_subsystems_per_row * subsystem_Lx
                 else:
                     row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
@@ -203,6 +220,8 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     ax.set_title(title)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
+    subsystem_Lx = int(parameters["subsystem_Lx"])
+    subsystem_Ly = int(parameters["subsystem_Ly"])
     cell_L = int(config["cell_L"])
     if config["subsystem"]:
         pass
@@ -220,7 +239,10 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     if chess_trafo:
         print("doing chess trafo")
         if config["subsystem"]:
-            row = chess_board_trafo_rectangular_subsystems(row, int(parameters["subsystem_Lx"]), int(parameters["subsystem_Ly"]))
+            if cell_L < Lx:
+                row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
+            else:
+                row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
         else:
             row = chess_board_trafo(row)
     if config["angle"] == 1:
@@ -903,25 +925,26 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
     result = {key: [], value: []}
 
     for temp_folder in os.listdir(size_folder):
-        temp_folder_path = os.path.join(size_folder, temp_folder)
-        if os.path.isdir(temp_folder_path):
-            temp_average = []
-            nr_avg_values = []
-            for file_name in os.listdir(temp_folder_path):
-                if file_name.endswith(file_ending):
-                    file_path = os.path.join(temp_folder_path, file_name)
-                    average_value, nr_values = process_file(file_path, threshold, 't', value)
-                    print(file_path)
-                    print(average_value)
-                    temp_average.append(average_value)
-                    nr_avg_values.append(nr_values)
-            if temp_average:
-                print("all averages:", temp_average)
-                print("mean:", np.mean(temp_average))
-                val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
-                print("weighted average: ", val_avg)
-                result[key].append(float(temp_folder))
-                result[value].append(val_avg)
+        if (temp_folder != "plots") & (temp_folder[0] != "."):
+            temp_folder_path = os.path.join(size_folder, temp_folder)
+            if os.path.isdir(temp_folder_path):
+                temp_average = []
+                nr_avg_values = []
+                for file_name in os.listdir(temp_folder_path):
+                    if file_name.endswith(file_ending):
+                        file_path = os.path.join(temp_folder_path, file_name)
+                        average_value, nr_values = process_file(file_path, threshold, 't', value)
+                        print(file_path)
+                        print(average_value)
+                        temp_average.append(average_value)
+                        nr_avg_values.append(nr_values)
+                if temp_average:
+                    print("all averages:", temp_average)
+                    print("mean:", np.mean(temp_average))
+                    val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
+                    print("weighted average: ", val_avg)
+                    result[key].append(float(temp_folder))
+                    result[value].append(val_avg)
 
     result[value] = np.array(result[value])[np.argsort(result[key])]
     result[key] = np.sort(result[key])
@@ -1030,7 +1053,7 @@ def rescale_t(t, tau, t_eq, zoom = 1):
     new_t = []
     # the values that sit between t_eq and total_time - t_eq shall be scaled
     new_t += list(t[t < 0])
-    new_t += list(t[(t > 0) & (
+    new_t += list(t[(t >= 0) & (
             t < total_time - 2 * t_eq)] / tau * zoom)
     new_t += list(t[t >= total_time - 2 * t_eq] - (
             1 - zoom / tau) * (
