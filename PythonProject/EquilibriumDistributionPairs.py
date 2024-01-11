@@ -70,7 +70,7 @@ def filter_cut(x, x_cut, dx):
 
 
 def main():
-    root = "../../Generated content/XY Pairs/Many/"
+    root = "../../Generated content/XY/XY Pairs/New/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
@@ -117,8 +117,9 @@ def main():
                     file_path = os.path.join(temp_path, file)
                     para_filepath = os.path.splitext(file_path)[0] + ".txt"
                     parameters = read_parameters_txt(para_filepath)
-                    row = range(int(parameters["nr_saves"]))
+                    row = range(int(parameters["nr_saves"]) + 1)
                     x = read_large_df(file_path, row)[1:]
+                    print(len(x))
                     T = parameters["T"]
                     dt = parameters["dt"]
                     alpha = parameters["alpha"]
@@ -138,7 +139,7 @@ def main():
         x_start = filter_cut(x[0][2:], x2, dx)
         count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}")
         ax.plot(x_range, W_x, label=f"T = {T:.2f} \n$x_2 = ${x2:.2f}")
-        ax.plot(x_range, W_x_single, label=f"single particle dist")
+        #ax.plot(x_range, W_x_single, label=f"single particle dist")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
         ax.set_ylim(0, 1.5 * np.max(W_x))
         configure_ax(fig, ax)

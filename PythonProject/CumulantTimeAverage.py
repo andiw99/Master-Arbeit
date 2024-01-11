@@ -7,13 +7,13 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Small3/Binder2'
-    threshold = 100000  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC'
+    threshold = 5000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0.947
-    max_T = 0.957
+    min_T = 0.0
+    max_T = 1.12
 
     results = {}
 
@@ -47,15 +47,15 @@ def main():
     ax.set_xlabel("T")
     ax.set_ylabel(r"$U_L$")
     ax.set_title("Binder Cumulant on T")
-    fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
     if min_T:
         ax.set_xlim(min_T, ax.get_xlim()[1])
         ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
     if max_T:
         ax.set_xlim(ax.get_xlim()[0], max_T)
         ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+    mark_point(ax, T_intersection, U_L_intersection, label = rf"$T_c = {T_intersection:.3f}$")
     configure_ax(fig, ax)
-    mark_point(ax, T_intersection, U_L_intersection)
+    fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
     plt.show()
 
     # constructing cum dic

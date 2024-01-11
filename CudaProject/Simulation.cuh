@@ -56,7 +56,7 @@ public:
         // it is either decoded in the system or in the parameters (actually both times we can get it out of the parameters...
         // but we would have to write another function for that...
         cout << "get end t of base Simualtion is called (WRONG!)" << endl;
-
+        return 0.0;
     }
 
     void run(int nr) {
