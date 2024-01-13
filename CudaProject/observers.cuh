@@ -94,7 +94,7 @@ public:
         } else {
             job_id_str = "local";
         }
-        return to_string(run_nr) + "-" + get_current_time() + "-" + job_id_str + "-" + boost::asio::ip::host_name();
+        return to_string(run_nr) + "-" + get_current_time().substr(0, 4) + "-" + job_id_str + "-" + boost::asio::ip::host_name();
     }
 };
 

@@ -100,7 +100,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     Ly = int(parameters["dim_size_y"])
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
-    rows = np.linspace(0, nr_rows, nr_of_meshs, endpoint=False)
+    rows = np.linspace(0, nr_rows - 1, nr_of_meshs, endpoint=True)
     rows = [int(row) for row in rows]
     df = read_large_df(filepath, rows)
     stretch = Lx/Ly
@@ -930,18 +930,25 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
             if os.path.isdir(temp_folder_path):
                 temp_average = []
                 nr_avg_values = []
+                nr_subsystems = []
                 for file_name in os.listdir(temp_folder_path):
                     if file_name.endswith(file_ending):
+                        # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
                         file_path = os.path.join(temp_folder_path, file_name)
                         average_value, nr_values = process_file(file_path, threshold, 't', value)
+                        para_file_path = os.path.splitext(file_path)[0] + ".txt"
+                        parameters = read_parameters_txt(para_file_path)
+                        nr_subsys = parameters["nr_subsystems"]
                         print(file_path)
                         print(average_value)
                         temp_average.append(average_value)
                         nr_avg_values.append(nr_values)
+                        nr_subsystems.append(nr_subsys)
                 if temp_average:
                     print("all averages:", temp_average)
                     print("mean:", np.mean(temp_average))
-                    val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values)) / np.sum(nr_avg_values)
+                    val_avg = (np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) /
+                               np.sum(nr_avg_values)) / np.sum(nr_subsystems)
                     print("weighted average: ", val_avg)
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
@@ -971,6 +978,7 @@ def average_ft(folderpath, ending=".ft"):
             first_file = False
             nr_files += 1
     # average
+    print(f"averaged {nr_files} files")
     for t in t_ft_k:
         t_ft_k[t] /= nr_files
         t_ft_l[t] /= nr_files

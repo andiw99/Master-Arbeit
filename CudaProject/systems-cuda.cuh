@@ -827,9 +827,9 @@ struct quench : virtual public System {
         cout << "tau = " << tau << endl;
     }
     double linear_T(double t) {
-        if(s_eq_t < t && t < end_quench_t) {
+        if(s_eq_t < t) {
             // if we are in the quench phase, we reduce T
-            System::T = T_start - (t - s_eq_t)/tau;
+            System::T = maximum(T_start - (t - s_eq_t)/tau, T_end);
         }
         return System::T;
     }

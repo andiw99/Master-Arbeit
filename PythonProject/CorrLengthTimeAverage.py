@@ -18,7 +18,7 @@ def main():
     T_c_est_min = 0.95
     T_c_est_max = 0.956
     T_min_fit_min = 0.96
-    T_min_fit_max = 0.965
+    T_min_fit_max = 0.9625
     res = 100
     cut_zero_impuls = True
     print(root_dirs)

@@ -7,13 +7,14 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC'
-    threshold = 5000  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC3'
+    threshold = 1000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
     min_T = 0.0
-    max_T = 1.12
+    max_T = 0.0
+    nr_curves = 6
 
     results = {}
 
@@ -32,14 +33,20 @@ def main():
 
     y_upper_lim = 0
     y_lower_lim = np.infty
-    for i,size in enumerate(sorted(results.keys())):
-        T = np.array(results[size]["T"])
-        U_L = np.array(results[size]["U_L"])
-        ax.plot(T, U_L, linestyle="", marker="x", color=colors[i])
-        ax.plot(x_range, U_L_interpolated[i], color=colors[i], label=rf"L = {size}", linewidth=linewidth)
-        if max_T:
-            y_upper_lim = np.maximum(np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
-            y_lower_lim = np.minimum(np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
+    shown_inds = np.linspace(0, nr_curves, nr_curves+1, endpoint=True, dtype=np.int64)
+    ind = 0
+    for i, size in enumerate(sorted(results.keys())):
+        if i in shown_inds:
+            T = np.array(results[size]["T"])
+            U_L = np.array(results[size]["U_L"])
+            print(T)
+            print(U_L)
+            ax.plot(T, U_L, linestyle="", marker="x", color=colors[ind])
+            ax.plot(x_range, U_L_interpolated[i], color=colors[ind], label=rf"L = {size}", linewidth=linewidth)
+            ind += 1
+            if max_T:
+                y_upper_lim = np.maximum(np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
+                y_lower_lim = np.minimum(np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
 
     y_span = y_upper_lim - y_lower_lim
     print(y_upper_lim, ", ", y_lower_lim)
