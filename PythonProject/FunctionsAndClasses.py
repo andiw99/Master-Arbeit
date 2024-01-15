@@ -98,6 +98,9 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     print("nr of rows: ", nr_rows)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
+    if nr_rows < nr_of_meshs:
+        nr_of_meshs = nr_rows
+        print(f"{nr_of_meshs} snapshots not available, using {nr_rows} instead.")
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
     rows = np.linspace(0, nr_rows - 1, nr_of_meshs, endpoint=True)
@@ -119,7 +122,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
             axs = [axs]
         for ax in (axs):
             ind = i
-
+            print("ind = ", ind)
             # read time and temperature and extract the values
             parameters["t"] = df[ind][0]
             parameters["T"] = df[ind][1]
@@ -947,8 +950,11 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
                 if temp_average:
                     print("all averages:", temp_average)
                     print("mean:", np.mean(temp_average))
+                    print("nr_subsystems:", nr_subsystems)
+                    print("nr_avg_values:", nr_avg_values)
+                    print(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems))
                     val_avg = (np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) /
-                               np.sum(nr_avg_values)) / np.sum(nr_subsystems)
+                               np.sum(np.array(nr_avg_values) * np.array(nr_subsystems)))
                     print("weighted average: ", val_avg)
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)

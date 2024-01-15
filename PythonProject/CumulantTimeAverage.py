@@ -7,13 +7,13 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC3'
-    threshold = 1000  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Dampening/Large eta'
+    threshold = 25000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0.0
-    max_T = 0.0
+    min_T = 0
+    max_T = 0
     nr_curves = 6
 
     results = {}
@@ -60,7 +60,7 @@ def main():
     if max_T:
         ax.set_xlim(ax.get_xlim()[0], max_T)
         ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-    mark_point(ax, T_intersection, U_L_intersection, label = rf"$T_c = {T_intersection:.3f}$")
+    mark_point(ax, T_intersection, U_L_intersection, label = rf"$T_c = {T_intersection:.4f}$")
     configure_ax(fig, ax)
     fig.savefig(simulation_folder + "/cum_time_avg.png", format="png", dpi=300, transparent=transparent_plots)
     plt.show()

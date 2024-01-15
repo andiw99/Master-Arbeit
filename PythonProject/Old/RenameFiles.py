@@ -23,7 +23,7 @@ def rename_files(directory):
 
 # Replace 'your_directory_path' with the path to the directory you want to process
 def main():
-    root_directory = '../../../Generated content/Silicon/Subsystems/OBC3'
+    root_directory = '../../../Generated content/Silicon/Subsystems/Large h'
     rename_files(root_directory)
 
 
