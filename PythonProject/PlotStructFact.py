@@ -5,26 +5,6 @@ from scipy.optimize import curve_fit
 import matplotlib.ticker as ticker
 
 
-
-
-
-
-
-def plot_struct_func(px, py, fx, fy, error_x=np.array([]), error_y=np.array([])):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    axx = axes[0]
-    axy = axes[1]
-
-    axx.errorbar(px, fx, yerr=error_x, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
-    axx.set_xlabel(r"$p_x$")
-    axx.set_ylabel(r"$S(p_x)$")
-    axy.errorbar(py, fy, yerr=error_y, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
-    axy.set_xlabel(r"$p_y$")
-    axy.set_ylabel(r"$S(p_y)$")
-    axx.legend()
-    axy.legend()
-    return fig, axes
-
 def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True,
             plot_struct = False, cut_zero_impuls = False):
 

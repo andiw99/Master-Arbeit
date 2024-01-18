@@ -974,6 +974,7 @@ def average_ft(folderpath, ending=".ft"):
         if file.endswith(".ft"):
             filepath = os.path.join(folderpath, file)
             df = pd. read_csv(filepath, sep=";")
+            print(filepath, "firstfile = ", first_file)
             for j, t in enumerate(df['t']):
                 if first_file:
                     t_ft_k[t] = string_to_array(df["ft_k"][j])
@@ -1074,6 +1075,21 @@ def rescale_t(t, tau, t_eq, zoom = 1):
                           total_time - 2 * t_eq))
     t_q_s = (total_time - 2 * t_eq) / tau * zoom
     return np.array(new_t), t_q_s
+
+def plot_struct_func(px, py, fx, fy, error_x=0, error_y=0):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    axx = axes[0]
+    axy = axes[1]
+
+    axx.errorbar(px, fx, yerr=error_x, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
+    axx.set_xlabel(r"$p_x$")
+    axx.set_ylabel(r"$S(p_x)$")
+    axy.errorbar(py, fy, yerr=error_y, ls=" ", marker=".", label="Structure Func", color="C1", ecolor="black", capsize=3)
+    axy.set_xlabel(r"$p_y$")
+    axy.set_ylabel(r"$S(p_y)$")
+    axx.legend()
+    axy.legend()
+    return fig, axes
 
 
 def main():

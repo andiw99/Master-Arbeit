@@ -25,7 +25,7 @@ def fold(t, U_L, fold=3):
 
     return np.array(t_fold), np.array(U_L_fold)
 def main():
-    root = "../../Generated content/Silicon/Subsystems/z extraction/high temperature/medium h/"
+    root = "../../Generated content/Silicon/Subsystems/z extraction/high temperature/small eta/"
     ending = "cum"
     value = "U_L"
     title = ""
