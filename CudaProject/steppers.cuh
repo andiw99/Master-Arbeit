@@ -94,6 +94,9 @@ public:
             for(auto obs : obsvers) {
                 obs->operator()(sys, x, t);
             }
+            if(sys.is_equilibrated()) {
+                break;
+            }
         }
     }
 

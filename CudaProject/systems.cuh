@@ -42,6 +42,7 @@ public:
     const size_t dim_size_y;
     thrust::device_vector<hiprandState> curand_states;
     bool curand_random = false;
+    bool equilibrated = false;
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
@@ -591,6 +592,14 @@ public:
         return "system";
     }
 
+    bool is_equilibrated() {
+        return equilibrated;
+    }
+
+    void set_equilibration() {
+        equilibrated = true;
+    }
+
     ~System() {
         //hipDeviceSynchronize();
         cout << "System destroyed" << endl;
@@ -827,9 +836,9 @@ struct quench : virtual public System {
         cout << "tau = " << tau << endl;
     }
     double linear_T(double t) {
-        if(s_eq_t < t && t < end_quench_t) {
+        if(s_eq_t < t) {
             // if we are in the quench phase, we reduce T
-            System::T = T_start - (t - s_eq_t)/tau;
+            System::T = max(T_start - (t - s_eq_t)/tau, T_end);
         }
         return System::T;
     }

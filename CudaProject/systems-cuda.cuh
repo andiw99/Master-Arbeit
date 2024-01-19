@@ -42,6 +42,7 @@ public:
     const size_t dim_size_y;
     thrust::device_vector<curandState> curand_states;
     bool curand_random = false;
+    bool equilibrated = false;
 
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
@@ -589,6 +590,14 @@ public:
 
     virtual string get_name() const {
         return "system";
+    }
+
+    bool is_equilibrated() {
+        return equilibrated;
+    }
+
+    void set_equilibration() {
+        equilibrated = true;
     }
 
     ~System() {

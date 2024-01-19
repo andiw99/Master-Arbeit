@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
             new runtime_observer<relax_system, state_type>();
 
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
-    auto* cum_obs = new cum_observer<relax_system, state_type>(paras[nr_cum_values]);
+    auto* cum_obs = new cum_equilibration_observer<relax_system, state_type>();
     auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
     auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 

@@ -29,7 +29,7 @@ def main():
     ending = "cum"
     value = "U_L"
     title = ""
-    z_min_fit = 1.9
+    z_min_fit = 1.0
     z_max_fit = 2.2
     res = 200
     fold_points = 20
@@ -152,7 +152,9 @@ def main():
         if(prev_size_temp):
             actual_size = size_temp[0]
             b = actual_size / prev_size_temp[0]
+            print(f"b = {b}")
             # prev is the smaller L so b > 0
+
             for z in z_list:
                 pre_t_arr, cum_arr = fold(t_map[prev_size_temp], cum_map[prev_size_temp], fold=fold_points)
                 pre_t_arr = b ** z * pre_t_arr
@@ -165,10 +167,13 @@ def main():
                 if(total_squared_error < min_squared_error):
                     min_squared_error = total_squared_error
                     min_z = z
-            plot_t_arr = b ** min_z * t_map[prev_size_temp]
+
+            plot_t_arr, cum_arr = fold(t_map[prev_size_temp], cum_map[prev_size_temp], fold=fold_points)
+            plot_t_arr = b ** min_z * plot_t_arr
+            pre_cum_inter = interp1d(plot_t_arr, cum_arr, kind="cubic")
             t_arr = np.array(plot_t_arr)
             ax.plot(t_arr[t_arr > t_lower_limit],
-                    np.array(cum_map[prev_size_temp])[t_arr > t_lower_limit],
+                    pre_cum_inter(t_arr[t_arr > t_lower_limit]),
                     linestyle="-", label=f"$L_x$={prev_size_temp[0]},"
                                               f"  T = {prev_size_temp[1]}  rescaled z = {min_z:.3f}", color=f"C{i}")
         prev_size_temp = size_temp

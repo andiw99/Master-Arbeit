@@ -335,7 +335,7 @@ public:
 
         close_stream();
         open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
-        cout << "cum observer init called" << endl;
+        cout << this->get_name() << " init called" << endl;
         ofile << "t,U_L" << endl;
 
         // I think this will have less performance impact than an if statement catching the first observer operation
@@ -351,6 +351,117 @@ public:
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
             ofile << t << "," << sys.calc_binder(x) << endl;
+            timepoint += write_interval;
+        }
+    }
+
+};
+
+template <class system, class State>
+class cum_equilibration_observer: public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<double> U_L{};
+    vector<double> times{};
+    int min_cum_nr = 1000;
+    int avg_nr = 5;     // after avg_nr of U_L calculations we check if we should adjust the stepsize
+    double min_density = 1.0 / 1000.0;      // the minimum density of U_L calculations will be once in 1000 steps
+    double max_density = 1.0 / 10.0;        // the maximum density of U_L calculations will be once in 10 steps
+    double min_stepsize_div = 0.001;         // the stddeviation of avg_nr U_Ls should be at least min_stepsize_div of mean_UL
+    double max_stepsize_div = 0.003;         // the stddeviation of avg_nr U_Ls should be at most max_stepsize_div of mean_UL
+    double dt = 0.01;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
+    double max_error= 0.0001;
+    int cum_nr = 0;                         // current number in the averageing process
+public:
+
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
+        cout << this->get_name() << " init called" << endl;
+        ofile << "t,U_L" << endl;
+
+        // I think the starting write interval should be every one hundred steps
+        dt = paras[Parameter::dt];
+        write_interval = 100 * dt;
+    }
+
+    string get_name() override {
+        return "cum equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            // advancing the cum nr
+            cum_nr++;
+            // we calculate the cumulant and write it down
+            double cum = sys.calc_binder(x);
+            ofile << t << "," << cum << endl;
+            // add the cumulant and the times to the vectors to keep track
+            U_L.push_back(cum);
+            times.push_back(t);
+            // now we want to see if we have to adjust the write interval
+            // we have to make sure that we got 5 fresh cum values
+            if(cum_nr >= avg_nr) {
+                cum_nr = 0;     // reset the cum nr
+                int nr_cum_values = U_L.size();      // check how many cum values we already have
+                // now use the last avg_nr of cum values to calculate a mean U_L
+                // use transform reduce?
+                // does it work like this? U_L.end() - avg_nr is the n-th last value in the vector?
+                double mean_U_L = accumulate(U_L.end() - avg_nr, U_L.end(), 0.0) / (double)avg_nr;
+                // calculate the stddev
+                std::vector<double> diff(avg_nr);
+                std::transform(U_L.end() - avg_nr, U_L.end(), diff.begin(), [mean_U_L](double x) { return x - mean_U_L; });
+                double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+                // we will use the relative stddeve
+                double rel_stddev = sqrt(sq_sum / (double)avg_nr) / mean_U_L;
+                // if the relative stddev is smaller than min_stepsize_div, we will increase the write interval
+                if(rel_stddev < min_stepsize_div) {
+                    cout << "increasing stepsize since rel_stddev = " << rel_stddev;
+                    write_interval *= 2;
+                    cout << "new stepsize = " << write_interval << endl;
+                } else if (rel_stddev > max_stepsize_div) {
+                    cout << "decreasing stepsize since rel_stddev = " << rel_stddev;
+                    // if it is larger, we will reduce it
+                    write_interval /= 2;
+                    cout << "new stepsize = " << write_interval << endl;
+                }
+                // the write interval should be in bounds of min and max density
+                write_interval = min((1.0 / min_density) * dt, write_interval);
+                write_interval = max((1.0 / max_density) * dt, write_interval);
+
+                // okay so we adjusted the write interval
+                // now we still want to check if we are equilibrated
+                // the simulation runs at least so long that there are min_cum_nr valuse
+                if(nr_cum_values > min_cum_nr){
+                    // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
+                    int min_ind = (int)(equil_cutoff * nr_cum_values);
+                    // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
+                    double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+                    std::vector<double> diff_total(nr_cum_values - min_ind);
+                    std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
+                    double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0);
+                    double rel_stddev_total = sqrt(sq_sum_total / (double)(pow(nr_cum_values - min_ind, 2))) / avg_U_L;
+                    cout << "rel_stddev_total = " << rel_stddev_total << endl;
+                    // the question is now if we want to extract avg_U_L and its error if we are equilibrated
+                    // we definitely should? But how and where? somehow into the parameter file?
+                    if(rel_stddev_total < max_error) {
+                        cout << "The system equilibrated, the run lastet to t = " << t << endl;
+                        cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
+                        // we set the system to be equilibrated
+                        sys.set_equilibration();
+                    }
+                }
+            }
             timepoint += write_interval;
         }
     }
