@@ -911,6 +911,8 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     Process a single file and calculate the average after the given threshold.
     """
     df = pd.read_csv(file_path)
+    if 0 < threshold < 1:
+        threshold = threshold * len(df[key])
     df = df[df[key] >= threshold]
     nr_values = df.shape[0]
     if nr_values < 1:

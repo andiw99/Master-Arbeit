@@ -8,8 +8,7 @@ import matplotlib; matplotlib.use("TkAgg")
 
 
 class Anim():
-    def __init__(self, fig, axes, root):
-        self.fig = fig
+_        self.fig = fig
         self.sys_ax = axes[0]
         self.corr_ax = axes[1]
         self.twin_corr_ax = axes[2]
