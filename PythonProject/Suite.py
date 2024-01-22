@@ -66,7 +66,7 @@ def find_intersection(x_range, y1, y2):
 
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e6, Ly_Lx = 1/8):
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8):
         self.J_para = J_para
         self.J_perp = J_perp
         self.h = h
