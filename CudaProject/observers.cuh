@@ -383,6 +383,7 @@ public:
 
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
         timepoint = 0.0;
 
         close_stream();
