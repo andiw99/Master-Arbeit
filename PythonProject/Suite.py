@@ -7,6 +7,7 @@ import time
 from FunctionsAndClasses import *
 import subprocess
 import pathlib
+from scipy.interpolate import CubicSpline, PchipInterpolator
 
 def T_c_XY(T, J_parallel, J_perp):
     return 2 * T / J_parallel * np.log(2 * T / J_perp) - 1
@@ -17,7 +18,6 @@ def T_c_est(J_para, J_perp, h):
     T_c_est = (J_para + J_perp) / 2
     T_c_est = fsolve(T_c_XY, T_c_est, args=(J_para, J_perp))
     return T_c_est
-
 
 def extract_numbers_after_newline(input_string):
     # Define the regular expression pattern
@@ -50,19 +50,69 @@ def check_completed_status(number, input_string):
                 return True  # 'COMPLETED' found
     return False  # 'COMPLETED' not found
 
+def check_directory_structure(sizes, temperatures, directory_path):
+    # Check if the directory exists
+    if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
+        return False
 
-def find_intersection(x_range, y1, y2):
+    # Iterate over sizes
+    for size in sizes:
+        size_path = os.path.join(directory_path, str(size))
+
+        # Check if the size folder exists
+        if not os.path.exists(size_path) or not os.path.isdir(size_path):
+            print("No size folders available")
+            return False
+
+        # Iterate over temperatures
+        for temp in temperatures:
+            temp_path = os.path.join(size_path, "{:.6f}".format(temp))      # we only write 6
+
+            # Check if the temperature folder exists
+            if not os.path.exists(temp_path) or not os.path.isdir(temp_path):
+                print("No temperature folders available")
+                return False
+
+            # Check if there is at least one "*.cum" file in the temperature folder
+            cum_files = [f for f in os.listdir(temp_path) if f.endswith('.cum')]
+            if not cum_files:
+                print("No cumulant files available")
+                return False
+
+    # If all checks pass, return True
+    return True
+
+def find_intersection(x_range, y1, y2, res=1000):
     # Interpolate the curves
-    interp_func1 = interp1d(x_range, y1, kind='linear', fill_value='extrapolate')
-    interp_func2 = interp1d(x_range, y2, kind='linear', fill_value='extrapolate')
-
-    # Create a function representing the difference between the two curves
-    diff_func = lambda x: interp_func1(x) - interp_func2(x)
-
+    #print("diff_func:")
+    x_inter = np.linspace(x_range[0], x_range[-1], res)
+    diff_func = np.interp(x_inter, x_range, y1 - y2)
+    #fig, ax = plt.subplots(1, 1)
+    #ax.plot(x_inter, diff_func)
+    #plt.show()
+    #print("x_inter:", x_inter)
+    #print("diff_func", diff_func)
+    #print("np.argmin(diff_func(x_inter))", np.argmin(np.abs(diff_func)))
+    #print("x_inter[np.argmin(diff_func(x_inter))]", x_inter[np.argmin(np.abs(diff_func))])
+    #intersection_x = x_inter[np.argmin(np.abs(diff_func))]
+    #print("diff_func(intersection_T)", diff_func(intersection_x))
     # Find the root (intersection) using numerical methods
-    intersection_x = np.root(diff_func)
-    return intersection_x
+    #print("diff_func.roots():", diff_func.roots())
+    #intersection_x = diff_func.roots()[0]       # TODO does it work like that?
 
+    # Okay I think we have to write a slightly better version of this function
+    # We keep the diff_func, but we now check for sign changes
+    diff_func_sign = np.sign(diff_func)
+    signchange = ((np.roll(diff_func_sign, 1) - diff_func_sign) != 0).astype(int)
+    signchange[0] = 0
+    # we take the index of the first index change. This assumes that the lines dont cross for low temperatures
+    # for high temperatures they might cross more often
+    # This is still not very good?
+    # We could do this sign thing for every diff curve and then choose always the one that has the least total difference to the other sign arrays
+    ind_signchange = np.where(signchange == 1)[0][0]
+    intersection_x = x_inter[ind_signchange]
+
+    return intersection_x
 
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
@@ -92,10 +142,11 @@ class crit_temp_measurement():
         self.connection = None
 
         self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
-        self.max_rel_intersec_error = 0.02  # standard maximum error of 2%
+        self.max_rel_intersec_error = 0.002  # standard maximum error of 2%
         self.equil_error = 0.0004           # standard equilibration error for the U_L runs
         self.maximum_iterations = 4
         self.iteration_nr = 0
+        self.repeat = False             # variable that is set to true if we have to repeat a simulation
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -112,22 +163,24 @@ class crit_temp_measurement():
         print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
         self.max_time = self.dt * self.max_steps
         self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
-    def routine(self, walltime='24:00:00', file='SubsystemRelaxation.cu', folder='simulations', user='weitze73', wait=20):
+    def routine(self, walltime='24:00:00', file='SubsystemRelaxation.cu', folder='simulations', user='weitze73', wait=40):
         """
         the outer routine for the T_c calculation
-        :param walltime: walltime per job
+        :param walltime: walltime per job+3,
         :param file: file to be compiled, we may want to have a seperate file for the autonomous exection
         :param folder: folder for the executables
         :param wait: sleep for wait seconds before checking again if a job is finished        
         :return: -
         """
         self.init()                 # initializing determines the T range
-        self.iteration(file, folder, user, wait, walltime)  # recursive fuction that returns T_c
+        T_c, T_c_error = self.iteration(file, folder, user, wait, walltime)  # recursive fuction that returns T_c
         self.conclude()
+        return T_c, T_c_error
 
     def conclude(self):
         # This function should plot stuff etc. keep it simple at this point
         # copied just the cumulanttimeaverage script!
+        # has to be rewritten...
         threshold = 0.1
         results = {}
         for size_folder in os.listdir(self.simulation_path):
@@ -138,9 +191,18 @@ class crit_temp_measurement():
                                                       threshold)
                     results[int(size_folder)] = size_result
 
-        x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
-            results)
-        print("Critical Temperature T_c = ", T_intersection)
+        # interpolate and minimize is deprecated, we use the technique we also use in iteration
+        intersections = []
+        for i in range(len(self.sizes)):
+            U_L_1 = results[self.sizes[i]]["U_L"]
+            U_L_2 = results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
+            # print("U_L_1 = ", U_L_1)
+            T_arr = results[self.sizes[i]]["T"]
+            intersection = find_intersection(T_arr, U_L_1, U_L_2)
+            intersections.append(intersection)
+
+        T_c = np.mean(intersections)
+        T_c_error = np.ptp(intersections)
 
         fig, ax = plt.subplots(1, 1)
 
@@ -157,9 +219,10 @@ class crit_temp_measurement():
                 U_L = np.array(results[size]["U_L"])
                 print(T)
                 print(U_L)
+                exit()
                 ax.plot(T, U_L, linestyle="", marker="x", color=colors[ind])
-                ax.plot(x_range, U_L_interpolated[i], color=colors[ind],
-                        label=rf"L = {size}", linewidth=1)
+                #ax.plot(x_range, U_L_interpolated[i], color=colors[ind],
+                #        label=rf"L = {size}", linewidth=1)
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
@@ -168,7 +231,6 @@ class crit_temp_measurement():
                         np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
 
         y_span = y_upper_lim - y_lower_lim
-        print(y_upper_lim, ", ", y_lower_lim)
 
         ax.set_xlabel("T")
         ax.set_ylabel(r"$U_L$")
@@ -220,10 +282,20 @@ class crit_temp_measurement():
 
     def iteration(self, file, folder, user, wait, walltime):
         self.iteration_nr += 1
-        para_nr = self.write_para_files()  # setting up the parameter files for every simulation
-        self.run_jobs(file, folder, para_nr, user, wait, walltime)
+        # Here I want to have something that checks whether there is already a measurement
+        simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
+        print("simulation_available", simulation_available)
+        if not simulation_available or self.repeat:
+            self.repeat = False                 # we set repeat to false again
+            para_nr = self.write_para_files()  # setting up the parameter files for every simulation
+            self.run_jobs(file, folder, para_nr, user, wait, walltime)
+        else:
+            print("Found valid simulation, evaluating")
         # after running the jobs, we need to
         # calculate the binder cumulant for every run
+        return self.evaluate_simulation(file, folder, user, wait, walltime)
+
+    def evaluate_simulation(self, file, folder, user, wait, walltime):
         threshold = 0.1  # in the simulation we calculated the mean from the last 90% of the values and achieved a small error
         results = {}
         for size_folder in os.listdir(self.simulation_path):
@@ -245,12 +317,13 @@ class crit_temp_measurement():
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         intersection = (U_L_min_T_min > U_L_max_T_min) & (
-                    U_L_min_T_max < U_L_max_T_max)
+                U_L_min_T_max < U_L_max_T_max)
         if intersection:
             # good sign
             # determine Tc AND its error
             T_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
                 results)
+            print(f"Found an intersection at T_c = {T_intersection}")
             # I think T_range is the common Ts for the sizes, I think here every size should
             # definetely have the same temperatures
             # U_L_intersection is the U_L_value at the intersection
@@ -262,38 +335,57 @@ class crit_temp_measurement():
             # we now want to find the intersections of pairs of lines and want to
             # estimate an error out of this
             intersections = []
-            for i in range(len(U_L_interpolated)):
-                nr_sizes = len(U_L_interpolated)
-                U_L_1 = U_L_interpolated[i]
-                U_L_2 = U_L_interpolated[(i + 1) % nr_sizes]
-
-                intersection = find_intersection(T_range, U_L_1, U_L_2)
+            #print("T_range")
+            #print(T_range)
+            #for i in range(len(U_L_interpolated)):
+            #    nr_sizes = len(U_L_interpolated)
+            #    U_L_1 = U_L_interpolated[i]
+            #    U_L_2 = U_L_interpolated[(i + 1) % nr_sizes]
+#
+            #    print("U_L_1 = ", U_L_1)
+#
+            #    intersection = find_intersection(T_range, U_L_1, U_L_2)
+            #    intersections.append(intersection)
+            for i in range(len(self.sizes)):
+                U_L_1 = results[self.sizes[i]]["U_L"]
+                U_L_2 = results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
+                #print("U_L_1 = ", U_L_1)
+                T_arr = results[self.sizes[i]]["T"]
+                intersection = find_intersection(T_arr, U_L_1, U_L_2)
                 intersections.append(intersection)
             # more is it net?
             # simple error would be to be just max_intersection - min_intersection?
             T_c = np.mean(intersections)
+            print("intersections: ", intersections)
             T_c_error = np.ptp(intersections)
+            print(f"T_c_error = {T_c_error}")
             # relative error
             rel_intersec_error = T_c_error / T_c
-
+            print(f"rel_intersec_error = {rel_intersec_error}")
             if rel_intersec_error < self.max_rel_intersec_error:
                 # best case, now we are done?
                 print(f"Determined crit. Temp T_c = {T_c_error} +- {rel_intersec_error}")
-                return T_c
+                return T_c, T_c_error
             else:
                 # we check how many iterations we did so that we are not in an endless loop
-                if self.iteration_nr < self.maximum_iterations:
-                    print(f"Doing to many iterations, returning Temp T_c = {T_c_error} +- {rel_intersec_error}")
+                if self.iteration_nr > self.maximum_iterations:
+                    print(f"Doing to many iterations, returning Temp T_c = {T_c} +- {T_c_error}")
                     return T_c
                 # case that the error is to large, meaning we are moving closer to the critical temperature
-                T_min = max(T_c - 4 * T_c_error, np.min(self.T_arr))     # standard smaller interval of 4*T_c_error?
-                T_max = min(T_c + 4 * T_c_error, np.max(self.T_arr))
+                T_min = max(T_c - 5 * T_c_error, np.min(self.T_arr))  # standard smaller interval of 4*T_c_error?
+                T_max = min(T_c + 5 * T_c_error, np.max(self.T_arr))
+                self.repeat = True
                 # what if the new interval is larger than the last one because the errors were so large?
+                # therefore we added max and min. If thats the case we want to reduce the equil error and repeat the
+                # simulation
+                # we need to set some variable so that the check folder structure function does not return that
+                # the simulation is already done
+
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
-                print(f"Error was too large: Temp T_c = {T_c_error} +- {rel_intersec_error} \n"
+                print(f"Error was too large: Temp T_c = {T_c} +- {T_c_error} \n"
                       f"Starting new run with T_min = {T_min}, T_max = {T_max}")
                 # If we are moving closer to the critical point we should decrease the allowed error
-                self.equil_error /= 2       # standard devide by two or is that not enough?
+                self.equil_error /= 2  # standard devide by two or is that not enough?
                 return self.iteration(file, folder, user, wait, walltime)
         else:
             # bad sign, we do not seem to have an intersection
@@ -313,11 +405,10 @@ class crit_temp_measurement():
             elif U_L_min_T_min < U_L_max_T_min:
                 print("The minimum temperature is too high")
                 T_range = np.ptp(self.all_T_arr)
-                T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)   # We should not consider negative temperatures
+                T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
                 T_max = np.max(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
             return self.iteration(file, folder, user, wait, walltime)
-
 
     def run_jobs(self, file, folder, para_nr, user, wait, walltime):
         # how do we make this routine? First we can make one cycle and submit nr gpus jobs?
@@ -326,6 +417,7 @@ class crit_temp_measurement():
         self.connection = Connection('hemera')
         print("connecting to hemera...")
         next_job = 0
+        self.completed_jobs = set()     # we have to reset the completed jobs otherwise the program thinks we already compleated all the jobs
         while (len(self.completed_jobs)) < self.total_runs:
             # after this the set of running jobs is guaranteed to be empty
             # now we should check wheter some jobs are completed
@@ -434,6 +526,282 @@ class crit_temp_measurement():
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
         return para_nr
+
+class quench_measurement():
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, Tc, nr_GPUS=6, size_min=64,
+                 size_max=4096, nr_sites=5e5, Ly_Lx=1/8, min_quench_steps=100, min_nr_sites=1e6,
+                 min_nr_systems=10, host="hemera", user="weitze73"):
+        self.J_para = J_para
+        self.J_perp = J_perp
+        self.h = h
+        self.eta = eta
+        self.dt = dt
+        self.filepath = filepath
+        self.simulation_path = simulation_path
+        self.nr_GPUS = nr_GPUS
+        self.size_min = size_min        # The starting size at which we do go higher
+        self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
+        self.nr_sites = nr_sites        # nr of sites for one run
+        self.Ly_Lx = Ly_Lx              # the usual ratio between Lx and Ly
+        self.Tc = Tc                    # The critical temperature that was calculated in the measurement before
+        self.min_quench_steps = min_quench_steps    # the minimum number of steps done during a quench, influences tau_min
+        self.min_nr_sites = min_nr_sites            # the minimum nr of sites i want to simulate for every tau
+        self.min_nr_systems = min_nr_systems        # the minimum nr of systems to go through the qunech, guaranteeing an approximately precice xi value
+        self.host = host                            # adress of the cluster
+        self.user = user                            # user on the cluster
+
+
+        self.T_start = Tc
+        self.T_end = Tc
+        self.tau_min = 1
+        self.tau = 1                    # current tau
+        self.size = size_min            # current size, starts at size_min
+        self.equil_error = 0.005        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
+        self.para_nr = 100
+        self.walltime = "24:00:00"
+        self.file = "SubsystemQuench.cu"
+        self.folder = "simulations"
+        self.wait = 40
+        self.cut_zero_impuls = True     # will probably always be true since we are quenching
+        self.fitfunc = MF_lorentz       # We usually use this atm?
+
+        self.connection = None
+        self.completed_jobs = set()     # bookkeeping of completed jobs
+        self.running_jobs = set()       # bookkeeping of running jobs
+    def setup(self):
+        # We decide the start and end temperature
+        self.T_start = 3 / 2 * self.Tc
+        self.T_end = 1/2 * self.Tc
+        # the minimum tau is supposed to be 1 / Tc, but depends on the stepsize
+        min_pow = np.ceil(np.log2(self.min_quench_steps * self.dt / self.Tc))
+        self.tau_min = 2 ** min_pow
+        self.tau = self.tau_min         # at the beginning we set the current tau to be tau_min?
+
+    def systems_per_job(self):
+        return int(self.nr_sites / (self.size ** 2 * self.Ly_Lx))
+
+    def write_para_file(self):
+        # I think we only construct one file at a time and ggf run it multiple times.
+        # because we have to wait for the result auf the last tau to decide whether to increase the system size for the next tau
+        print("Writing the parameter file...")
+        nr_subsystems = self.systems_per_job()
+        with open(self.filepath + "/parameters/para_quench_set_" + str(self.para_nr) + '.txt', 'w') as f:
+            f.write(self.simulation_path)
+            f.write(f"\n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"nr_saves, 4 \n"
+                    f"nr_repeat, 0 \n"
+                    f"starting_temp, {self.T_start} \n"
+                    f"end_temp, {self.T_end} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"min_tau_factor, {self.tau} \n"
+                    f"max_tau_factor, {self.tau} \n"
+                    f"random_init, 1.0 \n"
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {self.size} \n"
+                    f"subsystem_max_Lx, {self.size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"
+                    f"nr_ft_values, 0 \n"           # TODO probably deprecated, have to see later!
+                    f"equil_error, {self.equil_error}")
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+    def iteration(self):
+
+        # one of the first things we do in the iteration is writing the parameter file
+        self.write_para_file()
+        # then we just run the jobs
+        self.run_jobs()
+        # now the evaluation of the job and what we do accordningly
+        return self.evaluate()      # Is this proper design actually? letting iteration return evalutate while evaluate calls iteration recursively?
+
+    def evaluate(self):
+        # do we have to write this new or can we use stuff from previous scripts?
+        # Will we have a new kind of quench without equilibration in the end? Probably yes
+        # meaning we should probably write new stuff to satisfy our needs...
+        # we now the current measurement path
+        cur_path = os.path.join(self.simulation_path, str(self.size), str(self.tau))
+        # we need the fourier transforms of this measurement and we need to fit xi
+        ft_k, ft_l = average_lastline_ft(cur_path)
+        p_k = get_frequencies_fftw_order(len(ft_k))
+        p_l = get_frequencies_fftw_order(len(ft_l))
+
+        if self.cut_zero_impuls:
+            p_k, ft_k = cut_zero_imp(p_k, ft_k)
+            p_l, ft_l = cut_zero_imp(p_l, ft_l)
+
+        popt_x, perr_x = fit_lorentz(p_k, ft_k, fitfunc=self.fitfunc)
+        popt_y, perr_y = fit_lorentz(p_l, ft_l, fitfunc=self.fitfunc)
+        xix = np.abs(popt_x[0])     # I dont think that we need the minimum here anymore since if xi is larger than L/10 we repeat the measurement?
+        xiy = np.abs(popt_y[0])
+
+        # Okay so we have now the xi value of the current simulation.
+        # We now act accordingly.
+        if (xix > self.size / 10) or (xiy > self.size * self.Ly_Lx / 10):
+            # if in one of the two directions there is a correlation length that is too large, we repeat with twice
+            # the system size
+            print(f"The Correlation length is too large, xi_x = {xix},"
+                  f"  xi_y = {xiy} with Lx = {self.size}, Ly = {self.size * self.Ly_Lx}")
+            self.size *= 2
+
+            if self.size > self.size_max:
+                print("We exceed the maximum size, we stop the measurement here")
+                return
+            else:
+                print(f"Repeating the simulation with the size of Lx = {self.size}")
+                return self.iteration()
+        else:
+            # If it is not to large, we just start the next measurement with the larger tau?
+            # Should we preventively enlarge the size if for example xix > self.size / 15 or something like that?
+            # not for now i would say, keep it simple at this point
+            self.tau *= 2       # increase tau
+            return self.iteration()
+
+    def run_jobs(self):
+        # this method is responsible for running the jobs for one tau, one system size before moving to the next tau
+        # first we need to find out how many jobs this will be
+        # it doenst matter if this part of the code is optimized so just naive:
+        # find out whether min_nr_systems or min_nr_sites is limiting:
+        sys_per_job = int(self.nr_sites / (self.size ** 2 * self.Ly_Lx))
+        min_jobs = int(self.min_nr_sites / self.nr_sites)            # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
+        if sys_per_job >= self.min_nr_systems / min_jobs:
+            # if the number of systems per job * the minimumb number of jobs given by the minimum number of system sites
+            # divided by the nr of sites per job is larger than the required amount of systems, wo only do the
+            # minimum number of jobs
+            nr_jobs = min_jobs
+        else:
+            # else we do as many jobs as we need to exceed the min_nr_systems
+            nr_jobs = int(np.ceil(self.min_nr_systems / sys_per_job))
+        # now we do basically the same stuff as last time, only that we onyl submit the same job
+        self.connection = Connection('hemera')
+        self.completed_jobs = set()
+        while (len(self.completed_jobs)) < nr_jobs:
+            # after this the set of running jobs is guaranteed to be empty
+            # now we should check wheter some jobs are completed
+            # just by getting which jobs are pending etc?
+            queue_command = f"squeue -u {self.user}"
+            queue_feedback = self.connection.run(queue_command)
+            jobs_on_hemera = extract_numbers_after_newline(
+                queue_feedback.stdout)
+
+            # now we just check if all ids in running jobs are still in jobs_on_hemera
+            # if not, we check if the id is completed
+            # if thats true, we move the job id to the completed jobs
+            print("jobs on hemera: ", jobs_on_hemera)
+            print("running jobs: ", self.running_jobs)
+            just_completed_jobs = set()
+            for job_id in self.running_jobs:
+                # check if it is still in jobs_on_hemera
+                if job_id not in jobs_on_hemera:
+                    # if not, we check what the sacc thingy command says
+                    job_status_command = f'sacct -j {job_id} -o jobid,submit,start,end,state'
+                    status_feedback = self.connection.run(job_status_command)
+                    completed = check_completed_status(job_id,
+                                                       status_feedback.stdout)
+                    if completed:
+                        # if its completed we double checked it
+                        # the job id can be removed from running jobs and added to completed_jobs
+                        just_completed_jobs.add(job_id)
+                        self.completed_jobs.add(job_id)
+                        # we rsync the new files
+                        subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
+                    else:
+                        # if it is not completed but not in jobs_on_hemera anymore,
+                        # we have a problem
+                        print(
+                            "Oups! The Job vanished. Please check what happend")
+            # remove the completed jobs from the running jobs list
+            for job_id in just_completed_jobs:
+                self.running_jobs.remove(job_id)
+
+            # now we need to determine how many jobs are currently running
+            # and we need to know how to submit jobs
+            # while the number running jobs is smaller than the number of GPUs
+            # to use, we submit new jobs
+            # indeed it would be optimal if the long running jobs would start first
+            # but that is hard to do? For now we just submit the jobs in arbitrary
+            # order
+            # we know which job is next through the next job variable,
+            # but we still need to know the number at which to start
+            while (len(self.running_jobs) < self.nr_GPUS) and (len(self.running_jobs) < nr_jobs):
+                submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
+                             f' logs/errors/%j.err run_cuda.sh {self.file} {self.folder} {self.para_nr}'
+                submit_feedback = self.connection.run(submit_job)
+                job_id = extract_numbers_before_newline(submit_feedback.stdout)[
+                    0]  # extract numbers before newline returns a list
+                print(f"with para nr {self.para_nr}")
+                # I think we can be sure that the job is running if we just commited it
+                # better double check?
+                self.running_jobs.add(job_id)
+            # now we just wait some time before we do the next check?
+            time.sleep(self.wait)
+
+    def conclude(self):
+        # like last time, I think for now I will just paste the avargeFTsOverTime script
+        size_x_dic = {}
+        size_y_dic = {}
+
+        for size in os.listdir(self.simulation_path):
+            t_xix = {}
+            t_xiy = {}
+            if (size != "plots") & (size[0] != "."):
+                sizepath = os.path.join(self.simulation_path, size)
+                if os.path.isdir(sizepath):
+                    for setting in os.listdir(sizepath):
+                        if (setting != "plots") & (setting[0] != "."):
+                            settingpath = os.path.join(sizepath, setting)
+                            print(settingpath)
+                            parapath = find_first_txt_file(self.simulation_path)
+                            parameters = read_parameters_txt(parapath)
+
+                            Lx = parameters["subsystem_Lx"]
+                            Ly = parameters["subsystem_Ly"]
+
+                            if os.path.isdir(settingpath):
+                                t_xix[setting] = {}
+                                t_xiy[setting] = {}
+                                ft_k, ft_l = average_ft(settingpath)
+                                for t in ft_k:
+                                    p_k = get_frequencies_fftw_order(len(ft_k[t]))
+                                    if self.cut_zero_impuls:
+                                        p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
+                                    popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
+                                                                 fitfunc=self.fitfunc)
+                                    xix = np.minimum(np.abs(popt_x[0]), Lx)
+                                    t_xix[setting][t] = xix
+                                for t in ft_l:
+                                    p_l = get_frequencies_fftw_order(len(ft_l[t]))
+                                    if self.cut_zero_impuls:
+                                        p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
+                                    popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
+                                                                 fitfunc=self.fitfunc)
+                                    xiy = np.minimum(np.abs(popt_y[0]), Ly)
+                                    t_xiy[setting][t] = xiy
+                        size_x_dic[int(size)] = t_xix.copy()
+                        size_y_dic[int(size)] = t_xiy.copy()
+        # okay now sadly that wont just work like that. I have to write the own funcitons but I think we will
+        # continue in c++ for now.
+
+
+    def run(self):
+        self.setup()
+        self.iteration()
+        self.conclude()
+
+
+
+
+
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
@@ -446,13 +814,13 @@ def main():
     h = 0.5
     eta = 1.5
     dt = 0.01
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/TestSuite"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/TestSuite2"
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
     sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=15)
-    sim.routine()
+    T_c, T_c_error = sim.routine()
 
 
 

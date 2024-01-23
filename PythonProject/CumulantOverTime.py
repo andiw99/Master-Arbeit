@@ -37,7 +37,7 @@ def main():
     size_dirs =sorted(os.listdir(root))
     print(size_dirs)
 
-    t_upper_limit = 1600
+    t_upper_limit = 12800
     t_lower_limit = 0
 
     cum_map = {}
@@ -118,7 +118,6 @@ def main():
     plt.show()
 
     # okay we now will try to evaluate the error between the two sets
-
     fig, ax = plt.subplots(1, 1)
 
     if t_upper_limit:
@@ -183,6 +182,42 @@ def main():
     ax.set_title(title)
     plt.savefig(root + f"/{ending}-over-time-scan.png", format="png")
     plt.show()
+
+    # okay we now will show what the equilibrium observer can do
+    fig, ax = plt.subplots(1, 1)
+
+    if t_upper_limit:
+        ax.set_xlim(0, t_upper_limit)
+    else:
+        ax.set_xlim(0, np.max(t_arr))
+    sizes = [pair[0] for pair in cum_map.keys()]
+    keys = np.array(list(cum_map.keys()))[np.argsort(sizes)]
+    keys = [(key[0], key[1]) for key in keys]
+    threshold = 0.1
+    fold_points = 2 * fold_points
+    for i, size_temp in enumerate(keys):
+        t_arr_plt = np.array(t_map[size_temp])
+        cum_arr = np.array(cum_map[size_temp])
+
+        t_fold, U_L_fold = fold(t_arr_plt, cum_arr, fold=fold_points)
+        ax.plot(t_fold[t_fold > t_lower_limit], U_L_fold[t_fold > t_lower_limit], linestyle='', marker="x", markersize=5,
+                color=f"C{i}", label=f"$L_x$={size_temp[0]},  T = {size_temp[1]}", alpha=0.7)
+        # cum_map[size_temp] should hold the U_L values
+        min_ind = int(threshold * len(cum_arr))
+        U_L_mean = np.mean(cum_arr[min_ind:])
+        U_L_error = np.std(cum_arr[min_ind:]) #/ np.sqrt(len(cum_arr) - min_ind)
+        print(U_L_error)
+        ax.hlines(U_L_mean, 0, ax.get_xlim()[1], color=f"C{i}")
+        ax.hlines([U_L_mean + U_L_error, U_L_mean - U_L_error], 0, ax.get_xlim()[1], color=f"C{i}", linestyles="--", alpha=0.4)
+        max_t = np.max(np.array(t_fold))
+        min_t = np.min(np.array(t_fold))
+    ax.set_ylabel(r"$U_L$")
+    ax.set_xlabel("t")
+    configure_ax(fig, ax)
+    ax.set_title(title)
+    plt.savefig(root + f"/{ending}-equilibrium-run.png", format="png")
+    plt.show()
+
 
 
 if __name__ == "__main__":

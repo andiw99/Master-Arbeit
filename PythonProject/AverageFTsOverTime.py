@@ -62,7 +62,7 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     return fig, ax
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Ising/h/High h"
+    simulation_path = "../../Generated content/Silicon/Quench/Dampening/Low Dampening"
     cut_zero_impuls = True
     quench = True
     scale_time = True

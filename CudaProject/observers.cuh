@@ -379,6 +379,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
     double max_error= 0.0001;
     int cum_nr = 0;                         // current number in the averageing process
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
 public:
 
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
@@ -412,7 +413,7 @@ public:
             times.push_back(t);
             // now we want to see if we have to adjust the write interval
             // we have to make sure that we got 5 fresh cum values
-            if(cum_nr >= avg_nr) {
+            if((cum_nr >= avg_nr) & !equilibrated) {
                 cum_nr = 0;     // reset the cum nr
                 int nr_cum_values = U_L.size();      // check how many cum values we already have
                 // now use the last avg_nr of cum values to calculate a mean U_L
@@ -459,7 +460,12 @@ public:
                         cout << "The system equilibrated, the run lastet to t = " << t << endl;
                         cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
                         // we set the system to be equilibrated
-                        sys.set_equilibration();
+                        sys.set_equilibration(t);
+                        // once we did this, we dont want to do that a second time?
+                        equilibrated = true;
+                        // actually we do not normally need any cumulant values in the quench case so we set
+                        // the write interval to be just the maximum interval
+                        write_interval = (1.0 / min_density) * dt;
                     }
                 }
             }
@@ -665,6 +671,91 @@ public:
                 timepoint += write_interval;
             }
             cout << "write interval = " << write_interval << endl;
+        }
+    }
+};
+
+template <class system, class State>
+class density_quench_ft_observer : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval = 1;
+    double timepoint = 0;
+    double end_quench_t;
+    double quench_t;
+    double s_eq_t;
+    double dt;
+    double standard_density = 1/100;    // the standard density will be one value every 100 steps, but adjustable?
+    size_t Lx;
+    size_t Ly;
+public:
+    density_quench_ft_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        timepoint = 0.0;
+
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        cout << "density quench ft observer init called" << endl;
+        ofile << "t;ft_k;ft_l" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        Lx = paras[subsystem_Lx];
+        Ly = paras[subsystem_Ly];
+
+        // the plan is to have nr_values ft during the quench and the same density during equilibration.
+        // no wait this is again dumb for short and long quenches.
+        // damn
+        dt = paras[Parameter::dt];
+        quench_t = sys.get_quench_time();
+        write_interval = standard_density * dt;
+    }
+
+    string get_name() override {
+        return "density quench ft observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            double *ft_k, *ft_l;
+            ft_k = new double[Lx];
+            ft_l = new double[Ly];
+
+            sys.calc_ft(x, ft_k, ft_l);
+            ofile << t << ";";
+            for(int i = 0; i < Lx; i++) {
+                if(i == 0) {
+                    ofile << ft_k[i];
+                } else {
+                    ofile << "," << ft_k[i];
+                }
+            }
+            ofile << ";";
+            for(int j = 0; j < Ly; j++) {
+                if(j == 0) {
+                    ofile << ft_l[j];
+                } else {
+                    ofile << "," << ft_l[j];
+                }
+            }
+            ofile << endl;
+
+            // here we adjust the write interval depending on where we are?
+            double s_eq_t = sys.get_end_quench_time() - quench_t;
+            // shouldnt it be as easy as this?
+            if (t > s_eq_t) {
+                write_interval = quench_t / ((double)nr_values);
+            }
+            timepoint += write_interval;
+            // was that all, should I test my abomination?
         }
     }
 };

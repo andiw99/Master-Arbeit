@@ -606,7 +606,7 @@ def calc_diff_at(T_inter, T, value_dic):
     size_arr = np.sort(size_arr)
     return num_diff_arr, size_arr
 
-def interpolate_and_minimize(data_sets, res=1000):
+def interpolate_and_minimize(data_sets, res=100):
     """
     Determine the intersection of different sets of discrete x-y values.
     """
@@ -918,7 +918,6 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     if nr_values < 1:
         average_value = 0
     else:
-        print(df[value])
         average_value = df[value].mean()
     return average_value, nr_values
 
@@ -944,20 +943,12 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
                         para_file_path = os.path.splitext(file_path)[0] + ".txt"
                         parameters = read_parameters_txt(para_file_path)
                         nr_subsys = parameters["nr_subsystems"]
-                        print(file_path)
-                        print(average_value)
                         temp_average.append(average_value)
                         nr_avg_values.append(nr_values)
                         nr_subsystems.append(nr_subsys)
                 if temp_average:
-                    print("all averages:", temp_average)
-                    print("mean:", np.mean(temp_average))
-                    print("nr_subsystems:", nr_subsystems)
-                    print("nr_avg_values:", nr_avg_values)
-                    print(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems))
                     val_avg = (np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) /
                                np.sum(np.array(nr_avg_values) * np.array(nr_subsystems)))
-                    print("weighted average: ", val_avg)
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
 
@@ -973,9 +964,9 @@ def average_ft(folderpath, ending=".ft"):
     first_file = True
     nr_files = 0
     for file in (files):
-        if file.endswith(".ft"):
+        if file.endswith(ending):
             filepath = os.path.join(folderpath, file)
-            df = pd. read_csv(filepath, sep=";")
+            df = pd.read_csv(filepath, sep=";")
             print(filepath, "firstfile = ", first_file)
             for j, t in enumerate(df['t']):
                 if first_file:
@@ -991,6 +982,34 @@ def average_ft(folderpath, ending=".ft"):
     for t in t_ft_k:
         t_ft_k[t] /= nr_files
         t_ft_l[t] /= nr_files
+    return t_ft_k, t_ft_l
+
+def average_lastline_ft(folderpath, ending=".ft"):
+    # like average_ft but it only returns the ft for the latest t
+    files = os.listdir(folderpath)
+    t_ft_k = np.array([])
+    t_ft_l = np.array([])
+    first_file = True
+    nr_files = 0
+    for file in (files):
+        if file.endswith(ending):
+            filepath = os.path.join(folderpath, file)
+            df = pd.read_csv(filepath, sep=";")
+            print(filepath, "firstfile = ", first_file)
+            if first_file:
+                print("df['ft_k'].iloc[-1]")
+                print(df["ft_k"].iloc[-1])
+                t_ft_k = string_to_array(df["ft_k"].iloc[-1])
+                t_ft_l = string_to_array(df["ft_l"].iloc[-1])
+            else:
+                t_ft_k += string_to_array(df["ft_k"].iloc[-1])
+                t_ft_l += string_to_array(df["ft_l"].iloc[-1])
+            first_file = False
+            nr_files += 1
+    # average
+    print(f"averaged {nr_files} files")
+    t_ft_k /= nr_files
+    t_ft_l /= nr_files
     return t_ft_k, t_ft_l
 
 
