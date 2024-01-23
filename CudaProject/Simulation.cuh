@@ -89,6 +89,7 @@ public:
         Sys.init_state(paras, x);           // init state via correct state initializer that was created in repeat
 
         double end_t = Sys.get_end_t();
+        cout << "Running unitl " << end_t << endl;
         cout << "Starting run with parameters:" << endl;
         printMap(paras);
 

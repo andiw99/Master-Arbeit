@@ -62,7 +62,7 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     return fig, ax
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Dampening/Low Dampening"
+    simulation_path = "../../Generated content/Subsystems/Test/TestEqulibrationAndDensityFT"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -161,7 +161,7 @@ def main():
         parapath = find_first_txt_file(simulation_path)
         parameters = read_parameters_txt(parapath)
         t_eq = parameters["equil_time"]
-
+    t_eq = 30
     setting_var = "T"
     if quench:
         setting_var = r"$\tau$"

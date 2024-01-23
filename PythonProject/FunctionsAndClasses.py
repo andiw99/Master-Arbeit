@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.colors import BoundaryNorm
 import matplotlib
-from itertools import product
+from itertools import product, combinations
 from IPython import embed
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
@@ -770,6 +770,52 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
                 ind_j = j
         return (ind_i, ind_j)
 
+
+def find_intersection(x_range, y1, y2, res=1000):
+    # Interpolate the curves
+    #print("diff_func:")
+    x_inter = np.linspace(x_range[0], x_range[-1], res)
+    diff_func = np.interp(x_inter, x_range, y1 - y2)
+    #fig, ax = plt.subplots(1, 1)
+    #ax.plot(x_inter, diff_func)
+    #plt.show()
+    #print("x_inter:", x_inter)
+    #print("diff_func", diff_func)
+    #print("np.argmin(diff_func(x_inter))", np.argmin(np.abs(diff_func)))
+    #print("x_inter[np.argmin(diff_func(x_inter))]", x_inter[np.argmin(np.abs(diff_func))])
+    #intersection_x = x_inter[np.argmin(np.abs(diff_func))]
+    #print("diff_func(intersection_T)", diff_func(intersection_x))
+    # Find the root (intersection) using numerical methods
+    #print("diff_func.roots():", diff_func.roots())
+    #intersection_x = diff_func.roots()[0]       # TODO does it work like that?
+
+    # Okay I think we have to write a slightly better version of this function
+    # We keep the diff_func, but we now check for sign changes
+    diff_func_sign = np.sign(diff_func)
+    signchange = ((np.roll(diff_func_sign, 1) - diff_func_sign) != 0).astype(int)
+    signchange[0] = 0
+    # we take the index of the first index change. This assumes that the lines dont cross for low temperatures
+    # for high temperatures they might cross more often
+    # This is still not very good?
+    # We could do this sign thing for every diff curve and then choose always the one that has the least total difference to the other sign arrays
+    ind_signchange = np.where(signchange == 1)[0][0]
+    intersection_x = x_inter[ind_signchange]
+
+    return intersection_x
+
+def get_intersections(size_T_cum_dic):
+    intersections = []
+    sizes = list(size_T_cum_dic.keys())
+
+    for (size1, size2) in combinations(sizes, 2):
+        U_L_1 = size_T_cum_dic[size1]["U_L"]
+        U_L_2 = size_T_cum_dic[size2]["U_L"]
+        # We assume that the Temperatures are the same for the two curves...
+        T_arr = size_T_cum_dic[size1]["T"]
+        intersection = find_intersection(T_arr, U_L_1, U_L_2)
+        intersections.append(intersection)
+
+    return intersections
 
 def extract_cell(row_data, cell_nr, cell_L):
     L = int(np.sqrt(row_data.size))

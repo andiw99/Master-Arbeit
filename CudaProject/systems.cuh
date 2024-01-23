@@ -592,11 +592,11 @@ public:
         return "system";
     }
 
-    bool is_equilibrated() {
+    virtual bool is_equilibrated() {
         return equilibrated;
     }
 
-    void set_equilibration() {
+    virtual void set_equilibration(double t) {
         equilibrated = true;
     }
 
@@ -819,7 +819,7 @@ struct NNN_System: public System {
 struct quench : virtual public System {
     const double    T_start;       // Start-Temperture of the Quenching For example: 10
     const double    T_end;         // End-Temperature of the Quencheing. For example: 1
-    const double    s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
+    double    s_eq_t;        // start equilibration time: Time the system gets to equilibrate at T_start
     const double    e_eq_t;        // end equilibration time: Time the system gets to equilibrate at T_end (after Quench)
     double          t_quench;            // total time the quench takes, is determined by the quench timescale tau and the temp difference
     double          end_quench_t;        // timepoint at which the Quenching ends = s_eq_t + t_quench
@@ -848,6 +848,10 @@ struct quench : virtual public System {
         // I think this should work? We change the D of the System and then just calc the random numbers
         System::D = sqrt(2 * linear_T(t) * System::eta);
         System::calc_diff(theta, t);
+        // this is a bit clunky but tbh i don't care to much at this moment anymore
+        if(t > get_end_t()) {
+            equilibrated = true;
+        }
     }
 
 public:
@@ -867,6 +871,16 @@ public:
                                         s_eq_t(paras[Parameter::equil_time]),
                                         e_eq_t(paras[Parameter::equil_time]),
                                         T_start(paras[Parameter::starting_temp]) {
+        // for what are we using end_quench_t again? for get_end_t, right and this is used in simulation.run to start
+        // the step until, what do we do if we want to have this quench that dynamically equilibrates, quenches and stops?
+        // the step until gets the end_t beforehand, the only other possibility to stop it is through the equilibration attribute
+        // we can set s_eq_t through the observer when calling set_equilibration and therefore start the quench
+        // after the time of t_quench (which we know beforehand) + s_eq_t + e_eq_t has passed, we return euqilibrated in is
+        // equilibrated and therefore stop the stepper.
+        if (s_eq_t == 0) {
+            // ... we just set s_eq_t to be really large in this case becauce this case means we dynamically equilibrate?
+            s_eq_t = 1e10;
+        }
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;
     }
@@ -884,7 +898,16 @@ public:
     }
 
     double get_end_quench_time() const {
-        return end_quench_t;
+        return t_quench + s_eq_t;
+    }
+
+    void set_equilibration(double t) override {
+        s_eq_t = t;
+    }
+
+    bool is_equilibrated() override{
+        // the quench is not supposed to end when the system is equilibrated so we always return false
+        return equilibrated;
     }
 };
 

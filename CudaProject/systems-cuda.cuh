@@ -863,6 +863,14 @@ public:
     quench(map<string, double>& paras): System(paras),
             tau(paras["tau"]), T_end(paras["end_T"]), s_eq_t(paras["t_eq"]), e_eq_t(paras["t_eq"]), T_start(paras["starting_T"]) {
         t_quench = (get_quench_time());
+        end_quench_t = t_quench + s_eq_t;
+    }
+
+    quench(map<Parameter, double>& paras): System(paras),
+                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]),
+                                        s_eq_t(paras[Parameter::equil_time]),
+                                        e_eq_t(paras[Parameter::equil_time]),
+                                        T_start(paras[Parameter::starting_temp]) {
         // for what are we using end_quench_t again? for get_end_t, right and this is used in simulation.run to start
         // the step until, what do we do if we want to have this quench that dynamically equilibrates, quenches and stops?
         // the step until gets the end_t beforehand, the only other possibility to stop it is through the equilibration attribute
@@ -873,14 +881,6 @@ public:
             // ... we just set s_eq_t to be really large in this case becauce this case means we dynamically equilibrate?
             s_eq_t = 1e10;
         }
-        end_quench_t = t_quench + s_eq_t;
-    }
-
-    quench(map<Parameter, double>& paras): System(paras),
-                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]),
-                                        s_eq_t(paras[Parameter::equil_time]),
-                                        e_eq_t(paras[Parameter::equil_time]),
-                                        T_start(paras[Parameter::starting_temp]) {
         t_quench = (get_quench_time());
         end_quench_t = t_quench + s_eq_t;
     }

@@ -7,8 +7,8 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/h/Largest h'
-    threshold = 70000  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC3'
+    threshold = 10000  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
@@ -93,6 +93,47 @@ def main():
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
     fig.savefig(simulation_folder + "/critical_exponent_time_avg.png", format="png", dpi=250, transparent=transparent_plots)
     plt.show()
+
+    # okay we will use the results_dic real quick to calculate the intersection in dependence of L
+    # We want to use at least three (for now two) sizes to calculate the critical temperature.
+    sizes = np.array(sorted(list(results.keys())))
+    min_sizes = sizes[:-3]      # those are the sizes that we will use as lower bounds for the calculattions
+    T_c_dic = {}                # this dic will keep the lower size zugeordnet to its critical temperature
+    T_c_error_dic = {}          # dic assigns the lower bounds to the errors on T
+    # calculate the critical temperature for every size
+    for lower_size_bound in min_sizes:
+        use_sizes = sizes[sizes > lower_size_bound]         # okay so those are the used sizes
+        # we construct a new results dic that only has the used sizes
+        size_T_cum_dic = {}
+        for used_size in use_sizes:
+            size_T_cum_dic[used_size] = results[used_size]
+        # for this we can get the intersections now
+        intersections = get_intersections(size_T_cum_dic)
+        # Tc is the mean of intersections
+        T_c_dic[lower_size_bound] = np.mean(intersections)
+        # we can also calculate the error? Should the error be again the ptp or the standard deviation? Standard
+        # deviation is usally not sensible for such a small number of values
+        # ptp has the weird property that it can only get larger if we use more sizes, which actually makes no sense
+        T_c_error_dic[lower_size_bound] = np.std(intersections) / np.sqrt(len(intersections))         # usually one would use the std of the mean but this is always so unrealisticly small?
+
+    T_c_arr = T_c_dic.values()              # wow worth it to make it a dic
+    T_c_err_arr = T_c_error_dic.values()
+
+
+    # that seems to be it already
+    fig, ax = plt.subplots(1, 1)
+
+    ax.errorbar(min_sizes, T_c_arr, T_c_err_arr, capsize=2, label="", linestyle=None)
+    ax.set_title(r"Dependence of $T_c$ on the minimum system size")
+    ax.set_ylabel(r"$T_c$")
+    ax.set_xlabel(r"$L_{min}$")
+    configure_ax(fig, ax)
+    plt.show()
+    plt.savefig(simulation_folder + "/T_c-L_dependence.png", format="png", dpi=250)
+    plt.show()
+
+
+
 
 if __name__ == "__main__":
     main()

@@ -82,38 +82,6 @@ def check_directory_structure(sizes, temperatures, directory_path):
     # If all checks pass, return True
     return True
 
-def find_intersection(x_range, y1, y2, res=1000):
-    # Interpolate the curves
-    #print("diff_func:")
-    x_inter = np.linspace(x_range[0], x_range[-1], res)
-    diff_func = np.interp(x_inter, x_range, y1 - y2)
-    #fig, ax = plt.subplots(1, 1)
-    #ax.plot(x_inter, diff_func)
-    #plt.show()
-    #print("x_inter:", x_inter)
-    #print("diff_func", diff_func)
-    #print("np.argmin(diff_func(x_inter))", np.argmin(np.abs(diff_func)))
-    #print("x_inter[np.argmin(diff_func(x_inter))]", x_inter[np.argmin(np.abs(diff_func))])
-    #intersection_x = x_inter[np.argmin(np.abs(diff_func))]
-    #print("diff_func(intersection_T)", diff_func(intersection_x))
-    # Find the root (intersection) using numerical methods
-    #print("diff_func.roots():", diff_func.roots())
-    #intersection_x = diff_func.roots()[0]       # TODO does it work like that?
-
-    # Okay I think we have to write a slightly better version of this function
-    # We keep the diff_func, but we now check for sign changes
-    diff_func_sign = np.sign(diff_func)
-    signchange = ((np.roll(diff_func_sign, 1) - diff_func_sign) != 0).astype(int)
-    signchange[0] = 0
-    # we take the index of the first index change. This assumes that the lines dont cross for low temperatures
-    # for high temperatures they might cross more often
-    # This is still not very good?
-    # We could do this sign thing for every diff curve and then choose always the one that has the least total difference to the other sign arrays
-    ind_signchange = np.where(signchange == 1)[0][0]
-    intersection_x = x_inter[ind_signchange]
-
-    return intersection_x
-
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8):
@@ -346,6 +314,7 @@ class crit_temp_measurement():
 #
             #    intersection = find_intersection(T_range, U_L_1, U_L_2)
             #    intersections.append(intersection)
+            # TODO this works only for 3 different sizes
             for i in range(len(self.sizes)):
                 U_L_1 = results[self.sizes[i]]["U_L"]
                 U_L_2 = results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
@@ -799,13 +768,10 @@ class quench_measurement():
         self.conclude()
 
 
-
-
-
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 6
+    nr_gpus = 15
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -814,12 +780,16 @@ def main():
     h = 0.5
     eta = 1.5
     dt = 0.01
+    max_size_Tc = 128
+    min_size_Tc = 48
+    nr_sizes_Tc = 6
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/TestSuite2"
+    simulation_path = "../../Generated content/Silicon/SizeDependence/"
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
-    sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=15)
+    sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", nr_GPUS=nr_gpus,
+                                size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc)
     T_c, T_c_error = sim.routine()
 
 

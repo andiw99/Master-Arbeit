@@ -385,8 +385,14 @@ public:
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
+        if (paras[Parameter::min_cum_nr]){
+            min_cum_nr = (int)paras[Parameter::min_cum_nr];
+        }
         timepoint = 0.0;
-
+        equilibrated = false;
+        // we also need to reset U_L and times, dont we?
+        U_L = vector<double>{};
+        times = vector<double>{};
         close_stream();
         open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
         cout << this->get_name() << " init called" << endl;
@@ -457,7 +463,7 @@ public:
                     // the question is now if we want to extract avg_U_L and its error if we are equilibrated
                     // we definitely should? But how and where? somehow into the parameter file?
                     if(rel_stddev_total < max_error) {
-                        cout << "The system equilibrated, the run lastet to t = " << t << endl;
+                        cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                         cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
                         // we set the system to be equilibrated
                         sys.set_equilibration(t);
@@ -690,7 +696,7 @@ class density_quench_ft_observer : public obsver<system, State>{
     double quench_t;
     double s_eq_t;
     double dt;
-    double standard_density = 1/100;    // the standard density will be one value every 100 steps, but adjustable?
+    double standard_density = 1.0/100.0;    // the standard density will be one value every 100 steps, but adjustable?
     size_t Lx;
     size_t Ly;
 public:
@@ -716,7 +722,7 @@ public:
         // damn
         dt = paras[Parameter::dt];
         quench_t = sys.get_quench_time();
-        write_interval = standard_density * dt;
+        write_interval = (1.0 / standard_density) * dt;
     }
 
     string get_name() override {
