@@ -404,4 +404,31 @@ int main(int argc, char* argv[]) {
     usedClass childClass;
     childClass.operation(2.0);
 
+    double* test = new double[4];       // double pointer named test is set to the adress created by the new [] operator combination
+    for(int i = 0; i < 4; i++) {
+        test[i] = (double)i * 2.0;
+    }
+    double* new_test = test+1;            // double pointer new_test is set to the value of test, which is the adress of the array, +1 * the size of the kind of data the pointers point to, which is double
+    cout << "Array testing:" << endl;
+    for(int i = 0; i < 4; i++) {
+        cout << test[i] << endl;
+    }
+    cout << endl << endl;
+    for(int i = 0; i < 3; i++) {
+        // newtest is of only 3 memory blocks of lenght. But what would happen if i tried to access new_test[4]? There is just memory, but the program knows that it does not belong to me?
+        // no the program does not know, it just returns something. Heavy potential for bugs.
+        cout << new_test[i] << endl;
+    }
+    cout << endl << endl;
+    cout << "Obviously, if we change something in test, it will be changed in new_test?" << endl;
+    test[2] = 100;
+    for(int i = 0; i < 4; i++) {
+        cout << test[i] << endl;
+    }
+    cout << endl << endl;
+    for(int i = 0; i < 3; i++) {
+        // newtest is of only 3 memory blocks of lenght. But what would happen if i tried to access new_test[4]? There is just memory, but the program knows that it does not belong to me?
+        // no the program does not know, it just returns something. Heavy potential for bugs.
+        cout << new_test[i] << endl;
+    }
 }

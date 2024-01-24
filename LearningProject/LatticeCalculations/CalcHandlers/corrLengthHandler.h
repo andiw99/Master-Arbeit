@@ -251,11 +251,9 @@ public:
         double* ft_l_fit;
         if(CorrLengthHandlerConfig["cut_zero_impuls"]) {
             // allocate memory of L-1 for the fts
-            ft_k_fit = new double[Lx-1];
-            ft_l_fit = new double[Ly-1];
-            // copy values from the ft_k_map into ft_k
-            copy(ft_k_map[L_pair] + 1, ft_k_map[L_pair] + Lx, ft_k_fit);
-            copy(ft_l_map[L_pair] + 1, ft_l_map[L_pair] + Ly, ft_l_fit);
+            ft_k_fit = ft_k_map[L_pair] + 1;
+            ft_l_fit = ft_l_map[L_pair] + 1;
+
             // remove first value form ks
             kx.erase(kx.begin());
             ky.erase(ky.begin());

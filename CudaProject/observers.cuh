@@ -525,6 +525,129 @@ public:
 };
 
 template <class system, class State>
+class corr_equilibration_observer: public obsver<system, State>{
+    // This observer will be a mixture of the cum equilibration observer and the new density observer
+    // It will calculate xi with a fixed density during equilibration phase and then the specified number
+    // of xi's during the quench.
+    // The density during the equilibration does not have to change, or should it? I don't think so
+    // Problem could be that if the equilibration takes very long, we calculate a whole lot of xi values during the
+    // equilibratioon which slows down our simulation. An adaptive density doesn't look to good when plotting and has
+    // the weird artefact that we write the correlation length at different times for different simulations
+    // I think we will choose a mediocre density and start with this.
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<double> xix{};
+    vector<double> xiy{};
+    vector<double> times{};
+    int min_corr_nr = 50;
+    double dt = 0.01;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
+    // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
+    //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
+    // for high temperature states we would usually need a larger number of systems to judge the equilibration
+    // TODO could there be a way of combining the temperature with the error? A higher temperature would allow
+    // a larger error on xi and still judge it to be equilibrated. But this is again kind of handwavy, how large temperatures
+    // would result in how large leeway?
+    // also the error has the weird property that large systems with small nubmers of subsystems equilibrate later.
+    // For the Tc-Binder cumulant calculation this error is very suitable since we are looking for a precise U_L value anyway
+    // here we are just looking to judge the system to be in thermal equilibrium
+    // Would there be other ways of assessing the equilibration of our system? The energy? Will also fluctate, but maybe
+    // not as strongly as the correlation length?
+    // The good thing about the energy also is that the fluctuations scale with the number of lattice sites so large systems wont be
+    // in disadvantage
+    // Okay I think we will implement this for now and judge afterwards how good it works
+    // the question remains if the relaxation of the energy also means that the correlation length is relaxed, I for my
+    // case don't think so.
+    // If we want to extract the correlation length during the run we have to cut the zero impuls, I think this has
+    // to be adapted in the systems.
+    double max_error= 0.05;
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+    int nr_values;                  // nr of values that I want to be written down during the quench
+    double quench_t;                // quench time, important to calculate the write interval during the quench
+public:
+    corr_equilibration_observer(int nr_values) : nr_values(nr_values) {
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
+        timepoint = 0.0;
+        equilibrated = false;
+        // we also need to reset U_L and times, dont we?
+        xix = vector<double>{};
+        xiy = vector<double>{};
+        times = vector<double>{};
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".corr"));
+        cout << this->get_name() << " init called" << endl;
+        ofile << "t,xix,xiy" << endl;
+
+        // I think the starting write interval should be every one hundred steps
+        dt = paras[Parameter::dt];
+        quench_t = sys.get_quench_time();
+        write_interval = 100 * dt;
+    }
+
+    string get_name() override {
+        return "corr equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint) {
+            double xix_val, xiy_val;
+            sys.calc_xi(x, xix_val, xiy_val);
+            ofile << t << "," << xix_val << "," << xiy_val << endl;
+            // add the correlation lengths and the times to the vectors to keep track
+            // we actually only need to keep track if we did not decide already that we are equilibrated?
+            if(!equilibrated) {
+                xix.push_back(xix_val);
+                xiy.push_back(xiy_val);
+                times.push_back(t);
+                int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
+                // we lack the complete logic to change the stepsize since we said we use a constant density 
+                if(nr_xi_values > min_corr_nr){
+                    // if we reached the minimum number of values we check the error on the correlation lengths
+                    int min_ind = (int)(equil_cutoff * nr_xi_values);
+                    // we need to calculate the average aswell as the stddev for both directions
+                    double avg_xix = accumulate(xix.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
+                    double avg_xiy = accumulate(xiy.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
+                    std::vector<double> diff_xix_total(nr_xi_values - min_ind);
+                    std::vector<double> diff_xiy_total(nr_xi_values - min_ind);
+                    std::transform(xix.begin() + min_ind, xix.end(), diff_xix_total.begin(), [avg_xix](double x) { return x - avg_xix; });
+                    std::transform(xiy.begin() + min_ind, xiy.end(), diff_xiy_total.begin(), [avg_xiy](double x) { return x - avg_xiy; });
+                    double sq_sum_xix_total = std::inner_product(diff_xix_total.begin(), diff_xix_total.end(), diff_xix_total.begin(), 0.0);
+                    double sq_sum_xiy_total = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0);
+                    double rel_stddev_xix_total = sqrt(sq_sum_xix_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xix;
+                    double rel_stddev_xiy_total = sqrt(sq_sum_xiy_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xiy;
+                    cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
+                    cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;
+
+                    // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
+                    double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
+
+                    if(rel_stddev_total < max_error) {
+                        cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                        cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
+                        cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
+                        // we set the system to be equilibrated
+                        sys.set_equilibration(t);
+                        // once we did this, we dont want to do that a second time?
+                        equilibrated = true;
+                        // the writ interval will now be the one that we destined for the quench, we just change it once here
+                        write_interval = quench_t / (double)nr_values;
+                    }
+                }
+            }
+            timepoint += write_interval;
+        }
+    }
+
+};
+
+template <class system, class State>
 class ft_observer : public obsver<system, State>{
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here

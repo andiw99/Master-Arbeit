@@ -25,19 +25,19 @@ def fold(t, U_L, fold=3):
 
     return np.array(t_fold), np.array(U_L_fold)
 def main():
-    root = "../../Generated content/Silicon/Subsystems/z extraction/high temperature/small eta/"
+    root = "../../Generated content/Silicon/Subsystems/z extraction/high temperature/small eta"
     ending = "cum"
     value = "U_L"
     title = ""
     z_min_fit = 1.0
     z_max_fit = 2.2
     res = 200
-    fold_points = 20
+    fold_points = 200
 
     size_dirs =sorted(os.listdir(root))
     print(size_dirs)
 
-    t_upper_limit = 12800
+    t_upper_limit = 25000
     t_lower_limit = 0
 
     cum_map = {}
@@ -58,32 +58,59 @@ def main():
                 T = parameters["T"]
                 print(cum_files)
                 # averageing over the cumulant files
-                cumulant = np.zeros(nr_cum_values+1)
                 t_arr = []
-                nr_cum_values_arr = np.zeros(nr_cum_values+1)
-                for cum_path in cum_files:
+                cumulant = np.zeros([])
+                nr_cum_values_arr = np.zeros([])
+                # okay so we work with dictionaries now
+                t_cum_arr_dic = {}   # this dictionary is supposed to keep a list or array of the cum values of the different files
+                # so we don't need a nr_arr since we now the number later
+                # but we need a dictionary that keeps the mean values
+                t_cum_dic = {}
+                for i, cum_path in enumerate(cum_files):
                     print(cum_path)
                     df = pd.read_csv(cum_path, delimiter=",", index_col=False)
                     cum = df[value]
-                    print("len df value:", len(df[value]))
-                    print(len(cumulant))
+                    times = df['t']     # the array with the times to cum
                     print("current cum")
                     print(cum)
+                    # we loop over the times and either append to the list that is there for the current t or create this list
+                    for j,t in enumerate(times):
+                        # we do it with try except loop?
+                        try:
+                            t_cum_arr_dic[t].append(cum[j])
+                        except KeyError:
+                            t_cum_arr_dic[t] = [cum[j]]         # a list containing the j-th value of cum
+
                     # okay we do something wild now, if one cum file isnt finished yet or something, we add the finished vals
-                    if len(cum) < len(cumulant):
-                        print("Attention, following file is corrupted or not yet finished")
-                        print(cum_path)
-                        cumulant[0:len(cum)] += cum
-                        nr_cum_values_arr[0:len(cum)] += 1
-                    else:
-                        cumulant += cum
-                        nr_cum_values_arr += 1
-                    if len(df["t"]) > len(t_arr):
-                        print(f"len(df[t]) larger than len(t_arr): {len(df['t'])} > {len(t_arr)}")
-                        t_arr = df["t"]
+                    # all the rest we don't need anymore?
+                    #if len(cum) < len(cumulant):
+                    #    print("Attention, following file is corrupted or not yet finished")
+                    #    print(cum_path)
+                    #    cumulant[0:len(cum)] += cum
+                    #    nr_cum_values_arr[0:len(cum)] += 1
+                    #elif len(cum) > len(cumulant):
+                    #    # this is possible if the runs that we do do not have the same number of cum values
+                    #    # but wait, it is possible with the equilibration observer that the times also dont match
+                    #    # this means at this point we should probably work with dictionaries...
+                    #else:
+                    #    cumulant += cum
+                    #    nr_cum_values_arr += 1
+                    #if len(df["t"]) > len(t_arr):
+                    #    print(f"len(df[t]) larger than len(t_arr): {len(df['t'])} > {len(t_arr)}")
+                    #    t_arr = df["t"]
+
                 # averaging
-                cumulant = cumulant / nr_cum_values_arr
-                cumulant = cumulant[cumulant > 0]           # cum is never zero so we can assume that the spaces with zero have not been reached
+                # loop over the times we now have in the t_cum_arr_dic and average every array into the t_cum_dic
+                for t in t_cum_arr_dic:
+                    t_cum_dic[t] = np.mean(t_cum_arr_dic[t])
+
+                # cumulant = cumulant / nr_cum_values_arr
+                # cumulant = cumulant[cumulant > 0]           # cum is never zero so we can assume that the spaces with zero have not been reached
+                # and now we just create the cumulant that we used previoiusly so the rest of the code still works?
+                cumulant = np.array(list(t_cum_dic.values()))
+                t_arr = np.array(list(t_cum_dic.keys()))
+                cumulant = cumulant[np.argsort(t_arr)]
+                t_arr = np.sort(t_arr)
                 print(cumulant)
                 cum_map[(Lx, T)] = cumulant
                 t_map[(Lx, T)] = t_arr

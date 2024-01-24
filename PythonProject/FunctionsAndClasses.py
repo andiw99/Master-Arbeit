@@ -13,6 +13,7 @@ from IPython import embed
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
 from scipy.optimize import curve_fit
+from scipy.optimize import fsolve
 
 
 # import matplotlib; matplotlib.use("TkAgg")
@@ -1157,6 +1158,47 @@ def plot_struct_func(px, py, fx, fy, error_x=0, error_y=0):
     axx.legend()
     axy.legend()
     return fig, axes
+
+def T_c_XY(T, J_large, J_small):
+    return 2 * T / J_large * np.log(2 * T / J_small) - 1
+
+def T_c_est(J_para, J_perp, h=0):
+    # we need to solve the transcendet equation of the XY model
+    # scipy f_solve needs a guess of the critical temperature which is difficult but lets try with the mean of the Js
+    T_c_est = (J_para + J_perp) / 2
+    if J_para > J_perp:
+        T_c_est = fsolve(T_c_XY, T_c_est, args=(J_para, J_perp))
+    else:
+        T_c_est = fsolve(T_c_XY, T_c_est, args=(J_perp, J_para))
+    return T_c_est
+
+
+def BJ_x(BJ_y):
+    # calculates the critical effective coupling beta * Jx in dependence of the
+    # given coupling beta * Jy
+    BJ_x = (-2) * np.log(BJ_y / 2)
+    if BJ_x < BJ_y:
+        # if thats the case we used the wrong formula
+        # is that all legal? it feels so illegal
+        BJ_x = 2 * np.exp(-BJ_y / 2)
+    return BJ_x
+
+
+def BJ_assert(BJ_x, BJ_y):
+    # has to return zero otherwise something is wrong
+    if np.abs(BJ_x) > np.abs(BJ_y):
+        return np.abs(BJ_x) / 2 + np.log(BJ_y / 2)
+    else:
+        return np.abs(BJ_y) / 2 + np.log(BJ_x / 2)
+
+def BJ_large(BJ_small):
+    return (-2) * np.log(np.abs(BJ_small) / 2)
+
+def BJ_small(BJ_large):
+    return 2 * np.exp(-np.abs(BJ_large) / 2)
+
+def BJ_est(BJ_para, BJ_perp, h):
+    BJ_est = (BJ_para + BJ_perp) / 2        # woah I dont have any clue on how to estimate this
 
 
 def main():

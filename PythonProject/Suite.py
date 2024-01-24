@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.optimize import fsolve
 from itertools import product
 import re
 from fabric import Connection
@@ -9,15 +8,6 @@ import subprocess
 import pathlib
 from scipy.interpolate import CubicSpline, PchipInterpolator
 
-def T_c_XY(T, J_parallel, J_perp):
-    return 2 * T / J_parallel * np.log(2 * T / J_perp) - 1
-
-def T_c_est(J_para, J_perp, h):
-    # we need to solve the transcendet equation of the XY model
-    # scipy f_solve needs a guess of the critical temperature which is difficult but lets try with the mean of the Js
-    T_c_est = (J_para + J_perp) / 2
-    T_c_est = fsolve(T_c_XY, T_c_est, args=(J_para, J_perp))
-    return T_c_est
 
 def extract_numbers_after_newline(input_string):
     # Define the regular expression pattern

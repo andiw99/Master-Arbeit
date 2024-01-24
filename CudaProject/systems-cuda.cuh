@@ -1898,7 +1898,26 @@ public:
         // cout << endl;
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
+        // cut zero impuls, I think we can always do that and it won't be much of a difference?
+        bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        double* ft_k_fit;
+        double* ft_l_fit;
+        if(cut_zero_impuls) {
+            // since we now know how pointers work, we know that we can just increase the value of ft_squared_k
+            // which is the memory adress of the first value in the array by 1 to increase the adress value by the size of a double
+            // this way we have a pointer that points to the second value of ft_squared_k
+            ft_k_fit = ft_squared_k + 1;
+            ft_l_fit = ft_squared_l + 1;
+            // remove first value form ks
+            kx.erase(kx.begin());
+            ky.erase(ky.begin());
+            // size for fitting
+        } else {
+            ft_k_fit = ft_squared_k;
+            ft_l_fit = ft_squared_l;
+        }
 
+        // TODO improve the fit, have a thingy that makes it grounded and maybe only fit the peak ? For now ok
         Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_squared_k);
         Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_squared_l);
 
@@ -1906,8 +1925,13 @@ public:
         xix = paras_x(1);
         xiy = paras_y(1);
 
+        // I think we should or we have to do that? But I am not entirely sure...
         delete[] ft_squared_k;
         delete[] ft_squared_l;
+        // wait, by deleting ft_squared_k, we already include the deletion of ft_k_fit?
+        // TODO haha this is again something you dont understand yet
+        delete[] ft_k_fit;
+        delete[] ft_l_fit;
         cufftDestroy(plan);
 
     }
