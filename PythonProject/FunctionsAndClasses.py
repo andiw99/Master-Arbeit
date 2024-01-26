@@ -804,6 +804,39 @@ def find_intersection(x_range, y1, y2, res=1000):
 
     return intersection_x
 
+def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_fraction=0.2):
+    """
+    reduces peaked data to the data around the peak
+    :param threshold_fraction:  values below threshold_fraction * peak hight are cut
+    :param min_points_fraction: we will be left at least with min_points_fraction of the datapoints we begun with
+    :return: cut data
+    """
+    # we remove the offset of the y_values as they are not relevant for the peak position
+    y_offset = np.min(y_values)
+    y_values -= y_offset
+    # Find the index and value of the peak
+    peak_index = np.argmax(y_values)
+    peak_value = y_values[peak_index]
+
+    # Calculate the threshold based on the fraction of the peak value
+    threshold = threshold_fraction * peak_value
+
+    # Find the range of indices where the y-values are above the threshold
+    above_threshold_indices = np.where(y_values > threshold)[0]
+    # If the length of this is to small, we reduce the threshold fraction? Quick fix
+    if len(above_threshold_indices) < min_points_fraction * len(y_values):
+        new_threshold = 0.9 * threshold_fraction        # small steps?
+        return cut_data_around_peak(x_values, y_values, new_threshold, min_points_fraction)
+    # I think if we
+    # Extract the subset of data around the peak
+    x_cut = x_values[above_threshold_indices]
+    y_cut = y_values[above_threshold_indices]
+
+    # we have to add the offset back again
+    y_cut += y_offset
+
+    return x_cut, y_cut
+
 def get_intersections(size_T_cum_dic):
     intersections = []
     sizes = list(size_T_cum_dic.keys())
@@ -969,13 +1002,22 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     return average_value, nr_values
 
 
-def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum'):
+def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None):
     """
     Process all files in a size folder and return a dictionary with temperature and average values.
     """
+    eps = 1e-4
     result = {key: [], value: []}
-
     for temp_folder in os.listdir(size_folder):
+        if selected_temperatures is not None:
+            temp = float(temp_folder)
+            selected = False
+            # we have to look if approximately this temperature is present in selected_temperatures
+            for sel_temp in selected_temperatures:
+                if sel_temp - eps < temp < sel_temp + eps:
+                    selected = True
+            if not selected:
+                continue
         if (temp_folder != "plots") & (temp_folder[0] != "."):
             temp_folder_path = os.path.join(size_folder, temp_folder)
             if os.path.isdir(temp_folder_path):
@@ -1078,6 +1120,12 @@ def lorentz_ft(x, xi, a, b):
 
 def MF_lorentz(x, xi, a):
     return a * xi / (1 + (x) ** 2 * xi ** 2)
+
+def lorentz_pi(x, xi, a):
+    return a * 2 * xi / (1 + (4 * np.pi ** 2) * (xi ** 2) * (x ** 2))
+
+def lorentz_offset(x, xi, a, b):
+    return b + a * 2 * xi / (1 + (xi ** 2) * (x ** 2))
 def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
     try:
         popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)

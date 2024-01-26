@@ -74,7 +74,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
 
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8):
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003):
         self.J_para = J_para
         self.J_perp = J_perp
         self.h = h
@@ -101,10 +101,11 @@ class crit_temp_measurement():
 
         self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
         self.max_rel_intersec_error = 0.002  # standard maximum error of 2%
-        self.equil_error = 0.0004           # standard equilibration error for the U_L runs
+        self.equil_error = equil_error           # standard equilibration error for the U_L runs
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
+        self.min_cum_nr = 100
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -255,23 +256,18 @@ class crit_temp_measurement():
 
     def evaluate_simulation(self, file, folder, user, wait, walltime):
         threshold = 0.1  # in the simulation we calculated the mean from the last 90% of the values and achieved a small error
-        results = {}
-        for size_folder in os.listdir(self.simulation_path):
-            if (size_folder[0] != ".") & (size_folder != "plots"):
-                size_folder_path = os.path.join(self.simulation_path,
-                                                size_folder)
-                if os.path.isdir(size_folder_path):
-                    size_result = process_size_folder(size_folder_path,
-                                                      threshold)
-                    results[int(size_folder)] = size_result
+        all_results = self.construct_results(threshold)
+        current_results = self.construct_results(threshold, self.T_arr)
         # how does results look again precisely?
         # I have for every size a dictionary with {'T' : [T_min, ..., T_max], 'U_L': [U_L(T_min), ..., U_L(T_max)]}
         # once we have the U_L values the first thing we should do is check whether we have an intersection
         # something should be recursively if we need a second or third iteration...
-        U_L_min_T_min = np.min(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_min = np.min(results[np.max(self.sizes)]['U_L'])
-        U_L_min_T_max = np.max(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_max = np.max(results[np.max(self.sizes)]['U_L'])
+        # The U_Ls should be the ones that we calculated this run..., so if we calculated a bad interval that does not contain the last measurement
+        # that we can corr
+        U_L_min_T_min = np.min(current_results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_min = np.min(current_results[np.max(self.sizes)]['U_L'])
+        U_L_min_T_max = np.max(current_results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_max = np.max(current_results[np.max(self.sizes)]['U_L'])
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         intersection = (U_L_min_T_min > U_L_max_T_min) & (
@@ -280,7 +276,7 @@ class crit_temp_measurement():
             # good sign
             # determine Tc AND its error
             T_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
-                results)
+                all_results)
             # I think T_range is the common Ts for the sizes, I think here every size should
             # definetely have the same temperatures
             # U_L_intersection is the U_L_value at the intersection
@@ -305,10 +301,10 @@ class crit_temp_measurement():
             #    intersections.append(intersection)
             # TODO this works only for 3 different sizes
             for i in range(len(self.sizes)):
-                U_L_1 = results[self.sizes[i]]["U_L"]
-                U_L_2 = results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
+                U_L_1 = all_results[self.sizes[i]]["U_L"]
+                U_L_2 = all_results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
                 #print("U_L_1 = ", U_L_1)
-                T_arr = results[self.sizes[i]]["T"]
+                T_arr = all_results[self.sizes[i]]["T"]
                 intersection = find_intersection(T_arr, U_L_1, U_L_2)
                 intersections.append(intersection)
             # more is it net?
@@ -369,6 +365,18 @@ class crit_temp_measurement():
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
             return self.iteration(file, folder, user, wait, walltime)
 
+    def construct_results(self, threshold, selected_temps=None):
+        results = {}
+        for size_folder in os.listdir(self.simulation_path):
+            if (size_folder[0] != ".") & (size_folder != "plots"):
+                size_folder_path = os.path.join(self.simulation_path,
+                                                size_folder)
+                if os.path.isdir(size_folder_path):
+                    size_result = process_size_folder(size_folder_path,
+                                                      threshold, selected_temperatures=selected_temps)
+                    results[int(size_folder)] = size_result
+        return results
+
     def run_jobs(self, file, folder, para_nr, user, wait, walltime):
         # how do we make this routine? First we can make one cycle and submit nr gpus jobs?
         # or just the routine that will be waiting for the jobs to finish instantly?
@@ -377,6 +385,7 @@ class crit_temp_measurement():
         print("connecting to hemera...")
         next_job = 0
         self.completed_jobs = set()     # we have to reset the completed jobs otherwise the program thinks we already compleated all the jobs
+        self.nr_GPUS = min(self.nr_GPUS, self.total_runs)   # we dont need more GPUS than we have jobs
         while (len(self.completed_jobs)) < self.total_runs:
             # after this the set of running jobs is guaranteed to be empty
             # now we should check wheter some jobs are completed
@@ -425,7 +434,7 @@ class crit_temp_measurement():
             # order
             # we know which job is next through the next job variable,
             # but we still need to know the number at which to start
-            while len(self.running_jobs) < self.nr_GPUS:
+            while (len(self.running_jobs) < self.nr_GPUS) & (len(self.completed_jobs) + len(self.running_jobs) < self.total_runs):          # I think we forgot that we should not submit more jobs than we were expecting to? Is a job always either running or completed?
                 # if this is true we are definetly going to submit a new job
                 # so we can construct the para set string and advance next job
                 para_set_nr = str(para_nr) + str(next_job)
@@ -568,7 +577,8 @@ class quench_measurement():
                     f"x_y_factor, {self.Ly_Lx} \n"
                     f"nr_corr_values, 0 \n"
                     f"nr_ft_values, 0 \n"           # TODO probably deprecated, have to see later!
-                    f"equil_error, {self.equil_error}")
+                    f"equil_error, {self.equil_error} \n"
+                    f"min_cum_nr, 50")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -761,7 +771,7 @@ class quench_measurement():
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 30
+    nr_gpus = 15
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -774,7 +784,7 @@ def main():
     min_size_Tc = 48
     nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval

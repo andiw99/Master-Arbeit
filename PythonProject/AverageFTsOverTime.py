@@ -62,7 +62,7 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     return fig, ax
 
 def main():
-    simulation_path = "../../Generated content/Subsystems/Test/TestAll"
+    simulation_path = "../../Generated content/Silicon/Quench/Center"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -70,11 +70,14 @@ def main():
     quench_zoom = 50
     y_scale = "log"
     y_lower_lim = 0.05
+    set_fts_to_zero = False
     min_tau_fit = 100
     max_tau_fit = np.infty
     plot_struct = True
-    fitfunc = MF_lorentz
-    struct_func_time = 1
+    cut_around_peak = True
+    peak_cut_threshold = 0.1
+    fitfunc = lorentz_offset
+    struct_func_time = 0
     t_xix = {}
     t_xiy = {}
     size_x_dic = {}
@@ -95,40 +98,26 @@ def main():
 
                         Lx = parameters["subsystem_Lx"]
                         Ly = parameters["subsystem_Ly"]
-
                         if os.path.isdir(settingpath):
                             t_xix[setting] = {}
                             t_xiy[setting] = {}
                             ft_k, ft_l = average_ft(settingpath)
                             for t in ft_k:
-                                p_k = get_frequencies_fftw_order(len(ft_k[t]))
-                                if cut_zero_impuls:
-                                    if t == 1:
-                                        print("before cut")
-                                        print(ft_k[t])
-                                        print("p_K!!")
-                                        print(p_k)
-                                    p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
-                                    if t==1:
-                                        print("after cut")
-                                        print(ft_k[t])
-                                popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
+                                ft_k_fit = ft_k[t]
+                                ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
+                                                                 peak_cut_threshold, set_fts_to_zero)
+
+                                popt_x, perr_x = fit_lorentz(p_k, ft_k_fit,
                                                              fitfunc=fitfunc)
+                                # print("offset = ", popt_x[1])
                                 xix = np.minimum(np.abs(popt_x[0]), Lx)
                                 t_xix[setting][t] = xix
                             for t in ft_l:
-                                p_l = get_frequencies_fftw_order(len(ft_l[t]))
-                                if cut_zero_impuls:
-                                    if t==1:
-                                        print("before cut")
-                                        print(ft_l[t])
-                                        print("p:")
-                                        print(p_l)
-                                    p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
-                                    if t==1:
-                                        print("after cut")
-                                        print(ft_l[t])
-                                popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
+                                ft_l_fit = ft_l[t]
+                                ft_l_fit, p_l = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_l_fit,
+                                                                 peak_cut_threshold, set_fts_to_zero)
+
+                                popt_y, perr_y = fit_lorentz(p_l, ft_l_fit,
                                                                 fitfunc=fitfunc)
                                 xiy = np.minimum(np.abs(popt_y[0]), Ly)
                                 t_xiy[setting][t] = xiy
@@ -138,14 +127,22 @@ def main():
                                     t = find_closest_key(ft_k, struct_func_time)
                                 else:
                                     t = list(ft_k.keys())[len(ft_k.keys())//2]
-
-                                fig, axes = plot_struct_func(p_k, p_l, ft_k[t],
-                                                             ft_l[t])
-                                popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
+                                ft_k_fit = ft_k[t]
+                                ft_l_fit = ft_l[t]
+                                p_k_plot, ft_k_plot = cut_zero_imp(get_frequencies_fftw_order(len(ft_k_fit)), ft_k_fit)
+                                p_l_plot, ft_l_plot = cut_zero_imp(get_frequencies_fftw_order(len(ft_l_fit)), ft_l_fit)
+                                ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
+                                                                 peak_cut_threshold, set_fts_to_zero)
+                                ft_l_fit, p_l = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_l_fit,
+                                                                 peak_cut_threshold, set_fts_to_zero)
+                                fig, axes = plot_struct_func(p_k_plot, p_l_plot,
+                                                             ft_k_plot,
+                                                             ft_l_plot)
+                                popt_x, perr_x = fit_lorentz(p_k, ft_k_fit,
                                                              fitfunc=fitfunc)
-                                popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
+                                popt_y, perr_y = fit_lorentz(p_l, ft_l_fit,
                                                              fitfunc=fitfunc)
-                                p = np.linspace(min(p_k), max(p_k), p_k.size)
+                                p = np.linspace(-np.pi, np.pi, 200)
                                 lorentz_x = fitfunc(p, *popt_x)
                                 lorentz_y = fitfunc(p, *popt_y)
                                 axes[0].plot(p, lorentz_x,
@@ -158,7 +155,7 @@ def main():
                                     rf"$\xi_y = {xiy:.2f}  \quad t = {t} \quad  \tau = {setting}$")
                                 plt.tight_layout()
                                 create_directory_if_not_exists(simulation_path + "/plots")
-                                plt.savefig(simulation_path + f"/plots/{setting}-{t}", format="png")
+                                plt.savefig(simulation_path + f"/plots/{setting}-{t}-{len(ft_k[t])}", format="png")
                                 plt.show()
                     print("size: ", int(size))
                     print(t_xix.keys())
@@ -175,7 +172,6 @@ def main():
         parapath = find_first_txt_file(simulation_path)
         parameters = read_parameters_txt(parapath)
         t_eq = parameters["equil_time"]
-    t_eq = 30
     setting_var = "T"
     if quench:
         setting_var = r"$\tau$"
@@ -251,6 +247,18 @@ def main():
     configure_ax(figy, axy)
     figy.savefig(simulation_path + "/xiy-quench-scaling.png", format="png", dpi=300)
     plt.show()
+
+
+def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero):
+    p_k = get_frequencies_fftw_order(len(ft_k_fit))
+    if cut_zero_impuls:
+        p_k, ft_k_fit = cut_zero_imp(p_k, ft_k_fit)
+    if set_fts_to_zero:
+        ft_k_fit -= np.min(ft_k_fit)
+    if cut_around_peak:
+        p_k, ft_k_fit = cut_data_around_peak(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold)
+    return ft_k_fit, p_k
+
 
 if __name__ == "__main__":
     main()

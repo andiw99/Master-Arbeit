@@ -1896,6 +1896,10 @@ public:
             ft_squared_l[i] /=  pow(Lx, 4);
             // cout << ft_squared_l[i] << "  ";
         }
+        // printing ft_squared_k to see if there is a difference to the ft function
+        cout << endl;
+        print_array(ft_squared_k, Lx);
+        cout << endl;
         // cout << endl;
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
@@ -1919,12 +1923,12 @@ public:
         }
 
         // TODO improve the fit, have a thingy that makes it grounded and maybe only fit the peak ? For now ok
-        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_squared_k);
-        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_squared_l);
+        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
+        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_k_fit);
 
         xix = paras_x(1);
         xiy = paras_y(1);
-
+        cout << "xix = " << xix << "  amplitude = " << paras_x(1);
         // I think we should or we have to do that? But I am not entirely sure...
         delete[] ft_squared_k;
         delete[] ft_squared_l;

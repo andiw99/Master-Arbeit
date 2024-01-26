@@ -369,7 +369,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     double timepoint = 0;
     vector<double> U_L{};
     vector<double> times{};
-    int min_cum_nr = 1000;
+    int min_cum_nr = 500;
     int avg_nr = 5;     // after avg_nr of U_L calculations we check if we should adjust the stepsize
     double min_density = 1.0 / 1000.0;      // the minimum density of U_L calculations will be once in 1000 steps
     double max_density = 1.0 / 10.0;        // the maximum density of U_L calculations will be once in 10 steps
@@ -377,7 +377,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     double max_stepsize_div = 0.003;         // the stddeviation of avg_nr U_Ls should be at most max_stepsize_div of mean_UL
     double dt = 0.01;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
-    double max_error= 0.0001;
+    double max_error= 0.001;
     int cum_nr = 0;                         // current number in the averageing process
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
 public:
