@@ -62,7 +62,7 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     return fig, ax
 
 def main():
-    simulation_path = "../../Generated content/Subsystems/Test/TestEqulibrationAndDensityFT"
+    simulation_path = "../../Generated content/Subsystems/Test/TestAll"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -72,9 +72,9 @@ def main():
     y_lower_lim = 0.05
     min_tau_fit = 100
     max_tau_fit = np.infty
-    plot_struct = False
+    plot_struct = True
     fitfunc = MF_lorentz
-
+    struct_func_time = 1
     t_xix = {}
     t_xiy = {}
     size_x_dic = {}
@@ -103,7 +103,15 @@ def main():
                             for t in ft_k:
                                 p_k = get_frequencies_fftw_order(len(ft_k[t]))
                                 if cut_zero_impuls:
+                                    if t == 1:
+                                        print("before cut")
+                                        print(ft_k[t])
+                                        print("p_K!!")
+                                        print(p_k)
                                     p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
+                                    if t==1:
+                                        print("after cut")
+                                        print(ft_k[t])
                                 popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
                                                              fitfunc=fitfunc)
                                 xix = np.minimum(np.abs(popt_x[0]), Lx)
@@ -111,26 +119,32 @@ def main():
                             for t in ft_l:
                                 p_l = get_frequencies_fftw_order(len(ft_l[t]))
                                 if cut_zero_impuls:
+                                    if t==1:
+                                        print("before cut")
+                                        print(ft_l[t])
+                                        print("p:")
+                                        print(p_l)
                                     p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
+                                    if t==1:
+                                        print("after cut")
+                                        print(ft_l[t])
                                 popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
                                                                 fitfunc=fitfunc)
                                 xiy = np.minimum(np.abs(popt_y[0]), Ly)
                                 t_xiy[setting][t] = xiy
 
                             if plot_struct:
-                                t = list(ft_k.keys())[len(ft_k.keys())//2]
-                                p_k = get_frequencies_fftw_order(len(ft_k[t]))
-                                p_l = get_frequencies_fftw_order(len(ft_l[t]))
+                                if struct_func_time:
+                                    t = find_closest_key(ft_k, struct_func_time)
+                                else:
+                                    t = list(ft_k.keys())[len(ft_k.keys())//2]
 
                                 fig, axes = plot_struct_func(p_k, p_l, ft_k[t],
                                                              ft_l[t])
-                                if cut_zero_impuls:
-                                    p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
-                                    p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
                                 popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
                                                              fitfunc=fitfunc)
                                 popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
-                                                                fitfunc=fitfunc)
+                                                             fitfunc=fitfunc)
                                 p = np.linspace(min(p_k), max(p_k), p_k.size)
                                 lorentz_x = fitfunc(p, *popt_x)
                                 lorentz_y = fitfunc(p, *popt_y)

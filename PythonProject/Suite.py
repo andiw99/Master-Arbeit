@@ -281,7 +281,6 @@ class crit_temp_measurement():
             # determine Tc AND its error
             T_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
                 results)
-            print(f"Found an intersection at T_c = {T_intersection}")
             # I think T_range is the common Ts for the sizes, I think here every size should
             # definetely have the same temperatures
             # U_L_intersection is the U_L_value at the intersection
@@ -299,9 +298,9 @@ class crit_temp_measurement():
             #    nr_sizes = len(U_L_interpolated)
             #    U_L_1 = U_L_interpolated[i]
             #    U_L_2 = U_L_interpolated[(i + 1) % nr_sizes]
-#
+            #
             #    print("U_L_1 = ", U_L_1)
-#
+            #
             #    intersection = find_intersection(T_range, U_L_1, U_L_2)
             #    intersections.append(intersection)
             # TODO this works only for 3 different sizes
@@ -315,6 +314,7 @@ class crit_temp_measurement():
             # more is it net?
             # simple error would be to be just max_intersection - min_intersection?
             T_c = np.mean(intersections)
+            print(f"Found an intersection at T_c = {T_c}")
             print("intersections: ", intersections)
             T_c_error = np.ptp(intersections)
             print(f"T_c_error = {T_c_error}")
@@ -761,7 +761,7 @@ class quench_measurement():
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 15
+    nr_gpus = 30
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -770,11 +770,11 @@ def main():
     h = 0.5
     eta = 1.5
     dt = 0.01
-    max_size_Tc = 128
+    max_size_Tc = 80
     min_size_Tc = 48
-    nr_sizes_Tc = 6
+    nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/SizeDependence/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test"
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval

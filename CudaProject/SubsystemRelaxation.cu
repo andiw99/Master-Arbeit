@@ -29,10 +29,6 @@ int main(int argc, char* argv[]) {
     // Okay so we initialize the observer first haha
     auto* relax_obs =
             new relax_observer<relax_system, state_type>(nr_save_values);
-
-    auto* runtime_obs =
-            new runtime_observer<relax_system, state_type>();
-
     auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
     auto* cum_obs = new cum_equilibration_observer<relax_system, state_type>();
     auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
@@ -44,7 +40,6 @@ int main(int argc, char* argv[]) {
             algebra, operations,
             relax_system>(paras, simulation_path);
     simulation.register_observer(relax_obs);
-    simulation.register_observer(runtime_obs);
     simulation.register_observer(ner_obs);
     simulation.register_observer(cum_obs);
     simulation.register_observer(corr_obs);

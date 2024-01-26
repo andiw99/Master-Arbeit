@@ -1295,7 +1295,6 @@ Eigen::MatrixXd construct_matrix(vector<double> &a, double *b, const int size) {
 
     Eigen::MatrixXd result_matrix(size, 2);
     result_matrix << a_eigen, b_eigen;
-
     return result_matrix;
 }
 

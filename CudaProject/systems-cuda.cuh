@@ -49,6 +49,7 @@ public:
     template<class State>
     void init_state(map<Parameter, double>& paras, State &x) {
         cout << "standard init state called" << endl;
+        string name = "test";
     }
 
     virtual void print_info() {
@@ -1921,7 +1922,6 @@ public:
         Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_squared_k);
         Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_squared_l);
 
-
         xix = paras_x(1);
         xiy = paras_y(1);
 
@@ -1930,8 +1930,8 @@ public:
         delete[] ft_squared_l;
         // wait, by deleting ft_squared_k, we already include the deletion of ft_k_fit?
         // TODO haha this is again something you dont understand yet
-        delete[] ft_k_fit;
-        delete[] ft_l_fit;
+        // delete[] ft_k_fit;
+        // delete[] ft_l_fit;
         cufftDestroy(plan);
 
     }

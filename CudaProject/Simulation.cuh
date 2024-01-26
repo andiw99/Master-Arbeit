@@ -55,8 +55,7 @@ public:
         // this depends on the kind of simualtion, here we return dummy value? or nothing
         // it is either decoded in the system or in the parameters (actually both times we can get it out of the parameters...
         // but we would have to write another function for that...
-        cout << "get end t of base Simualtion is called (WRONG!)" << endl;
-        return 0.0;
+        return paras[Parameter::end_time];
     }
 
     void run(int nr) {
@@ -72,6 +71,8 @@ public:
         // How do we determine which? Is coded in random param, ... if else function is pretty lame again
         // The state initialization should also be exchangeable, or rather i mean it is code that is used by every
         // simulation, so we might have a 'state initializer' object as member of the base class
+        string run_checkpoint_name = "total duration";
+        Singleton_timer::set_startpoint(run_checkpoint_name);
         paras[Parameter::step_nr] = step_nr;
         paras[Parameter::run_nr] = nr;
         // 2. Initialize the stepper and the system (and open new file for the observer)
@@ -89,6 +90,7 @@ public:
         Sys.init_state(paras, x);           // init state via correct state initializer that was created in repeat
 
         double end_t = Sys.get_end_t();
+        paras[Parameter::end_time] = end_t;
         cout << "Running unitl " << end_t << endl;
         cout << "Starting run with parameters:" << endl;
         printMap(paras);
@@ -106,6 +108,9 @@ public:
         stepper->step_until(end_t, Sys, x, paras[Parameter::dt], t, obsvers);
         cout << "Sys.get_step_nr():" << Sys.get_step_nr() << endl;
         step_nr += Sys.get_step_nr();
+        // After the run we call the Singleton_timer so that it can write its stuff into the folder
+        Singleton_timer::set_endpoint(run_checkpoint_name);
+        Singleton_timer::write(folder_path, nr);
     }
     void repeat(int runs) {
         cout << "run " << repeat_nr - runs << "/" << repeat_nr << endl;
@@ -201,16 +206,6 @@ public:
             folder_path = simulation_path / to_string(tau);
             this->repeat((int)paras[nr_repeat]);      // and actually this should be it
         }
-    }
-
-    double get_end_t() override {
-        double eq_t = paras[equil_time];
-        double t_quench = (paras[starting_temp] - paras[end_temp]) * paras[tau];
-        double t_end = 2 * eq_t + t_quench;
-        cout << "Simulating Quench until " <<  t_end << endl;
-        // set end t in paras for the observer
-        paras[end_time] = t_end;
-        return t_end;
     }
 
     QuenchSimulation(map<Parameter, double> &paras, fs::path& simulation_path) :

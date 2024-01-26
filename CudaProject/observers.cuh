@@ -613,7 +613,7 @@ public:
                     int min_ind = (int)(equil_cutoff * nr_xi_values);
                     // we need to calculate the average aswell as the stddev for both directions
                     double avg_xix = accumulate(xix.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
-                    double avg_xiy = accumulate(xiy.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
+                    double avg_xiy = accumulate(xiy.begin() + min_ind, xiy.end(), 0.0) / (double)(nr_xi_values - min_ind);
                     std::vector<double> diff_xix_total(nr_xi_values - min_ind);
                     std::vector<double> diff_xiy_total(nr_xi_values - min_ind);
                     std::transform(xix.begin() + min_ind, xix.end(), diff_xix_total.begin(), [avg_xix](double x) { return x - avg_xix; });

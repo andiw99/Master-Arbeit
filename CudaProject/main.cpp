@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
     // end_T reading is different
     auto* quench_obs =
             new quench_observer<quench_system, state_type>(nr_save_values);
-    auto* cum_obs = new cum_equilibration_observer<quench_system, state_type>();
-    auto* corr_obs = new corr_observer<quench_system, state_type>(paras[nr_corr_values]);
+    auto* cum_obs = new cum_observer<quench_system, state_type>(paras[nr_cum_values]);
+    auto* corr_obs = new corr_equilibration_observer<quench_system, state_type>(paras[nr_corr_values]);
     auto* ft_obs = new density_quench_ft_observer<quench_system, state_type>(paras[nr_ft_values]);
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/

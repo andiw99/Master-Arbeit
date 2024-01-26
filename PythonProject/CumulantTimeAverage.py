@@ -7,8 +7,8 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/OBC3'
-    threshold = 10000  # Example threshold value, adjust as needed
+    simulation_folder = '../../Generated content/Silicon/SizeDependence/Tc/'
+    threshold = 0.1  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1

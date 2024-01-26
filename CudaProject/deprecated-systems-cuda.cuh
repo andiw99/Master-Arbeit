@@ -26,7 +26,7 @@ public:
     string rng = "RNG";
     string theta_filling = "Filling of theta";
     string functor_point = "Functor Calc";
-    checkpoint_timer timer {{rng, functor_point, theta_filling}};
+    checkpoint_timer timer {};
     // parameters of the potential and of the Interaction
     struct bath_functor {
         // I think also the potential and interaction parameters have to be set in the functor
@@ -533,7 +533,7 @@ public:
     string rng = "RNG";
     string theta_filling = "Filling of theta";
     string functor_point = "Functor Calc";
-    checkpoint_timer timer {{rng, functor_point, theta_filling}};
+    checkpoint_timer timer {};
     // parameters of the potential and of the Interaction
     struct harmonic_trap_functor {
         // I think also the potential and interaction parameters have to be set in the functor

@@ -431,4 +431,15 @@ int main(int argc, char* argv[]) {
         // no the program does not know, it just returns something. Heavy potential for bugs.
         cout << new_test[i] << endl;
     }
+
+    cout << endl << "map testing" << endl;
+    map<string, long> times{};
+    cout << times["test"] << endl;      // Will this always be zero?
+    times["test2"] += 3;
+    cout << times["test2"] << endl;      // Will this always be three?
+
+
+    int mils = 12343899;
+    double sec = (double)((int)(mils * 1e-1) * 1e-2);
+    cout << endl << sec << endl;
 }

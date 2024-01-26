@@ -1119,16 +1119,22 @@ def pi_formatter(value, ticknumber):
 
 def cut_zero_imp(p, ft, ft_err=None):
     p, ft = np.array(p), np.array(ft)
-    ft = ft[p != 0]
-    if ft_err:
-        ft_err = np.array(ft_err)
-        ft_err = ft_err[p != 0]
-        p = p[p != 0]
-        return p, ft, ft_err
+    # be aware this only works if we have an even lenght and the zero is included...
+    if len(p) % 2 == 0:
+        ft = ft[p != 0]
+        if ft_err:
+            ft_err = np.array(ft_err)
+            ft_err = ft_err[p != 0]
+            p = p[p != 0]
+            return p, ft, ft_err
+        else:
+            p = p[p != 0]
+            return p, ft
     else:
-        p = p[p != 0]
+        # TODO if not we will cut the first value. Quickfix?!?!
+        ft = ft[1:]
+        p = p[1:]
         return p, ft
-
 
 def rescale_t(t, tau, t_eq, zoom = 1):
     total_time = np.max(t)
@@ -1199,6 +1205,18 @@ def BJ_small(BJ_large):
 
 def BJ_est(BJ_para, BJ_perp, h):
     BJ_est = (BJ_para + BJ_perp) / 2        # woah I dont have any clue on how to estimate this
+
+def find_closest_key(dictionary, target_value):
+    closest_key = None
+    min_difference = float('inf')
+
+    for key in dictionary:
+        difference = abs(key - target_value)
+        if difference < min_difference:
+            min_difference = difference
+            closest_key = key
+
+    return closest_key
 
 
 def main():

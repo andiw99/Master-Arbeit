@@ -5,7 +5,7 @@
 #ifndef CUDAPROJECT_STEPPERS_CUH
 #define CUDAPROJECT_STEPPERS_CUH
 #include "../LearningProject/Header/Helpfunctions and Classes.h"
-
+#include "main.cuh"
 using namespace std;
 
 
@@ -81,7 +81,9 @@ public:
     template<class Obs>
     void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t, vector<Obs*> obsvers) {
         for(auto obs : obsvers) {
+            Singleton_timer::set_startpoint(obs->get_name());       // TODO i could imagine that this doesnt work since i have to pass a variable and not a string?
             obs->operator()(sys, x, t); // Observing before anything happens
+            Singleton_timer::set_endpoint(obs->get_name());
         }
         while (t < end_time){
 /*            if (t > 0.95 * end_time) {
@@ -92,7 +94,9 @@ public:
             }*/
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
             for(auto obs : obsvers) {
+                Singleton_timer::set_startpoint(obs->get_name());
                 obs->operator()(sys, x, t);
+                Singleton_timer::set_endpoint(obs->get_name());
             }
             if(sys.is_equilibrated()) {
                 break;
@@ -104,8 +108,6 @@ public:
         return "base stepper";
     }
 };
-
-
 
 template<
         class state_type,
@@ -120,7 +122,7 @@ class euler_mayurama_stepper : public stepper<state_type, algebra, operations, S
     string applying_name = "Applying Euler";
     string rng = "RNG during Euler";
     string functor = "Functor during Euler";
-    checkpoint_timer timer{{system_name, applying_name, rng, functor}};
+    checkpoint_timer timer{};
 public:
     typedef System Sys;
     using stepper<state_type, algebra, operations, System, value_type, time_type>::dxdt;
@@ -223,7 +225,7 @@ class euler_simple_adaptive : public stepper<state_type, algebra, operations, Sy
     string drift_calc = "Second drift calc";
     string error_calc = "Error Calculation";
     string repetitions = "Repetitions";
-    checkpoint_timer timer{{drift_calc, error_calc, repetitions}};
+    checkpoint_timer timer{};
 public:
     typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
     typedef System Sys;
@@ -307,6 +309,7 @@ public:
 private:
     state_type x_drift, dx_drift_dt;
 };
+
 template<
         class state_type,
         class algebra,
@@ -342,7 +345,7 @@ class euler_combined : public euler_mayurama_stepper<state_type, algebra, operat
     string euler_steps = "Euler-Mayurama Steps";
     string adaptive_steps = "Adaptive Steps";
     string rng = "Random Number Generation";
-    checkpoint_timer timer{{drift_calc, error_calc, repetitions, euler_steps, adaptive_steps, rng}};
+    checkpoint_timer timer{};
 public:
     typedef System Sys;
 
@@ -489,7 +492,6 @@ private:
     state_type x_drift, dx_drift_dt;
 };
 
-
 template<
         class state_type,
         class algebra,
@@ -512,26 +514,51 @@ public:
     typedef typename operations::template apply_bbk_v2<time_type> apply_bbk_v2;
     size_t n;
     bool firststep = true;
-
+    const string calc_force_checkpoint_name = " Calc Force";      // I think this should be optimized by the compiler??
+    const string calc_diff_checkpoint_name = " Calc Diffusion";
+    const string bbk_checkpoint_v1 = "BBK V1";
+    const string bbk_checkpoint_v2 = "BBK V2";
+    const string bbk_checkpoint_drift = "BBK apply drift";
     void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
         // we only have to calc F in the first run, otherwise we can reuse the F of the last step
         // also we only have to generate random numbers at the beginning if its first run
         if(firststep) {
+            Singleton_timer::set_startpoint(sys.get_name() + calc_force_checkpoint_name);      // Danger to have a different string here, thats why you were binding it with variables
             sys.calc_force(x, F, t);
+            Singleton_timer::set_endpoint(sys.get_name() + calc_force_checkpoint_name);
+
+            Singleton_timer::set_startpoint(sys.get_name() + calc_diff_checkpoint_name);
             sys.calc_diff(theta, t);
+            Singleton_timer::set_endpoint(sys.get_name() + calc_diff_checkpoint_name);
+
             firststep = false;
         }
+        // TODO we should probalby also have a stepper that is not timed as this slowly seems to consume some time??
         // half a kick
+        Singleton_timer::set_startpoint(bbk_checkpoint_v1);
         algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v1(dt, sys.get_eta()));
+        Singleton_timer::set_endpoint(bbk_checkpoint_v1);
+
         // drift on q
+        Singleton_timer::set_startpoint(bbk_checkpoint_drift);
         algebra::for_each(x.begin(), x.begin(), x.begin() + n, n, apply_drift(dt));
+        Singleton_timer::set_endpoint(bbk_checkpoint_drift);
+
         sys.map_state(x);
         // now we can calculate the force again
+        Singleton_timer::set_startpoint(sys.get_name() + calc_force_checkpoint_name);      // Danger to have a different string here, thats why you were binding it with variables
         sys.calc_force(x, F, t);
+        Singleton_timer::set_endpoint(sys.get_name() + calc_force_checkpoint_name);
+
+        Singleton_timer::set_startpoint(sys.get_name() + calc_diff_checkpoint_name);
         sys.calc_diff(theta, t);
+        Singleton_timer::set_endpoint(sys.get_name() + calc_diff_checkpoint_name);
         // half a kick
         //                     v(n+1/2)           F(q_n+1)               R_n+1
+        Singleton_timer::set_startpoint(bbk_checkpoint_v2);
         algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v2(dt, sys.get_eta()));
+        Singleton_timer::set_endpoint(bbk_checkpoint_v2);
+
         // It is weird but it should be it i guess.
         // advance
         t += dt;

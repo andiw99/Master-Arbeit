@@ -17,6 +17,7 @@
 #include <thrust/sequence.h>
 #include <thrust/execution_policy.h>
 #include <map>
+#include <boost/asio/ip/host_name.hpp>
 
 // timing stuff from stackoverflow
 #include <thrust/generate.h>
@@ -178,7 +179,6 @@ map<string, Parameter> string_to_parameter {
         {"min_cum_nr", min_cum_nr}
 };
 
-
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {
     std::map<Parameter, double> paramMap;
     std::ifstream file(filename);
@@ -241,7 +241,6 @@ using namespace std;
  * - We need a gpu implementation of the operation that takes place on the lattice sites.
  */
 
-
 /*
  * Now lets think about the algebra for a 'normal' implementation first
  * Am I mistaken or do I need to make sure that I iterate over every lattice site in the algebra?
@@ -259,7 +258,6 @@ struct container_algebra {
             op(s1[n], s2[n], s3[n], s4[n]);
     }
 };
-
 
 /*
  * Now we need a "Thrust Algebra", will this be doable? I still need to figure out what my statetype is and how I
@@ -453,9 +451,6 @@ struct thrust_operations {
 
 };
 
-
-
-
 struct timer {
     chrono::time_point<chrono::high_resolution_clock> starttime;
 public:
@@ -481,11 +476,10 @@ public:
 };
 // TODO this is basically the same as the system timer, we could implement a "Checkpoint timer" that would be universal
 // to use
-struct checkpoint_timer : public timer {
+struct checkpoint_timer{
     map<string, long> times;
     map<string, chrono::time_point<chrono::high_resolution_clock>> startpoints;
     map<string, chrono::time_point<chrono::high_resolution_clock>> endpoints;
-    int nr_checkpoints;
 public:
     // we now make a function, that sets the startpoint of checkpoint i
     void set_startpoint(const string& checkpoint) {
@@ -499,16 +493,21 @@ public:
                 endpoints[checkpoint] - startpoints[checkpoint]).count();
     }
 
-    checkpoint_timer(const vector<string>& checkpoint_names) : timer() {
+    /*checkpoint_timer(const vector<string>& checkpoint_names) : timer() {
         // constructor takes a list of names of the checkpoints
         // TODO we could use a map that maps the names to the start and endpoints? Or is that slower than working
         // with indices?
-        // initialize the maps
+        // initialize the maps, WE DONT NEED TO DO THAT
+        // means that the whole constructor is useless?
         for(const string& name : checkpoint_names) {
             startpoints[name] = chrono::high_resolution_clock::now();
             endpoints[name] = chrono::high_resolution_clock::now();
             times[name] = 0;
         }
+    }*/
+
+    map<string, long> get_times() {
+        return times;
     }
 
     ~checkpoint_timer() {
@@ -517,6 +516,95 @@ public:
             cout << timepair.first << " took " << (double)timepair.second * 0.001 << " ms" << endl;
         }
     }
+
+};
+
+string construct_filename(int run_nr) {
+    string job_id_str;
+    if (const char* job_id = std::getenv("SLURM_JOB_ID")){
+        job_id_str = string(job_id);
+    } else {
+        job_id_str = "local";
+    }
+    return to_string(run_nr) + "-" + get_current_time().substr(0, 4) + "-" + job_id_str + "-" + boost::asio::ip::host_name();
+}
+
+class Singleton_timer {
+    // this is supposed to be a singleton timer, but I dont know how this will work with members
+    // I want to have a checkpoint timer as member.
+    // does this member have to be static? We try first not to because I dont know which implications this has
+public:
+    Singleton_timer(const Singleton_timer&) = delete;   // this prevents the Singleton from being copied
+
+    static Singleton_timer& Get() {
+        static Singleton_timer instance;        // I don't really get what happens here, but something with the timer being instantiated the first time Get is called?
+        return instance;
+    }
+    // now the static functionality that is internally handled by the checkpoint timer
+    static void set_startpoint(const string& checkpoint) {
+        Get().Iset_startpoint(checkpoint);      // until now it does not complain?
+    }
+    static void set_endpoint(const string& checkpoint) {
+        Get().Iset_endpoint(checkpoint);
+    }
+
+    static void write(fs::path simulation_path, int file_nr) {
+        // again this should work as a static file since i am getting the instance by Get()
+        // and this instance then knows the checkpoint timer
+        Get().Iwrite(simulation_path, file_nr);
+    }
+private:
+    // private constructor
+    Singleton_timer() {}
+
+    // a checkpoint timer as private member that handles the calculation of the timings
+    checkpoint_timer Timer = checkpoint_timer();        // I just construct it here?
+
+    void Iset_startpoint(const string& checkpoint) {
+        Timer.set_startpoint(checkpoint);
+    }
+
+    void Iset_endpoint(const string& checkpoint) {
+        Timer.set_endpoint(checkpoint);
+    }
+
+    void Iwrite(fs::path simulation_path, int file_nr) {
+        // I think I need to get the file nr from outside
+        string filename = construct_filename(file_nr);
+        fs::path filepath = simulation_path / (filename + ".perf" );
+        // If we want to write we need to open a filestream
+        ofstream ofile;
+        create_dir(filepath.parent_path());         // I dont think we would need that since for
+        ofile.open(filepath);
+        if(ofile.is_open()) {
+            cout << "Singleton timer successfully opened file";
+        } else {
+            cout << "Singleton timer failed to open file";
+        }
+        // sure the folder is already created but it cannot harm
+        // now we can write, i think we stay simple for now?
+        // write the header of the file
+        ofile << "Part,ms,s" << endl;
+        // We implement the write logic here i would say, so lets get the times from the timer
+        map<string, long> times = Timer.get_times();
+        // so for now we just write the name and the time it took in... ms?
+        // or both in ms and in seconds so it is more readable
+        // the longs in times are in microseconds
+        for(const auto& name_time : times) {
+            int ms = (int)((double)name_time.second * 1e-3);        // TODO does this work with 1e-3?
+            // since it so hard to f*ing format strings that you write to a file we do some rounding
+            // we drop the last digit of the ms to get 10ms as the last digit and then move the dot by two places
+            double s = (double)((int)(ms * 1e-1) * 1e-2);
+            // I would like to format this but somehow this is impossible in c++
+            ofile << name_time.first << ":" << ms << ", " << s << endl;
+        }
+
+        // once we have written we want to reset the times, so we just replace the timer?
+        Timer = checkpoint_timer();     // I mean this calls the constructor so this should be a new timer
+
+    }
+
+    // Now we should be able to use this Singleton instance everywhere where main is imported?
 
 };
 
@@ -610,8 +698,6 @@ struct rand_uni_values
         return rnr;
     }
 };
-
-
 
 template <class State, size_t n>
 void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0, double sigma=1) {
