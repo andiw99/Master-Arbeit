@@ -1244,6 +1244,13 @@ private:
     // Observations for a sample.
     Eigen::MatrixXd X_Y;
 public:
+
+    static Eigen::VectorXd get_starting_paras() {
+        auto paras = Eigen::VectorXd(2);
+        paras << 1.0, 1.0;
+        return paras;
+    }
+
     LorentzianPeakFunctor(const Eigen::MatrixXd &X_Y): Functor(X_Y.cols(), X_Y.rows()), X_Y(X_Y) {
     }
 
@@ -1256,6 +1263,33 @@ public:
         return 0;
     }
 };
+
+struct LorentzianPeakOffsetFunctor : Functor<double> {
+private:
+    // Observations for a sample.
+    Eigen::MatrixXd X_Y;
+public:
+
+    static Eigen::VectorXd get_starting_paras() {
+        auto paras = Eigen::VectorXd(3);
+        paras << 1.0, 1.0, 0.0;
+        return paras;
+    }
+
+
+    LorentzianPeakOffsetFunctor(const Eigen::MatrixXd &X_Y): Functor(X_Y.cols(), X_Y.rows()), X_Y(X_Y) {
+    }
+
+    int operator()(const Eigen::VectorXd &paras, Eigen::VectorXd &fvec) const {
+        // fvec is the vector with residuals
+        for(int i = 0; i < this->values(); i++) {
+            fvec(i) = X_Y(i, 1) - paras(2) + paras(0) * 2 * paras(1) /
+                                  (1 + X_Y(i, 0) * X_Y(i,0) * paras(1) * paras(1));
+        }
+        return 0;
+    }
+};
+
 template <typename vec>
 Eigen::MatrixXd construct_matrix(const vec &a, const vec &b) {
     Eigen::VectorXd a_eigen = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(a.data(), a.size());
@@ -1323,9 +1357,8 @@ template <class Functor>
 Eigen::VectorXd fit_matrix(Eigen::MatrixXd X_Y_vals) {
     // printMatrixXd(X_Y_vals);
 
-    Eigen::VectorXd params(2);
+    Eigen::VectorXd params = Functor::get_starting_paras();
     // the params of the fit are the scaling and the correlation length? params(0) = amplitude params(1) = xi
-    params << 1.0, 1.0;
     Functor functor(X_Y_vals);
     Eigen::NumericalDiff<Functor> numericalDiff(functor);
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<Functor>> lm(numericalDiff);
@@ -1349,5 +1382,14 @@ Eigen::VectorXd fit_lorentz_peak(vector<double>& k_values, double* ft_values) {
     X_Y_vals = construct_matrix(k_values, ft_values, L);
     return fit_matrix<LorentzianPeakFunctor>(X_Y_vals);
 }
+
+Eigen::VectorXd fit_offset_lorentz_peak(vector<double>& k_values, double* ft_values) {
+    // constrtuct the matrix that holds the k and ft values
+    int L = k_values.size();
+    Eigen::MatrixXd X_Y_vals(k_values.size(), 2);
+    X_Y_vals = construct_matrix(k_values, ft_values, L);
+    return fit_matrix<LorentzianPeakOffsetFunctor>(X_Y_vals);
+}
+
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

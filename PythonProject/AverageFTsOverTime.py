@@ -1,6 +1,7 @@
 import numpy as np
 
 from FunctionsAndClasses import *
+from decimal import Decimal
 
 
 def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log"):
@@ -69,13 +70,14 @@ def main():
     max_nr_curves = 5
     quench_zoom = 50
     y_scale = "log"
-    y_lower_lim = 0.05
+    y_lower_lim = 0.1
     set_fts_to_zero = False
     min_tau_fit = 100
     max_tau_fit = np.infty
     plot_struct = True
     cut_around_peak = True
     peak_cut_threshold = 0.1
+    min_points_fraction = 0.3
     fitfunc = lorentz_offset
     struct_func_time = 0
     t_xix = {}
@@ -105,7 +107,7 @@ def main():
                             for t in ft_k:
                                 ft_k_fit = ft_k[t]
                                 ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
-                                                                 peak_cut_threshold, set_fts_to_zero)
+                                                                 peak_cut_threshold, set_fts_to_zero, min_points_fraction)
 
                                 popt_x, perr_x = fit_lorentz(p_k, ft_k_fit,
                                                              fitfunc=fitfunc)
@@ -115,7 +117,7 @@ def main():
                             for t in ft_l:
                                 ft_l_fit = ft_l[t]
                                 ft_l_fit, p_l = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_l_fit,
-                                                                 peak_cut_threshold, set_fts_to_zero)
+                                                                 peak_cut_threshold, set_fts_to_zero, min_points_fraction)
 
                                 popt_y, perr_y = fit_lorentz(p_l, ft_l_fit,
                                                                 fitfunc=fitfunc)
@@ -132,9 +134,11 @@ def main():
                                 p_k_plot, ft_k_plot = cut_zero_imp(get_frequencies_fftw_order(len(ft_k_fit)), ft_k_fit)
                                 p_l_plot, ft_l_plot = cut_zero_imp(get_frequencies_fftw_order(len(ft_l_fit)), ft_l_fit)
                                 ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
-                                                                 peak_cut_threshold, set_fts_to_zero)
+                                                                 peak_cut_threshold, set_fts_to_zero, min_points_fraction)
+                                ft_k_min = np.min(ft_k_fit)
                                 ft_l_fit, p_l = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_l_fit,
-                                                                 peak_cut_threshold, set_fts_to_zero)
+                                                                 peak_cut_threshold, set_fts_to_zero, min_points_fraction)
+                                ft_l_min = np.min(ft_l_fit)
                                 fig, axes = plot_struct_func(p_k_plot, p_l_plot,
                                                              ft_k_plot,
                                                              ft_l_plot)
@@ -149,11 +153,20 @@ def main():
                                              label="Lorentzian fit")
                                 axes[1].plot(p, lorentz_y,
                                              label="Lorentzian fit")
+                                axes[1].hlines(ft_l_min, -np.pi, np.pi, alpha=0.3, linestyles="--", label=f"fit limit = {ft_l_min:.2E} \n "
+                                                                                                          f"min points = {min_points_fraction}")
+                                axes[0].hlines(ft_k_min, -np.pi, np.pi, alpha=0.3, linestyles="--", label=f"fit limit = {ft_k_min:.2E}\n"
+                                                                                                          f"min points = {min_points_fraction}")
                                 axes[0].set_title(
                                     rf"$\xi_x = {xix:.2f}  \quad t = {t} \quad  \tau = {setting}$")
                                 axes[1].set_title(
                                     rf"$\xi_y = {xiy:.2f}  \quad t = {t} \quad  \tau = {setting}$")
-                                plt.tight_layout()
+                                config = {"legendlocation" : "upper right"}
+                                configure_ax(fig, axes[0], config)
+                                configure_ax(fig, axes[1], config)
+                                #axes[0].legend(loc="upper right")
+                                #axes[1].legend(loc="upper right")
+                                #plt.tight_layout()
                                 create_directory_if_not_exists(simulation_path + "/plots")
                                 plt.savefig(simulation_path + f"/plots/{setting}-{t}-{len(ft_k[t])}", format="png")
                                 plt.show()
@@ -249,14 +262,14 @@ def main():
     plt.show()
 
 
-def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero):
+def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero, min_points_fraction):
     p_k = get_frequencies_fftw_order(len(ft_k_fit))
     if cut_zero_impuls:
         p_k, ft_k_fit = cut_zero_imp(p_k, ft_k_fit)
     if set_fts_to_zero:
         ft_k_fit -= np.min(ft_k_fit)
     if cut_around_peak:
-        p_k, ft_k_fit = cut_data_around_peak(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold)
+        p_k, ft_k_fit = cut_data_around_peak(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold, min_points_fraction=min_points_fraction)
     return ft_k_fit, p_k
 
 

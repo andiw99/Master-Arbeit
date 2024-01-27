@@ -1897,14 +1897,15 @@ public:
             // cout << ft_squared_l[i] << "  ";
         }
         // printing ft_squared_k to see if there is a difference to the ft function
-        cout << endl;
-        print_array(ft_squared_k, Lx);
-        cout << endl;
+        //cout << endl;
+        // print_array(ft_squared_k, Lx);
+        // cout << endl;
         // cout << endl;
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
         // cut zero impuls, I think we can always do that and it won't be much of a difference?
         bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        bool cut_around_peak = true;
         double* ft_k_fit;
         double* ft_l_fit;
         if(cut_zero_impuls) {
@@ -1921,14 +1922,33 @@ public:
             ft_k_fit = ft_squared_k;
             ft_l_fit = ft_squared_l;
         }
+/*        cout << "ft_l_fit BEFORE cut around peak:" << endl;
+        print_array(ft_l_fit, ky.size());
+        cout << "" << endl;
+        cout << "ky BEFORE cut around peak:" << endl;
+        print_vector(ky);
+        cout << "" << endl;*/
+        if(cut_around_peak) {
+            auto cut_data_k = cut_data_around_peak(kx, ft_k_fit);   // It doesnt need more computation power if i asign it to a pair beforehand or?
+            kx = cut_data_k.first;
+            ft_k_fit = cut_data_k.second;
+
+            auto cut_data_l = cut_data_around_peak(ky, ft_l_fit);   // It doesnt need more computation power if i asign it to a pair beforehand or?
+            ky = cut_data_l.first;
+            ft_l_fit = cut_data_l.second;
+        }
 
         // TODO improve the fit, have a thingy that makes it grounded and maybe only fit the peak ? For now ok
-        Eigen::VectorXd paras_x = fit_lorentz_peak(kx, ft_k_fit);
-        Eigen::VectorXd paras_y = fit_lorentz_peak(ky, ft_k_fit);
-
-        xix = paras_x(1);
-        xiy = paras_y(1);
-        cout << "xix = " << xix << "  amplitude = " << paras_x(1);
+        // We now call another function if we want to cut with offset, this is tedious to change but I dont know if
+        // we ever will so I won't bother for now
+/*        cout << "ft_l_fit after cut around peak:" << endl;
+        print_array(ft_l_fit, ky.size());
+        cout << "ky AFTER cut around peak:" << endl;
+        print_vector(ky);*/
+        Eigen::VectorXd paras_x = fit_offset_lorentz_peak(kx, ft_k_fit);
+        Eigen::VectorXd paras_y = fit_offset_lorentz_peak(ky, ft_l_fit);
+        xix = abs(paras_x(1));
+        xiy = abs(paras_y(1));
         // I think we should or we have to do that? But I am not entirely sure...
         delete[] ft_squared_k;
         delete[] ft_squared_l;

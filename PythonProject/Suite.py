@@ -74,7 +74,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
 
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003):
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, intersection_error=0.002):
         self.J_para = J_para
         self.J_perp = J_perp
         self.h = h
@@ -100,7 +100,7 @@ class crit_temp_measurement():
         self.connection = None
 
         self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
-        self.max_rel_intersec_error = 0.002  # standard maximum error of 2%
+        self.max_rel_intersec_error = intersection_error  # standard maximum error of 2%
         self.equil_error = equil_error           # standard equilibration error for the U_L runs
         self.maximum_iterations = 4
         self.iteration_nr = 0
@@ -147,20 +147,23 @@ class crit_temp_measurement():
                 size_folder_path = os.path.join(self.simulation_path, size_folder)
                 if os.path.isdir(size_folder_path):
                     size_result = process_size_folder(size_folder_path,
-                                                      threshold)
+                                                      threshold, selected_temperatures=self.T_arr)
                     results[int(size_folder)] = size_result
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
         intersections = []
+        intersections_y = []
         for i in range(len(self.sizes)):
             U_L_1 = results[self.sizes[i]]["U_L"]
             U_L_2 = results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
             # print("U_L_1 = ", U_L_1)
             T_arr = results[self.sizes[i]]["T"]
-            intersection = find_intersection(T_arr, U_L_1, U_L_2)
+            intersection, U_L_intersection = find_intersection(T_arr, U_L_1, U_L_2)
             intersections.append(intersection)
+            intersections_y.append(U_L_intersection)
 
         T_c = np.mean(intersections)
+        U_L_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
         fig, ax = plt.subplots(1, 1)
@@ -176,12 +179,7 @@ class crit_temp_measurement():
             if i in shown_inds:
                 T = np.array(results[size]["T"])
                 U_L = np.array(results[size]["U_L"])
-                print(T)
-                print(U_L)
-                exit()
-                ax.plot(T, U_L, linestyle="", marker="x", color=colors[ind])
-                #ax.plot(x_range, U_L_interpolated[i], color=colors[ind],
-                #        label=rf"L = {size}", linewidth=1)
+                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind])
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
@@ -200,8 +198,8 @@ class crit_temp_measurement():
         if max_T:
             ax.set_xlim(ax.get_xlim()[0], max_T)
             ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_intersection, U_L_intersection,
-                   label=rf"$T_c = {T_intersection:.4f}$")
+        mark_point(ax, T_c, U_L_intersection,
+                   label=rf"$T_c = {T_c:.4f}$")
         configure_ax(fig, ax)
         fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
                     dpi=300, transparent=False)
@@ -212,7 +210,7 @@ class crit_temp_measurement():
         for size in results:
             cum_dic[size] = results[size]["U_L"]
 
-        diff_arr, size_arr = calc_diff_at(T_intersection,
+        diff_arr, size_arr = calc_diff_at(T_c,
                                           list(results.values())[0]["T"],
                                           cum_dic)
 
@@ -255,19 +253,22 @@ class crit_temp_measurement():
         return self.evaluate_simulation(file, folder, user, wait, walltime)
 
     def evaluate_simulation(self, file, folder, user, wait, walltime):
+        self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))   # we do it here, before evaluating
         threshold = 0.1  # in the simulation we calculated the mean from the last 90% of the values and achieved a small error
-        all_results = self.construct_results(threshold)
-        current_results = self.construct_results(threshold, self.T_arr)
+        all_results = self.construct_results(threshold, self.all_T_arr)     # for all results we use the self.all_T_arr? Since we want to reproduce always the measurements that we already did so that we can resume it where we left it of
+        # current_results = self.construct_results(threshold, self.T_arr)
+        # we switch to all results again but we set the min/max limites then also to min and max of all_T
+        # We only enlarge the limits of all_T if we dont have an intersection anywhere
         # how does results look again precisely?
         # I have for every size a dictionary with {'T' : [T_min, ..., T_max], 'U_L': [U_L(T_min), ..., U_L(T_max)]}
         # once we have the U_L values the first thing we should do is check whether we have an intersection
         # something should be recursively if we need a second or third iteration...
-        # The U_Ls should be the ones that we calculated this run..., so if we calculated a bad interval that does not contain the last measurement
+        # The U_Ls should be the ones that we calculated this run..., so if we calculated a bad interval that does not contain Tc
         # that we can corr
-        U_L_min_T_min = np.min(current_results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_min = np.min(current_results[np.max(self.sizes)]['U_L'])
-        U_L_min_T_max = np.max(current_results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_max = np.max(current_results[np.max(self.sizes)]['U_L'])
+        U_L_min_T_min = np.min(all_results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_min = np.min(all_results[np.max(self.sizes)]['U_L'])
+        U_L_min_T_max = np.max(all_results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_max = np.max(all_results[np.max(self.sizes)]['U_L'])
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         intersection = (U_L_min_T_min > U_L_max_T_min) & (
@@ -305,7 +306,7 @@ class crit_temp_measurement():
                 U_L_2 = all_results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
                 #print("U_L_1 = ", U_L_1)
                 T_arr = all_results[self.sizes[i]]["T"]
-                intersection = find_intersection(T_arr, U_L_1, U_L_2)
+                intersection, _ = find_intersection(T_arr, U_L_1, U_L_2)
                 intersections.append(intersection)
             # more is it net?
             # simple error would be to be just max_intersection - min_intersection?
@@ -319,7 +320,7 @@ class crit_temp_measurement():
             print(f"rel_intersec_error = {rel_intersec_error}")
             if rel_intersec_error < self.max_rel_intersec_error:
                 # best case, now we are done?
-                print(f"Determined crit. Temp T_c = {T_c_error} +- {rel_intersec_error}")
+                print(f"Determined crit. Temp T_c = {T_c} +- {rel_intersec_error}")
                 return T_c, T_c_error
             else:
                 # we check how many iterations we did so that we are not in an endless loop
@@ -327,9 +328,10 @@ class crit_temp_measurement():
                     print(f"Doing to many iterations, returning Temp T_c = {T_c} +- {T_c_error}")
                     return T_c
                 # case that the error is to large, meaning we are moving closer to the critical temperature
-                T_min = max(T_c - 5 * T_c_error, np.min(self.T_arr))  # standard smaller interval of 4*T_c_error?
-                T_max = min(T_c + 5 * T_c_error, np.max(self.T_arr))
-                self.repeat = True
+                T_min = max(T_c - 5 * T_c_error, np.min(self.all_T_arr))  # standard smaller interval of 4*T_c_error?
+                T_max = min(T_c + 5 * T_c_error, np.max(self.all_T_arr))
+                if (T_min == np.min(self.T_arr)) & (T_max == np.max(self.T_arr)):
+                    self.repeat = True
                 # what if the new interval is larger than the last one because the errors were so large?
                 # therefore we added max and min. If thats the case we want to reduce the equil error and repeat the
                 # simulation
@@ -361,7 +363,7 @@ class crit_temp_measurement():
                 print("The minimum temperature is too high")
                 T_range = np.ptp(self.all_T_arr)
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
-                T_max = np.max(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
+                T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
             return self.iteration(file, folder, user, wait, walltime)
 
@@ -454,7 +456,6 @@ class crit_temp_measurement():
             time.sleep(wait)
         # if we are here that means that all runs are done
         # we add the currently simulated temperatures to the bookkeeping variable
-        self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))
 
     def write_para_files(self, para_nr=100):
         # you ..., you know that you have to construct the parameter file at hemera?
@@ -786,10 +787,14 @@ def main():
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
 
+    max_rel_intersection_error = 0.001
+
+
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
     sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", nr_GPUS=nr_gpus,
-                                size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc)
+                                size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc,
+                                intersection_error=max_rel_intersection_error)
     T_c, T_c_error = sim.routine()
 
 

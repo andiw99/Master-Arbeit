@@ -875,4 +875,63 @@ inline value_type positive_modulo(value_type i, value_type n) {
     return fmod((fmod(i, n) + n), n);
 }
 
+std::pair<std::vector<double>, double*> cut_data_around_peak(
+        const std::vector<double>& x_values,
+        double* y_values,
+        double threshold_fraction = 0.1,
+        double min_points_fraction = 0.2
+) {
+    size_t L = x_values.size();
+    // Find the minimum y_value (offset)
+    double y_offset = *std::min_element(y_values, y_values + L);
+
+    // Remove the offset from y_values
+    for (size_t i = 0; i < L; ++i) {
+        y_values[i] -= y_offset;
+    }
+
+    // Find the index of the peak
+    size_t peak_index = std::max_element(y_values, y_values + L) - y_values;
+    double peak_value = y_values[peak_index];
+
+    // Calculate the threshold based on the fraction of the peak value
+    double threshold = threshold_fraction * peak_value;
+
+    // Find the range of indices where the y-values are above the threshold
+    // basically np where
+    std::vector<size_t> above_threshold_indices;
+    for (size_t i = 0; i < L; ++i) {
+        if (!(y_values[i] < threshold)) {
+            above_threshold_indices.push_back(i);
+        }
+    }
+    // If the length is too small, reduce the threshold fraction
+    if (above_threshold_indices.size() < min_points_fraction * L) {
+        double new_threshold = 0.9 * threshold_fraction;
+        return cut_data_around_peak(x_values, y_values, new_threshold, min_points_fraction);
+    }
+
+    // Extract the subset of data around the peak
+    std::vector<double> x_cut;
+    // I will initialize y_cut as double* instantly I think. What happens if I return the pointer to the first element in
+    // the array? will I have memory issues because the array only lives in this function? No right? Should be fine if I return it?
+    // for sure this works would be really weird if not
+    double* y_cut = new double[above_threshold_indices.size()];     // we allocate the memory
+
+    for (size_t i = 0; i < above_threshold_indices.size(); i++) {
+        size_t ind = above_threshold_indices[i];        // index in the y_values and x values
+        x_cut.push_back(x_values[ind]);
+        // now we just set the i-th value
+        y_cut[i] = y_values[ind];       // what is it doing here exactly? isnt y_cut[i] the same as y_cut + i? Seems not so, since you checked out pointers last time the syntax seems to have changed like always
+    }
+
+    // Add the offset back to y_cut
+    for (size_t i = 0; i < x_cut.size(); ++i) {
+        y_cut[i] += y_offset;
+    }
+
+    return std::make_pair(x_cut, y_cut);
+}
+
+
 #endif //CUDAPROJECT_MAIN_CUH

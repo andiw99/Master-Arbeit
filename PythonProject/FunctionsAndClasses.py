@@ -447,7 +447,7 @@ def round_to_first_non_zero(number):
 
     # Find the position of the first non-zero digit
     nonzero_position = None
-    for i, digit in enumerate(str(number)):
+    for i, digit in enumerate(str(dec_number)):
         if digit != '0' and digit != '.':
             nonzero_position = i
             break
@@ -490,6 +490,7 @@ PLOT_DEFAULT_CONFIG = {
     "xtickfontsize": 9,
     "ytickfontsize": 9,
     "legendfontsize": 11,
+    "legendlocation": "best",
     "ticklength": 6,
     "tickwidth": 2,
 }
@@ -524,7 +525,9 @@ def configure_ax(fig, ax, config=None):
     config = create_config(config, PLOT_DEFAULT_CONFIG)
 
     x_span, y_span, (xmin, xmax, ymin, ymax) = get_spans(ax)
-
+    print("In configure")
+    print(ymin, ymax)
+    print(y_span)
     if ax.get_yscale() != "log":
         ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
         ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/5 / 5))
@@ -556,7 +559,7 @@ def configure_ax(fig, ax, config=None):
     ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
-    ax.legend(fontsize=config["legendfontsize"])
+    ax.legend(fontsize=config["legendfontsize"], loc=config["legendlocation"])
     plt.tight_layout()
 
 def det_intersection(x, y_dic):
@@ -777,6 +780,7 @@ def find_intersection(x_range, y1, y2, res=1000):
     #print("diff_func:")
     x_inter = np.linspace(x_range[0], x_range[-1], res)
     diff_func = np.interp(x_inter, x_range, y1 - y2)
+    U_L_1_func = np.interp(x_inter, x_range, y1)        # we need that for the U_L value at the intersection...
     #fig, ax = plt.subplots(1, 1)
     #ax.plot(x_inter, diff_func)
     #plt.show()
@@ -801,8 +805,9 @@ def find_intersection(x_range, y1, y2, res=1000):
     # We could do this sign thing for every diff curve and then choose always the one that has the least total difference to the other sign arrays
     ind_signchange = np.where(signchange == 1)[0][0]
     intersection_x = x_inter[ind_signchange]
+    U_L_intersection = U_L_1_func[ind_signchange]
 
-    return intersection_x
+    return intersection_x, U_L_intersection
 
 def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_fraction=0.2):
     """
