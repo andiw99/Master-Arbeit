@@ -100,8 +100,8 @@ public:
 
 template <class system, class State>
 class standard_observer : public obsver<system, State> {
-    double timepoint = 0;
 public:
+    double timepoint = 0;
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
     int nr_values;
@@ -545,6 +545,7 @@ class corr_equilibration_observer: public obsver<system, State>{
     vector<double> times{};
     int min_corr_nr = 50;
     double dt = 0.01;
+    double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
@@ -587,6 +588,7 @@ public:
 
         // I think the starting write interval should be every one hundred steps
         dt = paras[Parameter::dt];
+        dt_half = dt / 2.0;
         quench_t = sys.get_quench_time();
         write_interval = 100 * dt;
     }
@@ -596,7 +598,7 @@ public:
     }
 
     void operator()(system &sys, const State &x , double t ) override {
-        if(t > timepoint) {
+        if(t > timepoint - dt_half) {
             double xix_val, xiy_val;
             sys.calc_xi(x, xix_val, xiy_val);
             ofile << t << "," << xix_val << "," << xiy_val << endl;
@@ -609,6 +611,7 @@ public:
                 int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
                 // we lack the complete logic to change the stepsize since we said we use a constant density 
                 if(nr_xi_values > min_corr_nr){
+
                     // if we reached the minimum number of values we check the error on the correlation lengths
                     int min_ind = (int)(equil_cutoff * nr_xi_values);
                     // we need to calculate the average aswell as the stddev for both directions
@@ -803,6 +806,90 @@ public:
             }
             cout << "write interval = " << write_interval << endl;
         }
+    }
+};
+
+template <class system, class State>
+class quench_equilibration_observer : public standard_observer<system, State> {
+    // this observer is supposed to write down some meshs even for the dynamically equilibrating quench
+    double quench_t;        // the time that the quench takes
+    bool startpoint = true; // whether we are at the starting point whcih we want to write down
+    double dt_half;         // we adopt this variable to f*ing have better timepoints?
+public:
+    typedef standard_observer<system, State> standard_observer;
+    using standard_observer::write_interval;
+    using standard_observer::nr_values;
+    using standard_observer::timepoint;
+    using standard_observer::ofile;
+
+    quench_equilibration_observer(int nr_values): standard_observer(nr_values) {
+        // should this be the observer that only writes a few values for the equilibrium process?
+        // I am not sure at the moment, I think i am just going to write the simplest one for now, so
+        // just equidistant saving values.
+        // We try to initialize the observer outside the class since it probably needs
+        // multiple unique-to-observer parameters
+        // problem is it still might depend on system parameters. and i don't want another if for every step
+        // even though i am not really sure if it impacts the performance AT ALL or if the compiler knows better
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        cout <<  this->get_name() << " init is called" << endl;
+        // the write interval is kind of tricky, since we don't know when the corr_observer will
+        // determine that we are equilibrated, atm the corr equilibration observer observes every 100 steps and this is
+        // not variable, for starters we can do that here to.
+        double dt = paras[Parameter::dt];
+        dt_half = dt/2.0;
+        write_interval = 100 * dt;      // We probably should make this density variable
+        startpoint = true;              // reset the startpoint variable
+        // set the quench_t
+        quench_t = sys.get_quench_time();
+
+        cout << "Write interval is " << write_interval << endl;
+        standard_observer::init(folderpath, paras, sys);
+    }
+
+    string get_name() override {
+        return "quench equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        // the observing will also be a bit different than before, but not much
+        if(t > timepoint - dt_half) {
+            // we definetely dont write every timepoint
+            // we check if we se the s_eq_t of the quench system to a time that is smaller or equal to the current time
+            // we have to get the equilibration time with a detour
+            double eq_t = sys.get_end_quench_time() - quench_t;     // this should be the time that the quench ends, so eq_t + quench_t - the time that the quench takes, so quench_t
+            // write
+            if(startpoint){
+                write_state(sys, x, t);
+                startpoint = false;
+            } else if(t > eq_t - dt_half) {
+                // If the current time is larger or equal the time we need to equilibrate, we write down and change the write interval
+                write_state(sys, x, t);
+
+                // advance timeoint
+                write_interval = quench_t / nr_values; // assume the quench takes t = 100 and we want to write two values, we want to write them in the middle and in the end
+                // so we set the write interval to 50 and look at t=50 and t = 100. We have to make sure that we catch the last value
+            }
+            timepoint += write_interval;
+            cout << "next timepoint = " << timepoint << endl;
+        }
+    }
+
+    void write_state(const system &sys, const State &x, double t) {
+        cout << "t = " << t << endl;
+        // Doing some refactoring, not putting t in every row and Temperature directly after T
+        double T = sys.get_cur_T();
+        size_t dim_size_x = sys.get_dim_size_x();
+        size_t dim_size_y = sys.get_dim_size_y();
+
+        ofile << t << "," << T << ",";
+        for(int i = 0; i < dim_size_x * dim_size_y; i++) {
+            ofile << x[i] << ",";
+            // cout << x[i] << endl;
+
+        }
+        // Zeilenumbruch
+        ofile << "\n";
     }
 };
 

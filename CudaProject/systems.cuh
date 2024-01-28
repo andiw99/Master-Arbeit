@@ -898,7 +898,7 @@ public:
         return (double)(s_eq_t + e_eq_t + t_quench);
     }
 
-    double get_end_quench_time() const {
+    double get_end_quench_time() const  {
         return t_quench + s_eq_t;
     }
 
@@ -1897,9 +1897,9 @@ public:
             // cout << ft_squared_l[i] << "  ";
         }
         // printing ft_squared_k to see if there is a difference to the ft function
-        cout << endl;
+        //cout << endl;
         // print_array(ft_squared_k, Lx);
-        cout << endl;
+        // cout << endl;
         // cout << endl;
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);

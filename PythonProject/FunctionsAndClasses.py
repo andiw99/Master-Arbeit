@@ -99,6 +99,10 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     print("nr of rows: ", nr_rows)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
+    # by now we always need subsystem because we only use the subsystem simulation
+    subsystem_Lx = parameters["subsystem_Lx"]
+    subsystem_Ly = parameters["subsystem_Ly"]
+    x_y_factor = float(parameters["x_y_factor"])
     if nr_rows < nr_of_meshs:
         nr_of_meshs = nr_rows
         print(f"{nr_of_meshs} snapshots not available, using {nr_rows} instead.")
@@ -107,12 +111,11 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     rows = np.linspace(0, nr_rows - 1, nr_of_meshs, endpoint=True)
     rows = [int(row) for row in rows]
     df = read_large_df(filepath, rows)
-    stretch = Lx/Ly
+    stretch = subsystem_Lx / subsystem_Ly
+    print(stretch)
     if config["subsystem"]:
         stretch = np.minimum(parameters["subsystem_Lx"], cell_L) / parameters["subsystem_Ly"]
         print("stretch = " , stretch)
-    elif cell_L != 0:
-        stretch = 1
     if nr_of_meshs == 2:
         fig, axes = plt.subplots(2, 1, figsize=[2 + 10 * stretch, 10])
     else:
@@ -131,13 +134,13 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
 
             actual_cell_L = config["cell_L"]
             if config["cell_L"]:
+
                 if config["subsystem"]:
-                    subsystem_Lx = parameters["subsystem_Lx"]
-                    subsystem_Ly = parameters["subsystem_Ly"]
                     print(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
                     max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5)
                     max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
+
                     if nr_subsystems_per_row == 0:
                         nr_subsystems_per_row = 1
                         nr_subsystems_per_col = 1
@@ -155,7 +158,8 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                     else:
                         config["cell_L"] = nr_subsystems_per_row * subsystem_Lx
                 else:
-                    row = extract_cell_from_rectangle(row, config["cell_nr"], config["cell_L"], Lx, Ly)
+                    nr_cells = 1    # If not subsystems the nr of cells is always 1
+                    row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_cells, subsystem_Lx, subsystem_Ly, Lx, Ly)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
             config["cell_L"] = actual_cell_L
             i += 1
@@ -227,12 +231,6 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     subsystem_Lx = int(parameters["subsystem_Lx"])
     subsystem_Ly = int(parameters["subsystem_Ly"])
     cell_L = int(config["cell_L"])
-    if config["subsystem"]:
-        pass
-    elif cell_L != 0:
-        row = row.reshape((cell_L, cell_L))
-    else:
-        row = row.reshape((Ly, Lx))
     chess_trafo = 0
     if config["chess_trafo"] == 1:
         chess_trafo = True
@@ -493,6 +491,9 @@ PLOT_DEFAULT_CONFIG = {
     "legendlocation": "best",
     "ticklength": 6,
     "tickwidth": 2,
+    "nr_y_minor_ticks": 5,
+    "nr_y_major_ticks": 5,
+    "gridalpha": 0.5,
 }
 
 def delete_last_line(filename):
@@ -528,9 +529,11 @@ def configure_ax(fig, ax, config=None):
     print("In configure")
     print(ymin, ymax)
     print(y_span)
+    nr_y_minor_ticks = config["nr_y_minor_ticks"]
+    nr_y_major_ticks = config["nr_y_major_ticks"]
     if ax.get_yscale() != "log":
-        ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/5))
-        ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/5 / 5))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/nr_y_major_ticks))
+        ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/nr_y_major_ticks / nr_y_minor_ticks))
     if ax.get_xscale() != "log":
         ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
         ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
@@ -543,7 +546,7 @@ def configure_ax(fig, ax, config=None):
         remove_origin_ticks(ax)
 
     # Füge Gitterlinien hinzu
-    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.grid(which='major', linestyle='--', alpha=config["gridalpha"])
 
     # title, achsenbeschriftungen, legend
     get_functions = [ax.get_title, ax.get_xlabel, ax.get_ylabel]        # haha functions in a list, just python things

@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     // We need new observers for the standard relaxation, i mean it basically does the same but the
     // end_T reading is different
     auto* quench_obs =
-            new quench_observer<quench_system, state_type>(nr_save_values);
+            new quench_equilibration_observer<quench_system, state_type>(nr_save_values);
     auto* cum_obs = new cum_observer<quench_system, state_type>(paras[nr_cum_values]);
     auto* corr_obs = new corr_equilibration_observer<quench_system, state_type>(paras[nr_corr_values]);
     auto* ft_obs = new density_quench_ft_observer<quench_system, state_type>(paras[nr_ft_values]);
@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
                                                 state_type,
                                                 algebra, operations,
                                                 quench_system>(paras, simulation_path);
-    simulation.register_observer(quench_obs);
-    simulation.register_observer(cum_obs);
     simulation.register_observer(corr_obs);
+    simulation.register_observer(cum_obs);
     simulation.register_observer(ft_obs);
+    simulation.register_observer(quench_obs);
     simulation.simulate_subsystems();
 
     return 0;

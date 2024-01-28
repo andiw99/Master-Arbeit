@@ -93,11 +93,14 @@ public:
                 debugging_file << endl;
             }*/
             this->do_step(sys, x, dt_max, t); // it is important that the steper custom do step is called here
+            //cout << endl << endl;
             for(auto obs : obsvers) {
                 Singleton_timer::set_startpoint(obs->get_name());
+                // cout << obs->get_name() << endl;
                 obs->operator()(sys, x, t);
                 Singleton_timer::set_endpoint(obs->get_name());
             }
+            //cout << endl << endl;
             if(sys.is_equilibrated()) {
                 break;
             }

@@ -898,7 +898,7 @@ public:
         return (double)(s_eq_t + e_eq_t + t_quench);
     }
 
-    double get_end_quench_time() const {
+    double get_end_quench_time() const  {
         return t_quench + s_eq_t;
     }
 

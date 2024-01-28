@@ -326,7 +326,7 @@ class crit_temp_measurement():
                 # we check how many iterations we did so that we are not in an endless loop
                 if self.iteration_nr > self.maximum_iterations:
                     print(f"Doing to many iterations, returning Temp T_c = {T_c} +- {T_c_error}")
-                    return T_c
+                    return T_c, T_c_error
                 # case that the error is to large, meaning we are moving closer to the critical temperature
                 T_min = max(T_c - 5 * T_c_error, np.min(self.all_T_arr))  # standard smaller interval of 4*T_c_error?
                 T_max = min(T_c + 5 * T_c_error, np.max(self.all_T_arr))
@@ -762,7 +762,6 @@ class quench_measurement():
         # okay now sadly that wont just work like that. I have to write the own funcitons but I think we will
         # continue in c++ for now.
 
-
     def run(self):
         self.setup()
         self.iteration()
@@ -789,14 +788,29 @@ def main():
 
     max_rel_intersection_error = 0.001
 
+    # Quench parameters
+    max_size = 1024
+    min_nr_sites = 5e5
+
+    # Enter which calculations are supposed to run here
+    measurements = {
+        "Tc": False ,
+        "Quench": True
+    }
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
-    sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", nr_GPUS=nr_gpus,
-                                size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc,
-                                intersection_error=max_rel_intersection_error)
-    T_c, T_c_error = sim.routine()
-
+    if measurements["Tc"]:
+        sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", nr_GPUS=nr_gpus,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc,
+                                    intersection_error=max_rel_intersection_error)
+        T_c, T_c_error = sim.routine()
+    else:
+        T_c = float(input("Enter critical temperature:"))
+        T_c_error = 0
+    if measurements["Quench"]:
+        quench = quench_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Quench", T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
+        quench.run()
 
 
 if __name__ == '__main__':

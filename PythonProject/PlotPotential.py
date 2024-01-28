@@ -145,6 +145,9 @@ def plot_transformation(a):
 
 def main():
     alpha = 500
+    savepath = "../../Generated content/"
+    ending = "svg"
+    dpi = 1200
     beta = 0.1
     a = 1
     J = alpha * beta / 17
@@ -176,22 +179,97 @@ def main():
     plt.show()
 
 
-    fig, ax = plt.subplots(1, 1)
-    q = np.linspace(- 3/4 * np.pi, 3/4 * np.pi, 200)
+    fig, ax = plt.subplots(1, 1, figsize=(3 * 1.5, 2* 1.5))
+    config = {
+        "nr_y_minor_ticks": 3,
+        "nr_y_major_ticks": 3,
+        "gridalpha": 0.2
+    }
+    q = np.linspace(- 3/4 * np.pi * 0.95, 3/4 * np.pi * 0.95, 400)
+    q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
     interval = (- np.pi / 2, np.pi / 2)
     p = 2.5
     p_sin = p / 2
     m = np.sin(p_sin * q)
+    V_dashed = cos_potential(q_dashed, 1, p, interval)
     V = cos_potential(q, 1, p, interval)
-
-    ax.plot(q, V, label=f"p = {p:.2f}")
-    ax.plot(q, m, label=f"m", linestyle="dashed")
+    ax.plot(q_dashed, V_dashed, linestyle="dashed")
+    ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
+    # ax.plot(q, m, label=f"m", linestyle="dashed")
     ax.set_title(r"Cos on site potential")
     ax.set_xlabel(r"$\vartheta$")
     ax.set_ylabel(r"$V(\vartheta)$")
     ax.vlines([-np.pi/2, np.pi/2], -1.2, 1.2, linestyles="dashed", color="black")
-    configure_ax(fig, ax)
+    configure_ax(fig, ax, config)
+    ax.xaxis.set_major_locator(MultipleLocator(base=np.pi/4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+    ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+    legend = ax.legend()
+    legend.remove()
+    plt.savefig(savepath + "potential" + f".{ending}", format=ending, dpi=dpi)
     plt.show()
+
+    fig, ax = plt.subplots(1, 1, figsize=(3 * 1.5, 2* 1.5))
+    config = {
+        "nr_y_minor_ticks": 3,
+        "nr_y_major_ticks": 3,
+        "gridalpha": 0.2
+    }
+    q = np.linspace(1/4 * np.pi + 1 / 16 * np.pi, 3/4 * np.pi - 1/16 * np.pi, 400)
+    q_dashed = np.linspace(np.min(q) - 2 / 16 * np.pi, np.max(q) +2 / 16 * np.pi, 400)
+    interval = (- np.pi / 2, np.pi / 2)
+    p = 2.5
+    p_sin = p / 2
+    m = np.sin(p_sin * q)
+    V_dashed = cos_potential(q_dashed, 1, p, interval)
+    V = cos_potential(q, 1, p, interval)
+    ax.plot(q_dashed, V_dashed, linestyle="dashed")
+    ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
+    # ax.plot(q, m, label=f"m", linestyle="dashed")
+    ax.set_title(r"Cos on site potential")
+    ax.set_xlabel(r"$\vartheta$")
+    ax.set_ylabel(r"$V(\vartheta)$")
+    ax.vlines([-np.pi/2, np.pi/2], -1.2, 1.2, linestyles="dotted", color="black")
+    configure_ax(fig, ax, config)
+    ax.xaxis.set_major_locator(MultipleLocator(base=np.pi/4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+    ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+    legend = ax.legend()
+    legend.remove()
+    plt.savefig(savepath + "potential2" + f".{ending}", format=ending, dpi=dpi)
+    plt.show()
+
+
+    fig, ax = plt.subplots(1, 1, figsize=(5 * 1.5, 2* 1.5))
+    config = {
+        "nr_y_minor_ticks": 3,
+        "nr_y_major_ticks": 3,
+        "gridalpha": 0.2
+    }
+    q = np.linspace(- 5/4 * np.pi * 0.95, 5/4 * np.pi * 0.95, 400)
+    q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
+    interval = (- np.pi / 2, np.pi / 2)
+    p = 2.5
+    p_sin = p / 2
+    m = np.sin(p_sin * q)
+    V_dashed = cos_potential(q_dashed, 1, p, interval)
+    V = cos_potential(q, 1, p, interval)
+    ax.plot(q_dashed, V_dashed, linestyle="dashed")
+    ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
+    # ax.plot(q, m, label=f"m", linestyle="dashed")
+    ax.set_title(r"Cos on site potential")
+    ax.set_xlabel(r"$\vartheta$")
+    ax.set_ylabel(r"$V(\vartheta)$")
+    ax.vlines([-np.pi/2, np.pi/2], -1.2, 1.2, linestyles="dotted", color="black")
+    configure_ax(fig, ax, config)
+    ax.xaxis.set_major_locator(MultipleLocator(base=np.pi/4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+    ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+    legend = ax.legend()
+    legend.remove()
+    plt.savefig(savepath + "potential3" + f".{ending}", format=ending, dpi=dpi)
+    plt.show()
+
 
     fig, ax = plt.subplots(1, 1)
     q = np.linspace(- 5/4 * np.pi, 1/4 * np.pi, 200)
@@ -203,7 +281,7 @@ def main():
     q += np.pi / 2
 
     ax.plot(q, V, label=f"p = {p:.2f}")
-    ax.plot(q, m, label=f"m", linestyle="dashed")
+    #ax.plot(q, m, label=f"m", linestyle="dashed")
     ax.set_xlabel(r"$\vartheta$")
     ax.set_ylabel(r"$V(\vartheta)$")
     ax.vlines(0, -1.2, 1.2, linestyles="dashed", color="black")
