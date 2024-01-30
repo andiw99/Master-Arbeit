@@ -847,6 +847,7 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
 
 def get_intersections(size_T_cum_dic):
     intersections = []
+    intersections_y = []
     sizes = list(size_T_cum_dic.keys())
 
     for (size1, size2) in combinations(sizes, 2):
@@ -854,10 +855,11 @@ def get_intersections(size_T_cum_dic):
         U_L_2 = size_T_cum_dic[size2]["U_L"]
         # We assume that the Temperatures are the same for the two curves...
         T_arr = size_T_cum_dic[size1]["T"]
-        intersection = find_intersection(T_arr, U_L_1, U_L_2)
-        intersections.append(intersection)
+        x_inter, y_inter = find_intersection(T_arr, U_L_1, U_L_2)
+        intersections.append(x_inter)
+        intersections_y.append(y_inter)
 
-    return intersections
+    return intersections, intersections_y
 
 def extract_cell(row_data, cell_nr, cell_L):
     L = int(np.sqrt(row_data.size))
@@ -1081,6 +1083,30 @@ def average_ft(folderpath, ending=".ft"):
         t_ft_l[t] /= nr_files
     return t_ft_k, t_ft_l
 
+def average_ft_unequal_times(folderpath, ending=".ft"):
+    files = os.listdir(folderpath)
+    t_ft_k = {}
+    t_ft_l= {}
+    nr_files = 0
+    for file in (files):
+        if file.endswith(ending):
+            filepath = os.path.join(folderpath, file)
+            df = pd.read_csv(filepath, sep=";")
+            for j, t in enumerate(df['t']):
+                try:
+                    t_ft_k[t] += string_to_array(df["ft_k"][j])
+                    t_ft_l[t] += string_to_array(df["ft_l"][j])
+                except KeyError:
+                    t_ft_k[t] = string_to_array(df["ft_k"][j])
+                    t_ft_l[t] = string_to_array(df["ft_l"][j])
+            nr_files += 1
+    # average
+    print(f"averaged {nr_files} files")
+    for t in t_ft_k:
+        t_ft_k[t] /= nr_files
+        t_ft_l[t] /= nr_files
+    return t_ft_k, t_ft_l
+
 def average_lastline_ft(folderpath, ending=".ft"):
     # like average_ft but it only returns the ft for the latest t
     files = os.listdir(folderpath)
@@ -1274,6 +1300,21 @@ def find_closest_key(dictionary, target_value):
 
     return closest_key
 
+def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
+    """
+    Approximates the p we have to use to achieve the desired theta_equil
+    :param p_guess: A guess of the p we have to use
+    :param theta_equil: the supposed theta in equilibrium. 7/18 pi for 70 degrees
+    :param J_para: coupling constant along dimer rows
+    :param J_perp: coupling constant across dimer rows
+    :param h: strenght of the symmetry breaking field
+    :return: approximated p
+    """
+    p = 1 / theta_equil * np.tan(theta_equil * p_guess) - p_guess
+    q = 4 / theta_equil * np.sin(4 * theta_equil) / np.cos(theta_equil * p_guess) * (J_para + J_perp) / h
+    p_plus = - (1/2) * p  +  np.sqrt((p/2) ** 2 - q)
+    p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
+    return p_plus, p_minus
 
 def main():
     print("This file is made to import, not to execute")

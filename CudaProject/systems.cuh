@@ -1280,7 +1280,7 @@ public:
 class XY_Silicon: virtual public XY_model {
     // we only have to set the map functor new? And obviously the right p, m stuff
 public:
-    const double p_XY = 2.57;           // does this work? Can i just redeclare them here?
+    double p_XY = 2.57;           // does this work? Can i just redeclare them here?
     const double m = 2.0;
 
     struct map_functor {        // TODO Question if this already works without redefining map_state?
@@ -1316,7 +1316,11 @@ public:
         init_functor(n, equil_pos, range_min, range_max, dim_size_x)(paras, x);
     }
 
-    XY_Silicon(map<Parameter,double>& paras): System(paras), XY_model(paras) {}
+    XY_Silicon(map<Parameter,double>& paras): System(paras), XY_model(paras) {
+        if(paras[Parameter::p] > 0) {
+            p_XY = paras[Parameter::p];
+        }
+    }
 
     void print_info() override {
         XY_model::print_info();

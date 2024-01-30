@@ -188,7 +188,7 @@ def main():
     q = np.linspace(- 3/4 * np.pi * 0.95, 3/4 * np.pi * 0.95, 400)
     q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
     interval = (- np.pi / 2, np.pi / 2)
-    p = 2.5
+    p = 2.2
     p_sin = p / 2
     m = np.sin(p_sin * q)
     V_dashed = cos_potential(q_dashed, 1, p, interval)
@@ -218,7 +218,7 @@ def main():
     q = np.linspace(1/4 * np.pi + 1 / 16 * np.pi, 3/4 * np.pi - 1/16 * np.pi, 400)
     q_dashed = np.linspace(np.min(q) - 2 / 16 * np.pi, np.max(q) +2 / 16 * np.pi, 400)
     interval = (- np.pi / 2, np.pi / 2)
-    p = 2.5
+    p = 2.2
     p_sin = p / 2
     m = np.sin(p_sin * q)
     V_dashed = cos_potential(q_dashed, 1, p, interval)

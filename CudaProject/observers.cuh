@@ -625,10 +625,10 @@ public:
                     double sq_sum_xiy_total = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0);
                     double rel_stddev_xix_total = sqrt(sq_sum_xix_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xix;
                     double rel_stddev_xiy_total = sqrt(sq_sum_xiy_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xiy;
-                    cout << "xix = " << avg_xix << endl;
+                   /* cout << "xix = " << avg_xix << endl;
                     cout << "xiy = " << avg_xiy << endl;
                     cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
-                    cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;
+                    cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;*/
 
                     // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
                     double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
@@ -871,7 +871,6 @@ public:
                 // so we set the write interval to 50 and look at t=50 and t = 100. We have to make sure that we catch the last value
             }
             timepoint += write_interval;
-            cout << "next timepoint = " << timepoint << endl;
         }
     }
 

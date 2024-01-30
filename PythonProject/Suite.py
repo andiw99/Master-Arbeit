@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from itertools import product
 import re
@@ -523,16 +524,18 @@ class quench_measurement():
         self.T_start = Tc
         self.T_end = Tc
         self.tau_min = 1
-        self.tau = 1                    # current tau
+        self.tau_factor = 1                    # current tau
+        self.tau_list = []                 # empty list to keep track of the taus that we used
         self.size = size_min            # current size, starts at size_min
-        self.equil_error = 0.005        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
+        self.equil_error = 0.02        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
         self.para_nr = 100
         self.walltime = "24:00:00"
-        self.file = "SubsystemQuench.cu"
+        self.file = "AutoQuench.cu"
         self.folder = "simulations"
-        self.wait = 40
+        self.wait = 20
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
-        self.fitfunc = MF_lorentz       # We usually use this atm?
+        self.fitfunc = lorentz_offset      # We usually use this atm?
+        self.nr_measured_values = 300   # standard number of measured values during the quench
 
         self.connection = None
         self.completed_jobs = set()     # bookkeeping of completed jobs
@@ -543,8 +546,15 @@ class quench_measurement():
         self.T_end = 1/2 * self.Tc
         # the minimum tau is supposed to be 1 / Tc, but depends on the stepsize
         min_pow = np.ceil(np.log2(self.min_quench_steps * self.dt / self.Tc))
+        self.tau_factor = min_pow
         self.tau_min = 2 ** min_pow
-        self.tau = self.tau_min         # at the beginning we set the current tau to be tau_min?
+        print("Tau min: ", self.tau_min)
+        print("Tau factor: ", self.tau_factor)
+        # We also add the tau to the list
+        self.tau_list.append(self.tau_min)
+
+    def tau(self):
+        return 2 ** self.tau_factor
 
     def systems_per_job(self):
         return int(self.nr_sites / (self.size ** 2 * self.Ly_Lx))
@@ -562,13 +572,13 @@ class quench_measurement():
                     f"Jy, {self.J_perp} \n"
                     f"alpha, {self.h} \n"
                     f"eta, {self.eta} \n"
-                    f"nr_saves, 4 \n"
+                    f"nr_saves, 2 \n"
                     f"nr_repeat, 0 \n"
                     f"starting_temp, {self.T_start} \n"
                     f"end_temp, {self.T_end} \n"
                     f"nr_runs, 0.0 \n"
-                    f"min_tau_factor, {self.tau} \n"
-                    f"max_tau_factor, {self.tau} \n"
+                    f"min_tau_factor, {self.tau_factor} \n"
+                    f"max_tau_factor, {self.tau_factor} \n"
                     f"random_init, 1.0 \n"
                     f"curand_random, 1 \n"
                     f"subsystem_min_Lx, {self.size} \n"
@@ -576,8 +586,8 @@ class quench_measurement():
                     f"nr_subsystem_sizes, 0  \n"
                     f"nr_subsystems, {nr_subsystems} \n"
                     f"x_y_factor, {self.Ly_Lx} \n"
-                    f"nr_corr_values, 0 \n"
-                    f"nr_ft_values, 0 \n"           # TODO probably deprecated, have to see later!
+                    f"nr_corr_values, {self.nr_measured_values} \n"
+                    f"nr_ft_values, {self.nr_measured_values} \n"           # TODO probably deprecated, have to see later!
                     f"equil_error, {self.equil_error} \n"
                     f"min_cum_nr, 50")
         # we need to copy the files to hemera
@@ -587,11 +597,14 @@ class quench_measurement():
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def iteration(self):
-
+        # Check directory structure again
+        sim_available = check_directory_structure([self.size], [self.tau()], self.simulation_path) # the check directory structure takes lists in
         # one of the first things we do in the iteration is writing the parameter file
-        self.write_para_file()
-        # then we just run the jobs
-        self.run_jobs()
+        if not sim_available:
+            # If no simulation is available, we have to run the simulation
+            self.write_para_file()
+            # then we just run the jobs
+            self.run_jobs()
         # now the evaluation of the job and what we do accordningly
         return self.evaluate()      # Is this proper design actually? letting iteration return evalutate while evaluate calls iteration recursively?
 
@@ -600,7 +613,7 @@ class quench_measurement():
         # Will we have a new kind of quench without equilibration in the end? Probably yes
         # meaning we should probably write new stuff to satisfy our needs...
         # we now the current measurement path
-        cur_path = os.path.join(self.simulation_path, str(self.size), str(self.tau))
+        cur_path = os.path.join(self.simulation_path, str(self.size), f"{self.tau():.6f}")
         # we need the fourier transforms of this measurement and we need to fit xi
         ft_k, ft_l = average_lastline_ft(cur_path)
         p_k = get_frequencies_fftw_order(len(ft_k))
@@ -634,7 +647,8 @@ class quench_measurement():
             # If it is not to large, we just start the next measurement with the larger tau?
             # Should we preventively enlarge the size if for example xix > self.size / 15 or something like that?
             # not for now i would say, keep it simple at this point
-            self.tau *= 2       # increase tau
+            self.tau_factor += 1       # increase tau
+            self.tau_list.append(self.tau())    # and add it to the bookkeeping list
             return self.iteration()
 
     def run_jobs(self):
@@ -703,7 +717,7 @@ class quench_measurement():
             # order
             # we know which job is next through the next job variable,
             # but we still need to know the number at which to start
-            while (len(self.running_jobs) < self.nr_GPUS) and (len(self.running_jobs) < nr_jobs):
+            while (len(self.running_jobs) < self.nr_GPUS) and (len(self.running_jobs) + len(self.completed_jobs) < nr_jobs):
                 submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
                              f' logs/errors/%j.err run_cuda.sh {self.file} {self.folder} {self.para_nr}'
                 submit_feedback = self.connection.run(submit_job)
@@ -721,46 +735,207 @@ class quench_measurement():
         size_x_dic = {}
         size_y_dic = {}
 
+        # for size in os.listdir(self.simulation_path):
+        #     t_xix = {}
+        #     t_xiy = {}
+        #     if (size != "plots") & (size[0] != "."):
+        #         sizepath = os.path.join(self.simulation_path, size)
+        #         if os.path.isdir(sizepath):
+        #             for setting in os.listdir(sizepath):
+        #                 if (setting != "plots") & (setting[0] != "."):
+        #                     settingpath = os.path.join(sizepath, setting)
+        #                     print(settingpath)
+        #                     setting = float(setting)
+        #                     parapath = find_first_txt_file(self.simulation_path)
+        #                     parameters = read_parameters_txt(parapath)
+        #
+        #                     Lx = parameters["subsystem_Lx"]
+        #                     Ly = parameters["subsystem_Ly"]
+        #
+        #                     if os.path.isdir(settingpath):
+        #                         t_xix[setting] = {}
+        #                         t_xiy[setting] = {}
+        #                         ft_k, ft_l = average_ft_unequal_times(settingpath)
+        #                         for t in ft_k:
+        #                             p_k = get_frequencies_fftw_order(len(ft_k[t]))
+        #                             if self.cut_zero_impuls:
+        #                                 p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
+        #                             popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
+        #                                                          fitfunc=self.fitfunc)
+        #                             xix = np.minimum(np.abs(popt_x[0]), Lx)
+        #                             t_xix[setting][t] = xix
+        #                         for t in ft_l:
+        #                             p_l = get_frequencies_fftw_order(len(ft_l[t]))
+        #                             if self.cut_zero_impuls:
+        #                                 p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
+        #                             popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
+        #                                                          fitfunc=self.fitfunc)
+        #                             xiy = np.minimum(np.abs(popt_y[0]), Ly)
+        #                             t_xiy[setting][t] = xiy
+        #                 size_x_dic[int(size)] = t_xix.copy()
+        #                 size_y_dic[int(size)] = t_xiy.copy()
+        # okay now sadly that wont just work like that. I have to write the own funcitons.
+        # What functions do I need? I have for every size just the dicionary with
+        # size_x_dic = {
+        #                   64: {   tau_1: {t11: xix11, t12: xix12, ...},
+        #                           tau_2 :  {t11: xix11, t12: xix12, ...}, ...
+        #                        },
+        #                   128 {
+        #                           tau_2 :  {t21: xix21, t12: xix22, ...},
+        #                           tau_3 :  {t22: xix22, t22: xix22, ...}, ..
+        #                       },...
+        #               }
+        # If we plot the process, it doesnt really matter which size we use since we made sure that the correlation length
+        # is small enough. Though it would be better to use the larger systemsize, if it has one
+        # We should specify a number of lines that should be shown
+        # self.nr_process_curves = 5
+        # # Now we have to select the taus that we want, We use the bookkeeping list therefore
+        # # the tau list will be sorted, right?
+        # plot_inds = np.linspace(0, len(self.tau_list), self.nr_process_curves, dtype=np.int32, endpoint=False)
+        # tau_plot = np.array(sorted(self.tau_list))[plot_inds][::-1]         # reverse order, start with largest tau
+        # # now we iterate through the sorted taus and look for the largest system size that can deliver it
+        #
+        # figx, axx = plt.subplots(1, 1)
+        # figy, axy = plt.subplots(1, 1)
+        # for tau in tau_plot:
+        #     # focus! write this stuff down and then you are allowed to clean your keyboard
+        #     # search the largest system size containing tau
+        #     # If we start from behind with the largest tau, we can be sure that only the largest system size has this tau
+        #     # we then continue to use this size until the tau we are looking for is not there anymore for this size
+        #     # then we reduce the system size by one
+        #     t_xix, t_xiy, largest_size = self.get_xi_of_tau(size_x_dic, size_y_dic, tau)      # returns the fitting dics aswell as the size that we used
+        #     tx = list(t_xix.keys())
+        #     xix = list(t_xix.values())
+        #     ty = list(t_xiy.keys())
+        #     xiy = list(t_xiy.values())
+        #
+        #     # Plotting
+        #     # We sadly dont know the equilibration time atm
+        #     # Oh damn I just  thought of the point that we atm dont know when we average runs If they were even
+        #     # In the same state of simulation at the same time. The one system might haven taken some longer time
+        #     # to equilibrate
+        #     # We could plot just one run, this one would then look a bit shakey probably
+        #     # we could just omit the plotting of the process and just plot the endresult,
+        #     # although some kind of process would be nice?
+        #     # We could determine the equilibration time for every run on its own and have its own dictionary and afterwards
+        #     # take the mean by folding?
+        #     # We have to deal with the equilibration time anyways, otherwise it would look weird?
+        #     # So we need for every run its own dicitonary and we need to know what the equilibration time was and somehow
+        #     # we have to combine all that into a huge dictionary...
+        #     # Another problem is that for large systems we want to average the ft before fitting as the ft of a single system might
+        #     # have large uncertainties. If we have different timepoints we can not really do that
+        #     # we would have to select and map the timepoints... the first point after equilibration in all runs can be averaged.
+        #     # The points before can not really be averaged. They cound be folded afterwards
+        #     # damn this is all more complicated than expected, i will continue with first just looking at the quench exponent
+        #     # so the dictionary now has the ebenen:
+        #     # size_dic = { size: {tau: { equil_time: {t:
+        #     axx.plot(tx/tau, xix, label=rf"$\tau = $ {tau}  $L_x = ${largest_size}", linestyle="", marker=".")
+        #     axy.plot(ty/tau, xiy, label=rf"$\tau = $ {tau}  $L_y = ${largest_size * self.Ly_Lx}", linestyle="", marker=".")
+        #
+        # configure_ax(figx, axx)
+        # configure_ax(figy, axy)
+        # plt.show()
+
+        # for the plotting of the exponent we only need the value at the end of the quench
+        # just plot it for every size and every tau? worry about the fitting later
+        size_tau_xix_dic, size_tau_xiy_dic = self.get_size_quench_results()
+
+        # now we have them dictionaries, we can plot the points
+        figx, axx = plt.subplots(1, 1)
+        # set the axes to be logarithmic
+        axx.set_yscale("log")
+        axx.set_xscale("log")
+        axx.set_xlabel(r"$\tau$")
+        axx.set_ylabel(r"$\xi_x$")
+        for i, size in enumerate(size_tau_xix_dic):
+            # Plotting, every size should get its own color and/or symbol?
+            # construct the lists to plot
+            tau = list(size_tau_xix_dic[size].keys())
+            xix = list(size_tau_xix_dic[size].values())
+
+            axx.plot(tau, xix, marker=markers[i], linestyle="None", label=rf"$L_x = ${size}", color="C0")
+        configure_ax(figx, axx)
+        create_directory_if_not_exists(self.simulation_path+ "/plots")
+        plt.savefig(self.simulation_path + "/plots/tau-xix.png", format="png")
+        plt.show()
+
+        figy, axy = plt.subplots(1, 1)
+        axy.set_yscale("log")
+        axy.set_xscale("log")
+        axy.set_xlabel(r"$\tau$")
+        axy.set_ylabel(r"$\xi_y$")
+        for i, size in enumerate(size_tau_xiy_dic):
+            # Plotting, every size should get its own color and/or symbol?
+            # construct the lists to plot
+            tau = list(size_tau_xiy_dic[size].keys())
+            xiy = list(size_tau_xiy_dic[size].values())
+
+            axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
+        configure_ax(figy, axy)
+        plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
+        plt.show()
+
+    def get_size_quench_results(self):
+        size_tau_xix_dic = {}
+        size_tau_xiy_dic = {}
         for size in os.listdir(self.simulation_path):
-            t_xix = {}
-            t_xiy = {}
+            tau_xix = {}
+            tau_xiy = {}
             if (size != "plots") & (size[0] != "."):
                 sizepath = os.path.join(self.simulation_path, size)
                 if os.path.isdir(sizepath):
-                    for setting in os.listdir(sizepath):
-                        if (setting != "plots") & (setting[0] != "."):
-                            settingpath = os.path.join(sizepath, setting)
-                            print(settingpath)
-                            parapath = find_first_txt_file(self.simulation_path)
-                            parameters = read_parameters_txt(parapath)
+                    for tau in os.listdir(sizepath):
+                        if (tau != "plots") & (tau[0] != "."):
+                            taupath = os.path.join(sizepath, tau)
+                            if os.path.isdir(taupath):
 
-                            Lx = parameters["subsystem_Lx"]
-                            Ly = parameters["subsystem_Ly"]
+                                ft_k, ft_l = average_lastline_ft(taupath)
+                                p_k = get_frequencies_fftw_order(len(ft_k))
+                                p_l = get_frequencies_fftw_order(len(ft_l))
 
-                            if os.path.isdir(settingpath):
-                                t_xix[setting] = {}
-                                t_xiy[setting] = {}
-                                ft_k, ft_l = average_ft(settingpath)
-                                for t in ft_k:
-                                    p_k = get_frequencies_fftw_order(len(ft_k[t]))
-                                    if self.cut_zero_impuls:
-                                        p_k, ft_k[t] = cut_zero_imp(p_k, ft_k[t])
-                                    popt_x, perr_x = fit_lorentz(p_k, ft_k[t],
-                                                                 fitfunc=self.fitfunc)
-                                    xix = np.minimum(np.abs(popt_x[0]), Lx)
-                                    t_xix[setting][t] = xix
-                                for t in ft_l:
-                                    p_l = get_frequencies_fftw_order(len(ft_l[t]))
-                                    if self.cut_zero_impuls:
-                                        p_l, ft_l[t] = cut_zero_imp(p_l, ft_l[t])
-                                    popt_y, perr_y = fit_lorentz(p_l, ft_l[t],
-                                                                 fitfunc=self.fitfunc)
-                                    xiy = np.minimum(np.abs(popt_y[0]), Ly)
-                                    t_xiy[setting][t] = xiy
-                        size_x_dic[int(size)] = t_xix.copy()
-                        size_y_dic[int(size)] = t_xiy.copy()
-        # okay now sadly that wont just work like that. I have to write the own funcitons but I think we will
-        # continue in c++ for now.
+                                if self.cut_zero_impuls:
+                                    p_k, ft_k = cut_zero_imp(p_k, ft_k)
+                                    p_l, ft_l = cut_zero_imp(p_l, ft_l)
+
+                                popt_x, perr_x = fit_lorentz(p_k, ft_k, fitfunc=self.fitfunc)
+                                popt_y, perr_y = fit_lorentz(p_l, ft_l, fitfunc=self.fitfunc)
+                                xix = np.abs(popt_x[
+                                                 0])  # Those are the xi values for a certain size and tau at the end of the quench
+                                xiy = np.abs(popt_y[0])
+
+                                # We add them to the tau_xi dictionaries
+                                tau_xix[float(tau)] = xix
+                                tau_xiy[float(tau)] = xiy
+                # Now we add them to the outer dictionary
+                size_tau_xix_dic[int(size)] = tau_xix
+                size_tau_xiy_dic[int(size)] = tau_xiy
+        return size_tau_xix_dic, size_tau_xiy_dic
+
+    def get_xi_of_tau(self, size_x_dic, size_y_dic, tau, cur_size=None):
+        if cur_size == None:
+            # this means that we call the function the first time and are supposed to use the largest size available
+            cur_size = np.max(list(size_x_dic.keys()))
+        tau_t_xix = size_x_dic[cur_size]
+        tau_t_xiy = size_y_dic[cur_size]
+        # this should now contain the tau
+        try:
+            t_xix = tau_t_xix[tau]
+            t_xiy = tau_t_xiy[tau]
+            return t_xix, t_xiy, cur_size
+        except KeyError as e:
+            # Keyerror means that the tau we want is not available for the largest size
+            # we Have to reduce the current size
+            avail_sizes = sorted(list(size_x_dic.keys()))
+            # get the index of the current size
+            cur_index = avail_sizes.index(cur_size)
+            # we reduce it by one
+            cur_index -= 1
+            if cur_index < 0:
+                # should not happen, but who knows?
+                print("Index is below zero, means we didnt find some tau?")
+                return
+            cur_size = avail_sizes[cur_index]
+            return self.get_xi_of_tau(size_x_dic, size_y_dic, tau, cur_size)
 
     def run(self):
         self.setup()
@@ -784,13 +959,13 @@ def main():
     min_size_Tc = 48
     nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/"
 
     max_rel_intersection_error = 0.001
 
     # Quench parameters
-    max_size = 1024
-    min_nr_sites = 5e5
+    max_size = 4096
+    min_nr_sites = 1e6
 
     # Enter which calculations are supposed to run here
     measurements = {
