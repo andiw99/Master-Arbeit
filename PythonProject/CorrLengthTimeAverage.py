@@ -3,7 +3,6 @@ from FunctionsAndClasses import *
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.ticker as ticker
-from scipy.stats import linregress
 
 
 
@@ -290,38 +289,6 @@ def best_fit(T_arr, T_c_est_max, T_c_est_min, T_min_fit_max, T_min_fit_min, res,
                     min_mse = mse
     return T_c_best, T_min_best, eps_array, eps_fit, popt, xi_fit
 
-
-def best_fit_inv(T_arr, xi_inv_arr, Tc_est):
-    # okay we want to fit the area above Tc so we just start to with all
-    # values, then omit the first one and so on
-    # But should we not also exclude values that are to far away and also not linear
-    # anymore?
-
-    # We try it with the linear regression stuff that chatgpt suggested because
-    # If I use the naive mse, the fit will probably favor less points
-    # I would have to install some kind of benefit for including more points
-    best_starting_pos = 0
-    best_ending_pos = 0
-    best_r_squared = 0      # This value ranges to 1 I think and 1 is a really good fit?
-    best_reg = None
-    for starting_pos in range(len(T_arr) - 4):
-        for ending_pos in range(starting_pos + 4, len(T_arr)):
-            # We should have at least 4 points i would say.
-            T_fit = T_arr[starting_pos:ending_pos]
-            xi_inv_fit = xi_inv_arr[starting_pos:ending_pos]
-
-            reg = linregress(T_fit, xi_inv_fit)
-            xi_ampl = 1 / reg.slope
-            Tc = - reg.intercept * xi_ampl
-            # We only accept the outcome if we get the expected result (haha)
-            # The critical temperature that we get out of the fit has to bein +-10% range of the one that we calculated with the binder cumulant
-            if (reg.rvalue ** 2 > best_r_squared) and (Tc_est * 0.95 < Tc < Tc_est * 1.05):
-                best_starting_pos = starting_pos
-                best_ending_pos = ending_pos
-                best_r_squared = reg.rvalue ** 2
-                best_reg = reg
-
-    return best_reg, best_starting_pos, best_ending_pos
 
 def process_size_folder_ft(cut_zero_impuls, size_folder_path, threshold):
     xix_ft_arr = []

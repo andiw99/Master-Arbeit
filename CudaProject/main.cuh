@@ -74,7 +74,8 @@ enum Parameter {
     nr_corr_values,
     nr_ft_values,
     equil_error,
-    min_cum_nr
+    min_cum_nr,
+    equil_cutoff
 };
 
 map<Parameter, string> parameter_names {
@@ -125,7 +126,9 @@ map<Parameter, string> parameter_names {
         {nr_corr_values, "nr_corr_values"},
         {nr_ft_values, "nr_ft_values"},
         {equil_error, "equil_error"},
-        {min_cum_nr, "min_cum_nr"}
+        {min_cum_nr, "min_cum_nr"},
+        {equil_cutoff, "equil_cutoff"}
+
 };
 
 map<string, Parameter> string_to_parameter {
@@ -176,7 +179,8 @@ map<string, Parameter> string_to_parameter {
         {"nr_corr_values", nr_corr_values},
         {"nr_ft_values", nr_ft_values},
         {"equil_error", equil_error},
-        {"min_cum_nr", min_cum_nr}
+        {"min_cum_nr", min_cum_nr},
+        {"equil_cutoff", equil_cutoff}
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {

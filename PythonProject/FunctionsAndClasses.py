@@ -14,6 +14,7 @@ from scipy.interpolate import interp1d
 from scipy.optimize import minimize
 from scipy.optimize import curve_fit
 from scipy.optimize import fsolve
+from scipy.stats import linregress
 
 
 # import matplotlib; matplotlib.use("TkAgg")
@@ -996,6 +997,7 @@ def critical_amplitude(eps, xi0):
 def process_file(file_path, threshold, key='t', value='U_L'):
     """
     Process a single file and calculate the average after the given threshold.
+    Will now also return the error on the average
     """
     df = pd.read_csv(file_path)
     if 0 < threshold < 1:
@@ -1004,9 +1006,11 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     nr_values = df.shape[0]
     if nr_values < 1:
         average_value = 0
+        error = 0
     else:
         average_value = df[value].mean()
-    return average_value, nr_values
+        error = df[value].std() / np.sqrt(nr_values)
+    return average_value, error, nr_values
 
 
 def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None):
@@ -1028,30 +1032,45 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
         if (temp_folder != "plots") & (temp_folder[0] != "."):
             temp_folder_path = os.path.join(size_folder, temp_folder)
             if os.path.isdir(temp_folder_path):
-                temp_average = []
-                nr_avg_values = []
-                nr_subsystems = []
-                for file_name in os.listdir(temp_folder_path):
-                    if file_name.endswith(file_ending):
-                        # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
-                        file_path = os.path.join(temp_folder_path, file_name)
-                        average_value, nr_values = process_file(file_path, threshold, 't', value)
-                        para_file_path = os.path.splitext(file_path)[0] + ".txt"
-                        parameters = read_parameters_txt(para_file_path)
-                        nr_subsys = parameters["nr_subsystems"]
-                        temp_average.append(average_value)
-                        nr_avg_values.append(nr_values)
-                        nr_subsystems.append(nr_subsys)
-                if temp_average:
-                    val_avg = (np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) /
-                               np.sum(np.array(nr_avg_values) * np.array(nr_subsystems)))
+                val_avg, error = process_temp_folder(temp_folder_path, threshold, file_ending, value)
+                if val_avg:
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
 
     result[value] = np.array(result[value])[np.argsort(result[key])]
     result[key] = np.sort(result[key])
-
+    # TODO if i need the error i can return it here but not for now
     return result
+
+
+def process_temp_folder(temp_folder_path, threshold, file_ending, value):
+    # So this averages the .cum or .corr files
+    # We might need to calculate an error here, but how do we get the total error? -> gaussian error propagation
+    temp_average = []
+    temp_error = []
+    nr_avg_values = []
+    nr_subsystems = []
+    for file_name in os.listdir(temp_folder_path):
+        if file_name.endswith(file_ending):
+            # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
+            file_path = os.path.join(temp_folder_path, file_name)
+            average_value, error, nr_values = process_file(file_path, threshold, 't', value)
+            para_file_path = os.path.splitext(file_path)[0] + ".txt"
+            parameters = read_parameters_txt(para_file_path)
+            nr_subsys = parameters["nr_subsystems"]
+            temp_average.append(average_value)
+            temp_error.append(error)
+            nr_avg_values.append(nr_values)
+            nr_subsystems.append(nr_subsys)
+    if temp_average:  # Why is here an if this should not be here?? If we are in a temperature folder we want to geht values back, am I right? If we dont have anything at all, we made something wrong before?
+        N = np.sum(np.array(nr_avg_values) * np.array(nr_subsystems))
+        val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) / N
+        error = 1 / N * np.sqrt(np.sum(np.array(nr_avg_values) * np.array(nr_subsystems) * np.array(temp_error)))
+
+    else:  # Okay I dont care but this should not be like this I think. Is this even on the right plane? Shouldnt it be one bacK? OMG I dont understand my own code!!!
+        val_avg = None
+    return val_avg, error
+
 
 def average_ft(folderpath, ending=".ft"):
     files = os.listdir(folderpath)
@@ -1312,6 +1331,50 @@ def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
     p_plus = - (1/2) * p  +  np.sqrt((p/2) ** 2 - q)
     p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
     return p_plus, p_minus
+
+def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
+    """
+    Searches the best linear fit through the data. The T_arr, xi_inv_arr should be linear
+    around the critical temperature
+    :param T_arr: The temperature values
+    :param xi_inv_arr: The corresponding inverse correlation lengths
+    :param Tc_est: the estimated critical temperature
+    :param tolerance: the tolerance for the Tc that we get out of the fit. It
+                        should lie inside [Tc_est - tolerance * Tc_est, Tc_est + tolerance Tc_est]
+    :return:
+    """
+    # okay we want to fit the area above Tc so we just start to with all
+    # values, then omit the first one and so on
+    # But should we not also exclude values that are to far away and also not linear
+    # anymore?
+
+    # We try it with the linear regression stuff that chatgpt suggested because
+    # If I use the naive mse, the fit will probably favor less points
+    # I would have to install some kind of benefit for including more points
+    best_starting_pos = 0
+    best_ending_pos = 0
+    # The minimum r_squared value that we need is the starting value for the best_r_sqaured
+    best_r_squared = min_r_squared      # This value ranges to 1 I think and 1 is a really good fit?
+    best_reg = None
+    for starting_pos in range(len(T_arr) - 4):
+        for ending_pos in range(starting_pos + 4, len(T_arr)):
+            # We should have at least 4 points i would say.
+            T_fit = T_arr[starting_pos:ending_pos]
+            xi_inv_fit = xi_inv_arr[starting_pos:ending_pos]
+
+            reg = linregress(T_fit, xi_inv_fit)
+            xi_ampl = 1 / reg.slope
+            Tc = - reg.intercept * xi_ampl
+            # We only accept the outcome if we get the expected result (haha)
+            # The critical temperature that we get out of the fit has to bein +-10% range of the one that we calculated with the binder cumulant
+            if ((reg.rvalue ** 2 > best_r_squared) and
+                    (Tc_est * (1-tolerance) < Tc < Tc_est * (1 + tolerance))):
+                best_starting_pos = starting_pos
+                best_ending_pos = ending_pos
+                best_r_squared = reg.rvalue ** 2
+                best_reg = reg
+
+    return best_reg, best_starting_pos, best_ending_pos
 
 def main():
     print("This file is made to import, not to execute")

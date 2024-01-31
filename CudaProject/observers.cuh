@@ -547,6 +547,7 @@ class corr_equilibration_observer: public obsver<system, State>{
     double dt = 0.01;
     double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
+    double density = 1.0 / 100.0;            // standard density writes once every 100 steps
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
     // for high temperature states we would usually need a larger number of systems to judge the equilibration
@@ -575,6 +576,7 @@ public:
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
+        equil_cutoff = paras[Parameter::equil_cutoff];
         timepoint = 0.0;
         equilibrated = false;
         // we also need to reset U_L and times, dont we?
@@ -590,7 +592,7 @@ public:
         dt = paras[Parameter::dt];
         dt_half = dt / 2.0;
         quench_t = sys.get_quench_time();
-        write_interval = 100 * dt;
+        write_interval = (1.0 / density) * dt;
     }
 
     string get_name() override {
@@ -638,7 +640,7 @@ public:
                         cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
                         cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
                         // we set the system to be equilibrated
-                        sys.set_equilibration(t);
+                        sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
                         // once we did this, we dont want to do that a second time?
                         equilibrated = true;
                         // the writ interval will now be the one that we destined for the quench, we just change it once here

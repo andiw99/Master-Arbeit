@@ -73,7 +73,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
     # If all checks pass, return True
     return True
 
-def get_avail_simulations(sizes, temperatures, directory_path, check_function):
+def get_avail_simulations(sizes, temperatures, directory_path, check_function, check_function_args):
     """
     Checks if the directory structure is valid based on a custom check function.
 
@@ -99,14 +99,33 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function):
                 temp_path = os.path.join(size_path, str(temp))
 
                 # Check if the temperature folder exists and is valid based on the custom function
-                if os.path.exists(temp_path) and os.path.isdir(temp_path) and check_function(temp_path):
+                if os.path.exists(temp_path) and os.path.isdir(temp_path) and check_function(temp_path, *check_function_args):
                     valid_folders.append((size, temp))
 
     return valid_folders
 
-class crit_temp_measurement():
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, intersection_error=0.002):
+
+def check_corr_valid(folderpath, equil_error, equil_cutoff):
+    # This function is supposed to check whether the .corr file in the folder (There should only be one)
+    # has a low enough error, the error is specified by equil error in the class
+    # We also need the threshold to calculate the accurate values with the accurate errors
+    xix_avg, xix_error = process_temp_folder(folderpath, equil_cutoff, value="xix", file_ending="corr")
+    xiy_avg, xiy_error = process_temp_folder(folderpath, equil_cutoff, value="xiy", file_ending="corr")
+
+    # We have the error, so we can check if it is small enough
+    # How do we check in the observer again? is not written actually...
+    avg_error = 1/ 2 * (xix_error + xiy_error)
+
+    if avg_error < equil_error:
+        return True
+    else:
+        return False
+
+class autonomous_measurement():
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
+                 host="hemera", user="weitze73"):
+        # This class is supposed to encapsulate some of the functionality that the following classes share
+        # For every simulation I need the basic simulation parameters
         self.J_para = J_para
         self.J_perp = J_perp
         self.h = h
@@ -115,21 +134,130 @@ class crit_temp_measurement():
         self.filepath = filepath
         self.simulation_path = simulation_path
         self.nr_GPUS = nr_GPUS
+        self.Ly_Lx = Ly_Lx
+
+        # also some parameters for the cluster
+        self.host = host                            # adress of the cluster
+        self.user = user                            # user on the cluster
+        self.walltime = "24:00:00"
+        self.file = exec_file
+        self.folder = "simulations"
+        self.wait = 40
+
+        # Besides the external simulation parameters that I have to provide there are some other attributes that
+        # every autonomous suite needs
+        # The bookkeeping variables for commiting the jobs
+        self.running_jobs = set()
+        self.completed_jobs = set()
+        self.connection = None
+        self.total_runs = 0
+        self.para_nr = 100                            # every mearsurement has at least one current parameter number
+
+
+    def check_completed_jobs(self):
+        # now we should check wheter some jobs are completed
+        # just by getting which jobs are pending etc?
+        queue_command = f"squeue -u {self.user}"
+        queue_feedback = self.connection.run(queue_command)
+        jobs_on_hemera = extract_numbers_after_newline(
+            queue_feedback.stdout)
+
+        # now we just check if all ids in running jobs are still in jobs_on_hemera
+        # if not, we check if the id is completed
+        # if thats true, we move the job id to the completed jobs
+        print("jobs on hemera: ", jobs_on_hemera)
+        print("running jobs: ", self.running_jobs)
+        just_completed_jobs = set()
+        for job_id in self.running_jobs:
+            # check if it is still in jobs_on_hemera
+            if job_id not in jobs_on_hemera:
+                # if not, we check what the sacc thingy command says
+                job_status_command = f'sacct -j {job_id} -o jobid,submit,start,end,state'
+                status_feedback = self.connection.run(job_status_command)
+                completed = check_completed_status(job_id,
+                                                   status_feedback.stdout)
+                if completed:
+                    # if its completed we double checked it
+                    # the job id can be removed from running jobs and added to completed_jobs
+                    just_completed_jobs.add(job_id)
+                    self.completed_jobs.add(job_id)
+                    # we rsync the new files
+                    subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
+                else:
+                    # if it is not completed but not in jobs_on_hemera anymore,
+                    # we have a problem
+                    print(
+                        "Oups! The Job vanished. Please check what happend")
+        # remove the completed jobs from the running jobs list
+        for job_id in just_completed_jobs:
+            self.running_jobs.remove(job_id)
+
+    def submit_jobs(self):
+        while (len(self.running_jobs) < self.nr_GPUS) & (len(self.completed_jobs) + len(
+                self.running_jobs) < self.total_runs):  # I think we forgot that we should not submit more jobs than we were expecting to? Is a job always either running or completed?
+            # if this is true we are definetly going to submit a new job
+            # so we can construct the para set string and advance next job
+            # TODO If i overwrite this get para function in a child class and call THIS method, submit jobs, the function should
+            # be overwritten here right? I think you make yourselfs to many thoughts, In python this should be way easier than in c++
+            para_nr = self.get_para_nr()
+            # now... we just submit it?
+            # the command is:
+            submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
+                         f' logs/errors/%j.err run_cuda.sh {self.file} {self.folder} {para_nr}'
+            submit_feedback = self.connection.run(submit_job)
+            job_id = extract_numbers_before_newline(submit_feedback.stdout)[
+                0]  # extract numbers before newline returns a list
+            print(f"with para nr {para_nr}")
+            # I think we can be sure that the job is running if we just commited it
+            # better double check?
+            self.running_jobs.add(job_id)
+    def get_para_nr(self):
+        return self.para_nr
+    def run_jobs(self):
+        # how do we make this routine? First we can make one cycle and submit nr gpus jobs?
+        # or just the routine that will be waiting for the jobs to finish instantly?
+        # establish the connection to hemera
+        self.connection = Connection('hemera')
+        print("connecting to hemera...")
+        self.completed_jobs = set()     # we have to reset the completed jobs otherwise the program thinks we already compleated all the jobs
+        self.nr_GPUS = min(self.nr_GPUS, self.total_runs)   # we dont need more GPUS than we have jobs
+        while (len(self.completed_jobs)) < self.total_runs:
+            # after this the set of running jobs is guaranteed to be empty
+            # now we should check wheter some jobs are completed
+            # just by getting which jobs are pending etc?
+            self.check_completed_jobs()
+
+            # now we need to determine how many jobs are currently running
+            # and we need to know how to submit jobs
+            # while the number running jobs is smaller than the number of GPUs
+            # to use, we submit new jobs
+            # indeed it would be optimal if the long running jobs would start first
+            # but that is hard to do? For now we just submit the jobs in arbitrary
+            # order
+            # we know which job is next through the next job variable,
+            # but we still need to know the number at which to start
+            self.submit_jobs()
+            # now we just wait some time before we do the next check?
+            time.sleep(self.wait)
+        # if we are here that means that all runs are done
+        # we add the currently simulated temperatures to the bookkeeping variable
+
+class crit_temp_measurement(autonomous_measurement):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, intersection_error=0.002):
+        # call the constructor of the parent classe
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         self.nr_Ts = nr_Ts
         self.size_min = size_min
         self.size_max = size_max
         self.nr_sizes = nr_sizes
         self.max_steps = max_steps
         self.nr_sites = nr_sites
-        self.Ly_Lx = Ly_Lx
 
         self.T_arr = np.array([])
         self.sizes = np.array([])
         self.max_time = 0
         self.total_runs = 0
-        self.running_jobs = set()
-        self.completed_jobs = set()
-        self.connection = None
 
         self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
         self.max_rel_intersec_error = intersection_error  # standard maximum error of 2%
@@ -138,6 +266,8 @@ class crit_temp_measurement():
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
         self.min_cum_nr = 100
+
+        self.cur_para_nr = 0
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -154,7 +284,7 @@ class crit_temp_measurement():
         print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
         self.max_time = self.dt * self.max_steps
         self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
-    def routine(self, walltime='24:00:00', file='SubsystemRelaxation.cu', folder='simulations', user='weitze73', wait=40):
+    def routine(self):
         """
         the outer routine for the T_c calculation
         :param walltime: walltime per job+3,
@@ -164,7 +294,7 @@ class crit_temp_measurement():
         :return: -
         """
         self.init()                 # initializing determines the T range
-        T_c, T_c_error = self.iteration(file, folder, user, wait, walltime)  # recursive fuction that returns T_c
+        T_c, T_c_error = self.iteration(self.file, self.folder, self.user, self.wait, self.walltime)  # recursive fuction that returns T_c
         self.conclude()
         return T_c, T_c_error
 
@@ -269,22 +399,22 @@ class crit_temp_measurement():
                     format="png", dpi=250, transparent=False)
         plt.show()
 
-    def iteration(self, file, folder, user, wait, walltime):
+    def iteration(self):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
         simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
         print("simulation_available", simulation_available)
         if not simulation_available or self.repeat:
             self.repeat = False                 # we set repeat to false again
-            para_nr = self.write_para_files()  # setting up the parameter files for every simulation
-            self.run_jobs(file, folder, para_nr, user, wait, walltime)
+            self.write_para_files()  # setting up the parameter files for every simulation
+            self.run_jobs()
         else:
             print("Found valid simulation, evaluating")
         # after running the jobs, we need to
         # calculate the binder cumulant for every run
-        return self.evaluate_simulation(file, folder, user, wait, walltime)
+        return self.evaluate_simulation()
 
-    def evaluate_simulation(self, file, folder, user, wait, walltime):
+    def evaluate_simulation(self):
         self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))   # we do it here, before evaluating
         threshold = 0.1  # in the simulation we calculated the mean from the last 90% of the values and achieved a small error
         all_results = self.construct_results(threshold, self.all_T_arr)     # for all results we use the self.all_T_arr? Since we want to reproduce always the measurements that we already did so that we can resume it where we left it of
@@ -333,13 +463,7 @@ class crit_temp_measurement():
             #    intersection = find_intersection(T_range, U_L_1, U_L_2)
             #    intersections.append(intersection)
             # TODO this works only for 3 different sizes
-            for i in range(len(self.sizes)):
-                U_L_1 = all_results[self.sizes[i]]["U_L"]
-                U_L_2 = all_results[self.sizes[(i + 1) % len(self.sizes)]]["U_L"]
-                #print("U_L_1 = ", U_L_1)
-                T_arr = all_results[self.sizes[i]]["T"]
-                intersection, _ = find_intersection(T_arr, U_L_1, U_L_2)
-                intersections.append(intersection)
+            intersections, intersections_y = get_intersections(all_results)
             # more is it net?
             # simple error would be to be just max_intersection - min_intersection?
             T_c = np.mean(intersections)
@@ -375,7 +499,7 @@ class crit_temp_measurement():
                       f"Starting new run with T_min = {T_min}, T_max = {T_max}")
                 # If we are moving closer to the critical point we should decrease the allowed error
                 self.equil_error /= 2  # standard devide by two or is that not enough?
-                return self.iteration(file, folder, user, wait, walltime)
+                return self.iteration()
         else:
             # bad sign, we do not seem to have an intersection
             # the question is now whether we are below or above
@@ -397,7 +521,7 @@ class crit_temp_measurement():
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
                 T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
-            return self.iteration(file, folder, user, wait, walltime)
+            return self.iteration()
 
     def construct_results(self, threshold, selected_temps=None):
         results = {}
@@ -411,85 +535,15 @@ class crit_temp_measurement():
                     results[int(size_folder)] = size_result
         return results
 
-    def run_jobs(self, file, folder, para_nr, user, wait, walltime):
-        # how do we make this routine? First we can make one cycle and submit nr gpus jobs?
-        # or just the routine that will be waiting for the jobs to finish instantly?
-        # establish the connection to hemera
-        self.connection = Connection('hemera')
-        print("connecting to hemera...")
-        next_job = 0
-        self.completed_jobs = set()     # we have to reset the completed jobs otherwise the program thinks we already compleated all the jobs
-        self.nr_GPUS = min(self.nr_GPUS, self.total_runs)   # we dont need more GPUS than we have jobs
-        while (len(self.completed_jobs)) < self.total_runs:
-            # after this the set of running jobs is guaranteed to be empty
-            # now we should check wheter some jobs are completed
-            # just by getting which jobs are pending etc?
-            queue_command = f"squeue -u {user}"
-            queue_feedback = self.connection.run(queue_command)
-            jobs_on_hemera = extract_numbers_after_newline(
-                queue_feedback.stdout)
+    def get_para_nr(self):
+        # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice
+        self.cur_para_nr += 1
+        return self.para_nr + self.cur_para_nr - 1
 
-            # now we just check if all ids in running jobs are still in jobs_on_hemera
-            # if not, we check if the id is completed
-            # if thats true, we move the job id to the completed jobs
-            print("jobs on hemera: ", jobs_on_hemera)
-            print("running jobs: ", self.running_jobs)
-            just_completed_jobs = set()
-            for job_id in self.running_jobs:
-                # check if it is still in jobs_on_hemera
-                if job_id not in jobs_on_hemera:
-                    # if not, we check what the sacc thingy command says
-                    job_status_command = f'sacct -j {job_id} -o jobid,submit,start,end,state'
-                    status_feedback = self.connection.run(job_status_command)
-                    completed = check_completed_status(job_id,
-                                                       status_feedback.stdout)
-                    if completed:
-                        # if its completed we double checked it
-                        # the job id can be removed from running jobs and added to completed_jobs
-                        just_completed_jobs.add(job_id)
-                        self.completed_jobs.add(job_id)
-                        # we rsync the new files
-                        subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
-                    else:
-                        # if it is not completed but not in jobs_on_hemera anymore,
-                        # we have a problem
-                        print(
-                            "Oups! The Job vanished. Please check what happend")
-            # remove the completed jobs from the running jobs list
-            for job_id in just_completed_jobs:
-                self.running_jobs.remove(job_id)
-
-            # now we need to determine how many jobs are currently running
-            # and we need to know how to submit jobs
-            # while the number running jobs is smaller than the number of GPUs
-            # to use, we submit new jobs
-            # indeed it would be optimal if the long running jobs would start first
-            # but that is hard to do? For now we just submit the jobs in arbitrary
-            # order
-            # we know which job is next through the next job variable,
-            # but we still need to know the number at which to start
-            while (len(self.running_jobs) < self.nr_GPUS) & (len(self.completed_jobs) + len(self.running_jobs) < self.total_runs):          # I think we forgot that we should not submit more jobs than we were expecting to? Is a job always either running or completed?
-                # if this is true we are definetly going to submit a new job
-                # so we can construct the para set string and advance next job
-                para_set_nr = str(para_nr) + str(next_job)
-                next_job += 1
-                # now... we just submit it?
-                # the command is:
-                submit_job = f'sbatch --time {walltime} --output logs/%j.log --error' \
-                             f' logs/errors/%j.err run_cuda.sh {file} {folder} {para_set_nr}'
-                submit_feedback = self.connection.run(submit_job)
-                job_id = extract_numbers_before_newline(submit_feedback.stdout)[
-                    0]  # extract numbers before newline returns a list
-                print(f"with para nr {para_set_nr}")
-                # I think we can be sure that the job is running if we just commited it
-                # better double check?
-                self.running_jobs.add(job_id)
-            # now we just wait some time before we do the next check?
-            time.sleep(wait)
-        # if we are here that means that all runs are done
-        # we add the currently simulated temperatures to the bookkeeping variable
-
-    def write_para_files(self, para_nr=100):
+    def run_jobs(self):
+        self.cur_para_nr = 0                        # reset the parameter number
+        super().run_jobs()
+    def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
         print("Writing the parameter files...")
@@ -498,7 +552,7 @@ class crit_temp_measurement():
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
             # to construct the para set we need to know how many subsystems we should initialize
             nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
-            with open(self.filepath + "/parameters/para_set_" + str(para_nr) + str(i) + '.txt', 'w') as f:
+            with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + i) + '.txt', 'w') as f:
                 f.write(self.simulation_path)
                 f.write(f"\nend_time, {self.max_time} \n"
                         f"dt, {self.dt} \n"
@@ -526,31 +580,19 @@ class crit_temp_measurement():
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
-        return para_nr
 
-class quench_measurement():
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, Tc, nr_GPUS=6, size_min=64,
+class quench_measurement(autonomous_measurement):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, size_min=64,
                  size_max=4096, nr_sites=5e5, Ly_Lx=1/8, min_quench_steps=100, min_nr_sites=1e6,
                  min_nr_systems=10, host="hemera", user="weitze73"):
-        self.J_para = J_para
-        self.J_perp = J_perp
-        self.h = h
-        self.eta = eta
-        self.dt = dt
-        self.filepath = filepath
-        self.simulation_path = simulation_path
-        self.nr_GPUS = nr_GPUS
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
         self.nr_sites = nr_sites        # nr of sites for one run
-        self.Ly_Lx = Ly_Lx              # the usual ratio between Lx and Ly
         self.Tc = Tc                    # The critical temperature that was calculated in the measurement before
         self.min_quench_steps = min_quench_steps    # the minimum number of steps done during a quench, influences tau_min
         self.min_nr_sites = min_nr_sites            # the minimum nr of sites i want to simulate for every tau
         self.min_nr_systems = min_nr_systems        # the minimum nr of systems to go through the qunech, guaranteeing an approximately precice xi value
-        self.host = host                            # adress of the cluster
-        self.user = user                            # user on the cluster
-
 
         self.T_start = Tc
         self.T_end = Tc
@@ -560,18 +602,12 @@ class quench_measurement():
         self.size = size_min            # current size, starts at size_min
         self.equil_error = 0.02        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
         self.para_nr = 100
-        self.walltime = "24:00:00"
-        self.file = "AutoQuench.cu"
-        self.folder = "simulations"
-        self.wait = 20
+
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
         self.nr_measured_values = 300   # standard number of measured values during the quench
         self.min_tau_scaling_fit = 10
 
-        self.connection = None
-        self.completed_jobs = set()     # bookkeeping of completed jobs
-        self.running_jobs = set()       # bookkeeping of running jobs
     def setup(self):
         # We decide the start and end temperature
         self.T_start = 3 / 2 * self.Tc
@@ -589,7 +625,7 @@ class quench_measurement():
         return 2 ** self.tau_factor
 
     def systems_per_job(self):
-        return int(self.nr_sites / (self.size ** 2 * self.Ly_Lx))
+        return int(np.ceil(self.nr_sites / (self.size ** 2 * self.Ly_Lx)))
 
     def write_para_file(self):
         # I think we only construct one file at a time and ggf run it multiple times.
@@ -698,70 +734,12 @@ class quench_measurement():
         else:
             # else we do as many jobs as we need to exceed the min_nr_systems
             nr_jobs = int(np.ceil(self.min_nr_systems / sys_per_job))
+        self.total_runs = nr_jobs
         # now we do basically the same stuff as last time, only that we onyl submit the same job
-        self.connection = Connection('hemera')
-        self.completed_jobs = set()
-        while (len(self.completed_jobs)) < nr_jobs:
-            # after this the set of running jobs is guaranteed to be empty
-            # now we should check wheter some jobs are completed
-            # just by getting which jobs are pending etc?
-            queue_command = f"squeue -u {self.user}"
-            queue_feedback = self.connection.run(queue_command)
-            jobs_on_hemera = extract_numbers_after_newline(
-                queue_feedback.stdout)
+        super().run_jobs()
 
-            # now we just check if all ids in running jobs are still in jobs_on_hemera
-            # if not, we check if the id is completed
-            # if thats true, we move the job id to the completed jobs
-            print("jobs on hemera: ", jobs_on_hemera)
-            print("running jobs: ", self.running_jobs)
-            just_completed_jobs = set()
-            for job_id in self.running_jobs:
-                # check if it is still in jobs_on_hemera
-                if job_id not in jobs_on_hemera:
-                    # if not, we check what the sacc thingy command says
-                    job_status_command = f'sacct -j {job_id} -o jobid,submit,start,end,state'
-                    status_feedback = self.connection.run(job_status_command)
-                    completed = check_completed_status(job_id,
-                                                       status_feedback.stdout)
-                    if completed:
-                        # if its completed we double checked it
-                        # the job id can be removed from running jobs and added to completed_jobs
-                        just_completed_jobs.add(job_id)
-                        self.completed_jobs.add(job_id)
-                        # we rsync the new files
-                        subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
-                    else:
-                        # if it is not completed but not in jobs_on_hemera anymore,
-                        # we have a problem
-                        print(
-                            "Oups! The Job vanished. Please check what happend")
-            # remove the completed jobs from the running jobs list
-            for job_id in just_completed_jobs:
-                self.running_jobs.remove(job_id)
-
-            # now we need to determine how many jobs are currently running
-            # and we need to know how to submit jobs
-            # while the number running jobs is smaller than the number of GPUs
-            # to use, we submit new jobs
-            # indeed it would be optimal if the long running jobs would start first
-            # but that is hard to do? For now we just submit the jobs in arbitrary
-            # order
-            # we know which job is next through the next job variable,
-            # but we still need to know the number at which to start
-            while (len(self.running_jobs) < self.nr_GPUS) and (len(self.running_jobs) + len(self.completed_jobs) < nr_jobs):
-                submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
-                             f' logs/errors/%j.err run_cuda.sh {self.file} {self.folder} {self.para_nr}'
-                submit_feedback = self.connection.run(submit_job)
-                job_id = extract_numbers_before_newline(submit_feedback.stdout)[
-                    0]  # extract numbers before newline returns a list
-                print(f"with para nr {self.para_nr}")
-                # I think we can be sure that the job is running if we just commited it
-                # better double check?
-                self.running_jobs.add(job_id)
-            # now we just wait some time before we do the next check?
-            time.sleep(self.wait)
-
+    def get_para_nr(self):
+        return self.para_nr
     def conclude(self):
         # like last time, I think for now I will just paste the avargeFTsOverTime script
         size_x_dic = {}
@@ -949,14 +927,6 @@ class quench_measurement():
         plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
         plt.show()
 
-
-
-
-
-
-
-
-
     def get_size_quench_results(self):
         size_tau_xix_dic = {}
         size_tau_xiy_dic = {}
@@ -1024,17 +994,11 @@ class quench_measurement():
         self.iteration()
         self.conclude()
 
-class amplitude_measurement():
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, Tc, nr_GPUS=6, nr_Ts=5, size=1024,
-                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.003, T_range_fraction=0.05):
-        self.J_para = J_para
-        self.J_perp = J_perp
-        self.h = h
-        self.eta = eta
-        self.dt = dt
-        self.filepath = filepath                # Path where the parameter files are stored
-        self.simulation_path = simulation_path  # path where the simulation data is stored
-        self.nr_GPUS = nr_GPUS
+class amplitude_measurement(autonomous_measurement):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=5, size=1024,
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.001, T_range_fraction=0.025):
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
         self.Tc = Tc                            # We need to know the critical temperature that we determined in previous measurements
@@ -1043,13 +1007,10 @@ class amplitude_measurement():
         # 1000 is a save bet but I guess we would like to go up to even larger sizes?
         self.size = size
         self.max_steps = max_steps
-        self.Ly_Lx = Ly_Lx
 
         self.T_arr = np.array([])
         self.total_runs = 0                 # just a parameter to keep track of how many jobs we want to run in this iteration
-        self.running_jobs = set()
-        self.completed_jobs = set()
-        self.connection = None
+
 
         self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
         self.equil_error = equil_error           # standard equilibration error for the xi runs
@@ -1057,6 +1018,9 @@ class amplitude_measurement():
         self.iteration_nr = 0
         self.min_corr_nr = 500
         self.equil_cutoff = 0.3             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
+        self.max_time = 0
+        self.Tc_fit_tolerance = 0.05        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
+        self.min_r_sqaured = 0.99           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
 
 
     def setup(self):
@@ -1067,6 +1031,8 @@ class amplitude_measurement():
         # Is that all, what else do we need to setup?
         # For now the total number of runs is just the nr of temps
         self.total_runs = self.nr_Ts
+        self.max_time = self.dt * self.max_steps
+
     def run(self):
         # runs the complete simulation. Some initialization, a routine and a finish, plotting and fitting
         self.setup()
@@ -1076,9 +1042,192 @@ class amplitude_measurement():
         # this function should be able to pick up on simulations that were not finished
         # increase the iteration number
         self.iteration_nr += 1
+        # We add the temperatures from now to all temperatures
+        self.all_T_arr = np.concatenate(self.all_T_arr, self.T_arr)
         # Check if we have a simulation available
         # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
+        valid_simulations = get_avail_simulations([self.size], self.T_arr, check_corr_valid,
+                                                  check_function_args=(self.equil_error, self.equil_cutoff))
+        # For every valid simulation we do not have to do this simulation in the following
+        for valid_simulation in valid_simulations:
+            valid_temp = valid_simulation[1]        # valid simulations is tuple of (size, temp), we only need the temp here
+            Ts = list(self.T_arr)                   # change to list as we then can easier use remove
+            Ts.remove(valid_temp)                   # remove the valid T from the Ts we still have to do
+            self.T_arr = np.array(Ts)               # overwrite the original array with the new Ts
 
+        if self.T_arr.size != 0:
+            # if the array is not empty this means that there are still simulations to do
+            # write the parameter files
+            self.write_para_files()
+            # submit the jobs, should be handlede by the super method
+            self.run_jobs()
+            # If the array is empty this means that we have all measurements done already and we can call evaluate
+        # We want to evaluate anyways if we have a valid simulation or if we just ran one
+        return self.evaluate()
+
+    def write_para_files(self, para_nr=110):
+        print("Writing the parameter files...")
+        for i, T in self.T_arr:
+            # We now need to construct the parameterfile with the appropriate temperature
+            # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
+            with open(self.filepath + "/parameters/para_set_" + str(para_nr) + str(i) + '.txt', 'w') as f:
+                f.write(self.simulation_path)
+                f.write(f"\nend_time, {self.max_time} \n"
+                        f"dt, {self.dt} \n"
+                        f"J, {self.J_para} \n"
+                        f"Jy, {self.J_perp} \n"
+                        f"alpha, {self.h} \n"
+                        f"eta, {self.eta} \n"
+                        f"nr_saves, 4 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
+                        f"nr_repeat, 0 \n"
+                        f"min_temp, {T} \n"
+                        f"max_temp, {T} \n"
+                        f"nr_runs, 0.0 \n"
+                        f"random_init, 1.0 \n"      # for the amplitude we want to initialize randomly
+                        f"curand_random, 1 \n"
+                        f"subsystem_min_Lx, {self.size} \n"
+                        f"subsystem_max_Lx, {self.size} \n"
+                        f"nr_subsystem_sizes, 0  \n"
+                        f"nr_subsystems, {1} \n"    # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
+                        f"x_y_factor, {self.Ly_Lx} \n"
+                        f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
+                        f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
+                        f"equil_error, {self.equil_error}\n"
+                        f"equil_cutoff, {self.equil_cutoff}")
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
+        return para_nr
+
+
+    def evaluate(self):
+        # Okay the evaluation logic, will be done after lunch, you will just extract the xi, fitting and see if its okay
+        # What do we need to to, get right into it, just turn on some music and focus
+        # we know the simulation path and the temperatures that we just simulated, but we actually want to evaluate all
+        # temperatures that we have
+        # Here we can call the process size folder method
+        xix_dic = process_size_folder(self.simulation_path, threshold=self.equil_cutoff, key="T", value="xix",
+                                  file_ending="corr")      # the selected temperatures are just all temperatures
+        xiy_dic = process_size_folder(self.simulation_path, threshold=self.equil_cutoff, key="T", value="xiy",
+                                  file_ending="corr")
+        # Those dictionaries map the temperature to the according xi, ahh not quite those are dictionaries
+        # with xix_dic = {"T" : [T1, T2, ...], "xix" : [xix1, xix2, ...]}
+        T_xix = xix_dic["T"]
+        xix_arr = xix_dic["xix"]
+        T_xiy = xiy_dic["T"]
+        xiy_arr = xiy_dic["xix"]
+
+        # They should be sorted and we are actually interested in the inverse correlation lengths
+        xix_arr = xix_arr[np.argsort(T_xix)]
+        xiy_arr = xiy_arr[np.argsort(T_xiy)]
+        xix_inv = 1 / xix_arr
+        xiy_inv = 1 / xiy_arr
+        T_xix = T_xix[np.argsort(T_xix)]
+        T_xiy = T_xiy[np.argsort(T_xiy)]
+        # Now we have the inverse arrays for the two directions.
+        # For the linear regression we need the critical temperature which we can access by self.Tc
+        # so we can call the best_fit_inv function that we wrote for the evaluation outside of the suite
+        reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv, self.Tc, self.Tc_fit_tolerance, self.min_r_sqaured)
+        reg_y, T_include_start_y, T_include_end_y = best_fit_inv(T_xiy, xiy_inv, self.Tc, self.Tc_fit_tolerance,
+                                                                 self.min_r_sqaured)
+        # The best fit_inv function returns None if we didnt find a fitting segment
+        if reg_x or reg_y is None:
+            print("No fitting fit.")
+            # if we are doing to many iterations we have to return here
+            if self.iteration_nr > self.maximum_iterations:
+                print("Maximum iterations reached. Aborting")
+                return
+            else:
+                print("We have to repeat the simulation")
+            # so we extend the temperatures that we investigate
+            stepsize = self.T_arr[1] - self.T_arr[0]
+            self.T_arr = np.linspace(np.max(self.T_arr) + stepsize, (1 + 2 * self.T_range_fraction) * self.T_c)
+            # Just iteration now?
+            return self.iteration()
+        else:
+            # means borh are not none so we found fits
+            # If we found something we can call conclude directly from here where we have the fits and the start and endpoints in scope?
+            print("Fitting worked, concluding...")
+            # We have to hand over pretty much data seems like
+            x_data = (T_xix, xix_arr, xix_inv)
+            y_data = (T_xiy, xiy_arr, xiy_inv)
+            x_result = (reg_x, T_include_start_x, T_include_end_x)
+            y_result = (reg_y, T_include_start_y, T_include_end_y)
+            self.conclude(x_data, y_data, x_result, y_result)
+    def conclude(self, x_data, y_data, x_result, y_result):
+        # This function is supposed to plot the fits that we did alongside with the data and present the amplitude that
+        # we calculated
+        # So we use the fits and all the data to do some plots
+        # Do we want to plot into the same plot or in different plots?
+        # If we want to plot in the same plot we need to use logarithmic axes. Otherwise one direction will not be easily recognizable
+        # If we use logarithmic axes, we would not have the usual critical divergence form or respectively the linear scaling in 1 / xi
+        # Or i mean it will be linear but every other polynomial would also be linear
+        # what will it be... decide! I see them in a single log plot tbh
+        # first we will calculate the critical temperatures of the two cases aswell as the critical amplitudes
+        reg_x = x_result[0]
+        reg_y = y_result[0]
+        T_x = x_data[0]
+        T_y = y_data[0]
+        xix_ampl = 1 / reg_x.slope
+        xiy_ampl = 1 / reg_y.slope
+        Tc_x = - reg_x.intercept * xix_ampl
+        Tc_y = - reg_y.intercept * xiy_ampl
+
+        # With this we can just plot the stuff? first the inverse stuff
+        fig, ax = plt.subplots(1, 1)
+        # First plot the data points
+        ax.plot(T_x, x_result[2], label=rf"$1 / \xi_x$", linestyle="", marker="x")
+        ax.plot(T_y, y_result[2], label=rf"$1 / \xi_y$", linestyle="", marker="x")
+        # Now plot the fits
+        ax.plot(T_x, reg_x.intercept + reg_x.slope * T_x,
+                 label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
+        ax.plot(T_y, reg_y.intercept + reg_y.slope * T_y,
+                label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_y:.3f}$")
+        # We want to show the ratio on the plot
+        ax.plot([], [], label=rf"$\xi_x / \xi_y  = {xix_ampl / xiy_ampl}$", linestyle="", marker="")
+        # like I said if we want them to be in one plot we need to scale the y axix to be logarthimic
+        ax.set_yscale("log")
+        ax.set_xlabel("T")
+        ax.set_ylabel(r"$1 / \xi$")
+        # We set the lower limit of the y axis to be zero since negative xi are not sensible but the fit can become negative
+        ax.set_ylim(0, ax.get_xlim()[1])
+        configure_ax(fig, ax)
+        # saving the plot
+        create_directory_if_not_exists(self.simulation_path + "/plots/")
+        plt.savefig(self.simulation_path + "/plots/xi-inv.png", format="png")
+
+        # We also want to show the divergence and include the actual xi values
+        fig, ax = plt.subplots(1, 1)
+        # First plot the data points
+        ax.plot(T_x, x_result[1], label=rf"$1 / \xi_x$", linestyle="", marker="x")
+        ax.plot(T_y, y_result[1], label=rf"$1 / \xi_y$", linestyle="", marker="x")
+        # We also want to plot some kind of fit but for this we need the eps arrays
+        # We need to use the critical temperature of the fit
+        # I think we want some more points than 8 to plot the critical amplitude plot
+        T_x_plot = np.linspace(np.min(T_x), np.max(T_x), 200)
+        T_y_plot = np.linspace(np.min(T_y), np.max(T_y), 200)
+        eps_x = (T_x_plot - Tc_x) / Tc_x
+        eps_y = (T_y_plot - Tc_y) / Tc_y
+        # before we plot we look at the y limits in the case that we dont plot the critical amplitude
+        upper_ylim = ax.get_ylim()[1]
+        # The function that we need to use is called critical amplitude
+        ax.plot(T_x, critical_amplitude(eps_x, xix_ampl),
+                 label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
+        ax.plot(T_y,critical_amplitude(eps_y, xiy_ampl),
+                label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
+        # For this we dont use logarithmic scale I think
+        # we set the limits from before plotting the fit
+        ax.set_ylim(ax.get_ylim()[0], upper_ylim)
+        ax.set_xlabel("T")
+        ax.set_ylabel(r"$\xi$")
+        configure_ax(fig, ax)
+        # Save the plot
+        plt.savefig(self.simulation_path + "/plots/T-xi.png", format="png")
+
+        # I think that is it.
+        return
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
@@ -1094,26 +1243,35 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/"
+
+    Tc_exec_file = "SubsystemRelaxation.cu"
+    quench_exec_file = "AutoQuench.cu"
+    amplitude_exec_file = "AutoAmplitude.cu"
 
     max_rel_intersection_error = 0.001
 
     # Quench parameters
-    max_size = 1024
+    max_size = 2048
     min_nr_sites = 1e6
+
+
+    # Amplitude parameters
+    amplitude_size = 1024
 
     # Enter which calculations are supposed to run here
     measurements = {
         "Tc": False ,
-        "Quench": True
+        "Quench": True,
+        "Amplitude": False,
     }
 
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
     if measurements["Tc"]:
-        sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", nr_GPUS=nr_gpus,
+        sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
@@ -1121,9 +1279,12 @@ def main():
         T_c = float(input("Enter critical temperature:"))
         T_c_error = 0
     if measurements["Quench"]:
-        quench = quench_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Quench", T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
+        quench = quench_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
         quench.run()
-
+    if measurements["Amplitude"]:
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Amplitude",
+                                     amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size)
+        ampl.run()
 
 if __name__ == '__main__':
     main()
