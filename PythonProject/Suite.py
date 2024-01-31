@@ -73,6 +73,37 @@ def check_directory_structure(sizes, temperatures, directory_path):
     # If all checks pass, return True
     return True
 
+def get_avail_simulations(sizes, temperatures, directory_path, check_function):
+    """
+    Checks if the directory structure is valid based on a custom check function.
+
+    Parameters:
+    - sizes: List of sizes.
+    - temperatures: List of temperatures.
+    - directory_path: Path to the main directory.
+    - check_function: A custom function to check the validity of each temperature folder.
+
+    Returns:
+    - List of (size, temp) pairs for which a valid folder exists.
+    """
+    valid_folders = []
+
+    # Iterate over sizes
+    for size in sizes:
+        size_path = os.path.join(directory_path, str(size))
+
+        # Check if the size folder exists
+        if os.path.exists(size_path) and os.path.isdir(size_path):
+            # Iterate over temperatures
+            for temp in temperatures:
+                temp_path = os.path.join(size_path, str(temp))
+
+                # Check if the temperature folder exists and is valid based on the custom function
+                if os.path.exists(temp_path) and os.path.isdir(temp_path) and check_function(temp_path):
+                    valid_folders.append((size, temp))
+
+    return valid_folders
+
 class crit_temp_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, intersection_error=0.002):
@@ -656,7 +687,7 @@ class quench_measurement():
         # first we need to find out how many jobs this will be
         # it doenst matter if this part of the code is optimized so just naive:
         # find out whether min_nr_systems or min_nr_sites is limiting:
-        sys_per_job = int(self.nr_sites / (self.size ** 2 * self.Ly_Lx))
+        sys_per_job = int(np.ceil(self.nr_sites / (self.size ** 2 * self.Ly_Lx)))
         min_jobs = int(self.min_nr_sites / self.nr_sites)            # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
         if sys_per_job >= self.min_nr_systems / min_jobs:
             # if the number of systems per job * the minimumb number of jobs given by the minimum number of system sites
@@ -942,6 +973,60 @@ class quench_measurement():
         self.iteration()
         self.conclude()
 
+class amplitude_measurement():
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, Tc, nr_GPUS=6, nr_Ts=5, size=1024,
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.003, T_range_fraction=0.05):
+        self.J_para = J_para
+        self.J_perp = J_perp
+        self.h = h
+        self.eta = eta
+        self.dt = dt
+        self.filepath = filepath                # Path where the parameter files are stored
+        self.simulation_path = simulation_path  # path where the simulation data is stored
+        self.nr_GPUS = nr_GPUS
+        self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
+        self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
+        self.Tc = Tc                            # We need to know the critical temperature that we determined in previous measurements
+        # I think we only use one size, being the largest possible
+        # Is there some way of guessing how long a simulation will take?
+        # 1000 is a save bet but I guess we would like to go up to even larger sizes?
+        self.size = size
+        self.max_steps = max_steps
+        self.Ly_Lx = Ly_Lx
+
+        self.T_arr = np.array([])
+        self.total_runs = 0                 # just a parameter to keep track of how many jobs we want to run in this iteration
+        self.running_jobs = set()
+        self.completed_jobs = set()
+        self.connection = None
+
+        self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
+        self.equil_error = equil_error           # standard equilibration error for the xi runs
+        self.maximum_iterations = 2         # we first look at the interval [Tc, 1.05Tc] and If this doesnt work we inrease to [Tc, 1.1Tc] and If this doesnt work we abort
+        self.iteration_nr = 0
+        self.min_corr_nr = 500
+        self.equil_cutoff = 0.3             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
+
+
+    def setup(self):
+        # This function will determine the initial T range
+        # we want nr_Ts temperatures between
+        Tmax = self.Tc * (1 + self.T_range_fraction)
+        self.T_arr = np.linspace(self.Tc, Tmax, num=self.nr_Ts)
+        # Is that all, what else do we need to setup?
+        # For now the total number of runs is just the nr of temps
+        self.total_runs = self.nr_Ts
+    def run(self):
+        # runs the complete simulation. Some initialization, a routine and a finish, plotting and fitting
+        self.setup()
+
+    def iteration(self):
+        # Okay again this is the function that runs the jobs, evaluates them and runs additional jobs if necessary. Also this
+        # this function should be able to pick up on simulations that were not finished
+        # increase the iteration number
+        self.iteration_nr += 1
+        # Check if we have a simulation available
+        # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
 
 def main():
     # okay what is the first thing we need to do?
