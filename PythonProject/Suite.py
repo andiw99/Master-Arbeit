@@ -536,6 +536,7 @@ class quench_measurement():
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
         self.nr_measured_values = 300   # standard number of measured values during the quench
+        self.min_tau_scaling_fit = 10
 
         self.connection = None
         self.completed_jobs = set()     # bookkeeping of completed jobs
@@ -840,6 +841,41 @@ class quench_measurement():
         # just plot it for every size and every tau? worry about the fitting later
         size_tau_xix_dic, size_tau_xiy_dic = self.get_size_quench_results()
 
+        # Now we want to do some fitting
+        # I have the feeling that it will be faster if i just rewrite it
+        # Okay so we will use from the size_tau_xi_dics for every size
+        # all but the last value. Then we should have a continous tau-xi curve
+        # About the minimum tau, I don't know how to deal with that atm,
+        # we will just set it to 10 or let it be a parameter
+
+        tau_scaling = []
+        xix_scaling = []
+        xiy_scaling = []
+
+        for size in sorted(list(size_tau_xix_dic.keys())):
+            tau_xix_dic = size_tau_xix_dic[size]
+            tau_xiy_dic = size_tau_xiy_dic[size]
+            # from those dictionaries I want to extract the largest tau. Are the taus floats here?
+            for tau in np.sort(list(tau_xix_dic.keys()))[:-1]:
+                # By the -1 we exclude hopefully the largest tau
+                tau_scaling.append(tau)
+                xix_scaling.append(tau_xix_dic[tau])
+                xiy_scaling.append(tau_xiy_dic[tau])
+        # We dont need a max tau in this case as the largest tau value is excluded and all other are basically guaranteed to be accurate
+        xix_scaling = np.array(xix_scaling)[
+            np.array(tau_scaling) > self.min_tau_scaling_fit]
+        xiy_scaling = np.array(xiy_scaling)[
+            np.array(tau_scaling) > self.min_tau_scaling_fit]
+        tau_scaling = np.array(tau_scaling)[
+            np.array(tau_scaling) > self.min_tau_scaling_fit]
+
+        # Do the fitting
+        popt_x, _ = curve_fit(linear_fit, np.log(tau_scaling),
+                              np.log(xix_scaling))
+        popt_y, _ = curve_fit(linear_fit, np.log(tau_scaling),
+                              np.log(xiy_scaling))
+
+
         # now we have them dictionaries, we can plot the points
         figx, axx = plt.subplots(1, 1)
         # set the axes to be logarithmic
@@ -854,6 +890,10 @@ class quench_measurement():
             xix = list(size_tau_xix_dic[size].values())
 
             axx.plot(tau, xix, marker=markers[i], linestyle="None", label=rf"$L_x = ${size}", color="C0")
+        # Plot the fit
+        axx.plot(tau_scaling, poly(tau_scaling, popt_x[0], np.exp(popt_x[1])),
+                 color="black", alpha=0.5, linestyle="dashed",
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}")
         configure_ax(figx, axx)
         create_directory_if_not_exists(self.simulation_path+ "/plots")
         plt.savefig(self.simulation_path + "/plots/tau-xix.png", format="png")
@@ -871,9 +911,20 @@ class quench_measurement():
             xiy = list(size_tau_xiy_dic[size].values())
 
             axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
+        axy.plot(tau_scaling, poly(tau_scaling, popt_y[0], np.exp(popt_y[1])),
+                 color="black", alpha=0.5, linestyle="dashed",
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}")
         configure_ax(figy, axy)
         plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
         plt.show()
+
+
+
+
+
+
+
+
 
     def get_size_quench_results(self):
         size_tau_xix_dic = {}
@@ -958,13 +1009,14 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
 
     max_rel_intersection_error = 0.001
 
     # Quench parameters
-    max_size = 4096
+    max_size = 1024
     min_nr_sites = 1e6
 
     # Enter which calculations are supposed to run here

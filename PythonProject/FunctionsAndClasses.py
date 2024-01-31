@@ -526,9 +526,6 @@ def configure_ax(fig, ax, config=None):
     config = create_config(config, PLOT_DEFAULT_CONFIG)
 
     x_span, y_span, (xmin, xmax, ymin, ymax) = get_spans(ax)
-    print("In configure")
-    print(ymin, ymax)
-    print(y_span)
     nr_y_minor_ticks = config["nr_y_minor_ticks"]
     nr_y_major_ticks = config["nr_y_major_ticks"]
     if ax.get_yscale() != "log":
