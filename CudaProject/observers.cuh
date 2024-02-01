@@ -137,25 +137,29 @@ public:
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
             // write
-            cout << "t = " << t << endl;
-            // Doing some refactoring, not putting t in every row and Temperature directly after T
-            double T = sys.get_cur_T();
-            size_t dim_size_x = sys.get_dim_size_x();
-            size_t dim_size_y = sys.get_dim_size_y();
-
-            ofile << t << "," << T << ",";
-            for(int i = 0; i < dim_size_x * dim_size_y; i++) {
-                ofile << x[i] << ",";
-                // cout << x[i] << endl;
-
-            }
-            // Zeilenumbruch
-            ofile << "\n";
+            write_state(sys, x, t);
             // advance timeoint
             timepoint += write_interval;
         }
     }
 
+
+    void write_state(const system &sys, const State &x, double t) {
+        cout << "t = " << t << endl;
+        // Doing some refactoring, not putting t in every row and Temperature directly after T
+        double T = sys.get_cur_T();
+        size_t dim_size_x = sys.get_dim_size_x();
+        size_t dim_size_y = sys.get_dim_size_y();
+
+        ofile << t << "," << T << ",";
+        for(int i = 0; i < dim_size_x * dim_size_y; i++) {
+            ofile << x[i] << ",";
+            // cout << x[i] << endl;
+
+        }
+        // Zeilenumbruch
+        ofile << "\n";
+    }
     string get_name() override {
         return "standard observer";
     }
@@ -225,6 +229,41 @@ public:
 
     string get_name() override {
         return "quench observer";
+    }
+};
+
+template <class system, class State>
+class equilibration_observer : public standard_observer<system, State> {
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+public:
+    bool startpoint = true;         // If the startpoint is true we will write down on call
+    typedef standard_observer<system, State> standard_observer;
+    equilibration_observer(): standard_observer(0) {        // we just use 0 to initialize the number of points. Do we even need a constructor?
+    }
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        // This observer is supposed to just write down once the system is equilibrated and once the system is started
+        // The question is how we tell the observer that we are equilibrated. We should probably not think to much about it
+        // and just check every step if the system is equilibrated. This means we do not even need a write interval
+        // But we need to tell the observer somehow if it is the first iteration
+        startpoint = true;      // always needs to be set true if we run a second system
+        cout << "equilibration obs init is called, write_interval is  " << endl;
+        standard_observer::init(folderpath, paras, sys);
+    }
+
+    void operator()(system &sys, const State &x , double t) {
+        if(startpoint) {
+            // I just hope that this is optimized by the compiler...
+            write_state(sys, x, t);
+            // set startpoint to be false
+            startpoint = false;
+        } else if(sys.is_equilibrated()) {
+            write_state(sys, x, t);
+        }
+    }
+
+    string get_name() override {
+        return "relax observer";
     }
 };
 
@@ -876,22 +915,6 @@ public:
         }
     }
 
-    void write_state(const system &sys, const State &x, double t) {
-        cout << "t = " << t << endl;
-        // Doing some refactoring, not putting t in every row and Temperature directly after T
-        double T = sys.get_cur_T();
-        size_t dim_size_x = sys.get_dim_size_x();
-        size_t dim_size_y = sys.get_dim_size_y();
-
-        ofile << t << "," << T << ",";
-        for(int i = 0; i < dim_size_x * dim_size_y; i++) {
-            ofile << x[i] << ",";
-            // cout << x[i] << endl;
-
-        }
-        // Zeilenumbruch
-        ofile << "\n";
-    }
 };
 
 template <class system, class State>

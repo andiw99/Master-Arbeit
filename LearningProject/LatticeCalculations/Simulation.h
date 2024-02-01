@@ -181,7 +181,7 @@ public:
         double T, t;
         // TODO okay we only read in the last line here, so it doesnt work for the quench.process
 // plot atm, but i guess we could fix that in the future?
-        auto lat_q = readDoubleValuesAt(file, -1,  T, t);
+        auto lat_q = readDoubleValuesAt(file, -1,  T, t);       // It raeads the last values so my struct.fact has the fourier transform of the endtime
         //cout << "T = " << T << "   t = " << t << endl;
         if(chessTrafo) {
             chess_trafo_rectangular_subsystems(lat_q, dim_size_x, dim_size_y, Lx);

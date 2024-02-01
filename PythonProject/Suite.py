@@ -139,7 +139,7 @@ class autonomous_measurement():
         # also some parameters for the cluster
         self.host = host                            # adress of the cluster
         self.user = user                            # user on the cluster
-        self.walltime = "24:00:00"
+        self.walltime = "12:00:00"
         self.file = exec_file
         self.folder = "simulations"
         self.wait = 40
@@ -244,7 +244,8 @@ class autonomous_measurement():
 
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, intersection_error=0.002):
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003,
+                 intersection_error=0.002, T_min=None, T_max=None):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         self.nr_Ts = nr_Ts
@@ -253,6 +254,10 @@ class crit_temp_measurement(autonomous_measurement):
         self.nr_sizes = nr_sizes
         self.max_steps = max_steps
         self.nr_sites = nr_sites
+
+        # We can also specify the temperature interval ourselves If we want that
+        self.T_min = T_min
+        self.T_max = T_max
 
         self.T_arr = np.array([])
         self.sizes = np.array([])
@@ -277,8 +282,17 @@ class crit_temp_measurement(autonomous_measurement):
               f"h={self.h}")
         T_max = T_min + (self.h / (5 * np.abs(self.J_perp))) * T_min
 
+        if self.T_min is None:
+            # If we do not specify the critical temperature, we use the critical temperature estimation
+            self.T_min = T_min
+        if self.T_max is None:
+            self.T_max = T_max
+            # If T_max is smaller, equal or slitghly larger than our specified T_min, what do we do then?
+            if self.T_max < self.T_min * 1.05:
+                # will this happen and how should I deal with it?
+                self.T_max = 2 * self.T_min
         # We use nr_Ts datapoints
-        self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
+        self.T_arr = np.linspace(self.T_min, self.T_max, self.nr_Ts)
         self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sizes, endpoint=True,
                             dtype=np.int32)
         print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
@@ -406,7 +420,9 @@ class crit_temp_measurement(autonomous_measurement):
         print("simulation_available", simulation_available)
         if not simulation_available or self.repeat:
             self.repeat = False                 # we set repeat to false again
+            self.cur_para_nr = 0                # reset the parameter number
             self.write_para_files()  # setting up the parameter files for every simulation
+            self.cur_para_nr = 0                # reset the parameter number
             self.run_jobs()
         else:
             print("Found valid simulation, evaluating")
@@ -540,9 +556,6 @@ class crit_temp_measurement(autonomous_measurement):
         self.cur_para_nr += 1
         return self.para_nr + self.cur_para_nr - 1
 
-    def run_jobs(self):
-        self.cur_para_nr = 0                        # reset the parameter number
-        super().run_jobs()
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
@@ -995,8 +1008,8 @@ class quench_measurement(autonomous_measurement):
         self.conclude()
 
 class amplitude_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=5, size=1024,
-                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.001, T_range_fraction=0.025):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.001, equil_cutoff=0.3, T_range_fraction=0.05):
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
@@ -1017,12 +1030,13 @@ class amplitude_measurement(autonomous_measurement):
         self.maximum_iterations = 2         # we first look at the interval [Tc, 1.05Tc] and If this doesnt work we inrease to [Tc, 1.1Tc] and If this doesnt work we abort
         self.iteration_nr = 0
         self.min_corr_nr = 500
-        self.equil_cutoff = 0.3             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
+        self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
-        self.Tc_fit_tolerance = 0.05        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
+        self.Tc_fit_tolerance = 0.025        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
         self.min_r_sqaured = 0.99           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
 
-
+        self.para_nr = 110                 # A different para nr for this simulation?
+        self.cur_para_nr = 0                # same method as in Tc?
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between
@@ -1032,21 +1046,20 @@ class amplitude_measurement(autonomous_measurement):
         # For now the total number of runs is just the nr of temps
         self.total_runs = self.nr_Ts
         self.max_time = self.dt * self.max_steps
-
     def run(self):
         # runs the complete simulation. Some initialization, a routine and a finish, plotting and fitting
         self.setup()
-
+        return self.iteration()     # In this suite  the conclude is called directly in iteration
     def iteration(self):
         # Okay again this is the function that runs the jobs, evaluates them and runs additional jobs if necessary. Also this
         # this function should be able to pick up on simulations that were not finished
         # increase the iteration number
         self.iteration_nr += 1
         # We add the temperatures from now to all temperatures
-        self.all_T_arr = np.concatenate(self.all_T_arr, self.T_arr)
+        self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))
         # Check if we have a simulation available
         # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
-        valid_simulations = get_avail_simulations([self.size], self.T_arr, check_corr_valid,
+        valid_simulations = get_avail_simulations([self.size], self.T_arr, self.simulation_path, check_corr_valid,
                                                   check_function_args=(self.equil_error, self.equil_cutoff))
         # For every valid simulation we do not have to do this simulation in the following
         for valid_simulation in valid_simulations:
@@ -1058,19 +1071,21 @@ class amplitude_measurement(autonomous_measurement):
         if self.T_arr.size != 0:
             # if the array is not empty this means that there are still simulations to do
             # write the parameter files
+            # I also need to reset this current parameter number here...
+            self.cur_para_nr = 0
             self.write_para_files()
             # submit the jobs, should be handlede by the super method
+            self.cur_para_nr = 0
             self.run_jobs()
             # If the array is empty this means that we have all measurements done already and we can call evaluate
         # We want to evaluate anyways if we have a valid simulation or if we just ran one
         return self.evaluate()
-
-    def write_para_files(self, para_nr=110):
+    def write_para_files(self):
         print("Writing the parameter files...")
-        for i, T in self.T_arr:
+        for i, T in enumerate(self.T_arr):
             # We now need to construct the parameterfile with the appropriate temperature
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
-            with open(self.filepath + "/parameters/para_set_" + str(para_nr) + str(i) + '.txt', 'w') as f:
+            with open(self.filepath + "/parameters/para_set_" + str(self.get_para_nr()) + '.txt', 'w') as f:
                 f.write(self.simulation_path)
                 f.write(f"\nend_time, {self.max_time} \n"
                         f"dt, {self.dt} \n"
@@ -1099,8 +1114,6 @@ class amplitude_measurement(autonomous_measurement):
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
-        return para_nr
-
 
     def evaluate(self):
         # Okay the evaluation logic, will be done after lunch, you will just extract the xi, fitting and see if its okay
@@ -1228,6 +1241,11 @@ class amplitude_measurement(autonomous_measurement):
 
         # I think that is it.
         return
+    def get_para_nr(self):
+        # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice
+        self.cur_para_nr += 1
+        return self.para_nr + self.cur_para_nr - 1
+
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
@@ -1245,7 +1263,7 @@ def main():
     nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
 
     Tc_exec_file = "SubsystemRelaxation.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -1260,12 +1278,13 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 1024
-
+    equil_error = 0.001
+    equil_cutoff = 0.3
     # Enter which calculations are supposed to run here
     measurements = {
         "Tc": False ,
-        "Quench": True,
-        "Amplitude": False,
+        "Quench": False,
+        "Amplitude": True,
     }
 
     # I honestly have no idea on how to account h, that is really a problem
@@ -1283,7 +1302,8 @@ def main():
         quench.run()
     if measurements["Amplitude"]:
         ampl = amplitude_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Amplitude",
-                                     amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size)
+                                     amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
+                                     equil_error=equil_error, equil_cutoff=equil_cutoff)
         ampl.run()
 
 if __name__ == '__main__':

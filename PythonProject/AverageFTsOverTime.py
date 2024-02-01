@@ -63,7 +63,7 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     return fig, ax
 
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Center"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/Quench/"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -77,9 +77,9 @@ def main():
     plot_struct = True
     cut_around_peak = True
     peak_cut_threshold = 0.1
-    min_points_fraction = 0.3
+    min_points_fraction = 0.8
     fitfunc = lorentz_offset
-    struct_func_time = 0
+    struct_func_time = 10000
     t_xix = {}
     t_xiy = {}
     size_x_dic = {}
@@ -103,7 +103,7 @@ def main():
                         if os.path.isdir(settingpath):
                             t_xix[setting] = {}
                             t_xiy[setting] = {}
-                            ft_k, ft_l = average_ft(settingpath)
+                            ft_k, ft_l = average_ft_unequal_times(settingpath)
                             for t in ft_k:
                                 ft_k_fit = ft_k[t]
                                 ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
@@ -147,6 +147,7 @@ def main():
                                 popt_y, perr_y = fit_lorentz(p_l, ft_l_fit,
                                                              fitfunc=fitfunc)
                                 p = np.linspace(-np.pi, np.pi, 200)
+                                # Since for the fit we use the cut_around_peak function which
                                 lorentz_x = fitfunc(p, *popt_x)
                                 lorentz_y = fitfunc(p, *popt_y)
                                 axes[0].plot(p, lorentz_x,
@@ -241,7 +242,11 @@ def main():
             xiy_fit = np.array(xiy_after_quench_dic[size])[(tau_arr > min_tau_fit) & (tau_arr < max_tau_fit)]
             tau_fit = tau_arr[(tau_arr > min_tau_fit) & (tau_arr < max_tau_fit)]
             # do the fitting
+            print("log tau")
+            print(np.log(tau_fit))
             popt_x, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xix_fit))
+            print("xi:")
+            print(xiy_fit)
             popt_y, _ = curve_fit(linear_fit, np.log(tau_fit), np.log(xiy_fit))
 
             axx.plot(tau_arr, xix_after_quench_dic[size], linestyle="",     color="C" + str(marker_ind), marker=markers[marker_ind], label=f"$L_x = ${size}")

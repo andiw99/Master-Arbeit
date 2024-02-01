@@ -51,8 +51,10 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
         axes[1].plot(p, lorentz_y, label="Lorentzian fit")
         axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
         axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
-        plt.tight_layout()
+        configure_ax(fig, axes[0])
+        configure_ax(fig, axes[1])
         plt.savefig(savepath, format="png")
+        plt.show()
     #print("FWHM x:", np.abs(popt_x[2]) * 2)
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
@@ -94,7 +96,7 @@ def prepare_data(cut_zero_impuls, cutoff, df):
 
 def main():
     # parameters
-    root = "../../Generated content/Test/Test2/32"
+    root = "../../Generated content/Silicon/Subsystems/Suite/Test5/Quench/128"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -179,7 +181,7 @@ def main():
     # lets say criticical Temperature is just the maximum of the correlation length
 
     T_c = T_arr[np.argmax(xi_sorted)]
-    T_c = 5.85
+    T_c = 0.95
 
     eps_array = (T_arr - T_c) / T_c
     print(eps_array)

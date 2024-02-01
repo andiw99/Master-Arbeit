@@ -138,7 +138,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
 
                 if config["subsystem"]:
                     print(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
-                    max_nr_subsystems_per_row = int(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5)
+                    max_nr_subsystems_per_row = int(np.ceil(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5))
                     max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
 
@@ -167,7 +167,6 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     plt.tight_layout()
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.83, 0.04, 0.02, 0.7])
-    well_pos = np.sqrt(parameters["beta"] / 2)
     nr_ticks = config["nr_colorbar_ticks"]
     if config["angle"] == 1:
         ticks = np.linspace(0, 2 * np.pi, nr_ticks, endpoint=True)
@@ -178,6 +177,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
         tick_labels = np.linspace(-np.pi / 2, np.pi / 2, nr_ticks, endpoint=True)
         tick_labels = [f"{tick_label:.2f}" for tick_label in tick_labels]
     else:
+        well_pos = np.sqrt(parameters["beta"] / 2)
         ticks = np.linspace(- 1.5 * well_pos, 1.5 * well_pos, nr_ticks, endpoint=True)
         tick_labels = np.linspace(-1.5, 1.5, nr_ticks, endpoint=True)
         tick_labels = [str(tick_label) for tick_label in tick_labels]
@@ -250,7 +250,7 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
             row = chess_board_trafo(row)
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
-    elif config["angle"] == 1:
+    elif config["angle"] == 2:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=np.pi/2, vmin=-np.pi/2)
     else:
         well_pos = np.sqrt(parameters["beta"] / 2)
@@ -831,8 +831,12 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
     above_threshold_indices = np.where(y_values > threshold)[0]
     # If the length of this is to small, we reduce the threshold fraction? Quick fix
     if len(above_threshold_indices) < min_points_fraction * len(y_values):
-        new_threshold = 0.9 * threshold_fraction        # small steps?
-        return cut_data_around_peak(x_values, y_values, new_threshold, min_points_fraction)
+        # We always cut two values so if we only cut the two lowest values we cannot reach more values
+        if len(above_threshold_indices) < len(x_values) - 2:
+            new_threshold = 0.9 * threshold_fraction        # small steps?
+            # We need to add back the offset so that it wont be zero next iteration
+            y_values += y_offset
+            return cut_data_around_peak(x_values, y_values, new_threshold, min_points_fraction)
     # I think if we
     # Extract the subset of data around the peak
     x_cut = x_values[above_threshold_indices]
