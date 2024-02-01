@@ -254,11 +254,11 @@ public:
     void operator()(system &sys, const State &x , double t) {
         if(startpoint) {
             // I just hope that this is optimized by the compiler...
-            write_state(sys, x, t);
+            this->write_state(sys, x, t);
             // set startpoint to be false
             startpoint = false;
         } else if(sys.is_equilibrated()) {
-            write_state(sys, x, t);
+            this->write_state(sys, x, t);
         }
     }
 
@@ -670,6 +670,8 @@ public:
                     cout << "xiy = " << avg_xiy << endl;
                     cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
                     cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;*/
+                    // I mean you are calculating the errors anyway, you could also write them down? But takes some time ofc, but it would make it easier to see how long a certain simulation will still take...
+
 
                     // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
                     double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
@@ -901,11 +903,11 @@ public:
             double eq_t = sys.get_end_quench_time() - quench_t;     // this should be the time that the quench ends, so eq_t + quench_t - the time that the quench takes, so quench_t
             // write
             if(startpoint){
-                write_state(sys, x, t);
+                this->write_state(sys, x, t);
                 startpoint = false;
             } else if(t > eq_t - dt_half) {
                 // If the current time is larger or equal the time we need to equilibrate, we write down and change the write interval
-                write_state(sys, x, t);
+                this->write_state(sys, x, t);
 
                 // advance timeoint
                 write_interval = quench_t / nr_values; // assume the quench takes t = 100 and we want to write two values, we want to write them in the middle and in the end

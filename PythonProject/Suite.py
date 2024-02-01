@@ -142,7 +142,7 @@ class autonomous_measurement():
         self.walltime = "12:00:00"
         self.file = exec_file
         self.folder = "simulations"
-        self.wait = 40
+        self.wait = 60
 
         # Besides the external simulation parameters that I have to provide there are some other attributes that
         # every autonomous suite needs
