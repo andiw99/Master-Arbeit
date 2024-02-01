@@ -601,6 +601,11 @@ public:
         equilibrated = true;
     }
 
+    virtual double get_quench_time() const {
+        // ...dummy method so that we can call that function with observers that would usually need the quench time, but in certain usecases not
+        return 0.0;
+    }
+
     ~System() {
         //cudaDeviceSynchronize();
         cout << "System destroyed" << endl;
@@ -886,7 +891,7 @@ public:
         end_quench_t = t_quench + s_eq_t;
     }
 
-    virtual double get_quench_time() const {
+    double get_quench_time() const override {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
         cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
