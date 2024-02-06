@@ -105,8 +105,8 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     subsystem_Ly = parameters["subsystem_Ly"]
     x_y_factor = float(parameters["x_y_factor"])
     if nr_rows < nr_of_meshs:
-        nr_of_meshs = nr_rows
         print(f"{nr_of_meshs} snapshots not available, using {nr_rows} instead.")
+        nr_of_meshs = nr_rows
     # equidistant row numbers to use
     # Select the rows with the row equidistant row numbers
     rows = np.linspace(0, nr_rows - 1, nr_of_meshs, endpoint=True)
@@ -118,7 +118,7 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
         stretch = np.minimum(parameters["subsystem_Lx"], cell_L) / parameters["subsystem_Ly"]
         print("stretch = " , stretch)
     if nr_of_meshs == 2:
-        fig, axes = plt.subplots(2, 1, figsize=[2 + 10 * stretch, 10])
+        fig, axes = plt.subplots(2, 1, figsize=[2 + 10 * stretch/2, 10])
     else:
         fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
     i = 0
@@ -998,7 +998,7 @@ def find_fwhm(x, y):
 def critical_amplitude(eps, xi0):
     return xi0 / (eps ** 1)
 
-def process_file(file_path, threshold, key='t', value='U_L'):
+def process_file(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2):
     """
     Process a single file and calculate the average after the given threshold.
     Will now also return the error on the average
@@ -1012,8 +1012,12 @@ def process_file(file_path, threshold, key='t', value='U_L'):
         average_value = 0
         error = 0
     else:
-        average_value = df[value].mean()
-        error = df[value].std() / np.sqrt(nr_values)
+        xi_values = np.array(df[value])
+        # We set the values that are larger than 20% of the system size to be 20% of the system size
+        xi_values = np.minimum(xi_values, L * cap)
+        average_value = np.mean(xi_values)
+        stddev = np.std(xi_values)
+        error = stddev / np.sqrt(nr_values)
     return average_value, error, nr_values
 
 
@@ -1058,10 +1062,16 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
         if file_name.endswith(file_ending):
             # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
             file_path = os.path.join(temp_folder_path, file_name)
-            average_value, error, nr_values = process_file(file_path, threshold, 't', value)
             para_file_path = os.path.splitext(file_path)[0] + ".txt"
             parameters = read_parameters_txt(para_file_path)
             nr_subsys = parameters["nr_subsystems"]
+            # fing sh... I guess It doesnt matter but it is so ugly
+            if value== "U_L":
+                L = np.infty
+            else:
+                direction = value[-1]
+                L = parameters["subsystem_L" + direction]         # We need the subsystem sizes to see if the values we average make sense
+            average_value, error, nr_values = process_file(file_path, threshold, 't', value, L=L)       # cap stays 20% for now I guess
             temp_average.append(average_value)
             temp_error.append(error)
             nr_avg_values.append(nr_values)
@@ -1070,7 +1080,6 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
         N = np.sum(np.array(nr_avg_values) * np.array(nr_subsystems))
         val_avg = np.sum(np.array(temp_average) * np.array(nr_avg_values) * np.array(nr_subsystems)) / N
         error = 1 / N * np.sqrt(np.sum(np.array(nr_avg_values) * np.array(nr_subsystems) * np.array(temp_error)))
-
     else:  # Okay I dont care but this should not be like this I think. Is this even on the right plane? Shouldnt it be one bacK? OMG I dont understand my own code!!!
         val_avg = None
     return val_avg, error
@@ -1360,8 +1369,8 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
     # The minimum r_squared value that we need is the starting value for the best_r_sqaured
     best_r_squared = min_r_squared      # This value ranges to 1 I think and 1 is a really good fit?
     best_reg = None
-    for starting_pos in range(len(T_arr) - 4):
-        for ending_pos in range(starting_pos + 4, len(T_arr)):
+    for starting_pos in range(len(T_arr) - 4 + 1):
+        for ending_pos in range(starting_pos + 4, len(T_arr)+1):
             # We should have at least 4 points i would say.
             T_fit = T_arr[starting_pos:ending_pos]
             xi_inv_fit = xi_inv_arr[starting_pos:ending_pos]

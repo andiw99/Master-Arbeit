@@ -96,11 +96,13 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function, c
         if os.path.exists(size_path) and os.path.isdir(size_path):
             # Iterate over temperatures
             for temp in temperatures:
-                temp_path = os.path.join(size_path, str(temp))
+                temp_path = os.path.join(size_path, f"{temp:.6f}")
 
                 # Check if the temperature folder exists and is valid based on the custom function
-                if os.path.exists(temp_path) and os.path.isdir(temp_path) and check_function(temp_path, *check_function_args):
-                    valid_folders.append((size, temp))
+                if (os.path.exists(temp_path) and os.path.isdir(temp_path)):
+                        sim_valid = check_function(temp_path, *check_function_args)
+                        if sim_valid:
+                            valid_folders.append((size, temp))
 
     return valid_folders
 
@@ -114,7 +116,10 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff):
 
     # We have the error, so we can check if it is small enough
     # How do we check in the observer again? is not written actually...
-    avg_error = 1/ 2 * (xix_error + xiy_error)
+    # We need the relative errors here
+    xix_rel_error = xix_error / xix_avg
+    xiy_rel_error = xiy_error / xiy_avg
+    avg_error = 1/ 2 * (xix_rel_error + xiy_rel_error)
 
     if avg_error < equil_error:
         return True
@@ -1033,7 +1038,7 @@ class amplitude_measurement(autonomous_measurement):
         self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
         self.Tc_fit_tolerance = 0.025        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
-        self.min_r_sqaured = 0.99           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
+        self.min_r_sqaured = 0.98           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
 
         self.para_nr = 110                 # A different para nr for this simulation?
         self.cur_para_nr = 0                # same method as in Tc?
@@ -1121,16 +1126,17 @@ class amplitude_measurement(autonomous_measurement):
         # we know the simulation path and the temperatures that we just simulated, but we actually want to evaluate all
         # temperatures that we have
         # Here we can call the process size folder method
-        xix_dic = process_size_folder(self.simulation_path, threshold=self.equil_cutoff, key="T", value="xix",
+        size_path = f"{self.simulation_path}/{self.size}"
+        xix_dic = process_size_folder(size_path, threshold=self.equil_cutoff, key="T", value="xix",
                                   file_ending="corr")      # the selected temperatures are just all temperatures
-        xiy_dic = process_size_folder(self.simulation_path, threshold=self.equil_cutoff, key="T", value="xiy",
+        xiy_dic = process_size_folder(size_path, threshold=self.equil_cutoff, key="T", value="xiy",
                                   file_ending="corr")
         # Those dictionaries map the temperature to the according xi, ahh not quite those are dictionaries
         # with xix_dic = {"T" : [T1, T2, ...], "xix" : [xix1, xix2, ...]}
         T_xix = xix_dic["T"]
         xix_arr = xix_dic["xix"]
         T_xiy = xiy_dic["T"]
-        xiy_arr = xiy_dic["xix"]
+        xiy_arr = xiy_dic["xiy"]
 
         # They should be sorted and we are actually interested in the inverse correlation lengths
         xix_arr = xix_arr[np.argsort(T_xix)]
@@ -1146,7 +1152,7 @@ class amplitude_measurement(autonomous_measurement):
         reg_y, T_include_start_y, T_include_end_y = best_fit_inv(T_xiy, xiy_inv, self.Tc, self.Tc_fit_tolerance,
                                                                  self.min_r_sqaured)
         # The best fit_inv function returns None if we didnt find a fitting segment
-        if reg_x or reg_y is None:
+        if (reg_x is None) or (reg_y is None):
             print("No fitting fit.")
             # if we are doing to many iterations we have to return here
             if self.iteration_nr > self.maximum_iterations:
@@ -1191,31 +1197,31 @@ class amplitude_measurement(autonomous_measurement):
         # With this we can just plot the stuff? first the inverse stuff
         fig, ax = plt.subplots(1, 1)
         # First plot the data points
-        ax.plot(T_x, x_result[2], label=rf"$1 / \xi_x$", linestyle="", marker="x")
-        ax.plot(T_y, y_result[2], label=rf"$1 / \xi_y$", linestyle="", marker="x")
+        ax.plot(T_x, x_data[2], label=rf"$1 / \xi_x$", linestyle="", marker="x")
+        ax.plot(T_y, y_data[2], label=rf"$1 / \xi_y$", linestyle="", marker="x")
         # Now plot the fits
         ax.plot(T_x, reg_x.intercept + reg_x.slope * T_x,
                  label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
         ax.plot(T_y, reg_y.intercept + reg_y.slope * T_y,
-                label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_y:.3f}$")
+                label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
         # We want to show the ratio on the plot
         ax.plot([], [], label=rf"$\xi_x / \xi_y  = {xix_ampl / xiy_ampl}$", linestyle="", marker="")
-        # like I said if we want them to be in one plot we need to scale the y axix to be logarthimic
-        ax.set_yscale("log")
+        # like I said if we want them to be in one plot we need to scale the y axix to be logarthimic, you cant do that, the fits will cross zero and so wont look good logarithmic
         ax.set_xlabel("T")
         ax.set_ylabel(r"$1 / \xi$")
         # We set the lower limit of the y axis to be zero since negative xi are not sensible but the fit can become negative
-        ax.set_ylim(0, ax.get_xlim()[1])
+        ax.set_ylim(0, ax.get_ylim()[1])
         configure_ax(fig, ax)
         # saving the plot
         create_directory_if_not_exists(self.simulation_path + "/plots/")
         plt.savefig(self.simulation_path + "/plots/xi-inv.png", format="png")
+        plt.show()
 
         # We also want to show the divergence and include the actual xi values
         fig, ax = plt.subplots(1, 1)
         # First plot the data points
-        ax.plot(T_x, x_result[1], label=rf"$1 / \xi_x$", linestyle="", marker="x")
-        ax.plot(T_y, y_result[1], label=rf"$1 / \xi_y$", linestyle="", marker="x")
+        ax.plot(T_x, x_data[1], label=rf"$1 / \xi_x$", linestyle="", marker="x")
+        ax.plot(T_y, y_data[1], label=rf"$1 / \xi_y$", linestyle="", marker="x")
         # We also want to plot some kind of fit but for this we need the eps arrays
         # We need to use the critical temperature of the fit
         # I think we want some more points than 8 to plot the critical amplitude plot
@@ -1226,18 +1232,19 @@ class amplitude_measurement(autonomous_measurement):
         # before we plot we look at the y limits in the case that we dont plot the critical amplitude
         upper_ylim = ax.get_ylim()[1]
         # The function that we need to use is called critical amplitude
-        ax.plot(T_x, critical_amplitude(eps_x, xix_ampl),
+        ax.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
                  label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
-        ax.plot(T_y,critical_amplitude(eps_y, xiy_ampl),
+        ax.plot(T_y_plot, critical_amplitude(eps_y, xiy_ampl),
                 label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
         # For this we dont use logarithmic scale I think
         # we set the limits from before plotting the fit
-        ax.set_ylim(ax.get_ylim()[0], upper_ylim)
+        ax.set_ylim(0, upper_ylim)
         ax.set_xlabel("T")
         ax.set_ylabel(r"$\xi$")
         configure_ax(fig, ax)
         # Save the plot
         plt.savefig(self.simulation_path + "/plots/T-xi.png", format="png")
+        plt.show()
 
         # I think that is it.
         return

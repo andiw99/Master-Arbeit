@@ -263,7 +263,7 @@ public:
     }
 
     string get_name() override {
-        return "relax observer";
+        return "equilibration observer";
     }
 };
 
@@ -609,6 +609,15 @@ class corr_equilibration_observer: public obsver<system, State>{
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
     int nr_values;                  // nr of values that I want to be written down during the quench
     double quench_t;                // quench time, important to calculate the write interval during the quench
+    size_t Lx;                      // sizes of the system. Important to validate if the extraction was meaningful
+    size_t Ly;
+    double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
+    // will distort the error estimation. If the total run was meaningful will then be judged afterwards.
+    // (If the xi is now close to this threshold this probably means that our system was evolving in a state with larger correlation length than we can meaningful extract)
+    // Okay short recap, we will now check evertime we calculate a xi if it is smaller than xi_cap * L and if it is not, we will cut it there
+    // Afterwards in the automatic suite, we will calculate the avg xi and if this is smaller then for example xi_cap / 2, then we will accept the measurement
+    // we will probably slightly influence the correlation lengths to be a bit smaller than the "real" value, since we do not include the statistical fluctuations where xi becomes larger than 0.2 L
+    // The goal is that we hold those occasions very small so that the influence is negligeable
 public:
     corr_equilibration_observer(int nr_values) : nr_values(nr_values) {
     }
@@ -616,6 +625,9 @@ public:
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
         equil_cutoff = paras[Parameter::equil_cutoff];
+        // the subsystems sizes for the xi cutting
+        Lx = (size_t)paras[Parameter::subsystem_Lx];
+        Ly = (size_t)paras[Parameter::subsystem_Ly];
         timepoint = 0.0;
         equilibrated = false;
         // we also need to reset U_L and times, dont we?
@@ -642,6 +654,10 @@ public:
         if(t > timepoint - dt_half) {
             double xix_val, xiy_val;
             sys.calc_xi(x, xix_val, xiy_val);
+            // The logic of the cutting should take place here or only for calculating the mean? I think we also cut it
+            // but we might change that later
+            xix_val = min(xix_val, xi_cap * Lx);
+            xiy_val = min(xiy_val, xi_cap * Ly);
             ofile << t << "," << xix_val << "," << xiy_val << endl;
             // add the correlation lengths and the times to the vectors to keep track
             // we actually only need to keep track if we did not decide already that we are equilibrated?
@@ -666,10 +682,13 @@ public:
                     double sq_sum_xiy_total = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0);
                     double rel_stddev_xix_total = sqrt(sq_sum_xix_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xix;
                     double rel_stddev_xiy_total = sqrt(sq_sum_xiy_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xiy;
-                   /* cout << "xix = " << avg_xix << endl;
-                    cout << "xiy = " << avg_xiy << endl;
-                    cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
-                    cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;*/
+                    if(xix.size() % 500 == 0) {
+                        // All ten writes we print this to keep track?
+                        cout << "xix = " << avg_xix << endl;
+                        cout << "xiy = " << avg_xiy << endl;
+                        cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
+                        cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;
+                    }
                     // I mean you are calculating the errors anyway, you could also write them down? But takes some time ofc, but it would make it easier to see how long a certain simulation will still take...
 
 

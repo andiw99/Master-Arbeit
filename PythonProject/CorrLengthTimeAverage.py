@@ -132,22 +132,22 @@ def main():
         T_arr = np.sort(T)
 
         # custom interval to get a feeling of r² value:
-        T_min_fit = 0.95
-        T_max_fit = 1.05
-        xix_inv_fit = xix_inv_sorted[(T_arr > T_min_fit)  & (T_arr < T_max_fit)]
-        T_fit = T_arr[(T_arr > T_min_fit)  & (T_arr < T_max_fit)]
+        # T_min_fit = 0.95
+        # T_max_fit = 1.05
+        # xix_inv_fit = xix_inv_sorted[(T_arr > T_min_fit)  & (T_arr < T_max_fit)]
+        # T_fit = T_arr[(T_arr > T_min_fit)  & (T_arr < T_max_fit)]
 
-        reg = linregress(T_fit, xix_inv_fit)
-        print(f"custom r² {reg.rvalue ** 2}")
+        # reg = linregress(T_fit, xix_inv_fit)
+        # print(f"custom r² {reg.rvalue ** 2}")
 
 
         # We look for the most linear region lol
         Tc_guess = 0.95     # this will be mandatory in the future
-        reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_arr, xix_inv_sorted, Tc_guess)
+        reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_arr, xix_inv_sorted, Tc_guess, tolerance=0.05)
         print(f"x: Included Temperatures between {T_arr[T_include_start_x]} and {T_arr[T_include_end_x]}.")
         print(f"The r²-value is r² = {reg_x.rvalue ** 2}")
         reg_y, T_include_start_y, T_include_end_y = best_fit_inv(T_arr,
-                                                                 xiy_inv_sorted, Tc_guess)
+                                                                 xiy_inv_sorted, Tc_guess, tolerance=0.05)
         print(
             f"y: Included Temperatures between {T_arr[T_include_start_y]} and {T_arr[T_include_end_y]}.")
         print(f"The r²-value is r² = {reg_y.rvalue ** 2}")
@@ -177,12 +177,12 @@ def main():
         # Plot the fit
         axx.plot(T_arr, reg_x.intercept + reg_x.slope * T_arr,
                  label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
-        axx.plot(T_arr, reg.intercept + reg.slope * T_arr,
-                 label=rf"custom")
+
         #axx.plot(T_arr, inv_xi_fit(T_arr, xix_ampl, Tc_x), label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
         configure_ax(fig, axx)
+        create_directory_if_not_exists(simulation_folder + "/plots")
+        plt.savefig(simulation_folder + f"/plots/xix-inv-{sizex}.png", format="png")
         plt.show()
-        exit()
 
         fig, axy = plt.subplots(1, 1)
         axy.plot(T_arr, xiy_inv_sorted, label=rf"$1 / \xi_y$", linestyle="", marker="x")
@@ -192,6 +192,7 @@ def main():
         #         label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
         print(f"xi_x / xi_y = {xix_ampl / xiy_ampl}")
         configure_ax(fig, axy)
+        plt.savefig(simulation_folder + f"/plots/xiy-inv-{sizey}.png", format="png")
         plt.show()
 
     exit()
