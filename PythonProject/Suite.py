@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import product
@@ -8,7 +10,7 @@ from FunctionsAndClasses import *
 import subprocess
 import pathlib
 from scipy.interpolate import CubicSpline, PchipInterpolator
-
+from glob import glob
 
 def extract_numbers_after_newline(input_string):
     # Define the regular expression pattern
@@ -106,7 +108,6 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function, c
 
     return valid_folders
 
-
 def check_corr_valid(folderpath, equil_error, equil_cutoff):
     # This function is supposed to check whether the .corr file in the folder (There should only be one)
     # has a low enough error, the error is specified by equil error in the class
@@ -125,6 +126,67 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff):
         return True
     else:
         return False
+
+def check_cum_valid(folderpath, variation_error, num_per_var_val):
+    """
+    this function checks if a simulation in folderpath has .cum file with
+    a variation error that is small than given
+    :param folderpath: path to the folder containing the simulation
+    :param variation_error: the stddev of the differences of consecutive datapoints
+    :param num_per_var_val: the number of values we use to calculate one dif_std value
+    :return: bool whether the simulation is valid or not
+    """
+    # I dont think we need anything else do do this?
+    # first we need to read in every .cum file and average it. We assume that they have
+    # the same timepoints aswell as the same number of values?
+    cum_files = glob(f"{folderpath}/*.cum")
+
+    cum = np.array([])
+    for i, cum_path in enumerate(cum_files):
+        df = pd.read_csv(cum_path, delimiter=",", index_col=False)
+        this_cum = np.array(df["U_L"])
+        # I think I dont need the times, I just want to calculate the difference variation
+        if i == 0:
+            cum = this_cum
+        else:
+            cum += this_cum
+    # averaging
+    cum = cum / len(cum_files)
+    # I am still not sure if we should do the thing with the nr of points per stddev value
+    # you know what I think we should do it, if would be like linearly approximating every part of the curve
+    # if the curve would vary very smoothly, the variation error that we want should approach zero
+    # if we do not subdivide the cumulant curve, the stddev will somehow be capped at a minimum value
+    # the number of intervals is integer division of the nr of cum values devided
+    # by the number of values in one interval. If this goes not perfectly
+    # up, we add one to have one more interval
+    nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
+    dif_var_arr = []
+    for i in range(nr_intervals):
+        # We have to be careful if we are at the last i?
+        cum_interval = cum[i * nr_intervals:min((i+1) * nr_intervals, len(cum))]   # the cum values in this interval
+        # from those values we want to get the stddev of the differences
+        dif_var = get_difference_std(cum_interval)  # and now we collect them in an array?
+        dif_var_arr.append(dif_var)
+    # If we are finished we just take the mean of those var values?
+    dif_var_mean = np.mean(dif_var_arr)
+    # If this mean is small than the validation error that we want to use, we accept the measurement
+    if dif_var_mean < variation_error:
+        return True
+    else:
+        return False
+def get_difference_std(cum_arr):
+    """
+    Calculates the stddev of the difference of consecutive cumulant errors
+    :param cum_arr: array with the cumulant values
+    :return: stddevs of the differences
+    """
+    # first we have to calculate the array with the differences, maybe numpy
+    # actually has something for this
+    differences = np.ediff1d(cum_arr)
+    # and now we just want the stddev of this, or maybe the relative stddev?
+    dif_var = np.std(differences)
+    rel_dif_var = dif_var / np.mean(differences)
+    return dif_var, rel_dif_var
 
 class autonomous_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
@@ -684,7 +746,7 @@ class quench_measurement(autonomous_measurement):
 
     def iteration(self):
         # Check directory structure again
-        sim_available = check_directory_structure([self.size], [self.tau()], self.simulation_path) # the check directory structure takes lists in
+        sim_available = check_directory_structure([self.size], [self.tau()], self.simulation_path)      # the check directory structure takes lists in
         # one of the first things we do in the iteration is writing the parameter file
         if not sim_available:
             # If no simulation is available, we have to run the simulation
@@ -1253,6 +1315,250 @@ class amplitude_measurement(autonomous_measurement):
         self.cur_para_nr += 1
         return self.para_nr + self.cur_para_nr - 1
 
+class z_measurement(autonomous_measurement):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Tc=5, size_min=64,
+                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, variation_error=0.01, z_guess=2,
+                 min_nr_sites=1e6, min_nr_systems=100):
+        # call the constructor of the parent classe
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+        # ah maybe you should first write a concept about what this measurment should do
+
+        self.Tc = Tc
+        self.size_min = size_min
+        self.size_max = size_max
+        self.nr_sizes = nr_sizes
+        self.max_steps = max_steps
+        self.nr_sites = nr_sites
+        self.equil_error = equil_error      # only useful for the first run that determines how long the runs will be
+
+        # What else do we need?
+        self.variation_error = variation_error      # this will be the error of the standard deviation of the differences of the U_L values
+        self.z_guess = z_guess                      # this is the guess for z that we will need to estimate how long the runs for the larger sizes should run
+        self.test_size = size_min / 2               # the test size to see how long the simulations should run will be half of the minimum size
+        # for this run we also need the equil error
+        self.test_equil_time = 0                          # this is the equilibration time of the test system which will later be used to guess the simulation times for the other sizes
+
+        self.min_nr_sites = min_nr_sites
+        self.min_nr_systems = min_nr_systems        # same system like for quench, the U_L values that we use should be averaged out of at least 100 systems and if 100 systmes contain less than min nr of sites then so many systems that we reach teh min nr of sites
+        self.nr_points_diff_variance = 10           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
+        # We could actually also think about just averaging all U_L values, this should already give a good measure
+        self.cum_density = 1 / 100                  # the standard density will write 1 cum value in 100 steps
+        # Okay now we basically do the same stuff as the last 3 times
+        self.sizes = np.array([])
+        self.cur_para_nr = 0                        # since we need multiple paramter files we need the current parameter variable
+        self.cur_run_nr = 0                         # we will use this one in the run_jobs logic to know at which submit we are and which parameter number we have to return
+        self.para_nr_run_dic = {}                   # this is the dictionary that will know which run number has which parameter number
+        self.para_nr = 200                          # again different parameter number for different kind of simulation
+
+    def setup(self):
+        # This function does the setup again, I mean we dont have to many but
+        self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sites, dtype=np.int64)
+        # what else do we need to do?
+        # for what did I need total runs again? Just for submitting jobs in this run right?
+        # how many jobs do we have to submit to get the minimum of nr_sites? For the testrun it might be okay to
+        # only submit one graphics card with the
+        self.total_runs = 1                     # the number of total runs is not only the number of sizes sadly
+        # the number of jobs for the first run_jobs will just be one as it will be the test measurement to get the equilibration time
+        # do we want to construct the dict that knows the parameter numbers here?
+        self.para_nr_run_dic[0] = 0     # we should not need more
+
+    def iteration(self):
+        # so here again we need to implement the pickup capability and stuff
+        # first of all if this is the first iteration (or should we call that in the setup already)?
+        # we could just do the test measurement every iteration, or check if the test measurement is there already so we only do it once
+        # we could test if the test_equil_time is zero, if yes we look if we already have a test measurment from an earlier run and if we really do not see anything we really run it
+        if self.test_equil_time == 0:
+            # now we check if the simulation is available
+            # I dont think that we have to implement a checkfunction since it doesnt really matter if the variation of the differences is small since we only want to guess
+            # the time
+            test_measurement_available = check_directory_structure([self.test_size], [self.Tc], self.simulation_path)
+            if not test_measurement_available:
+                # If else we need to perform the simulation
+                # so we need to write parameters
+                self.cur_para_nr = 0
+                self.write_test_paras()
+                # If we did this we reset the cur para nr?
+                self.cur_para_nr = 0
+                # now we need to run those the jobs
+                self.run_jobs()     # this should work like this if we have the correct current para nr and the nr of total runs
+                # no it doesnt work quite like this since we need to combine multiple parameter files with multiple runs for the same parameter value...
+                # sooo. what are we going to do ? I guess we need to implement some more elaborate get_para_nr logic.
+                # the thing is we need different behaviors depending on if we get the parameter number to write the parameter file or if we want to
+                # submit the job
+                # as soon as the rn jobs is done we can extract the test_equil_time
+            # if this is available, we read the parameters? or some other file and extract the last time. Sadly I dont write the quilibration time to a file so we just read the .cum file?
+            # We need the filepath
+            self.test_equil_time = self.get_last_time()
+        # Now we have an equil time
+        # This means we already have a test_equil_time
+        # so we check if the simulations that are supposed to run have already run
+        # we also should check if we trust the result, so if the variation error is small enough
+        # this means we have to write another validation function, done
+        # so now we do the same thing as in z_extraction suite, we let the computer search the valid measurements
+        valid_simulations = get_avail_simulations(self.sizes, self.Tc,
+                                                  self.simulation_path,
+                                                  check_cum_valid,
+                                                  check_function_args=(
+                                                  self.variation_error,
+                                                  self.nr_points_diff_variance))
+        # every valid simulation does not have to be repeated
+        for valid_simulation in valid_simulations:
+            # brutal but effective i guess
+            valid_size = valid_simulation[0]
+            sizes = list(self.sizes)
+            sizes.remove(valid_size)
+            self.sizes = np.array(sizes)
+
+        if self.sizes.size != 0:
+            # this means there are still measurements to do
+            # write the parameters
+            self.write_para_files()
+            # I guess now is the time to construct the 'para_nr_run_dic' ?
+            self.para_nr_run_dic = {}       # but first we reset it
+            self.total_runs = 0
+            self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
+            # now we run the jobs... I guess?
+            self.run_jobs()
+        return self.evaluate()
+
+    def evaluate(self):
+        # so this one looks at a done measurement and decides whether if was okay or not
+        # tbh to check if it is valid was already done by the get valid_measurements function, so we should be able to reuse that here?
+        # what we have to write is the plotting and fitting...
+        valid_simulations = get_avail_simulations(self.sizes, self.Tc,
+                                                  self.simulation_path,
+                                                  check_cum_valid,
+                                                  check_function_args=(
+                                                  self.variation_error,
+                                                  self.nr_points_diff_variance))
+        if len(valid_simulations) == self.nr_sizes:
+            # this means the simulation was valid and we can do the rescaling
+            print("Simulation successful, evaluating")
+        else:
+            # else means we need some logic to see which measurement has to be repeated
+            print("Error of ... to large, repeating")
+    def construct_para_nr_run_dic(self):
+        # sooo for every size we need to determine how many jobs we need to submit
+        for i, size in enumerate(self.sizes):
+            nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))   # nr of subsystems per job
+            min_jobs = int(
+                self.min_nr_sites / self.nr_sites)  # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
+            if nr_subsystems >= self.min_nr_systems / min_jobs:
+                # if the number of systems per job * the minimumb number of jobs given by the minimum number of system sites
+                # divided by the nr of sites per job is larger than the required amount of systems, wo only do the
+                # minimum number of jobs
+                nr_jobs = min_jobs
+            else:
+                # else we do as many jobs as we need to exceed the min_nr_systems
+                nr_jobs = int(np.ceil(self.min_nr_systems / nr_subsystems))
+            self.total_runs += nr_jobs      # we also need to know how many jobs
+            # okay so nr of jobs is how many jobs we need to submit to reach the minimum requirements for the current size
+            # so the keys of the para_nr_run_dic for the next nr_jobs entries shall be the parameter number corresponding to this size
+            # we need to know how many keys are alread occupied
+            nr_previous_jobs = len(self.para_nr_run_dic)
+            for j in range(nr_jobs):
+                # j ranges from 0, .., nr_jobs - 1
+                self.para_nr_run_dic[nr_previous_jobs + j] = i + self.para_nr
+        # this should be it again
+    def get_last_time(self):
+        temp_folder_path = f"{self.simulation_path}/{self.test_size}/{self.Tc:6f}"
+        for file in os.listdir(temp_folder_path):
+            file_path = os.path.join(temp_folder_path, file)
+            if file_path.endswith(".cum"):
+                # then we have the correct file
+                df = pd.read_csv(file_path)
+                # how do we get the last line here?
+                return df[-1][0]  # or something like this?
+
+    def run(self):
+        self.setup()
+        self.iteration()
+
+    def write_test_paras(self):
+        print("Writing the parameter files for testfile...")
+        # We now need to construct the parameterfile with the appropriate temperature
+        # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
+        # we also need to know how many subsystems we can initialize
+        sys_per_job = int(np.ceil(self.nr_sites / (self.size ** 2 * self.Ly_Lx)))
+        with open(self.filepath + "/parameters/para_set_" + str(self.get_write_para_nr()) + '.txt', 'w') as f:
+                f.write(self.simulation_path)
+                f.write(f"\nend_time, {self.max_time} \n"
+                        f"dt, {self.dt} \n"
+                        f"J, {self.J_para} \n"
+                        f"Jy, {self.J_perp} \n"
+                        f"alpha, {self.h} \n"
+                        f"eta, {self.eta} \n"
+                        f"nr_saves, 4 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
+                        f"nr_repeat, 0 \n"
+                        f"min_temp, {self.Tc} \n"
+                        f"max_temp, {self.Tc} \n"
+                        f"nr_runs, 0.0 \n"
+                        f"random_init, 1.0 \n"      # for the amplitude we want to initialize randomly
+                        f"curand_random, 1 \n"
+                        f"subsystem_min_Lx, {self.test_size} \n"
+                        f"subsystem_max_Lx, {self.test_size} \n"
+                        f"nr_subsystem_sizes, 0  \n"
+                        f"nr_subsystems, {sys_per_job} \n"    # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
+                        f"x_y_factor, {self.Ly_Lx} \n"
+                        f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
+                        f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
+                        f"equil_error, {self.equil_error}\n")
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
+    def write_para_files(self):
+        # you ..., you know that you have to construct the parameter file at hemera?
+        # and you need to do rsync after the jobs are finished!
+        print("Writing the parameter files for the actual sim...")
+        for i, size in enumerate(self.sizes):
+            # We now need to construct the parameterfile with the appropriate temperature and size
+            # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
+            # to construct the para set we need to know how many subsystems we should initialize
+            nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
+            # the endtime can now be guessed using the test equilibration time and the z guess
+            endtime = (size / self.test_size) ** self.z_guess * self.test_equil_time
+            with open(self.filepath + "/parameters/para_set_" + self.get_write_para_nr() + '.txt', 'w') as f:
+                f.write(self.simulation_path)
+                f.write(f"\nend_time, {endtime} \n"
+                        f"dt, {self.dt} \n"
+                        f"J, {self.J_para} \n"
+                        f"Jy, {self.J_perp} \n"
+                        f"alpha, {self.h} \n"
+                        f"eta, {self.eta} \n"
+                        f"nr_saves, 4 \n"
+                        f"nr_repeat, 0 \n"
+                        f"min_temp, {self.Tc} \n"
+                        f"max_temp, {self.Tc} \n"
+                        f"nr_runs, 0.0 \n"
+                        f"random_init, 1.0 \n"
+                        f"curand_random, 1 \n"
+                        f"subsystem_min_Lx, {size} \n"
+                        f"subsystem_max_Lx, {size} \n"
+                        f"nr_subsystem_sizes, 0  \n"
+                        f"nr_subsystems, {nr_subsystems} \n"
+                        f"x_y_factor, {self.Ly_Lx} \n"
+                        f"nr_corr_values, 0 \n"
+                        f"nr_ft_values, 0 \n"
+                        f"equil_error, {self.equil_error}")
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+    def get_write_para_nr(self):
+        # this is the simple tactic that just advances the parameter number everytime it is called
+        self.cur_para_nr += 1
+        return self.para_nr + self.cur_para_nr - 1
+
+    def get_para_nr(self):
+        # this logic has to know how often each parameter file has to run and which parameter number to return
+        # I guess the easiest way would be to construct a map or something like this that maps the cur_para_nr to the
+        self.cur_run_nr += 1
+        # we just increment the cur run nur and then use the dictionary that we constructed somewhere else
+        return self.para_nr_run_dic[self.cur_run_nr - 1]
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
