@@ -139,19 +139,7 @@ def check_cum_valid(folderpath, variation_error, num_per_var_val):
     # I dont think we need anything else do do this?
     # first we need to read in every .cum file and average it. We assume that they have
     # the same timepoints aswell as the same number of values?
-    cum_files = glob(f"{folderpath}/*.cum")
-
-    cum = np.array([])
-    for i, cum_path in enumerate(cum_files):
-        df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-        this_cum = np.array(df["U_L"])
-        # I think I dont need the times, I just want to calculate the difference variation
-        if i == 0:
-            cum = this_cum
-        else:
-            cum += this_cum
-    # averaging
-    cum = cum / len(cum_files)
+    cum, times = get_folder_average(folderpath)
     # I am still not sure if we should do the thing with the nr of points per stddev value
     # you know what I think we should do it, if would be like linearly approximating every part of the curve
     # if the curve would vary very smoothly, the variation error that we want should approach zero
@@ -159,21 +147,55 @@ def check_cum_valid(folderpath, variation_error, num_per_var_val):
     # the number of intervals is integer division of the nr of cum values devided
     # by the number of values in one interval. If this goes not perfectly
     # up, we add one to have one more interval
-    nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
-    dif_var_arr = []
-    for i in range(nr_intervals):
-        # We have to be careful if we are at the last i?
-        cum_interval = cum[i * nr_intervals:min((i+1) * nr_intervals, len(cum))]   # the cum values in this interval
-        # from those values we want to get the stddev of the differences
-        dif_var = get_difference_std(cum_interval)  # and now we collect them in an array?
-        dif_var_arr.append(dif_var)
-    # If we are finished we just take the mean of those var values?
-    dif_var_mean = np.mean(dif_var_arr)
+    dif_var_mean = get_mean_rel_dif_var(cum, num_per_var_val)
     # If this mean is small than the validation error that we want to use, we accept the measurement
     if dif_var_mean < variation_error:
         return True
     else:
         return False
+
+
+def get_mean_rel_dif_var(cum, num_per_var_val):
+    nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
+    dif_var_arr = []
+    for i in range(nr_intervals):
+        # We have to be careful if we are at the last i?
+        cum_interval = cum[
+                       i * num_per_var_val:min((i + 1) * num_per_var_val, len(cum))]  # the cum values in this interval
+        # from those values we want to get the stddev of the differences
+        dif_var, rel_dif_var = get_difference_std(cum_interval)  # and now we collect them in an array?
+        dif_var_arr.append(rel_dif_var)
+    # If we are finished we just take the mean of those var values?
+    dif_var_mean = np.mean(dif_var_arr)
+    return dif_var_mean
+
+
+def get_folder_average(folderpath, file_ending="cum", value="U_L"):
+    """
+    This is supposed to look at a file that has observables like corr length and average them if we have multiple files
+    this one only works for same times
+    :param folderpath: path to the simulation
+    :param file_ending: file ending of the file that holds the observables
+    :param value: name of the value in the file
+    :return: averaged value array, should it maybe also return the time?
+    """
+    cum_files = glob(f"{folderpath}/*.{file_ending}")
+    cum = np.array([])
+    times = np.array([])
+    for i, cum_path in enumerate(cum_files):
+        df = pd.read_csv(cum_path, delimiter=",", index_col=False)
+        this_cum = np.array(df[value])
+        # I think I dont need the times, I just want to calculate the difference variation
+        if i == 0:
+            cum = this_cum
+            times = df['t']
+        else:
+            cum += this_cum
+    # averaging
+    cum = cum / len(cum_files)
+    return cum, times
+
+
 def get_difference_std(cum_arr):
     """
     Calculates the stddev of the difference of consecutive cumulant errors
@@ -1318,7 +1340,7 @@ class amplitude_measurement(autonomous_measurement):
 class z_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Tc=5, size_min=64,
                           size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, variation_error=0.01, z_guess=2,
-                 min_nr_sites=1e6, min_nr_systems=100):
+                 min_nr_sites=1e6, min_nr_systems=100, fold=10):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         # ah maybe you should first write a concept about what this measurment should do
@@ -1344,11 +1366,13 @@ class z_measurement(autonomous_measurement):
         # We could actually also think about just averaging all U_L values, this should already give a good measure
         self.cum_density = 1 / 100                  # the standard density will write 1 cum value in 100 steps
         # Okay now we basically do the same stuff as the last 3 times
-        self.sizes = np.array([])
+        self.sizes = np.array([])                   # this is the array for sizes that we have to simulate
+        self.valid_sizes = []                         # this is the list to keep track of the sizes that we simulated
         self.cur_para_nr = 0                        # since we need multiple paramter files we need the current parameter variable
         self.cur_run_nr = 0                         # we will use this one in the run_jobs logic to know at which submit we are and which parameter number we have to return
         self.para_nr_run_dic = {}                   # this is the dictionary that will know which run number has which parameter number
         self.para_nr = 200                          # again different parameter number for different kind of simulation
+        self.base_fold = 10                         # for plotting we fold 10 points to one for better visibility
 
     def setup(self):
         # This function does the setup again, I mean we dont have to many but
@@ -1408,6 +1432,8 @@ class z_measurement(autonomous_measurement):
             sizes = list(self.sizes)
             sizes.remove(valid_size)
             self.sizes = np.array(sizes)
+            # if the size is valid we can add it to the sizes array
+            self.valid_sizes.append(valid_size)
 
         if self.sizes.size != 0:
             # this means there are still measurements to do
@@ -1419,6 +1445,7 @@ class z_measurement(autonomous_measurement):
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
             self.run_jobs()
+            #... we dont know whether the simulations are valid atm so we dont add them to valid_sizes?
         return self.evaluate()
 
     def evaluate(self):
@@ -1434,9 +1461,126 @@ class z_measurement(autonomous_measurement):
         if len(valid_simulations) == self.nr_sizes:
             # this means the simulation was valid and we can do the rescaling
             print("Simulation successful, evaluating")
+            # add to valid sizes
+            [self.valid_sizes.append(valid_sim[0]) for valid_sim in valid_simulations]          # is this proper python to shorten the for loop? Probably a bit slower than a normal for loop but this doesnt matter here
+            # so we had already a method to average the cumulant in a folder, right?
+            # In the CumulantOverTime script we use two maps, one that maps the size and the temperatue to the cum array
+            # and another that maps it to the time
+            # We shouldnt have different temperatures in this case, but what if we do because we adjusted the critical temperature?
+            # We write something that takes a simulation folder and iterates through every simulation for like the 100th time,
+            # shouldnt you somehow encapsulate this? F it for now, this could be complicated
+            size_cum_dic, size_times_dic = self.get_results_time_resolved()
+            # Okay we have the values, now we need to do the remapping
+            # we need a list of z's that we want to check, just user input parameter? Nah I think we can do it like this. We will just start at 1 and go to three or something like this?
+            # It wont be outside this right? Afterwards we can for every size pair get a new z interval
+            z_list = np.linspace(1, 3, 201)
+            # we want to run sorted through the keys
+            self.valid_sizes = sorted(self.valid_sizes)
+            # It is the same thing to map the small sizes on the large sizes and vice versa, right?
+            fig, ax = plt.subplots(1, 1)
+            for i, size in enumerate(self.valid_sizes):
+                # We prbably want a 'base fold' for the smallest size
+                cum = size_cum_dic[size]
+                times = size_times_dic[size]
+
+                t_fold, cum_fold = fold(times, cum, fold=self.base_fold)
+                # plot the points
+                ax.plot(t_fold, cum_fold, linestyle='', marker="x",
+                        markersize=5,
+                        color=f"C{i}", label=f"$L_x$={size},  T = {self.Tc}")
+                # the new interploation works with np.interp
+                # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
+                # what even happens when you try to use less values haha?
+                # we could just use base_fold * len(t_fold) to get the same number of values we had before but folded?
+                # The thing is for the error calculation we need the same interval for both sizes, I guess here it doesnt matter to much
+                t_inter_plot = np.linspace(np.min(t_fold), np.max(t_fold), self.base_fold * len(t_fold))
+                cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
+
+                ax.plot(t_inter_plot, cum_inter_plot, f"C{i}")
+
+                # okay so much for the plotting, now the refitting
+                # if there is a larger size we want to map this size onto it
+                if i < len(self.valid_sizes) - 1:
+                    next_size = self.valid_sizes[i + 1]
+                    # cumulant and time values of the next size:
+                    cum_next = size_cum_dic[next_size]
+                    times_next = size_times_dic[next_size]
+                    # the folding shall be calculated based on the z that we use? so that t_fold and t_fold_next have
+                    # approximately the same number of points in the shared interval
+                    b = next_size / size            # next size is the larger size so b > 0
+                    # values to keep track wich z is the best
+                    best_z = 0
+                    best_msd = np.infty
+                    best_t_compare_arr = []
+                    best_cum_compare_arr = []
+                    # we need to try out every z
+                    for z in z_list:
+                        # first we resacle the time of the small size?
+                        times_next_rescaled = times_next / (b ** z)
+                        # now we can look vor the shared interval by times_next and times_rescaled
+                        t_lower_limit = np.maximum(np.min(times_next_rescaled), np.min(times_next))      # the lower limit is the greater minimum of the times
+                        t_upper_limit = np.minimum(np.max(times_next_rescaled), np.min(times_next))
+
+                        # between those bounds we need an array with dense t values to compare the two cum curves
+                        # the number of values should be... i dont know how large, just large enough? The arrays we will use
+                        # to calculate the interpolation will use folded values, so just len(times_next) or something like this?
+                        t_compare_arr = np.linspace(t_lower_limit, t_upper_limit, len(times_next))
+                        # now we need the interpolations, but we want to use the interpolation of folded values, so we fold?
+                        # so now the folding of the previous will stay the same, but the folding of the next will change
+                        # if we for example rescale by a factor of 4, the folding should be 4 times as large?
+                        t_next_rescaled_fold, cum_next_fold = fold(times_next_rescaled, cum_next, b**z * self.base_fold)              # one with just the interpolation of the next curve without rescaling (Constant and independent of z)
+                        # oh maaaaaaan you did it wrong you wanted to rescale the larger size because it has more values which can be folded to get fewer fluctuations
+                        cum_next_compare_arr = np.interp(t_compare_arr, t_next_rescaled_fold, cum_next_fold)
+                        cum_compare_arr = np.interp(t_compare_arr, t_fold, cum_fold)
+                        # Okay from them we can now calculate an error?
+                        err_arr = cum_next_compare_arr - cum_compare_arr
+                        msd = np.mean(err_arr ** 2)
+                        if msd < best_msd:
+                            best_z = z
+                            best_msd = msd
+                            best_t_compare_arr = t_compare_arr
+                            best_cum_compare_arr = cum_next_compare_arr
+                    # If we did this we want to plot it
+                    ax.plot(best_t_compare_arr,
+                            best_cum_compare_arr,
+                            linestyle="-", label=f"$L_x$={next_size[0]},"
+                                                 f"  T = {self.Tc[1]}  rescaled z = {best_z:.3f}", color=f"C{i}")
+                    ax.set_ylabel(r"$U_L$")
+                    ax.set_xlabel("t")
+                    configure_ax(fig, ax)
+                    ax.set_title("z extraction")
+                    plt.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
+            return
         else:
             # else means we need some logic to see which measurement has to be repeated
             print("Error of ... to large, repeating")
+            # So we need to know which simulations we have to repeat
+            # we just remove the valid simulations from the self.sizes and run the iteration again
+            for valid_sim in valid_simulations:
+                valid_size = valid_sim[0]
+                sizes = list(self.sizes)
+                sizes.remove(valid_size)
+                self.sizes = np.array(sizes)
+            # now just rerun=?
+            return self.iteration()
+
+    def get_results_time_resolved(self):
+        size_cum_dic = {}
+        size_times_dic = {}
+        for size in self.valid_sizes:
+            size_path = os.path.join(self.simulation_path, size)
+            if os.path.isdir(size_path):
+                temp_path = os.path.join(size_path, self.Tc)  # we only want to look at the current used critical temperature
+                if os.path.isdir(temp_path):
+                    # okay so here we extract the cumulant for the a certain size temp combination
+                    # I guess we use the same tactic as in the ccumovertime script since I think there is no simpler
+                    # method to extract both the time and the values
+                    # we can use get folder avage here
+                    cum, times = get_folder_average(temp_path)
+                    size_cum_dic[size] = cum
+                    size_times_dic[size] = times
+        return size_cum_dic, size_times_dic
+
     def construct_para_nr_run_dic(self):
         # sooo for every size we need to determine how many jobs we need to submit
         for i, size in enumerate(self.sizes):

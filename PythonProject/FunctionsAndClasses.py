@@ -1389,6 +1389,28 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
 
     return best_reg, best_starting_pos, best_ending_pos
 
+def fold(t, U_L, fold=3):
+    t = np.array(t)
+    U_L = np.array(U_L)
+    t_fold = []
+    U_L_fold = []
+    nr_points = len(t)
+    nr_folded_points = nr_points // fold
+    for point_nr in range(nr_folded_points):
+        t_avg = 0
+        U_L_avg = 0
+        for nr_in_fold in range(fold):
+            ind = point_nr * fold + nr_in_fold
+            t_avg += t[ind]
+            U_L_avg += U_L[ind]
+        t_avg /= fold
+        U_L_avg /= fold
+
+        t_fold.append(t_avg)
+        U_L_fold.append(U_L_avg)
+
+    return np.array(t_fold), np.array(U_L_fold)
+
 def main():
     print("This file is made to import, not to execute")
 
