@@ -480,6 +480,9 @@ def create_config(given_config, default_config):
                 config[key] = given_config[key]
             except KeyError:
                 config[key] = default_config[key]
+        # fontsizes are dealt with a bit different
+        for font in default_config["fontsizes"]:
+            config[font] = int(config[font] * (1 + config["increasefontsize"]))
         return config
 
 PLOT_DEFAULT_CONFIG = {
@@ -489,12 +492,20 @@ PLOT_DEFAULT_CONFIG = {
     "xtickfontsize": 9,
     "ytickfontsize": 9,
     "legendfontsize": 11,
+    "increasefontsize": 0.0,
     "legendlocation": "best",
     "ticklength": 6,
     "tickwidth": 2,
     "nr_y_minor_ticks": 5,
     "nr_y_major_ticks": 5,
     "gridalpha": 0.5,
+    "labelrotation": 0,
+    "labelhorizontalalignment": "right",
+    "grid": True,
+    "tight_layout": True,
+    "legend": True,
+    "spansfromdata" : False,
+    "fontsizes": ["ylabelsize", "xlabelsize", "titlesize", "xtickfontsize", "ytickfontsize", "legendfontsize"]
 }
 
 def delete_last_line(filename):
@@ -526,7 +537,11 @@ def configure_ax(fig, ax, config=None):
 
     config = create_config(config, PLOT_DEFAULT_CONFIG)
 
-    x_span, y_span, (xmin, xmax, ymin, ymax) = get_spans(ax)
+    if config["spansfromdata"]:
+        x_span, y_span, (xmin, xmax, ymin, ymax) = get_spans(ax) # the spans are at the moment dependent on the actuayl plotted values, but why?
+    else:
+        x_span = round_to_first_non_zero(ax.get_xlim()[1] - ax.get_xlim()[0])
+        y_span = round_to_first_non_zero(ax.get_ylim()[1] - ax.get_ylim()[0])
     nr_y_minor_ticks = config["nr_y_minor_ticks"]
     nr_y_major_ticks = config["nr_y_major_ticks"]
     if ax.get_yscale() != "log":
@@ -537,14 +552,15 @@ def configure_ax(fig, ax, config=None):
         ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
 
     # We want to have inline ticks
-    ax.tick_params(direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=9)
+    ax.tick_params(direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=config["xtickfontsize"])
     ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75), labelsize=9)
 
     if ax.get_xscale() != "log":
         remove_origin_ticks(ax)
 
     # Füge Gitterlinien hinzu
-    ax.grid(which='major', linestyle='--', alpha=config["gridalpha"])
+    if config["grid"]:
+        ax.grid(which='major', linestyle='--', alpha=config["gridalpha"])
 
     # title, achsenbeschriftungen, legend
     get_functions = [ax.get_title, ax.get_xlabel, ax.get_ylabel]        # haha functions in a list, just python things
@@ -556,12 +572,15 @@ def configure_ax(fig, ax, config=None):
             set_functions[i](default_texts[i])
 
     # rotate the y label
-    ax.set_ylabel(ax.get_ylabel(), rotation=0, ha="right", fontsize=config["ylabelsize"])
+    ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"], ha=config["labelhorizontalalignment"],
+                  fontsize=config["ylabelsize"])
     ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
-    ax.legend(fontsize=config["legendfontsize"], loc=config["legendlocation"])
-    plt.tight_layout()
+    if config["legend"]:
+        ax.legend(fontsize=config["legendfontsize"], loc=config["legendlocation"])
+    if config["tight_layout"]:
+        plt.tight_layout()
 
 def det_intersection(x, y_dic):
     min_total_dist = np.max(list(y_dic.values())[0])        # starting value for the min

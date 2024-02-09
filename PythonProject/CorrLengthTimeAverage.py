@@ -127,8 +127,10 @@ def main():
         # sizex and sizey are what the names suggest
         # value_x should be tuples of (T_arr, xix_array)
         T = valuex[0]
-        xix_inv_sorted = 1 / np.array(valuex[1])[np.argsort(T)]
-        xiy_inv_sorted = 1 / np.array(valuey[1])[np.argsort(T)]
+        xix_sorted = np.array(valuex[1])[np.argsort(T)]
+        xix_inv_sorted = 1 / xix_sorted
+        xiy_sorted = np.array(valuey[1])[np.argsort(T)]
+        xiy_inv_sorted = 1 / xiy_sorted
         T_arr = np.sort(T)
 
         # custom interval to get a feeling of r² value:
@@ -171,28 +173,115 @@ def main():
         # xiy_ampl = popt_y[0]
         # Tc_y = popt_y[1]
 
-        fig, axx = plt.subplots(1, 1)
+        fig, axx = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
+        axy = axx.twinx()
         # Plot the data
-        axx.plot(T_arr, xix_inv_sorted, label=rf"$1 / \xi_x$", linestyle="", marker="x")
+        axx.plot(T_arr, xix_inv_sorted, label=rf"$1 / \xi_\parallel$", linestyle="", marker="o", markerfacecolor="none", markeredgecolor=colors[0])
+        axy.plot(T_arr, xiy_inv_sorted, label=rf"$1 / \xi_\perp$", linestyle="", marker="o", markerfacecolor="none", markeredgecolor=colors[5])
         # Plot the fit
         axx.plot(T_arr, reg_x.intercept + reg_x.slope * T_arr,
-                 label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
+                 label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$", color=colors[0])
+        axy.plot(T_arr, reg_y.intercept + reg_y.slope * T_arr,
+                 label=rf"$\xi_\perp^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$", color=colors[5])
+        print(f"xi_x / xi_y = {xix_ampl / xiy_ampl}")
+        axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
+        axx.set_xlabel(r"$T /$meV")
+        axy.set_ylabel(r"$(\xi_\perp / a_\perp)^{-1}$")
+        axy.set_xlabel(r"$T /$ meV")
+        # Okay the lower y limit should be zero for both
+        axx.set_ylim(0, axx.get_ylim()[1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
+        axy.set_ylim(0, axy.get_ylim()[1])
+        axx.set_title(r"Inverse Correlation Length $1 / \xi$")
+        axy.set_title(r"Inverse Correlation Length $1 / \xi$")
 
-        #axx.plot(T_arr, inv_xi_fit(T_arr, xix_ampl, Tc_x), label=rf"$\xi_x^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$")
-        configure_ax(fig, axx)
+        config_x = {
+            "labelrotation" : 90,
+            "labelhorizontalalignement": "right",
+            "grid": True,
+            "tight_layout": False,
+            "legend": False,
+            "increasefontsize": 0.5,
+        }
+        config_y = {
+            "labelrotation" : 90,
+            "labelhorizontalalignement": "right",
+            "grid": False,
+            "legend": False,
+            "increasefontsize": 0.5,
+        }
+        configure_ax(fig, axx, config_x)
+        configure_ax(fig, axy, config_y)
+        # We need to deal with the leglend ourself I think
+        lines, labels = axx.get_legend_handles_labels()
+        lines2, labels2 = axy.get_legend_handles_labels()
+        axy.legend(lines + lines2, labels + labels2, loc=0, fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (1 + config_x["increasefontsize"])))
+        # saving
         create_directory_if_not_exists(simulation_folder + "/plots")
-        plt.savefig(simulation_folder + f"/plots/xix-inv-{sizex}.png", format="png")
+        plt.savefig(simulation_folder + f"/plots/xiy-inv-{sizey}.png", format="png")
         plt.show()
 
-        fig, axy = plt.subplots(1, 1)
-        axy.plot(T_arr, xiy_inv_sorted, label=rf"$1 / \xi_y$", linestyle="", marker="x")
-        axy.plot(T_arr, reg_y.intercept + reg_y.slope * T_arr,
-                 label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
-        #axy.plot(T_arr, inv_xi_fit(T_arr, xiy_ampl, Tc_y),
-        #         label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
-        print(f"xi_x / xi_y = {xix_ampl / xiy_ampl}")
-        configure_ax(fig, axy)
-        plt.savefig(simulation_folder + f"/plots/xiy-inv-{sizey}.png", format="png")
+        # also plot xi...
+        fig, axx = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
+        axy = axx.twinx()
+
+        # First plot the data points
+        axx.plot(T_arr, xix_sorted, label=rf"$\xi_\parallel$", linestyle="", marker="o", markerfacecolor="none",
+                 markeredgecolor=colors[0])
+        axy.plot(T_arr, xiy_sorted, label=rf"$\xi_\perp$", linestyle="", marker="o", markerfacecolor="none",
+                 markeredgecolor=colors[5])
+        # We also want to plot some kind of fit but for this we need the eps arrays
+        # We need to use the critical temperature of the fit
+        # I think we want some more points than 8 to plot the critical amplitude plot
+        T_x_plot = np.linspace(np.min(T_arr), np.max(T_arr), 200)
+        T_y_plot = np.linspace(np.min(T_arr), np.max(T_arr), 200)
+        eps_x = (T_x_plot - Tc_x) / Tc_x
+        eps_y = np.array((T_y_plot - Tc_y) / Tc_y)
+        T_y_plot = T_y_plot[eps_y > 0]
+        eps_y = eps_y[eps_y > 0]
+        # before we plot we look at the y limits in the case that we dont plot the critical amplitude
+        upper_ylim_parallel = axx.get_ylim()[1]
+        upper_ylim_perp = axy.get_ylim()[1]
+        # The function that we need to use is called critical amplitude
+        axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
+                 label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$", color=colors[0])
+        axy.plot(T_y_plot, critical_amplitude(eps_y, xiy_ampl),
+                 label=rf"$\xi_\perp^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$", color=colors[5])
+        # For this we dont use logarithmic scale I think
+        # we set the limits from before plotting the fit
+        axx.set_ylim(axx.get_ylim()[0], upper_ylim_parallel)
+        axy.set_ylim(0, upper_ylim_perp * 2)        # this one is smaller so it should look smaller, wyh is the limit already negative? this looks very weird
+        axx.set_xlabel("T")
+        axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
+        axx.set_xlabel(r"$T /$meV")
+        axy.set_ylabel(r"$\xi_\perp / a_\perp$")
+        axx.set_title(r"$\xi$ Divergence")
+        axy.set_title(r"$\xi$ Divergence")
+
+        config_x = {
+            "labelrotation" : 90,
+            "labelhorizontalalignement": "right",
+            "grid": True,
+            "tight_layout": False,
+            "legend": False,
+            "increasefontsize": 0.5,
+        }
+        config_y = {
+            "labelrotation" : 90,
+            "labelhorizontalalignement": "right",
+            "grid": False,
+            "legend": False,
+            "increasefontsize": 0.5,
+        }
+        configure_ax(fig, axx, config_x)
+        configure_ax(fig, axy, config_y)
+
+        lines, labels = axx.get_legend_handles_labels()
+        lines2, labels2 = axy.get_legend_handles_labels()
+        axy.legend(lines + lines2, labels + labels2, loc=0,
+                   fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (1 + config_x["increasefontsize"])))
+
+        # Save the plot
+        plt.savefig(simulation_folder + "/plots/T-xi.png", format="png")
         plt.show()
 
     exit()
