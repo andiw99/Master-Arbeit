@@ -937,5 +937,74 @@ std::pair<std::vector<double>, double*> cut_data_around_peak(
     return std::make_pair(x_cut, y_cut);
 }
 
+double get_autocorrtime(double* f, size_t f_size, double ds) {
+    // okay we could get the standard dev here already becasue we already computed it, but to be honest this wont be
+    // computationally intensive in comparison to the rest that the function does
+    // indeed for the integration we need the timestep (between the xi measurements)
+    // Well the fing timestep is deviating in the cum equilibration observer...
+    // maybe with the new error we dont need adaptive stepsizes anymore? because the error will be large for
+    // slowly relaxing systems?
+    // We write the function now for a constant dt
+    // first we could calculate C(0) or the standarddev of xi (why are you talking about xi, it works for every observable
+    // what do we do about the min ind? this should be part of this function, but copying a vector will also be expensive
+    // tbh for this double* arrays would be insane?
+    // we could construct a doulbe* vec_ptr = &vector[min_pos], that way we do not have to allocate more memory
+    double avg_f = accumulate(f, f + f_size, 0.0) / (double)(f_size);
+    std::vector<double> diff(f_size);       // I mean we can use vectors here again if we want, then we dont have to deal with memory management
+    std::transform(f, f + f_size, diff.begin(), [avg_f](double x) { return x - avg_f; });
+    double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    // okay this is the variance
+    // okay we have the simplest one of infinity values so we are basically done
+    // the total duration of the simulation is, or of the sample that we are considering
+    double T = f_size * ds;     // and we integrate from -T/2 to T/2
+    vector<double> norm_autocorrelation_function{};     // I think we will use the normalized autocorrelation function so that we dont have to modify this thing if we want to calculate the autocorrelation time
+    // we have discrete possible time distances
+    for(int dist = - f_size/3; dist < f_size/3; dist++) {
+        // dist is the time distance measured in timesteps ds, the actual time distance is
+        double t = (double)dist * ds;
+        // for this t we somehow need to calculate the autocorrelation function
+        // I think you have to stop here because otherwise you wont be goin in an hour...
+        // the easiest way to calculate the autocorrleation function will just be through its definition?
+        // definition is C(t) = < f(s) f(s + t) > - <f>^2 ... <f> we already know
+        // for < f(s) f(s+t) > we need to collect every f value pair that is seperated by the time t
+        // I think for now we can think just of the discrete number of values in between
+        // so we use differences from -fsize/ 2 to fsize/2.... Using the edge values is probably not useful since
+        // there is only one value pair and this will be inflicted with strong statistical flucutations? This is probably where
+        // the cutoff comes to play that this other book was talking about
+        // so where should we cut? maybe for now just at fsize/4, later we can employ this self consistency thingy
+
+        // for every dist we have the integration, but what are you talking about with f_size / 2?  You have C(t) and this
+        // t should run from -fsize/2 to fsize/2
+        // what we are doing now is integrate over the simulation time, which is this finding of the value pairs that
+        // you were talking about
+        // They should be easy to find because we just start at the first value that we have, its partner is 0 + dist,
+        // then we go to 1 with the partner 1 + dist and at the end we have f_size - dist and f_size
+        // we call the partners f_left and f_right or f_early and f_late
+        // f_early is just the normal f pointer and f_late starts at f + dist
+        // okay the thing is that the distance could strongly speaking also be negative, but does that matter?
+        // and isnt just C(-t) = C(t) ?
+        // ah damn I think I would have to write that down, for now we just use the absolute value of t
+        double* f_early = f;
+        double* f_late = f + dist;
+        // the number of pairs we have is just
+        size_t nr_integration_values = f_size - dist;
+        // Now we fill up a vector with the multiplied values
+        vector<double> prod(nr_integration_values);
+        std::transform(f_early, f_early + nr_integration_values, f_late, prod.begin(), std::multiplies<double>());
+        // I hope this is correct syntax, the aim is to have the multiplied values f(t) * f(t +dist) inside the prod vector
+        // the prod vector can then be reduced and multiplied with the time distance between the measured values (ds)
+        // Afterwards we have to average the integral with 1 / T, but T is just ns * ds so we can in this case just average with ns which is f_size
+        double autocorr_value = accumulate(prod.begin(), prod.end(), 0.0) / nr_integration_values;
+        // I think we should save the autocorrelation values somewhere
+        norm_autocorrelation_function.push_back(autocorr_value / variance_f);
+    }
+    // now we have all C(t) values, then we integrate them to obtain the autocorrelation time
+    // this time the actual time difference is relevant
+    double autocorrelation_time = accumulate(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds / 2.0;
+    // and this should be it. I think through the fact that we always know directly where the partner is and dont have many loops the
+    // computation time will not be small but also not huge, probably okay if it runs every 1000 steps or so
+    return autocorrelation_time;
+}
+
 
 #endif //CUDAPROJECT_MAIN_CUH
