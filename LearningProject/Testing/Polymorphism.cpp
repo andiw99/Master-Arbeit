@@ -442,4 +442,30 @@ int main(int argc, char* argv[]) {
     int mils = 12343899;
     double sec = (double)((int)(mils * 1e-1) * 1e-2);
     cout << endl << sec << endl;
+
+    cout << endl << endl << "vector copy" << endl;
+
+    vector<double> origin{1, 2, 3, 4, 5, 6};
+    vector<double> copy(origin.begin() + 2, origin.end());      // this allocates new memory
+    double* ptr_copy = &origin[2];
+
+    for(auto val : copy) {
+        cout << val << ", ";
+    }
+    cout << endl;
+    for(int i = 0; i < 4; i++) {
+        cout << ptr_copy[i] << ", ";
+    }
+    cout << endl;
+
+    origin[3] = 12;
+
+    for(auto val : copy) {
+        cout << val << ", ";
+    }
+    cout << endl;
+
+    for(int i = 0; i < 4; i++) {
+        cout << ptr_copy[i] << ", ";
+    }
 }

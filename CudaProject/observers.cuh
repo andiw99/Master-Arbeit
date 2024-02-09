@@ -498,6 +498,11 @@ public:
                     std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
                     double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0);
                     double rel_stddev_total = sqrt(sq_sum_total / (double)(pow(nr_cum_values - min_ind, 2))) / avg_U_L;
+
+                    // Okay we found out that this is not the real error, so we need a function that calculates the error
+                    // or first a function that calculates the integrated autocorrleation time
+                    // We indded have two auto correlation times for the two directions. Could they be individually sized?
+
                     cout << "rel_stddev_total = " << rel_stddev_total << endl;
                     // the question is now if we want to extract avg_U_L and its error if we are equilibrated
                     // we definitely should? But how and where? somehow into the parameter file?
@@ -519,6 +524,38 @@ public:
     }
 
 };
+
+double get_autocorrtime(double* f, size_t f_size, double ds) {
+    // okay we could get the standard dev here already becasue we already computed it, but to be honest this wont be
+    // computationally intensive in comparison to the rest that the function does
+    // indeed for the integration we need the timestep (between the xi measurements)
+    // Well the fing timestep is deviating in the cum equilibration observer...
+    // maybe with the new error we dont need adaptive stepsizes anymore? because the error will be large for
+    // slowly relaxing systems?
+    // We write the function now for a constant dt
+    // first we could calculate C(0) or the standarddev of xi (why are you talking about xi, it works for every observable
+    // what do we do about the min ind? this should be part of this function, but copying a vector will also be expensive
+    // tbh for this double* arrays would be insane?
+    // we could construct a doulbe* vec_ptr = &vector[min_pos], that way we do not have to allocate more memory
+    double avg_f = accumulate(f, f + f_size, 0.0) / (double)(f_size);
+    std::vector<double> diff(f_size);       // I mean we can use vectors here again if we want, then we dont have to deal with memory management
+    std::transform(f, f + f_size, diff.begin(), [avg_f](double x) { return x - avg_f; });
+    double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    // okay this is the variance
+    // okay we have the simplest one of infinity values so we are basically done
+    // the total duration of the simulation is, or of the sample that we are considering
+    double T = f_size * ds;     // and we integrate from -T/2 to T/2
+    // we have discrete possible time distances
+    for(int dist = 1; dist < f_size; dist++) {
+        // dist is the time distance measured in timesteps ds, the actual time distance is
+        double t = (double)dist * ds;
+        // for this t we somehow need to calculate the autocorrelation function
+        // I think you have to stop here because otherwise you wont be goin in an hour...
+    }
+
+
+
+}
 
 template <class system, class State>
 class corr_observer : public obsver<system, State>{
