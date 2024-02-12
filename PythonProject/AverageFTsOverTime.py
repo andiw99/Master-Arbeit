@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 from decimal import Decimal
 
 
-def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log"):
+def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log", direction="parallel"):
     if quench:
         setting_var = r"$\tau$"
     # first we need to find out which taus we want to plot
@@ -23,6 +23,88 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
     taus = np.array(list(t_xi_largest.keys()))[np.argsort([float(key) for key in t_xi_largest.keys()])]
     taus_plot = taus[valid_inds]
     # now we can basically do what we did below?
+    fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 2]})
+    ax_equil = axes[0]
+    ax_quench = axes[1]
+    color_ind = 0
+    color_dic = {}
+    print(taus_plot)
+    for marker_ind, size in enumerate(size_dic):
+        t_xi = size_dic[size]
+        for i, tau in enumerate(taus_plot):
+            try:
+                t = np.array(list(t_xi[tau].keys()))
+                if quench:
+                    # instead of using this complicated function in this case we
+                    # only need to separate the equilibration and the quenching and then divide by tau
+                    # t, t_q_s = rescale_t(t, float(tau), t_eq, quench_zoom)
+                    t_equil = t[t <= t_eq] - t_eq
+                    end_quench_t = np.max(t) - t_eq_end
+                    t_quench = (t[(t > t_eq) & (t < end_quench_t)] - t_eq) / float(tau)
+                    # okay and we set the quench beginning to t = 0
+                xi = np.array(list(t_xi[tau].values()))
+                xi_equil = xi[t <= t_eq]
+                xi_quench = xi[(t > t_eq) & (t < end_quench_t)]
+                if i == 0:
+                    pre_equil_xi = np.mean(xi_equil)
+                if marker_ind == 0:
+                    color = colors[color_ind]
+                    color_ind += 1
+                    color_dic[tau] = color  # we save the color for the next size
+                    # for the legend
+                    ax_quench.plot([], [], linestyle="", marker="s", color=color, label=f"{setting_var} = {float(tau):.2f}")
+                else:
+                    try:
+                        color = color_dic[tau]
+                    except KeyError as e:
+                        # if the setting is non existent, we use the next color in colors
+                        color = colors[color_ind]
+                        color_ind += 1
+                ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=4,
+                               marker=markers[marker_ind],
+                               color=color)  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
+                ax_quench.plot(t_quench, xi_quench, linestyle="", markersize=4, marker=markers[marker_ind], color=color)  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
+            except KeyError:
+                print(f"tau = {tau} not available in size = {size}")
+        ax_quench.plot([], [], linestyle="", marker=markers[marker_ind], label=f"L = {size}", color="black")
+    ax_quench.set_yscale(y_scale)
+    ax_equil.set_yscale(y_scale)
+    if y_scale == "log":
+        ax_quench.set_ylim(0.8 * pre_equil_xi, ax_quench.get_ylim()[1])
+        ax_equil.set_ylim(ax_quench.get_ylim())     # same limits for the two axes
+    ax_equil.set_xlim(ax_equil.get_xlim()[0], 0)
+    ax_quench.set_xlim(0, ax_quench.get_xlim()[1])
+    quench_config = {
+        "titlesize": 0,
+        "ytickfontsize": 0,
+        "ylabelsize": 0
+    }
+    configure_ax(fig, ax_quench, quench_config)
+    configure_ax(fig, ax_equil)
+    fig.subplots_adjust(wspace=0.025)
+    return fig, axes
+
+def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log"):
+    if quench:
+        setting_var = r"$\tau$"
+    # first we need to find out which taus we want to plot
+    # we use just the messreihe with the most taus
+    most_tau_size = 0
+    max_nr_taus = 0
+    for size in size_dic:
+        nr_taus = len(size_dic[size])
+        if nr_taus > max_nr_taus:
+            most_tau_size = size
+            max_nr_taus = nr_taus
+
+    t_xi_largest = size_dic[most_tau_size]
+    max_nr_curves = min(max_nr_curves, len(t_xi_largest))
+    valid_inds = np.linspace(0, len(t_xi_largest) - 1, max_nr_curves, dtype=int)
+    taus = np.array(list(t_xi_largest.keys()))[np.argsort([float(key) for key in t_xi_largest.keys()])]
+    taus_plot = taus[valid_inds]
+    # now we can basically do what we did below?
+    # Okay so for this the plan is to have only the equilibration shown and then
+    # the quench process, but in two separat plots
     fig, ax = plt.subplots(1, 1)
     color_ind = 0
     color_dic = {}
@@ -61,9 +143,8 @@ def plot_process(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.in
               alpha=0.5)
     configure_ax(fig, ax)
     return fig, ax
-
 def main():
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test5/Quench/"
+    simulation_path = "../../Generated content/Silicon/Quench/Left-Right"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -74,7 +155,7 @@ def main():
     set_fts_to_zero = False
     min_tau_fit = 100
     max_tau_fit = np.infty
-    plot_struct = True
+    plot_struct = False
     cut_around_peak = True
     peak_cut_threshold = 0.1
     min_points_fraction = 0.8
@@ -191,13 +272,17 @@ def main():
         setting_var = r"$\tau$"
 
 
-    fig, ax = plot_process(size_x_dic, t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
-    ax.set_title("Time during quench is scaled")
-    ax.set_ylabel(r"$\xi_x$")
-    ax.set_xlabel(
-        r"$t \qquad \qquad \qquad \qquad \qquad \qquad t/\tau \qquad \qquad  \qquad \qquad \qquad \qquad t $")
+    fig, ax = plot_process(size_x_dic, t_eq, t_eq_end=t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
+    ax_equil = ax[0]
+    ax_quench = ax[1]
+    fig.suptitle("Time during quench is scaled")
+    ax_equil.set_ylabel(r"$\xi_\parallel / a_\parallel$")
+    ax_equil.set_xlabel("t/ns")
+    ax_quench.set_xlabel(
+        r"$t / \tau_Q$")
     fig.savefig(simulation_path + f"/xix-process.png", format="png", dpi=300)
     plt.show()
+    exit()
 
     fig, ax = plot_process(size_y_dic, t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
     ax.set_title("Time during quench is scaled")

@@ -552,8 +552,11 @@ def configure_ax(fig, ax, config=None):
         ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
 
     # We want to have inline ticks
-    ax.tick_params(direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=config["xtickfontsize"])
-    ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75), labelsize=9)
+    ax.tick_params(axis="x", direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=config["xtickfontsize"])
+    ax.tick_params(axis="y", direction='in', which='both',
+                   length=config["ticklength"], width=config["tickwidth"],
+                   labelsize=config["ytickfontsize"])
+    ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75))
 
     if ax.get_xscale() != "log":
         remove_origin_ticks(ax)
@@ -1279,6 +1282,7 @@ def rescale_t(t, tau, t_eq, zoom = 1):
                           total_time - 2 * t_eq))
     t_q_s = (total_time - 2 * t_eq) / tau * zoom
     return np.array(new_t), t_q_s
+
 
 def plot_struct_func(px, py, fx, fy, error_x=0, error_y=0):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
