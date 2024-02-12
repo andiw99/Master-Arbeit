@@ -281,7 +281,9 @@ class autonomous_measurement():
         for job_id in just_completed_jobs:
             self.running_jobs.remove(job_id)
 
-    def submit_jobs(self):
+    def submit_jobs(self, file=None):
+        if file == None:
+            file = self.file
         while (len(self.running_jobs) < self.nr_GPUS) & (len(self.completed_jobs) + len(
                 self.running_jobs) < self.total_runs):  # I think we forgot that we should not submit more jobs than we were expecting to? Is a job always either running or completed?
             # if this is true we are definetly going to submit a new job
@@ -292,7 +294,7 @@ class autonomous_measurement():
             # now... we just submit it?
             # the command is:
             submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
-                         f' logs/errors/%j.err run_cuda.sh {self.file} {self.folder} {para_nr}'
+                         f' logs/errors/%j.err run_cuda.sh {file} {self.folder} {para_nr}'
             submit_feedback = self.connection.run(submit_job)
             job_id = extract_numbers_before_newline(submit_feedback.stdout)[
                 0]  # extract numbers before newline returns a list
@@ -300,9 +302,10 @@ class autonomous_measurement():
             # I think we can be sure that the job is running if we just commited it
             # better double check?
             self.running_jobs.add(job_id)
+
     def get_para_nr(self):
         return self.para_nr
-    def run_jobs(self):
+    def run_jobs(self, file=None):
         # how do we make this routine? First we can make one cycle and submit nr gpus jobs?
         # or just the routine that will be waiting for the jobs to finish instantly?
         # establish the connection to hemera
@@ -325,7 +328,7 @@ class autonomous_measurement():
             # order
             # we know which job is next through the next job variable,
             # but we still need to know the number at which to start
-            self.submit_jobs()
+            self.submit_jobs(file)
             # now we just wait some time before we do the next check?
             time.sleep(self.wait)
         # if we are here that means that all runs are done
@@ -1338,9 +1341,9 @@ class amplitude_measurement(autonomous_measurement):
         return self.para_nr + self.cur_para_nr - 1
 
 class z_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Tc=5, size_min=64,
-                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.003, variation_error=0.01, z_guess=2,
-                 min_nr_sites=1e6, min_nr_systems=100, fold=10):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
+                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, variation_error=0.01, z_guess=2,
+                 min_nr_sites=1e6, min_nr_systems=100, fold=10, cum_density=1/100):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         # ah maybe you should first write a concept about what this measurment should do
@@ -1352,6 +1355,7 @@ class z_measurement(autonomous_measurement):
         self.max_steps = max_steps
         self.nr_sites = nr_sites
         self.equil_error = equil_error      # only useful for the first run that determines how long the runs will be
+        self.test_exec_file = test_exec_file
 
         # What else do we need?
         self.variation_error = variation_error      # this will be the error of the standard deviation of the differences of the U_L values
@@ -1364,7 +1368,7 @@ class z_measurement(autonomous_measurement):
         self.min_nr_systems = min_nr_systems        # same system like for quench, the U_L values that we use should be averaged out of at least 100 systems and if 100 systmes contain less than min nr of sites then so many systems that we reach teh min nr of sites
         self.nr_points_diff_variance = 10           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
         # We could actually also think about just averaging all U_L values, this should already give a good measure
-        self.cum_density = 1 / 100                  # the standard density will write 1 cum value in 100 steps
+        self.cum_density = cum_density                  # the standard density will write 1 cum value in 100 steps
         # Okay now we basically do the same stuff as the last 3 times
         self.sizes = np.array([])                   # this is the array for sizes that we have to simulate
         self.valid_sizes = []                         # this is the list to keep track of the sizes that we simulated
@@ -1372,11 +1376,11 @@ class z_measurement(autonomous_measurement):
         self.cur_run_nr = 0                         # we will use this one in the run_jobs logic to know at which submit we are and which parameter number we have to return
         self.para_nr_run_dic = {}                   # this is the dictionary that will know which run number has which parameter number
         self.para_nr = 200                          # again different parameter number for different kind of simulation
-        self.base_fold = 10                         # for plotting we fold 10 points to one for better visibility
+        self.base_fold = fold                       # for plotting we fold 10 points to one for better visibility
 
     def setup(self):
         # This function does the setup again, I mean we dont have to many but
-        self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sites, dtype=np.int64)
+        self.sizes = 2 ** np.linspace(np.log2(self.size_min), np.log2(self.size_max), self.nr_sizes, dtype=np.int64)
         # what else do we need to do?
         # for what did I need total runs again? Just for submitting jobs in this run right?
         # how many jobs do we have to submit to get the minimum of nr_sites? For the testrun it might be okay to
@@ -1404,7 +1408,7 @@ class z_measurement(autonomous_measurement):
                 # If we did this we reset the cur para nr?
                 self.cur_para_nr = 0
                 # now we need to run those the jobs
-                self.run_jobs()     # this should work like this if we have the correct current para nr and the nr of total runs
+                self.run_jobs(self.test_exec_file)     # this should work like this if we have the correct current para nr and the nr of total runs
                 # no it doesnt work quite like this since we need to combine multiple parameter files with multiple runs for the same parameter value...
                 # sooo. what are we going to do ? I guess we need to implement some more elaborate get_para_nr logic.
                 # the thing is we need different behaviors depending on if we get the parameter number to write the parameter file or if we want to
@@ -1623,16 +1627,16 @@ class z_measurement(autonomous_measurement):
         # We now need to construct the parameterfile with the appropriate temperature
         # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
         # we also need to know how many subsystems we can initialize
-        sys_per_job = int(np.ceil(self.nr_sites / (self.size ** 2 * self.Ly_Lx)))
+        sys_per_job = int(np.ceil(self.nr_sites / (self.test_size ** 2 * self.Ly_Lx)))
         with open(self.filepath + "/parameters/para_set_" + str(self.get_write_para_nr()) + '.txt', 'w') as f:
                 f.write(self.simulation_path)
-                f.write(f"\nend_time, {self.max_time} \n"
+                f.write(f"\nend_time, {1e7} \n"
                         f"dt, {self.dt} \n"
                         f"J, {self.J_para} \n"
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
-                        f"nr_saves, 4 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
+                        f"nr_saves, 2 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
                         f"nr_repeat, 0 \n"
                         f"min_temp, {self.Tc} \n"
                         f"max_temp, {self.Tc} \n"
@@ -1663,7 +1667,9 @@ class z_measurement(autonomous_measurement):
             nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
             # the endtime can now be guessed using the test equilibration time and the z guess
             endtime = (size / self.test_size) ** self.z_guess * self.test_equil_time
-            with open(self.filepath + "/parameters/para_set_" + self.get_write_para_nr() + '.txt', 'w') as f:
+            # depending on the endtime we also need a density of cumulant values.
+            nr_cum_values = endtime / self.dt * self.cum_density            # endtime / dt is the number of steps, times the density is the number of cum values
+            with open(self.filepath + "/parameters/para_set_" + f"{self.get_write_para_nr()}" + '.txt', 'w') as f:
                 f.write(self.simulation_path)
                 f.write(f"\nend_time, {endtime} \n"
                         f"dt, {self.dt} \n"
@@ -1671,7 +1677,7 @@ class z_measurement(autonomous_measurement):
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
-                        f"nr_saves, 4 \n"
+                        f"nr_saves, 2 \n"       # standard number of saves is 2... will this be changed anytime?
                         f"nr_repeat, 0 \n"
                         f"min_temp, {self.Tc} \n"
                         f"max_temp, {self.Tc} \n"
@@ -1683,6 +1689,7 @@ class z_measurement(autonomous_measurement):
                         f"nr_subsystem_sizes, 0  \n"
                         f"nr_subsystems, {nr_subsystems} \n"
                         f"x_y_factor, {self.Ly_Lx} \n"
+                        f"nr_cum_values, {nr_cum_values} \n"
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}")
@@ -1725,6 +1732,14 @@ def main():
     Tc_exec_file = "SubsystemRelaxation.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
+    z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
+    z_test_exec_file = "AutoZTest.cu"
+    # for the real measurements we have fixed end times and we extract the cumulant a fixed number of times
+    # for the test measurement we extract a density of cumulants, calculate the error and run until we are equilibrated.
+    # In both cases we start in a high temperature phase. For the testmeasurement we can actually just use the amplitude file?
+    # for the other ones I think we need a new file. Okay we can maybe use the amplitude file, but it observes the correlation length
+    # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
+    # want to work with the new error
 
     max_rel_intersection_error = 0.001
 
@@ -1737,11 +1752,21 @@ def main():
     amplitude_size = 1024
     equil_error = 0.001
     equil_cutoff = 0.3
+
+    # z parameters
+    size_min = 64
+    size_max = 256
+    nr_sizes = 3
+    z_min_nr_sites = 5e5
+    z_min_nr_systems = 50
+    z_equil_error = 0.01
+
     # Enter which calculations are supposed to run here
     measurements = {
         "Tc": False ,
         "Quench": False,
-        "Amplitude": True,
+        "Amplitude": False,
+        "z": True,
     }
 
     # I honestly have no idea on how to account h, that is really a problem
@@ -1762,6 +1787,12 @@ def main():
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
                                      equil_error=equil_error, equil_cutoff=equil_cutoff)
         ampl.run()
+    if measurements["z"]:
+        z_measure = z_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "z",
+                                        z_exec_file, z_test_exec_file, T_c, nr_GPUS=nr_gpus, size_min=64, size_max=256,
+                                        nr_sizes=nr_sizes, min_nr_sites=z_min_nr_sites, min_nr_systems=z_min_nr_systems,
+                                     equil_error=z_equil_error)
+        z_measure.run()
 
 if __name__ == '__main__':
     main()

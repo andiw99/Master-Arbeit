@@ -468,4 +468,11 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < 4; i++) {
         cout << ptr_copy[i] << ", ";
     }
+
+    int some_size = 9;
+
+    for(int i = (-1) * some_size; i < some_size; i++) {
+        cout << "i = " << i << endl;
+    }
+
 }

@@ -408,6 +408,116 @@ class cum_equilibration_observer: public obsver<system, State>{
     vector<double> U_L{};
     vector<double> times{};
     int min_cum_nr = 500;
+    double write_density = 1.0 / 100.0;      // the minimum density of U_L calculations will be once in 1000 steps
+    double dt = 0.01;
+    double dt_half;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
+    double max_error= 0.001;
+    int cum_nr = 0;                         // current number in the averageing process
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+public:
+    cum_equilibration_observer(int min_cum_nr) : min_cum_nr(min_cum_nr) {
+    }
+
+    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
+        if (paras[Parameter::min_cum_nr]){
+            min_cum_nr = (int)paras[Parameter::min_cum_nr];
+        }
+        timepoint = 0.0;
+        equilibrated = false;
+        // we also need to reset U_L and times, dont we?
+        U_L = vector<double>{};
+        times = vector<double>{};
+        close_stream();
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
+        cout << this->get_name() << " init called" << endl;
+        ofile << "t,U_L" << endl;
+
+        // I think the starting write interval should be every one hundred steps
+        dt = paras[Parameter::dt];
+        dt_half = dt / 2.0;
+        write_interval = dt / write_density;
+    }
+
+    string get_name() override {
+        return "cum equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint - dt_half) {
+            // advancing the cum nr
+            cum_nr++;
+            // we calculate the cumulant and write it down
+            double cum = sys.calc_binder(x);
+            ofile << t << "," << cum << endl;
+            // add the cumulant and the times to the vectors to keep track
+            U_L.push_back(cum);
+            times.push_back(t);
+            // now we want to see if we have to adjust the write interval
+            // we have to make sure that we got 5 fresh cum values
+            if(!equilibrated) {
+                int nr_cum_values = U_L.size();      // check how many cum values we already have
+                // now use the last avg_nr of cum values to calculate a mean U_L
+                // use transform reduce?
+                // does it work like this? U_L.end() - avg_nr is the n-th last value in the vector?
+                if(nr_cum_values > min_cum_nr){
+                    // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
+                    int min_ind = (int)(equil_cutoff * nr_cum_values);
+                    // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
+                    double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+                    std::vector<double> diff_total(nr_cum_values - min_ind);
+                    std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
+                    double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0);
+                    // this is the variance of the distribution (in wrong because the values are correlated), so we
+                    // need the autocorrelation time to adjust for this. The function works with arrays
+                    double* U_L_arr = &U_L[min_ind];
+                    double autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                    // (nr_cum_values-min_ind) * the write interval is the total time of the part of the simulation that we are considering
+                    // sq sum total should be the thing that we called the standard deviation of the distribution
+                    double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * sq_sum_total;
+                    double rel_stddev_total = sqrt(U_L_variance) / avg_U_L;
+                    if(U_L.size() % 10 == 0) {
+                        cout << "autocorrelation time: " << autocorr_time << endl;
+                        cout << "U_L variance: " << U_L_variance << endl;
+                        cout << "rel_stddev_total = " << rel_stddev_total << endl;
+                    }
+
+                    // Okay we found out that this is not the real error, so we need a function that calculates the error
+                    // or first a function that calculates the integrated autocorrleation time
+                    // We indded have two auto correlation times for the two directions. Could they be individually sized?
+                    // the question is now if we want to extract avg_U_L and its error if we are equilibrated
+                    // we definitely should? But how and where? somehow into the parameter file?
+                    if(rel_stddev_total < max_error) {
+                        cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                        cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
+                        // we set the system to be equilibrated
+                        sys.set_equilibration(t);
+                        // once we did this, we dont want to do that a second time?
+                        equilibrated = true;
+                    }
+                }
+            }
+            timepoint += write_interval;
+        }
+    }
+
+};
+
+template <class system, class State>
+class old_cum_equilibration_observer: public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<double> U_L{};
+    vector<double> times{};
+    int min_cum_nr = 500;
     int avg_nr = 5;     // after avg_nr of U_L calculations we check if we should adjust the stepsize
     double min_density = 1.0 / 1000.0;      // the minimum density of U_L calculations will be once in 1000 steps
     double max_density = 1.0 / 10.0;        // the maximum density of U_L calculations will be once in 10 steps

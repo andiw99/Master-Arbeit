@@ -937,7 +937,7 @@ std::pair<std::vector<double>, double*> cut_data_around_peak(
     return std::make_pair(x_cut, y_cut);
 }
 
-double get_autocorrtime(double* f, size_t f_size, double ds) {
+double get_autocorrtime(double* f, int f_size, double ds) {
     // okay we could get the standard dev here already becasue we already computed it, but to be honest this wont be
     // computationally intensive in comparison to the rest that the function does
     // indeed for the integration we need the timestep (between the xi measurements)
@@ -949,17 +949,21 @@ double get_autocorrtime(double* f, size_t f_size, double ds) {
     // what do we do about the min ind? this should be part of this function, but copying a vector will also be expensive
     // tbh for this double* arrays would be insane?
     // we could construct a doulbe* vec_ptr = &vector[min_pos], that way we do not have to allocate more memory
+    cout << "f_size = " << f_size << endl;
     double avg_f = accumulate(f, f + f_size, 0.0) / (double)(f_size);
+    // I think the average cannot be just the average of all used values, it might have to be the one in the interval until T - dist
+    cout << "avg_f = " << avg_f << endl;
     std::vector<double> diff(f_size);       // I mean we can use vectors here again if we want, then we dont have to deal with memory management
     std::transform(f, f + f_size, diff.begin(), [avg_f](double x) { return x - avg_f; });
     double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    cout << "variance_f = " << variance_f << endl;
     // okay this is the variance
     // okay we have the simplest one of infinity values so we are basically done
     // the total duration of the simulation is, or of the sample that we are considering
     double T = f_size * ds;     // and we integrate from -T/2 to T/2
     vector<double> norm_autocorrelation_function{};     // I think we will use the normalized autocorrelation function so that we dont have to modify this thing if we want to calculate the autocorrelation time
     // we have discrete possible time distances
-    for(int dist = - f_size/3; dist < f_size/3; dist++) {
+    for(int dist = 1; dist < f_size/10; dist++) {
         // dist is the time distance measured in timesteps ds, the actual time distance is
         double t = (double)dist * ds;
         // for this t we somehow need to calculate the autocorrelation function
@@ -986,21 +990,37 @@ double get_autocorrtime(double* f, size_t f_size, double ds) {
         // ah damn I think I would have to write that down, for now we just use the absolute value of t
         double* f_early = f;
         double* f_late = f + dist;
+
         // the number of pairs we have is just
         size_t nr_integration_values = f_size - dist;
+        // lets try it with the average until t - dist * ds
+        double avg = accumulate(f_early, f_early + nr_integration_values, 0.0) / (double)nr_integration_values;
         // Now we fill up a vector with the multiplied values
         vector<double> prod(nr_integration_values);
+/*        cout << "f_early:" << endl;
+        print_array(f_early, nr_integration_values);
+        cout << "f_late:" << endl;
+        print_array(f_late, nr_integration_values);*/
+        cout << "dist = " << dist << endl;
+        cout << "avg = " << avg << endl;
         std::transform(f_early, f_early + nr_integration_values, f_late, prod.begin(), std::multiplies<double>());
+        cout << "prod" << endl;
+        print_vector(prod);
         // I hope this is correct syntax, the aim is to have the multiplied values f(t) * f(t +dist) inside the prod vector
         // the prod vector can then be reduced and multiplied with the time distance between the measured values (ds)
         // Afterwards we have to average the integral with 1 / T, but T is just ns * ds so we can in this case just average with ns which is f_size
-        double autocorr_value = accumulate(prod.begin(), prod.end(), 0.0) / nr_integration_values;
+        double autocorr_value = accumulate(prod.begin(), prod.end(), 0.0) / (double)nr_integration_values - avg * avg;
+        cout << "autocorr_value " << autocorr_value << endl;
         // I think we should save the autocorrelation values somewhere
         norm_autocorrelation_function.push_back(autocorr_value / variance_f);
+        cout << "norm_autocorrelation value = " << autocorr_value / variance_f << endl;
     }
+    print_vector(norm_autocorrelation_function);
     // now we have all C(t) values, then we integrate them to obtain the autocorrelation time
     // this time the actual time difference is relevant
     double autocorrelation_time = accumulate(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds / 2.0;
+    cout << "autocorr time = " << autocorrelation_time << endl;
+    exit(0);
     // and this should be it. I think through the fact that we always know directly where the partner is and dont have many loops the
     // computation time will not be small but also not huge, probably okay if it runs every 1000 steps or so
     return autocorrelation_time;

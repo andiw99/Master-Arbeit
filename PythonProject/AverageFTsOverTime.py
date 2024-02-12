@@ -23,7 +23,7 @@ def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_
     taus = np.array(list(t_xi_largest.keys()))[np.argsort([float(key) for key in t_xi_largest.keys()])]
     taus_plot = taus[valid_inds]
     # now we can basically do what we did below?
-    fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 2]})
+    fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 3]})
     ax_equil = axes[0]
     ax_quench = axes[1]
     color_ind = 0
@@ -60,13 +60,13 @@ def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_
                         # if the setting is non existent, we use the next color in colors
                         color = colors[color_ind]
                         color_ind += 1
-                ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=4,
-                               marker=markers[marker_ind],
-                               color=color)  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
-                ax_quench.plot(t_quench, xi_quench, linestyle="", markersize=4, marker=markers[marker_ind], color=color)  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
+                ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=5, marker=markers[marker_ind],
+                               color=color, markerfacecolor="none")  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
+                ax_quench.plot(t_quench, xi_quench, linestyle="", markersize=5, marker=markers[marker_ind],
+                               color=color, markerfacecolor="none")  # label=rf"$\xi_x$  {setting_var} = {float(setting):.2f}",)
             except KeyError:
                 print(f"tau = {tau} not available in size = {size}")
-        ax_quench.plot([], [], linestyle="", marker=markers[marker_ind], label=f"L = {size}", color="black")
+        ax_quench.plot([], [], linestyle="", marker=markers[marker_ind], label=f"L = {size}", color="black",  markerfacecolor="none")
     ax_quench.set_yscale(y_scale)
     ax_equil.set_yscale(y_scale)
     if y_scale == "log":
@@ -77,11 +77,16 @@ def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_
     quench_config = {
         "titlesize": 0,
         "ytickfontsize": 0,
-        "ylabelsize": 0
+        "ylabelsize": 0,
+        "y_tickwidth": 0,
+        "y_ticklength": 0
+    }
+    equil_config = {
+        "nr_x_major_ticks": 2
     }
     configure_ax(fig, ax_quench, quench_config)
-    configure_ax(fig, ax_equil)
-    fig.subplots_adjust(wspace=0.025)
+    configure_ax(fig, ax_equil, equil_config)
+    fig.subplots_adjust(wspace=0.01)
     return fig, axes
 
 def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log"):
@@ -275,6 +280,8 @@ def main():
     fig, ax = plot_process(size_x_dic, t_eq, t_eq_end=t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
     ax_equil = ax[0]
     ax_quench = ax[1]
+    ax_equil.set_title("Equilibration")
+    ax_quench.set_title("Quench")
     fig.suptitle("Time during quench is scaled")
     ax_equil.set_ylabel(r"$\xi_\parallel / a_\parallel$")
     ax_equil.set_xlabel("t/ns")

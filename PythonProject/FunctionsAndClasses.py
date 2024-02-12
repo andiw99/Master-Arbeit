@@ -20,7 +20,7 @@ from scipy.stats import linregress
 # import matplotlib; matplotlib.use("TkAgg")
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
-markers = [".", "x", "+", "*", "D", "1", "2", "v", "^"]
+markers = ["o", "s", ".", "x", "+", "*", "D", "1", "2", "v", "^"]
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)
@@ -496,8 +496,14 @@ PLOT_DEFAULT_CONFIG = {
     "legendlocation": "best",
     "ticklength": 6,
     "tickwidth": 2,
+    "x_ticklength": 6,
+    "x_tickwidth": 2,
+    "y_ticklength": 6,
+    "y_tickwidth": 2,
     "nr_y_minor_ticks": 5,
     "nr_y_major_ticks": 5,
+    "nr_x_minor_ticks": 5,
+    "nr_x_major_ticks": 5,
     "gridalpha": 0.5,
     "labelrotation": 0,
     "labelhorizontalalignment": "right",
@@ -544,19 +550,24 @@ def configure_ax(fig, ax, config=None):
         y_span = round_to_first_non_zero(ax.get_ylim()[1] - ax.get_ylim()[0])
     nr_y_minor_ticks = config["nr_y_minor_ticks"]
     nr_y_major_ticks = config["nr_y_major_ticks"]
+    nr_x_minor_ticks = config["nr_x_minor_ticks"]
+    nr_x_major_ticks = config["nr_x_major_ticks"]
     if ax.get_yscale() != "log":
         ax.yaxis.set_major_locator(ticker.MultipleLocator(base=y_span/nr_y_major_ticks))
         ax.yaxis.set_minor_locator(ticker.MultipleLocator(base=y_span/nr_y_major_ticks / nr_y_minor_ticks))
     if ax.get_xscale() != "log":
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/5))
-        ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/5 / 5))
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(base=x_span/nr_x_major_ticks))
+        ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=x_span/nr_x_major_ticks / nr_x_minor_ticks))
 
     # We want to have inline ticks
-    ax.tick_params(axis="x", direction='in', which='both', length=config["ticklength"], width=config["tickwidth"], labelsize=config["xtickfontsize"])
+    ax.tick_params(axis="x", direction='in', which='both', length=config["x_ticklength"], width=config["x_tickwidth"], labelsize=config["xtickfontsize"])
     ax.tick_params(axis="y", direction='in', which='both',
-                   length=config["ticklength"], width=config["tickwidth"],
+                   length=config["y_ticklength"], width=config["y_tickwidth"],
                    labelsize=config["ytickfontsize"])
-    ax.tick_params(direction='in', which='minor', length=int(config["ticklength"] * 0.75), width=int(config["tickwidth"] * 0.75))
+    ax.tick_params(axis="x", direction='in', which='minor', length=int(config["x_ticklength"] * 0.75),
+                   width=int(config["x_tickwidth"] * 0.75))
+    ax.tick_params(axis="y", direction='in', which='minor', length=int(config["y_ticklength"] * 0.75),
+                   width=int(config["y_tickwidth"] * 0.75))
 
     if ax.get_xscale() != "log":
         remove_origin_ticks(ax)

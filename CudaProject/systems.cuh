@@ -1736,6 +1736,7 @@ public:
 /*        for (int j = 0; j < dim_size_x * Ly; j++) {
             cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell_trafo[j] << endl;
         }*/
+        // TODO this needs to be optimized for GPUs
         for(int i = 0; i < nr_subsystems; i++) {
             // for every subsystem we need to extract it
             double m;
