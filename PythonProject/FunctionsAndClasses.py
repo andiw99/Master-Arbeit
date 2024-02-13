@@ -176,6 +176,18 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
         ticks = np.linspace(- np.pi / 2, np.pi / 2, nr_ticks, endpoint=True)
         tick_labels = np.linspace(-np.pi / 2, np.pi / 2, nr_ticks, endpoint=True)
         tick_labels = [f"{tick_label:.2f}" for tick_label in tick_labels]
+    elif config["angle"] == 3:
+        # this one calculates the position of the minimum and then sets those
+        # plus 5% to be the limits
+        # if i use the row here it should be the last row so the equilibrated one?
+        min_pos = np.mean(np.abs(row))
+        print("min_pos = ", min_pos)
+        min_legend = - 1.05 * min_pos
+        max_legend = 1.05 * min_pos
+        ticks = np.linspace(min_legend, max_legend, nr_ticks, endpoint=True)
+        tick_labels = np.linspace(min_legend, max_legend, nr_ticks,
+                                  endpoint=True)
+        tick_labels = [f"{tick_label:.2f}" for tick_label in tick_labels]
     else:
         well_pos = np.sqrt(parameters["beta"] / 2)
         ticks = np.linspace(- 1.5 * well_pos, 1.5 * well_pos, nr_ticks, endpoint=True)
@@ -229,6 +241,17 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     ax.set_title(title)
     Lx = int(parameters["dim_size_x"])
     Ly = int(parameters["dim_size_y"])
+    J_para = np.abs(parameters["J"])
+    J_perp = np.abs(parameters["Jy"])
+    h = parameters["alpha"]
+    try:
+        p = parameters["p"]
+        if p == 2:
+            print("Guessing p = 2 is the wrong p, using p = 2.57")
+            p = 2.57
+    except KeyError:
+        print("No p available in parameter file, using p = 2.57")
+        p = 2.57
     subsystem_Lx = int(parameters["subsystem_Lx"])
     subsystem_Ly = int(parameters["subsystem_Ly"])
     cell_L = int(config["cell_L"])
@@ -252,6 +275,18 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
     elif config["angle"] == 2:
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=np.pi/2, vmin=-np.pi/2)
+    elif config["angle"] == 3:
+        # this should actually use the minimum of the system, but well I think
+        # we can calculate it?
+        print("p = ", p)
+        print("J_para = ", J_para)
+        print("J_perp = ", J_perp)
+        print("h = ", h)
+        theta_equil = get_equilibrium_position(J_para, J_perp, h, p)
+        print("equilibrium angle equation: ", equilibrium_angle_equation(theta_equil, J_para, J_perp, h, p))
+        print(theta_equil)
+        cf = ax.pcolormesh(row, cmap="viridis_r", vmax= 1.05 * theta_equil,
+                           vmin=-1.05 * theta_equil)
     else:
         well_pos = np.sqrt(parameters["beta"] / 2)
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos)
@@ -1444,6 +1479,23 @@ def fold(t, U_L, fold=3):
         U_L_fold.append(U_L_avg)
 
     return np.array(t_fold), np.array(U_L_fold)
+
+def equilibrium_angle_equation(theta, J_para, J_perp, h, p):
+    zero = p * np.sin(theta * p) + 4 * np.sin(4 * theta) * (J_para + J_perp) / h
+    return zero
+
+def get_equilibrium_position(J_para, J_perp, h, p, theta_guess=0.8):
+    """
+    Calculates the equilibrium position of my XY model
+    :param J_para: coupling parameter in parallel direction
+    :param J_perp: coupling parameter in perpendicular direction
+    :param h: strenght of the external field
+    :param p: multiplicity of the external field
+    :return: theta*
+    """
+    theta_equil = fsolve(equilibrium_angle_equation, theta_guess, args=(J_para, J_perp, h, p))
+    return theta_equil
+
 
 def main():
     print("This file is made to import, not to execute")
