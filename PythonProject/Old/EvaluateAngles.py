@@ -3,9 +3,9 @@ import numpy as np
 
 def calculate_angle_with_y_axis(point1, point2):
     # Calculate the angle with the y-axis using arctan
-    dz = np.abs(point2[2] - point1[2])
-    dy = np.abs(point2[1] - point1[1])
-    angle_rad = math.asin(dz / dy)
+    dz = (point2[2] - point1[2])
+    dy = (point2[1] - point1[1])
+    angle_rad = math.atan(dz / dy)
     angle_deg = math.degrees(angle_rad)
     return angle_deg
 
@@ -26,7 +26,7 @@ def extract_top_n_si_lines(file_path, n):
     top_n_si_lines = [line for (line, z_value) in si_lines[:n]]
 
     return top_n_si_lines
-def average_angles_over_lines(file_path, x_tolerance=0.03, y_tolerance=3, nr_dimers=12):
+def average_angles_over_lines(file_path, x_tolerance=0.2, y_tolerance=3, nr_dimers=12):
     # Read coordinates from file
     coordinates = []
     with open(file_path, 'r') as file:
@@ -57,20 +57,28 @@ def average_angles_over_lines(file_path, x_tolerance=0.03, y_tolerance=3, nr_dim
         # now we somehow need to remove
     # Calculate angles with y-axis for each group of coordinates
     angles = []
+    angle_map = {}
     for si1, si2 in grouped_coordinates:
             # Calculate angle for each pair of consecutive points in the group
         angle = calculate_angle_with_y_axis(si1, si2)
+        angle_map[(si1, si2)] = angle
         angles.append(angle)
+    # sort the angle map for x values
+    angle_map = {k: v for k, v in sorted(angle_map.items(), key=lambda item:item[0][0][0])}
+
 
     # Average angles over all lines
     if angles:
+        print(angles)
+        print(len(angle_map))
+        print(angle_map)
         average_angle = sum(angles) / len(angles)
         return average_angle
     else:
         return None
 
 # Example usage:
-file_path = "../../../Generated content/p1-si-relaxed-geom-pbesol-pbe-pz/pbesol/sisurc4x2-12dim-pbesol.xyz"  # Replace with the path to your file
+file_path = "../../../Generated content/DFT/p1-si-relaxed-geom-pbesol-pbe-pz/pbesol/sisurp2x1-12dim-pbesol.xyz"  # Replace with the path to your file
 average_angle = average_angles_over_lines(file_path)
 if average_angle is not None:
     print("Average angle with y-axis:", average_angle)
