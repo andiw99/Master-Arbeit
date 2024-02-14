@@ -266,7 +266,7 @@ public:
     }
 };
 
-template <class system, class State>
+/*template <class system, class State>
 class runtime_observer : public obsver<system, State> {
     // supposed to write the time the run took
     // I am thinking about adding a 'conclude'-function to the observers since i dont really know how
@@ -308,7 +308,7 @@ public:
     string get_name() override {
         return "runtime observer";
     }
-};
+};*/
 
 template <class system, class State>
 class NER_observer : public obsver<system, State>{
@@ -408,7 +408,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     vector<double> U_L{};
     vector<double> times{};
     int min_cum_nr = 500;
-    double write_density = 1.0 / 100.0;      // the minimum density of U_L calculations will be once in 1000 steps
+    double write_density = 1.0 / 100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
     double dt = 0.01;
     double dt_half;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
@@ -417,6 +417,12 @@ class cum_equilibration_observer: public obsver<system, State>{
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
 public:
     cum_equilibration_observer(int min_cum_nr) : min_cum_nr(min_cum_nr) {
+    }
+
+    cum_equilibration_observer(int min_cum_nr, double write_density) : min_cum_nr(min_cum_nr), write_density(write_density) {
+    }
+
+    cum_equilibration_observer(int min_cum_nr, double write_density, double equil_cutoff) : min_cum_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {
     }
 
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
@@ -462,40 +468,45 @@ public:
                 // now use the last avg_nr of cum values to calculate a mean U_L
                 // use transform reduce?
                 // does it work like this? U_L.end() - avg_nr is the n-th last value in the vector?
-                if(nr_cum_values > min_cum_nr){
-                    // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
-                    int min_ind = (int)(equil_cutoff * nr_cum_values);
-                    // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
-                    double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
-                    std::vector<double> diff_total(nr_cum_values - min_ind);
-                    std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
-                    double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0);
-                    // this is the variance of the distribution (in wrong because the values are correlated), so we
-                    // need the autocorrelation time to adjust for this. The function works with arrays
-                    double* U_L_arr = &U_L[min_ind];
-                    double autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
-                    // (nr_cum_values-min_ind) * the write interval is the total time of the part of the simulation that we are considering
-                    // sq sum total should be the thing that we called the standard deviation of the distribution
-                    double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * sq_sum_total;
-                    double rel_stddev_total = sqrt(U_L_variance) / avg_U_L;
-                    if(U_L.size() % 10 == 0) {
+                if(nr_cum_values >= min_cum_nr){
+                    int error_every_n_steps = (int)(1000.0 * write_density);
+                    if(U_L.size() % error_every_n_steps == 0) {
+                        // We dont need to calculate the error and stuff everytime we write down a U_L
+                        // IF the density is small, we should write down more often
+                        // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
+                        int min_ind = (int)(equil_cutoff * nr_cum_values);
+                        // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
+                        double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+                        std::vector<double> diff_total(nr_cum_values - min_ind);
+                        std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
+                        double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0) / (nr_cum_values-min_ind);
+                        // this is the variance of the distribution (in wrong because the values are correlated), so we
+                        // need the autocorrelation time to adjust for this. The function works with arrays
+                        double* U_L_arr = &U_L[min_ind];
+                        double autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        // (nr_cum_values-min_ind) * the write interval is the total time of the part of the simulation that we are considering
+                        // sq sum total should be the thing that we called the standard deviation of the distribution
+                        double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * sq_sum_total;
+                        double rel_stddev_total = sqrt(U_L_variance) / avg_U_L;
+
                         cout << "autocorrelation time: " << autocorr_time << endl;
                         cout << "U_L variance: " << U_L_variance << endl;
                         cout << "rel_stddev_total = " << rel_stddev_total << endl;
-                    }
 
-                    // Okay we found out that this is not the real error, so we need a function that calculates the error
-                    // or first a function that calculates the integrated autocorrleation time
-                    // We indded have two auto correlation times for the two directions. Could they be individually sized?
-                    // the question is now if we want to extract avg_U_L and its error if we are equilibrated
-                    // we definitely should? But how and where? somehow into the parameter file?
-                    if(rel_stddev_total < max_error) {
-                        cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
-                        cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
-                        // we set the system to be equilibrated
-                        sys.set_equilibration(t);
-                        // once we did this, we dont want to do that a second time?
-                        equilibrated = true;
+
+                        // Okay we found out that this is not the real error, so we need a function that calculates the error
+                        // or first a function that calculates the integrated autocorrleation time
+                        // We indded have two auto correlation times for the two directions. Could they be individually sized?
+                        // the question is now if we want to extract avg_U_L and its error if we are equilibrated
+                        // we definitely should? But how and where? somehow into the parameter file?
+                        if(rel_stddev_total < max_error) {
+                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                            cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
+                            // we set the system to be equilibrated
+                            sys.set_equilibration(t);
+                            // once we did this, we dont want to do that a second time?
+                            equilibrated = true;
+                        }
                     }
                 }
             }

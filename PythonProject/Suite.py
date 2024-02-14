@@ -50,7 +50,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
 
     # Iterate over sizes
     for size in sizes:
-        size_path = os.path.join(directory_path, str(size))
+        size_path = os.path.join(directory_path, str(int(size)))
 
         # Check if the size folder exists
         if not os.path.exists(size_path) or not os.path.isdir(size_path):
@@ -127,13 +127,14 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff):
     else:
         return False
 
-def check_cum_valid(folderpath, variation_error, num_per_var_val):
+def check_cum_valid(folderpath, variation_error_rate, num_per_var_val, ds):
     """
     this function checks if a simulation in folderpath has .cum file with
     a variation error that is small than given
     :param folderpath: path to the folder containing the simulation
     :param variation_error: the stddev of the differences of consecutive datapoints
     :param num_per_var_val: the number of values we use to calculate one dif_std value
+    :param ds: time between the measurements
     :return: bool whether the simulation is valid or not
     """
     # I dont think we need anything else do do this?
@@ -148,8 +149,12 @@ def check_cum_valid(folderpath, variation_error, num_per_var_val):
     # by the number of values in one interval. If this goes not perfectly
     # up, we add one to have one more interval
     dif_var_mean = get_mean_rel_dif_var(cum, num_per_var_val)
+    # so the thing is that this is dependent on how large the stepsize is, do we have to correlate them again
+    # or we consider something more like the dif_var_mean relative to the duration of the intervals
+    # if the duration of the intevals is really small, the dif_var_mean will be small
+    div_var_mean_rate = dif_var_mean / (num_per_var_val * ds)
     # If this mean is small than the validation error that we want to use, we accept the measurement
-    if dif_var_mean < variation_error:
+    if dif_var_mean < variation_error_rate:
         return True
     else:
         return False
@@ -193,6 +198,7 @@ def get_folder_average(folderpath, file_ending="cum", value="U_L"):
             cum += this_cum
     # averaging
     cum = cum / len(cum_files)
+    times = np.array(times)
     return cum, times
 
 
@@ -1342,8 +1348,9 @@ class amplitude_measurement(autonomous_measurement):
 
 class z_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
-                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, variation_error=0.01, z_guess=2,
-                 min_nr_sites=1e6, min_nr_systems=100, fold=10, cum_density=1/100):
+                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
+                 variation_error_rate=0.01, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=10, cum_density=1/100,
+                 test_cum_density=1/2, test_min_cum_nr=2000):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         # ah maybe you should first write a concept about what this measurment should do
@@ -1358,7 +1365,7 @@ class z_measurement(autonomous_measurement):
         self.test_exec_file = test_exec_file
 
         # What else do we need?
-        self.variation_error = variation_error      # this will be the error of the standard deviation of the differences of the U_L values
+        self.variation_error_rate = variation_error_rate      # this will be the error of the standard deviation of the differences of the U_L values
         self.z_guess = z_guess                      # this is the guess for z that we will need to estimate how long the runs for the larger sizes should run
         self.test_size = size_min / 2               # the test size to see how long the simulations should run will be half of the minimum size
         # for this run we also need the equil error
@@ -1369,6 +1376,7 @@ class z_measurement(autonomous_measurement):
         self.nr_points_diff_variance = 10           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
         # We could actually also think about just averaging all U_L values, this should already give a good measure
         self.cum_density = cum_density                  # the standard density will write 1 cum value in 100 steps
+        self.test_cum_density = test_cum_density        # the test cum density will be much larger since we want to see if we are equilibrated as fast as possible
         # Okay now we basically do the same stuff as the last 3 times
         self.sizes = np.array([])                   # this is the array for sizes that we have to simulate
         self.valid_sizes = []                         # this is the list to keep track of the sizes that we simulated
@@ -1377,6 +1385,10 @@ class z_measurement(autonomous_measurement):
         self.para_nr_run_dic = {}                   # this is the dictionary that will know which run number has which parameter number
         self.para_nr = 200                          # again different parameter number for different kind of simulation
         self.base_fold = fold                       # for plotting we fold 10 points to one for better visibility
+
+        self.test_min_cum_nr = test_min_cum_nr      # the minimum nr of cumulant values we calculate for the testrun
+        self.test_equil_cutoff = equil_cutoff       # the values we cut off when running the test run
+
 
     def setup(self):
         # This function does the setup again, I mean we dont have to many but
@@ -1423,12 +1435,13 @@ class z_measurement(autonomous_measurement):
         # we also should check if we trust the result, so if the variation error is small enough
         # this means we have to write another validation function, done
         # so now we do the same thing as in z_extraction suite, we let the computer search the valid measurements
-        valid_simulations = get_avail_simulations(self.sizes, self.Tc,
+        valid_simulations = get_avail_simulations(self.sizes, [self.Tc],
                                                   self.simulation_path,
                                                   check_cum_valid,
                                                   check_function_args=(
-                                                  self.variation_error,
-                                                  self.nr_points_diff_variance))
+                                                  self.variation_error_rate,
+                                                  self.nr_points_diff_variance,
+                                                  self.dt / self.cum_density))
         # every valid simulation does not have to be repeated
         for valid_simulation in valid_simulations:
             # brutal but effective i guess
@@ -1456,12 +1469,13 @@ class z_measurement(autonomous_measurement):
         # so this one looks at a done measurement and decides whether if was okay or not
         # tbh to check if it is valid was already done by the get valid_measurements function, so we should be able to reuse that here?
         # what we have to write is the plotting and fitting...
-        valid_simulations = get_avail_simulations(self.sizes, self.Tc,
+        valid_simulations = get_avail_simulations(self.sizes, [self.Tc],
                                                   self.simulation_path,
                                                   check_cum_valid,
                                                   check_function_args=(
-                                                  self.variation_error,
-                                                  self.nr_points_diff_variance))
+                                                  self.variation_error_rate,
+                                                  self.nr_points_diff_variance,
+                                                  self.dt / self.cum_density))
         if len(valid_simulations) == self.nr_sizes:
             # this means the simulation was valid and we can do the rescaling
             print("Simulation successful, evaluating")
@@ -1609,14 +1623,14 @@ class z_measurement(autonomous_measurement):
                 self.para_nr_run_dic[nr_previous_jobs + j] = i + self.para_nr
         # this should be it again
     def get_last_time(self):
-        temp_folder_path = f"{self.simulation_path}/{self.test_size}/{self.Tc:6f}"
+        temp_folder_path = f"{self.simulation_path}/{self.test_size:.0f}/{self.Tc:6f}"
         for file in os.listdir(temp_folder_path):
             file_path = os.path.join(temp_folder_path, file)
             if file_path.endswith(".cum"):
                 # then we have the correct file
                 df = pd.read_csv(file_path)
                 # how do we get the last line here?
-                return df[-1][0]  # or something like this?
+                return df.iloc[-1][0]  # or something like this?
 
     def run(self):
         self.setup()
@@ -1650,7 +1664,10 @@ class z_measurement(autonomous_measurement):
                         f"x_y_factor, {self.Ly_Lx} \n"
                         f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
                         f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
-                        f"equil_error, {self.equil_error}\n")
+                        f"equil_error, {self.equil_error}\n"
+                        f"min_cum_nr, {self.test_min_cum_nr}\n"
+                        f"cum_write_density, {self.test_cum_density}\n"
+                        f"equil_cutoff, {self.test_equil_cutoff}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1759,7 +1776,7 @@ def main():
     nr_sizes = 3
     z_min_nr_sites = 5e5
     z_min_nr_systems = 50
-    z_equil_error = 0.01
+    z_equil_error = 0.005
 
     # Enter which calculations are supposed to run here
     measurements = {

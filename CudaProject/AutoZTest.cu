@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     // Okay so we initialize the observer first haha
     auto* relax_obs =
             new equilibration_observer<relax_system, state_type>();     //
-    auto* corr_obs = new cum_equilibration_observer<relax_system, state_type>(500); // TODO definitely remove this!
+    auto* corr_obs = new cum_equilibration_observer<relax_system, state_type>(paras[min_cum_nr], paras[cum_write_density], paras[equil_cutoff]); // TODO definitely remove this!
     // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
     //auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 

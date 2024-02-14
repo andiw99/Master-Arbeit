@@ -16,6 +16,7 @@
 #include <boost/typeof/typeof.hpp>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/random.h>
+#include <thrust/iterator/discard_iterator.h>
 #include <fstream>
 #include <filesystem>
 #include <chrono>
@@ -1701,6 +1702,22 @@ public:
         subsystems_pbc::force_calculation(x, dxdt, t, functor);
     }
 
+    struct segment_functor {
+        size_t Lx, Ly;
+        segment_functor(size_t Lx, size_t Ly): Lx(Lx), Ly(Ly){}
+        __host__ __device__ int operator()(int ind) const {
+            return ind / (Lx * Ly);
+        }
+    };
+
+    struct avg_functor {
+        double Lx, Ly;
+        avg_functor(double Lx, double Ly): Lx(Lx), Ly(Ly){}
+        __host__ __device__ double operator()(double m) const {
+            return m / (Lx * Ly);
+        }
+    };
+
     template<class State>
     double calc_binder(State& x) {
         // We return the average over the subsystems we have?
@@ -1713,7 +1730,7 @@ public:
         // i think for now we will only implement it for this class...
         bool gpu = true;
         int nr_subsystems = dim_size_x / Lx;
-        vector<double> m_vec{};
+        thrust::host_vector<double> m_vec{};
         // damn is this already it for the cell?
         auto cell = thrust::make_permutation_iterator(
                 x.begin(),
@@ -1730,31 +1747,55 @@ public:
             cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell[j] << endl;
         }*/
         // doing chess trafo
-        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0)));
+        //BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
         /*thrust::for_each(tuple, tuple + (dim_size_x * Ly), running_chess_trafo(dim_size_x, Lx));*/
         auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
 /*        for (int j = 0; j < dim_size_x * Ly; j++) {
             cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell_trafo[j] << endl;
         }*/
-        // TODO this needs to be optimized for GPUs
-        for(int i = 0; i < nr_subsystems; i++) {
-            // for every subsystem we need to extract it
-            double m;
-            if (gpu) {
-                m = thrust::transform_reduce(cell_trafo + i * (Lx * Ly), cell_trafo + (i+1) * (Lx * Ly),
-                                             sin_functor_thrust<double>(XY_Silicon::p_XY /  2.0), 0.0, thrust::plus<double>()) / ((double) (Lx * Ly));
-                // cout << "m =" << m << endl;
-            } else {
-                vector<double> cell(Lx * Ly);
-                extract_cell(x, cell, i, Lx, Ly, dim_size_x);
-                // could work right? :)
-                // chess trafo
-                chess_trafo_rectangular(cell, Lx);
-                // calc m
-                m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+
+        if (gpu) {
+            // before we used reduce by key, we extracted the sinus of the cell by using transform reduce,
+            // now we should transform beforehand i guess
+            auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(XY_Silicon::p_XY / 2.0));
+            thrust::device_vector<double> m_vec_gpu(nr_subsystems);
+            //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
+            auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx, Ly));
+            thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
+                                  segment_keys + (nr_subsystems * Lx * Ly),
+                                  sin_cell,
+                                  thrust::make_discard_iterator(),
+                                  m_vec_gpu.begin());
+
+            // we would now have to copy the m values back to the host to advance with the rest of the code
+            // other possibility is to just perform the rest on the GPU aswell
+            // I am not sure what will timewise be the better option, I guess simpler would be copying for now
+            // we need to average the U_Ls
+            //auto avg_functor = [this] __device__ (double m) {return m/(double)(Lx * Ly);};
+            thrust::transform(m_vec_gpu.begin(), m_vec_gpu.end(), m_vec_gpu.begin(), avg_functor(Lx, Ly));
+            m_vec = thrust::host_vector<double>(m_vec_gpu);
+        } else {
+            for(int i = 0; i < nr_subsystems; i++) {
+                // for every subsystem we need to extract it
+                double m;
+                if (gpu) {
+                    m = thrust::transform_reduce(cell_trafo + i * (Lx * Ly), cell_trafo + (i+1) * (Lx * Ly),
+                                                 sin_functor_thrust<double>(XY_Silicon::p_XY /  2.0), 0.0, thrust::plus<double>()) / ((double) (Lx * Ly));
+                    // cout << "m =" << m << endl;
+                } else {
+                    vector<double> cell(Lx * Ly);
+                    extract_cell(x, cell, i, Lx, Ly, dim_size_x);
+                    // could work right? :)
+                    // chess trafo
+                    chess_trafo_rectangular(cell, Lx);
+                    // calc m
+                    m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+                }
+                m_vec.push_back(m);
             }
-            m_vec.push_back(m);
         }
+
         double m_L2 = std::transform_reduce(m_vec.begin(), m_vec.end(),
                                             0.0, // initial value for the reduction (sum)
                                             std::plus<double>(), // transformation (square)
@@ -1786,6 +1827,7 @@ public:
             thrust::get<0>(tup).y = 0.0;
         }
     };
+
 
     template<class State>
     void calc_xi(State& x, double& xix, double& xiy) {

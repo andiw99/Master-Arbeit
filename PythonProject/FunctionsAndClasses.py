@@ -286,10 +286,11 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         print("equilibrium angle equation: ", equilibrium_angle_equation(theta_equil, J_para, J_perp, h, p))
         print(theta_equil)
         cf = ax.pcolormesh(row, cmap="viridis_r", vmax= 1.05 * theta_equil,
-                           vmin=-1.05 * theta_equil)
+                           vmin=-1.05 * theta_equil, rasterized=True, antialiased=True)
     else:
         well_pos = np.sqrt(parameters["beta"] / 2)
-        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos)
+        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos, linewidth=0)
+    cf.set_edgecolor('face')
 
     return cf
 
