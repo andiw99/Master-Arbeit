@@ -1465,6 +1465,7 @@ def fold(t, U_L, fold=3):
     t_fold = []
     U_L_fold = []
     nr_points = len(t)
+    fold = int(fold)
     nr_folded_points = nr_points // fold
     for point_nr in range(nr_folded_points):
         t_avg = 0

@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import os
 
 def calculate_angle_with_y_axis(point1, point2):
     # Calculate the angle with the y-axis using arctan
@@ -71,16 +72,39 @@ def average_angles_over_lines(file_path, x_tolerance=0.2, y_tolerance=3, nr_dime
     if angles:
         print(angles)
         print(len(angle_map))
-        print(angle_map)
-        average_angle = sum(angles) / len(angles)
+        for k, v in angle_map.items():
+            print(k, v, "\t", 90 - np.abs(v), "\t", (90 - np.abs(v)) / 180 * np.pi)
+        average_angle = sum(np.abs(angles)) / len(angles)
         return average_angle
     else:
         return None
 
+def evaluate_file(file_path):
+    average_angle = average_angles_over_lines(file_path)
+    if average_angle is not None:
+        print("Average angle with y-axis:", average_angle)
+        theta = 90 - average_angle
+        print("Average theta:", theta)
+        print("theta_rad:" , theta / 180 * np.pi)
+    else:
+        print("No data points found to calculate the angle.")
+
 # Example usage:
-file_path = "../../../Generated content/DFT/p1-si-relaxed-geom-pbesol-pbe-pz/pbesol/sisurp2x1-12dim-pbesol.xyz"  # Replace with the path to your file
-average_angle = average_angles_over_lines(file_path)
-if average_angle is not None:
-    print("Average angle with y-axis:", average_angle)
-else:
-    print("No data points found to calculate the angle.")
+def main():
+    path = "../../../Generated content/DFT/p1-si-relaxed-geom-pbesol-pbe-pz/pbe/"  # Replace with the path to your file
+    if os.path.isdir(path):
+        # if this is the case we want to go through all files and calculate the angels
+        files = os.listdir(path)
+
+        for file in files:
+            print(file, ":")
+            filepath = os.path.join(path, file)
+            evaluate_file(filepath)
+            print(" ")
+            print("  ")
+    else:
+        evaluate_file(path)
+
+
+if __name__ == "__main__":
+    main()

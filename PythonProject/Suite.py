@@ -148,31 +148,37 @@ def check_cum_valid(folderpath, variation_error_rate, num_per_var_val, ds):
     # the number of intervals is integer division of the nr of cum values devided
     # by the number of values in one interval. If this goes not perfectly
     # up, we add one to have one more interval
-    dif_var_mean = get_mean_rel_dif_var(cum, num_per_var_val)
+    dif_var_mean, squared_dif_var_mean = get_mean_dif_var(cum, num_per_var_val)
     # so the thing is that this is dependent on how large the stepsize is, do we have to correlate them again
     # or we consider something more like the dif_var_mean relative to the duration of the intervals
     # if the duration of the intevals is really small, the dif_var_mean will be small
-    div_var_mean_rate = dif_var_mean / (num_per_var_val * ds)
+    dif_var_mean_rate = dif_var_mean / (num_per_var_val * ds)
+    squared_dif_var_mean_rate = squared_dif_var_mean / (num_per_var_val * ds)
     # If this mean is small than the validation error that we want to use, we accept the measurement
-    if dif_var_mean < variation_error_rate:
+    if (dif_var_mean_rate < variation_error_rate) and (squared_dif_var_mean_rate < variation_error_rate ** 2):
         return True
     else:
         return False
 
 
-def get_mean_rel_dif_var(cum, num_per_var_val):
+def get_mean_dif_var(cum,num_per_var_val):
     nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
+    # we change the behavior, strong flucutations at the beginning are averaged out for the large sizes in the long run
+    # num_per_var_val = len(cum) // nr_intervals
     dif_var_arr = []
     for i in range(nr_intervals):
         # We have to be careful if we are at the last i?
         cum_interval = cum[
                        i * num_per_var_val:min((i + 1) * num_per_var_val, len(cum))]  # the cum values in this interval
         # from those values we want to get the stddev of the differences
-        dif_var, rel_dif_var = get_difference_std(cum_interval)  # and now we collect them in an array?
-        dif_var_arr.append(rel_dif_var)
+        dif_var = get_difference_std(cum_interval)  # and now we collect them in an array?
+        dif_var_arr.append(dif_var)
     # If we are finished we just take the mean of those var values?
+    # we choose the 5 largest variances
+    dif_var_arr = np.array(sorted(dif_var_arr))[-5:]
     dif_var_mean = np.mean(dif_var_arr)
-    return dif_var_mean
+    squared_dif_var_mean = np.mean(np.array(dif_var_arr) ** 2)    # this way large variances are punished harder
+    return dif_var_mean, squared_dif_var_mean
 
 
 def get_folder_average(folderpath, file_ending="cum", value="U_L"):
@@ -213,8 +219,11 @@ def get_difference_std(cum_arr):
     differences = np.ediff1d(cum_arr)
     # and now we just want the stddev of this, or maybe the relative stddev?
     dif_var = np.std(differences)
-    rel_dif_var = dif_var / np.mean(differences)
-    return dif_var, rel_dif_var
+    # I dont think we want to use the relative difference variance, because the difference variance is already
+    # a measure of how much the difference flucutates, if the difference is large, but doesnt fluctuate, the variance
+    # will already be small
+    # rel_dif_var = dif_var / (np.mean(np.abs(differences)))
+    return dif_var
 
 class autonomous_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
@@ -368,7 +377,8 @@ class crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 100
+        self.min_cum_nr = 10000
+        self.cum_write_density = 1 / 5
 
         self.cur_para_nr = 0
     def init(self):
@@ -685,7 +695,8 @@ class crit_temp_measurement(autonomous_measurement):
                         f"x_y_factor, {self.Ly_Lx} \n"
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
-                        f"equil_error, {self.equil_error}")
+                        f"equil_error, {self.equil_error}\n"
+                        f"cum_write_density, {self.cum_write_density}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1349,7 +1360,7 @@ class amplitude_measurement(autonomous_measurement):
 class z_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
                           size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
-                 variation_error_rate=0.01, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=10, cum_density=1/100,
+                 variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, cum_density=1/100,
                  test_cum_density=1/2, test_min_cum_nr=2000):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
@@ -1373,7 +1384,7 @@ class z_measurement(autonomous_measurement):
 
         self.min_nr_sites = min_nr_sites
         self.min_nr_systems = min_nr_systems        # same system like for quench, the U_L values that we use should be averaged out of at least 100 systems and if 100 systmes contain less than min nr of sites then so many systems that we reach teh min nr of sites
-        self.nr_points_diff_variance = 10           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
+        self.nr_points_diff_variance = 20           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
         # We could actually also think about just averaging all U_L values, this should already give a good measure
         self.cum_density = cum_density                  # the standard density will write 1 cum value in 100 steps
         self.test_cum_density = test_cum_density        # the test cum density will be much larger since we want to see if we are equilibrated as fast as possible
@@ -1462,6 +1473,7 @@ class z_measurement(autonomous_measurement):
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
             self.run_jobs()
+            self.cur_run_nr = 0
             #... we dont know whether the simulations are valid atm so we dont add them to valid_sizes?
         return self.evaluate()
 
@@ -1469,7 +1481,7 @@ class z_measurement(autonomous_measurement):
         # so this one looks at a done measurement and decides whether if was okay or not
         # tbh to check if it is valid was already done by the get valid_measurements function, so we should be able to reuse that here?
         # what we have to write is the plotting and fitting...
-        valid_simulations = get_avail_simulations(self.sizes, [self.Tc],
+        valid_simulations = get_avail_simulations(list(self.sizes) + self.valid_sizes, [self.Tc],
                                                   self.simulation_path,
                                                   check_cum_valid,
                                                   check_function_args=(
@@ -1480,7 +1492,7 @@ class z_measurement(autonomous_measurement):
             # this means the simulation was valid and we can do the rescaling
             print("Simulation successful, evaluating")
             # add to valid sizes
-            [self.valid_sizes.append(valid_sim[0]) for valid_sim in valid_simulations]          # is this proper python to shorten the for loop? Probably a bit slower than a normal for loop but this doesnt matter here
+            # [self.valid_sizes.append(valid_sim[0]) for valid_sim in valid_simulations]          # is this proper python to shorten the for loop? Probably a bit slower than a normal for loop but this doesnt matter here
             # so we had already a method to average the cumulant in a folder, right?
             # In the CumulantOverTime script we use two maps, one that maps the size and the temperatue to the cum array
             # and another that maps it to the time
@@ -1515,7 +1527,6 @@ class z_measurement(autonomous_measurement):
                 cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
 
                 ax.plot(t_inter_plot, cum_inter_plot, f"C{i}")
-
                 # okay so much for the plotting, now the refitting
                 # if there is a larger size we want to map this size onto it
                 if i < len(self.valid_sizes) - 1:
@@ -1537,7 +1548,7 @@ class z_measurement(autonomous_measurement):
                         times_next_rescaled = times_next / (b ** z)
                         # now we can look vor the shared interval by times_next and times_rescaled
                         t_lower_limit = np.maximum(np.min(times_next_rescaled), np.min(times_next))      # the lower limit is the greater minimum of the times
-                        t_upper_limit = np.minimum(np.max(times_next_rescaled), np.min(times_next))
+                        t_upper_limit = np.minimum(np.max(times_next_rescaled), np.max(times_next))
 
                         # between those bounds we need an array with dense t values to compare the two cum curves
                         # the number of values should be... i dont know how large, just large enough? The arrays we will use
@@ -1558,16 +1569,18 @@ class z_measurement(autonomous_measurement):
                             best_msd = msd
                             best_t_compare_arr = t_compare_arr
                             best_cum_compare_arr = cum_next_compare_arr
-                    # If we did this we want to plot it
+                # If we did this we want to plot it
                     ax.plot(best_t_compare_arr,
                             best_cum_compare_arr,
-                            linestyle="-", label=f"$L_x$={next_size[0]},"
-                                                 f"  T = {self.Tc[1]}  rescaled z = {best_z:.3f}", color=f"C{i}")
-                    ax.set_ylabel(r"$U_L$")
-                    ax.set_xlabel("t")
-                    configure_ax(fig, ax)
-                    ax.set_title("z extraction")
-                    plt.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
+                            linestyle="-", label=f"$L_x$={next_size},"
+                                                 f"  T = {self.Tc}  rescaled z = {best_z:.3f}", color=f"C{i+1}")
+            ax.set_ylabel(r"$U_L$")
+            ax.set_xlabel("t")
+            ax.set_xlim(0, ax.get_xlim()[1] / 4)
+            configure_ax(fig, ax)
+            ax.set_title("z extraction")
+            plt.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
+            plt.show()
             return
         else:
             # else means we need some logic to see which measurement has to be repeated
@@ -1577,7 +1590,12 @@ class z_measurement(autonomous_measurement):
             for valid_sim in valid_simulations:
                 valid_size = valid_sim[0]
                 sizes = list(self.sizes)
-                sizes.remove(valid_size)
+                try:
+                    # this should be okay, it tries to remove all valid sizes but some of them might already have been valid
+                    # so the try only removes the ones that are newly valid
+                    sizes.remove(valid_size)
+                except ValueError:
+                    pass
                 self.sizes = np.array(sizes)
             # now just rerun=?
             return self.iteration()
@@ -1586,9 +1604,9 @@ class z_measurement(autonomous_measurement):
         size_cum_dic = {}
         size_times_dic = {}
         for size in self.valid_sizes:
-            size_path = os.path.join(self.simulation_path, size)
+            size_path = os.path.join(self.simulation_path, str(size))
             if os.path.isdir(size_path):
-                temp_path = os.path.join(size_path, self.Tc)  # we only want to look at the current used critical temperature
+                temp_path = os.path.join(size_path, f"{self.Tc:.6f}")  # we only want to look at the current used critical temperature
                 if os.path.isdir(temp_path):
                     # okay so here we extract the cumulant for the a certain size temp combination
                     # I guess we use the same tactic as in the ccumovertime script since I think there is no simpler
@@ -1734,7 +1752,7 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -3.11
+    J_para = -6
     J_perp = -0.1
     h = 0.5
     eta = 1.5
@@ -1746,11 +1764,11 @@ def main():
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
 
-    Tc_exec_file = "SubsystemRelaxation.cu"
+    Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
-    z_test_exec_file = "AutoZTest.cu"
+    z_test_exec_file = "AutoCumulant.cu"
     # for the real measurements we have fixed end times and we extract the cumulant a fixed number of times
     # for the test measurement we extract a density of cumulants, calculate the error and run until we are equilibrated.
     # In both cases we start in a high temperature phase. For the testmeasurement we can actually just use the amplitude file?
@@ -1774,16 +1792,16 @@ def main():
     size_min = 64
     size_max = 256
     nr_sizes = 3
-    z_min_nr_sites = 5e5
-    z_min_nr_systems = 50
+    z_min_nr_sites = 1e6
+    z_min_nr_systems = 500
     z_equil_error = 0.005
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": False ,
+        "Tc": True,
         "Quench": False,
         "Amplitude": False,
-        "z": True,
+        "z": False,
     }
 
     # I honestly have no idea on how to account h, that is really a problem
