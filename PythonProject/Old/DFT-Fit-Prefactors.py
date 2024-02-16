@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import fsolve
 
 
 def solve_linear_system(equation_list, energies):
@@ -36,6 +37,13 @@ def solve_linear_system(equation_list, energies):
         print("Error: Singular matrix - system is not solvable.")
         return None
 
+
+def h_p_functions(hp, theta4x2, E_B, J_para, J_perp):
+    h, p = hp
+    return (h * (1 + np.cos(p * np.pi / 2)) - E_B,
+            h * p * np.sin(theta4x2 * p) + 4 * np.sin(4 * theta4x2) * (J_para * J_perp))
+
+
 def main():
     # PBEsol
     theta4x2 = 1.2247
@@ -55,9 +63,17 @@ def main():
     # theta_SDF_4L = 1.260
     # theta_SDF_5L = 1.243
 
+    # Same angles
+    theta4x2 = 1.238
+    theta2x2 = 1.238
+    theta2x1 = 1.238
+    theta4x1 = 1.238
+    # theta_SDF_3L = 1.244
+    # theta_SDF_4L = 1.260
+    # theta_SDF_5L = 1.243
 
     # wait no, we calculate p just from the thet
-    p = np.pi / theta2x1
+    p = 2.1
 
     # the slap seems to have periodic boundary conditions so this prefactor is wrong? It is just two
     #d iagonal_prefactor = 2      # accounts for the fact that there are some diagonal interactions missing in the slap
@@ -116,8 +132,19 @@ def main():
         print(eq_str)
 
     equation_list = [p2x2, p2x1, p4x1, sdf]
+    solution = solve_linear_system(equation_list, energies)
+    print(solution)
+    J_para = solution["J_parallel"]
+    J_perp = solution["J_perp"] - 2 * solution['J_x']
+    print("J_para = ", J_para)
+    print("J_perp = ", J_perp)
+    # okay we want to try to estimate h and p with the energy barrier equation aswell as equilibrium position equation
+    theta2x1 = 1.243
+    theta4x2 = 1.236
+    E_B = 170
 
-    print(solve_linear_system(equation_list, energies))
+    x, y = fsolve(h_p_functions, (400, 2.5), args=(theta4x2, E_B, J_para, J_perp))
+    print(x, y)
 
 
 if __name__ == "__main__":

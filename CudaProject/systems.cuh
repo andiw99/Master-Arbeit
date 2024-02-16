@@ -2246,4 +2246,5 @@ public:
     }
 };
 
+
 #endif //CUDAPROJECT_SYSTEMS_CUDA_CUH

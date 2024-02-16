@@ -182,8 +182,8 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
         # if i use the row here it should be the last row so the equilibrated one?
         min_pos = np.mean(np.abs(row))
         print("min_pos = ", min_pos)
-        min_legend = - 1.05 * min_pos
-        max_legend = 1.05 * min_pos
+        min_legend = - 1.15 * min_pos
+        max_legend = 1.15 * min_pos
         ticks = np.linspace(min_legend, max_legend, nr_ticks, endpoint=True)
         tick_labels = np.linspace(min_legend, max_legend, nr_ticks,
                                   endpoint=True)
@@ -271,10 +271,11 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
                 row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
         else:
             row = chess_board_trafo(row)
+    colormap = config["colormap"]
     if config["angle"] == 1:
-        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * np.pi, vmin=0)
+        cf = ax.pcolormesh(row, cmap=colormap, vmax=2 * np.pi, vmin=0)
     elif config["angle"] == 2:
-        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=np.pi/2, vmin=-np.pi/2)
+        cf = ax.pcolormesh(row, cmap=colormap, vmax=np.pi/2, vmin=-np.pi/2)
     elif config["angle"] == 3:
         # this should actually use the minimum of the system, but well I think
         # we can calculate it?
@@ -285,11 +286,11 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         theta_equil = get_equilibrium_position(J_para, J_perp, h, p)
         print("equilibrium angle equation: ", equilibrium_angle_equation(theta_equil, J_para, J_perp, h, p))
         print(theta_equil)
-        cf = ax.pcolormesh(row, cmap="viridis_r", vmax= 1.05 * theta_equil,
-                           vmin=-1.05 * theta_equil, rasterized=True, antialiased=True)
+        cf = ax.pcolormesh(row, cmap=colormap, vmax= 1.15 * theta_equil,
+                           vmin=-1.15 * theta_equil, rasterized=True, antialiased=True)
     else:
         well_pos = np.sqrt(parameters["beta"] / 2)
-        cf = ax.pcolormesh(row, cmap="viridis_r", vmax=2 * well_pos, vmin=-2 * well_pos, linewidth=0)
+        cf = ax.pcolormesh(row, cmap=colormap, vmax=2 * well_pos, vmin=-2 * well_pos, linewidth=0)
     cf.set_edgecolor('face')
 
     return cf

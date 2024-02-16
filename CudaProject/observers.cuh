@@ -408,6 +408,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     vector<double> U_L{};
     vector<double> times{};
     int min_cum_nr = 500;
+    int cum_nr_gpu = 25000;                 // nr of cum values at which the calculation switches to gpu
     double write_density = 1.0 / 100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
     double dt = 0.01;
     double dt_half;
@@ -477,16 +478,25 @@ public:
                         int min_ind = (int)(equil_cutoff * nr_cum_values);
                         // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
                         double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+
                         std::vector<double> diff_total(nr_cum_values - min_ind);
+
                         std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
-                        double sq_sum_total = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0) / (nr_cum_values-min_ind);
+
+                        double dist_var = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0) / (nr_cum_values-min_ind);
                         // this is the variance of the distribution (in wrong because the values are correlated), so we
                         // need the autocorrelation time to adjust for this. The function works with arrays
                         double* U_L_arr = &U_L[min_ind];
-                        double autocorr_time = get_autocorrtime_gpu(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        double autocorr_time;
+
+                        if(nr_cum_values - min_ind > cum_nr_gpu) {
+                            autocorr_time = get_autocorrtime_gpu(U_L_arr, nr_cum_values - min_ind, write_interval);
+                        } else {
+                            autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        }
                         // (nr_cum_values-min_ind) * the write interval is the total time of the part of the simulation that we are considering
                         // sq sum total should be the thing that we called the standard deviation of the distribution
-                        double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * sq_sum_total;
+                        double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * dist_var;
                         double rel_stddev_total = sqrt(U_L_variance) / avg_U_L;
 
                         cout << "autocorrelation time: " << autocorr_time << endl;
@@ -715,11 +725,13 @@ class corr_equilibration_observer: public obsver<system, State>{
     vector<double> xix{};
     vector<double> xiy{};
     vector<double> times{};
-    int min_corr_nr = 50;
+    int min_corr_nr = 5000;
+    int val_nr_gpu = 25000;                 // nr of cum values at which the calculation switches to gpu
     double dt = 0.01;
     double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
-    double density = 1.0 / 100.0;            // standard density writes once every 100 steps
+    double density = 1.0 / 10.0;            // standard density writes once every 100 steps
+    double error_factor = 1000.0;
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
     // for high temperature states we would usually need a larger number of systems to judge the equilibration
@@ -754,6 +766,8 @@ class corr_equilibration_observer: public obsver<system, State>{
 public:
     corr_equilibration_observer(int nr_values) : nr_values(nr_values) {
     }
+    corr_equilibration_observer(int nr_values, int min_corr_nr, double density, double equil_cutoff):
+    nr_values(nr_values), min_corr_nr(min_corr_nr), density(density), equil_cutoff(equil_cutoff) {}
     void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
@@ -801,43 +815,70 @@ public:
                 int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
                 // we lack the complete logic to change the stepsize since we said we use a constant density 
                 if(nr_xi_values > min_corr_nr){
+                    int error_every_n_steps = (int)(error_factor * density);
+                    if(xix.size() % error_every_n_steps == 0) {
+                        // if we reached the minimum number of values we check the error on the correlation lengths
+                        int min_ind = (int)(equil_cutoff * nr_xi_values);
+                        // we need to calculate the average aswell as the stddev for both directions
+                        double avg_xix = accumulate(xix.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
+                        double avg_xiy = accumulate(xiy.begin() + min_ind, xiy.end(), 0.0) / (double)(nr_xi_values - min_ind);
 
-                    // if we reached the minimum number of values we check the error on the correlation lengths
-                    int min_ind = (int)(equil_cutoff * nr_xi_values);
-                    // we need to calculate the average aswell as the stddev for both directions
-                    double avg_xix = accumulate(xix.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
-                    double avg_xiy = accumulate(xiy.begin() + min_ind, xiy.end(), 0.0) / (double)(nr_xi_values - min_ind);
-                    std::vector<double> diff_xix_total(nr_xi_values - min_ind);
-                    std::vector<double> diff_xiy_total(nr_xi_values - min_ind);
-                    std::transform(xix.begin() + min_ind, xix.end(), diff_xix_total.begin(), [avg_xix](double x) { return x - avg_xix; });
-                    std::transform(xiy.begin() + min_ind, xiy.end(), diff_xiy_total.begin(), [avg_xiy](double x) { return x - avg_xiy; });
-                    double sq_sum_xix_total = std::inner_product(diff_xix_total.begin(), diff_xix_total.end(), diff_xix_total.begin(), 0.0);
-                    double sq_sum_xiy_total = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0);
-                    double rel_stddev_xix_total = sqrt(sq_sum_xix_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xix;
-                    double rel_stddev_xiy_total = sqrt(sq_sum_xiy_total / (double)(pow(nr_xi_values - min_ind, 2))) / avg_xiy;
-                    if(xix.size() % 500 == 0) {
-                        // All ten writes we print this to keep track?
+                        std::vector<double> diff_xix_total(nr_xi_values - min_ind);
+                        std::vector<double> diff_xiy_total(nr_xi_values - min_ind);
+
+                        std::transform(xix.begin() + min_ind, xix.end(), diff_xix_total.begin(), [avg_xix](double x) { return x - avg_xix; });
+                        std::transform(xiy.begin() + min_ind, xiy.end(), diff_xiy_total.begin(), [avg_xiy](double x) { return x - avg_xiy; });
+
+                        double dist_var_x = std::inner_product(diff_xix_total.begin(), diff_xix_total.end(), diff_xix_total.begin(), 0.0) / (nr_xi_values - min_ind);
+                        double dist_var_y = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0) / (nr_xi_values - min_ind);
+
+                        // autocorrelation time, works also for the correlation length
+                        double* xix_arr = &xix[min_ind];
+                        double* xiy_arr = &xiy[min_ind];
+
+                        double autocorr_time_x;
+                        double autocorr_time_y;
+
+                        if(nr_xi_values - min_ind > 0) {
+                            autocorr_time_x = get_autocorrtime_fft(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime_fft(xiy_arr, nr_xi_values - min_ind, write_interval);
+                        } else {
+                            autocorr_time_x = get_autocorrtime(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime(xiy_arr, nr_xi_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        }
+
+                        double xix_variance = 2 * autocorr_time_x / ((nr_xi_values-min_ind) * write_interval) * dist_var_x;
+                        double xiy_variance = 2 * autocorr_time_y / ((nr_xi_values-min_ind) * write_interval) * dist_var_y;
+
+
+                        double rel_stddev_xix_total = sqrt(xix_variance) / avg_xix;
+                        double rel_stddev_xiy_total = sqrt(xiy_variance) / avg_xiy;
+
                         cout << "xix = " << avg_xix << endl;
                         cout << "xiy = " << avg_xiy << endl;
+                        cout << "autocorrelation time x: " << autocorr_time_x << endl;
+                        cout << "autocorrelation time y: " << autocorr_time_y << endl;
+                        cout << "xix_variance = " << xix_variance << endl;
+                        cout << "xiy_variance = " << xiy_variance << endl;
                         cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
                         cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;
-                    }
-                    // I mean you are calculating the errors anyway, you could also write them down? But takes some time ofc, but it would make it easier to see how long a certain simulation will still take...
+                        // I mean you are calculating the errors anyway, you could also write them down? But takes some time ofc, but it would make it easier to see how long a certain simulation will still take...
 
 
-                    // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
-                    double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
+                        // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
+                        double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
 
-                    if(rel_stddev_total < max_error) {
-                        cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
-                        cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
-                        cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
-                        // we set the system to be equilibrated
-                        sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
-                        // once we did this, we dont want to do that a second time?
-                        equilibrated = true;
-                        // the writ interval will now be the one that we destined for the quench, we just change it once here
-                        write_interval = quench_t / (double)nr_values;
+                        if(rel_stddev_total < max_error) {
+                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                            cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
+                            cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
+                            // we set the system to be equilibrated
+                            sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
+                            // once we did this, we dont want to do that a second time?
+                            equilibrated = true;
+                            // the writ interval will now be the one that we destined for the quench, we just change it once here
+                            write_interval = quench_t / (double)nr_values;
+                        }
                     }
                 }
             }

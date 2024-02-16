@@ -20,7 +20,7 @@
 #include <thrust/execution_policy.h>
 #include <map>
 #include <boost/asio/ip/host_name.hpp>
-#include <hipfft.h>
+#include <cufft.h>
 
 
 // timing stuff from stackoverflow
@@ -1062,9 +1062,9 @@ struct ConjugateAndMultiply
     ConjugateAndMultiply() {}
 
     __host__ __device__
-    hipfftComplex operator()(hipfftComplex x)
+    cufftComplex operator()(cufftComplex x)
     {
-        return hipCmulf(x, hipConjf(x));      // ?????
+        return cuCmulf(x, cuConjf(x));      // ?????
     }
 };
 
@@ -1126,28 +1126,28 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     dim_t fft_size = {f_size};
     int nr_batches = 1;
     // Do it directly with cufft? We only need one but I guess it will be also fast if we only do one large fft?
-    hipfftHandle plan;
-    hipfftCreate(&plan);
-    hipfftPlan1d(&plan, f_size, HIPFFT_C2C, nr_batches);
+    cufftHandle plan;
+    cufftCreate(&plan);
+    cufftPlan1d(&plan, f_size, CUFFT_C2C, nr_batches);
 
     // In and output? For even more performance we could indeed use an R2C transformation
-    thrust::device_vector<hipfftComplex> input_vector(f_size);     // ... is this going to work? Does something like this work without cuda?
-    thrust::device_vector<hipfftComplex> output_vector(f_size);
+    thrust::device_vector<cufftComplex> input_vector(f_size);     // ... is this going to work? Does something like this work without cuda?
+    thrust::device_vector<cufftComplex> output_vector(f_size);
 
     // seems we need to use transform to fill the device vector
-    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), [] __device__ (double x) {return hipfftComplex(x, 0);});
+    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), [] __device__ (double x) {return cufftComplex(x, 0);});
 
-    hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD);
-    hipDeviceSynchronize();
+    cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
+    cudaDeviceSynchronize();
 
     // now we somehow need to do complex multiplication
     thrust::transform(output_vector.begin(), output_vector.end(), input_vector.begin(), ConjugateAndMultiply());
 
     // And the inverse FFT?
-    hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                 thrust::raw_pointer_cast(output_vector.data()), HIPFFT_BACKWARD);
-    hipDeviceSynchronize();
+    cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                 thrust::raw_pointer_cast(output_vector.data()), CUFFT_INVERSE);
+    cudaDeviceSynchronize();
 
     for(int dist = 0; dist < f_size; dist++) {
         double t = (double)dist * ds;
@@ -1171,7 +1171,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
         }
         norm_autocorrelation_function[dist] = (autocorr_value);    // is this asign fine? yes right?
     }
-    thrust::host_vector<hipfftComplex> host_output(output_vector);
+    thrust::host_vector<cufftComplex> host_output(output_vector);
 
     for(int i = 0; i < 20; i++) {
         cout << "i = " << i << endl;
@@ -1179,7 +1179,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
         cout << "FFT x: " << (host_output[i]).x << endl;
         cout << "FFT y: " << (host_output[i]).y << endl;
     }
-    hipfftDestroy(plan);
+    cufftDestroy(plan);
 
     double autocorrelation_time = thrust::reduce(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds;
     exit(0);
