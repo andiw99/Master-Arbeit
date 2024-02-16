@@ -845,7 +845,7 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
         return (ind_i, ind_j)
 
 
-def find_intersection(x_range, y1, y2, res=1000):
+def find_intersection(x_range, y1, y2, res=10000):
     # Interpolate the curves
     #print("diff_func:")
     x_inter = np.linspace(x_range[0], x_range[-1], res)
@@ -1075,7 +1075,7 @@ def process_file(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2
     df = pd.read_csv(file_path)
     if 0 < threshold < 1:
         threshold = threshold * len(df[key])
-    df = df[df[key] >= threshold]
+    df = df[int(threshold):]
     nr_values = df.shape[0]
     if nr_values < 1:
         average_value = 0

@@ -469,7 +469,7 @@ public:
                 // use transform reduce?
                 // does it work like this? U_L.end() - avg_nr is the n-th last value in the vector?
                 if(nr_cum_values >= min_cum_nr){
-                    int error_every_n_steps = (int)(1000.0 * write_density);
+                    int error_every_n_steps = (int)(10000.0 * write_density);
                     if(U_L.size() % error_every_n_steps == 0) {
                         // We dont need to calculate the error and stuff everytime we write down a U_L
                         // IF the density is small, we should write down more often
@@ -483,7 +483,7 @@ public:
                         // this is the variance of the distribution (in wrong because the values are correlated), so we
                         // need the autocorrelation time to adjust for this. The function works with arrays
                         double* U_L_arr = &U_L[min_ind];
-                        double autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        double autocorr_time = get_autocorrtime_gpu(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
                         // (nr_cum_values-min_ind) * the write interval is the total time of the part of the simulation that we are considering
                         // sq sum total should be the thing that we called the standard deviation of the distribution
                         double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * sq_sum_total;

@@ -14,6 +14,8 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/random.h>
 #include <thrust/reduce.h>
+#include <thrust/transform.h>
+#include <thrust/transform_reduce.h>
 #include <thrust/sequence.h>
 #include <thrust/execution_policy.h>
 #include <map>
@@ -957,7 +959,7 @@ double get_autocorrtime(double* f, int f_size, double ds) {
     // cout << "avg_f = " << avg_f << endl;
     std::vector<double> diff(f_size);       // I mean we can use vectors here again if we want, then we dont have to deal with memory management
     std::transform(f, f + f_size, diff.begin(), [avg_f](double x) { return x - avg_f; });
-    double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0) / f_size;
+    double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0) / (double)f_size;
     // cout << "variance_f = " << variance_f << endl;
     // okay this is the variance
     // okay we have the simplest one of infinity values so we are basically done
@@ -1033,5 +1035,59 @@ double get_autocorrtime(double* f, int f_size, double ds) {
     return autocorrelation_time;
 }
 
+struct SquaredDifferenceFromMean
+{
+    float mean;
+
+    SquaredDifferenceFromMean(float _mean) : mean(_mean) {}
+
+    __host__ __device__
+    float operator()(float x) const
+    {
+        float diff = x - mean;
+        return diff * diff;
+    }
+};
+
+double get_autocorrtime_gpu(double* f, int f_size, double ds) {
+    // create a thrust device vector of f
+    thrust::device_vector<double> device_f(f_size);
+    thrust::copy(f, f + f_size, device_f.begin());
+/*    for(int i = 0; i < 20; i++) {
+        cout << f[i] << endl;
+        cout << device_f[i] << endl;
+    }*/
+    double avg_f = thrust::reduce(device_f.begin(), device_f.end(), (double)0.0) / (double)(f_size);
+    cout << "avg_f = " << avg_f << endl;
+    // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
+    double variance_f = thrust::transform_reduce(device_f.begin(), device_f.end(), SquaredDifferenceFromMean(avg_f), 0.0, thrust::plus<double>()) / (double)f_size;
+    cout << "variance_f = " << variance_f << endl;
+    double T = f_size * ds;     // and we integrate from -T/2 to T/2
+    thrust::device_vector<double> norm_autocorrelation_function(f_size, 0.0);     // I think we will use the normalized autocorrelation function so that we dont have to modify this thing if we want to calculate the autocorrelation time
+    for(int dist = 0; dist < f_size; dist++) {
+        double t = (double)dist * ds;
+
+        size_t nr_integration_values = f_size - dist;
+
+        double avg_early = thrust::reduce(device_f.begin(), device_f.begin() + nr_integration_values, 0.0) / (double)nr_integration_values;
+        double avg_late =  thrust::reduce(device_f.begin() + dist, device_f.end(), 0.0) / (double)nr_integration_values;
+
+        //cout << "avg_early = " << avg_early << endl;
+        //cout << "avg_late = " << avg_late << endl;
+
+        thrust::device_vector<double> prod(nr_integration_values);
+        thrust::transform(device_f.begin(), device_f.begin() + nr_integration_values, device_f.begin() + dist, prod.begin(), thrust::multiplies<double>());
+        double autocorr_value = thrust::reduce(prod.begin(), prod.end(), (double)0.0) / (double)nr_integration_values -  avg_f * avg_early - avg_f * avg_late + avg_f * avg_f;
+
+        //cout << "autocorr_value = " << autocorr_value << endl;
+        //exit(0);
+        if(autocorr_value < 0) {
+            break;      // I am not sure if this is legal but who cares...
+        }
+        norm_autocorrelation_function[dist] = (autocorr_value / variance_f);    // is this asign fine? yes right?
+    }
+    double autocorrelation_time = thrust::reduce(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds;
+    return autocorrelation_time;
+}
 
 #endif //CUDAPROJECT_MAIN_CUH

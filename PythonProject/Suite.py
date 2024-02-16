@@ -132,7 +132,6 @@ def check_cum_valid(folderpath, variation_error_rate, num_per_var_val, ds):
     this function checks if a simulation in folderpath has .cum file with
     a variation error that is small than given
     :param folderpath: path to the folder containing the simulation
-    :param variation_error: the stddev of the differences of consecutive datapoints
     :param num_per_var_val: the number of values we use to calculate one dif_std value
     :param ds: time between the measurements
     :return: bool whether the simulation is valid or not
@@ -416,7 +415,7 @@ class crit_temp_measurement(autonomous_measurement):
         :return: -
         """
         self.init()                 # initializing determines the T range
-        T_c, T_c_error = self.iteration(self.file, self.folder, self.user, self.wait, self.walltime)  # recursive fuction that returns T_c
+        T_c, T_c_error = self.iteration()  # recursive fuction that returns T_c
         self.conclude()
         return T_c, T_c_error
 
@@ -696,7 +695,8 @@ class crit_temp_measurement(autonomous_measurement):
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}\n"
-                        f"cum_write_density, {self.cum_write_density}")
+                        f"cum_write_density, {self.cum_write_density}\n"
+                        f"min_cum_nr, {self.min_cum_nr}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1762,7 +1762,7 @@ def main():
     nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test4/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test7/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
