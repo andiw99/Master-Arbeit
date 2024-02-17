@@ -1061,10 +1061,41 @@ struct ConjugateAndMultiply
 {
     ConjugateAndMultiply() {}
 
+    template <class valuetype>
     __host__ __device__
-    cufftComplex operator()(cufftComplex x)
+    valuetype operator()(valuetype x) const
     {
-        return cuCmulf(x, cuConjf(x));      // ?????
+        return valuetype(x.x * x.x + x.y * x.y, 0);      // ?????
+    }
+};
+
+struct AverageAndSubractMean
+{
+    double mean;
+    int N;
+    AverageAndSubractMean(int N, double mean): N(N), mean(mean) {}
+
+    __host__ __device__
+    cufftComplex operator()(cufftComplex x) const
+    {
+        x.x -= (mean * mean);
+        return x;
+    }
+};
+
+struct OnlyPositive
+{
+    OnlyPositive() {}
+
+    template<class valuetype>
+    __host__ __device__
+    double operator()(valuetype x) const
+    {
+        if(x.x > 0) {
+            return x.x;
+        } else {
+            return 0;
+        }
     }
 };
 
@@ -1128,25 +1159,62 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // Do it directly with cufft? We only need one but I guess it will be also fast if we only do one large fft?
     cufftHandle plan;
     cufftCreate(&plan);
-    cufftPlan1d(&plan, f_size, CUFFT_C2C, nr_batches);
+    cufftPlan1d(&plan, f_size, CUFFT_Z2Z, nr_batches);
 
     // In and output? For even more performance we could indeed use an R2C transformation
-    thrust::device_vector<cufftComplex> input_vector(f_size);     // ... is this going to work? Does something like this work without cuda?
-    thrust::device_vector<cufftComplex> output_vector(f_size);
+    thrust::device_vector<cufftDoubleComplex> input_vector(f_size);     // ... is this going to work? Does something like this work without cuda?
+    thrust::device_vector<cufftDoubleComplex> output_vector(f_size);
 
     // seems we need to use transform to fill the device vector
-    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), [] __device__ (double x) {return cufftComplex(x, 0);});
+    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), [avg_f] __device__ (double x) {return cufftDoubleComplex(x - avg_f, 0);});
 
-    cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
+    thrust::host_vector<cufftDoubleComplex> host_input(input_vector);
+    cout << "Before trafo:" << endl;
+    for(int i = 0; i < 20; i++) {
+        cout << "i = " << i << endl;
+        cout << "input vector: " << device_f[i] << endl;
+        cout << "FFT x: " << (host_input[i]).x << endl;
+        cout << "FFT y: " << (host_input[i]).y << endl;
+        cout << endl;
+    }
+
+    cufftExecZ2Z(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
+                 (cufftDoubleComplex*)thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
     cudaDeviceSynchronize();
 
+    thrust::host_vector<cufftDoubleComplex> host_output(output_vector);
+    cout << "After first trafo:" << endl;
+    for(int i = 0; i < 20; i++) {
+        cout << "i = " << i << endl;
+        cout << "FFT x: " << (host_output[i]).x << endl;
+        cout << "FFT y: " << (host_output[i]).y << endl;
+        cout << endl;
+    }
     // now we somehow need to do complex multiplication
     thrust::transform(output_vector.begin(), output_vector.end(), input_vector.begin(), ConjugateAndMultiply());
+    // thrust::transform(input_vector.begin(), input_vector.end(), input_vector.begin(), AverageAndSubractMean(f_size, avg_f));
+    host_output = thrust::host_vector<cufftDoubleComplex>(input_vector);
+    cout << endl;
+    cout << endl;
+    cout << endl;
+    cout << endl;
+    cout << "After complex conjugate:" << endl;
 
+    for(int i = 0; i < 20; i++) {
+        cout << "i = " << i << endl;
+        cout << "FFT x: " << (host_output[i]).x << endl;
+        cout << "FFT y: " << (host_output[i]).y << endl;
+        cout << endl;
+    }
     // And the inverse FFT?
-    cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                 thrust::raw_pointer_cast(output_vector.data()), CUFFT_INVERSE);
+    cufftHandle inv_plan;
+    cufftCreate(&inv_plan);
+    cufftPlan1d(&inv_plan, f_size, CUFFT_Z2D, nr_batches);
+
+    // ah we probably need a vector that can use the real outpout
+    thrust::device_vector<cufftDoubleReal> real_output(f_size);
+    cufftExecZ2D(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
+                 (cufftDoubleReal*)thrust::raw_pointer_cast(real_output.data()));
     cudaDeviceSynchronize();
 
     for(int dist = 0; dist < f_size; dist++) {
@@ -1171,17 +1239,21 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
         }
         norm_autocorrelation_function[dist] = (autocorr_value);    // is this asign fine? yes right?
     }
-    thrust::host_vector<cufftComplex> host_output(output_vector);
-
+    //host_output = thrust::host_vector<cufftDoubleComplex>(output_vector);
+    thrust::host_vector<cufftDoubleReal> host_output2(real_output);
     for(int i = 0; i < 20; i++) {
         cout << "i = " << i << endl;
         cout << "Brute: " << norm_autocorrelation_function[i] << endl;
-        cout << "FFT x: " << (host_output[i]).x << endl;
-        cout << "FFT y: " << (host_output[i]).y << endl;
+        cout << "FFT x: " << (host_output2[i]) << endl;
+        cout << "FFT x / N: " << (host_output2[i]) / ((double)f_size * double(f_size)) << endl;
+        // cout << "FFT x: " << (host_output[i]).x << endl;
+        // cout << "FFT x / N: " << (host_output[i]).x / ((double)f_size * double(f_size)) << endl;
+        // cout << "FFT y: " << (host_output[i]).y << endl;
     }
     cufftDestroy(plan);
 
     double autocorrelation_time = thrust::reduce(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds;
+    //autocorrelation_time = thrust::transform_reduce(output_vector.begin(), output_vector.end(), OnlyPositive(), 0.0, thrust::plus<double>());
     exit(0);
     return autocorrelation_time;
 }

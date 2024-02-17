@@ -1447,7 +1447,7 @@ class amplitude_measurement(autonomous_measurement):
                 print("We have to repeat the simulation")
             # so we extend the temperatures that we investigate
             stepsize = self.T_arr[1] - self.T_arr[0]
-            self.T_arr = np.linspace(np.max(self.T_arr) + stepsize, (1 + 2 * self.T_range_fraction) * self.T_c)
+            self.T_arr = np.linspace(np.max(self.T_arr) + stepsize, (1 + 2 * self.T_range_fraction) * self.Tc)
             # Just iteration now?
             return self.iteration()
         else:
