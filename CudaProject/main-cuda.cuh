@@ -1139,7 +1139,7 @@ double get_autocorrtime_gpu(double* f, int f_size, double ds) {
     double autocorrelation_time = thrust::reduce(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds;
     return autocorrelation_time;
 }
-
+/*
 double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // create a thrust device vector of f
     thrust::device_vector<double> device_f(f_size);
@@ -1256,6 +1256,6 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     //autocorrelation_time = thrust::transform_reduce(output_vector.begin(), output_vector.end(), OnlyPositive(), 0.0, thrust::plus<double>());
     exit(0);
     return autocorrelation_time;
-}
+} */
 
 #endif //CUDAPROJECT_MAIN_CUH

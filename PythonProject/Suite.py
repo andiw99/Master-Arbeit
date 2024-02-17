@@ -1933,17 +1933,17 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -6
-    J_perp = -0.1
-    h = 0.5
+    J_para = -150000
+    J_perp = -2340
+    h = 1.7e6
     eta = 1.5
-    dt = 0.01
+    dt = 0.00001
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test7/"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -1957,7 +1957,7 @@ def main():
     # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
     # want to work with the new error
 
-    max_rel_intersection_error = 0.011
+    max_rel_intersection_error = 0.02
 
     # Quench parameters
     max_size = 2048
@@ -1966,7 +1966,7 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 1024
-    equil_error = 0.001
+    equil_error = 0.01
     equil_cutoff = 0.1
 
     # z parameters
