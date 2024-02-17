@@ -840,8 +840,8 @@ public:
                         double autocorr_time_y;
 
                         if(nr_xi_values - min_ind > 0) {
-                            autocorr_time_x = get_autocorrtime_fft(xix_arr, nr_xi_values - min_ind, write_interval);
-                            autocorr_time_y = get_autocorrtime_fft(xiy_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_x = get_autocorrtime_gpu(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime_gpu(xiy_arr, nr_xi_values - min_ind, write_interval);
                         } else {
                             autocorr_time_x = get_autocorrtime(xix_arr, nr_xi_values - min_ind, write_interval);
                             autocorr_time_y = get_autocorrtime(xiy_arr, nr_xi_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
