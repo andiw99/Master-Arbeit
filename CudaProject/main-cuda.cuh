@@ -1083,9 +1083,9 @@ struct AverageAndSubractMean
     }
 };
 
-struct OnlyPositive
+struct OnlyPositiveComplex
 {
-    OnlyPositive() {}
+    OnlyPositiveComplex() {}
 
     template<class valuetype>
     __host__ __device__
@@ -1098,6 +1098,36 @@ struct OnlyPositive
         }
     }
 };
+
+
+struct OnlyPositive
+{
+    OnlyPositive() {}
+
+    __host__ __device__
+    double operator()(double x) const
+    {
+        if(x > 0) {
+            return x;
+        } else {
+            return 0;
+        }
+    }
+};
+
+struct normalize_fft_autocorr : thrust::unary_function<thrust::tuple<cufftDoubleComplex, size_t>, double> {
+    int f_size;
+    normalize_fft_autocorr(int f_size) : f_size(f_size), thrust::unary_function<thrust::tuple<cufftDoubleComplex, size_t>, double>(){
+    }
+    template<class Tup>
+    __host__ __device__ double operator()(Tup tup) const {
+        // first we need to know in which system we are
+        double autocorr_value = thrust::get<0>(tup).x;
+        int index = thrust::get<1>(tup);
+        return  autocorr_value / (2.0 * f_size * (f_size - index));
+    }
+};
+
 
 double get_autocorrtime_gpu(double* f, int f_size, double ds) {
     // create a thrust device vector of f
@@ -1139,12 +1169,72 @@ double get_autocorrtime_gpu(double* f, int f_size, double ds) {
     double autocorrelation_time = thrust::reduce(norm_autocorrelation_function.begin(), norm_autocorrelation_function.end(), 0.0) * ds;
     return autocorrelation_time;
 }
-/*
+
 double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // create a thrust device vector of f
     thrust::device_vector<double> device_f(f_size);
     thrust::copy(f, f + f_size, device_f.begin());
+    cout << "f_size = " << f_size << endl;
+    double avg_f = thrust::reduce(device_f.begin(), device_f.end(), (double)0.0) / (double)(f_size);
+    cout << "avg_f = " << avg_f << endl;
+    // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
+    double variance_f = thrust::transform_reduce(device_f.begin(), device_f.end(), SquaredDifferenceFromMean(avg_f), 0.0, thrust::plus<double>()) / (double)f_size;
+    cout << "variance_f = " << variance_f << endl;
 
+    // it is just a large 1D FFT
+    int fft_size = 2 * f_size + 1;
+
+    int nr_batches = 1;
+    // Do it directly with cufft? We only need one but I guess it will be also fast if we only do one large fft?
+    cufftHandle plan;
+    cufftCreate(&plan);
+    cufftPlan1d(&plan, fft_size, CUFFT_Z2Z, nr_batches);
+
+    // In and output? For even more performance we could indeed use an R2C transformation
+    thrust::device_vector<cufftDoubleComplex> input_vector(fft_size);     // ... is this going to work? Does something like this work without cuda?
+    thrust::device_vector<cufftDoubleComplex> output_vector(fft_size);
+
+    // seems we need to use transform to fill the device vector
+    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(),
+                      [avg_f, variance_f] __device__ (double x) {return cufftDoubleComplex((x - avg_f) / sqrt(variance_f), 0);});
+
+
+    cufftExecZ2Z(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
+                 (cufftDoubleComplex*)thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
+    cudaDeviceSynchronize();
+
+
+    // now we somehow need to do complex multiplication
+    thrust::transform(output_vector.begin(), output_vector.end(), input_vector.begin(), ConjugateAndMultiply());
+    // thrust::transform(input_vector.begin(), input_vector.end(), input_vector.begin(), AverageAndSubractMean(f_size, avg_f));
+
+    // And the inverse FFT?
+    cufftHandle inv_plan;
+    cufftCreate(&inv_plan);
+    cufftPlan1d(&inv_plan, fft_size, CUFFT_Z2Z, nr_batches);
+
+    // ah we probably need a vector that can use the real outpout
+    cufftExecZ2Z(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
+                 (cufftDoubleComplex*)thrust::raw_pointer_cast(output_vector.data()), CUFFT_INVERSE);
+    cudaDeviceSynchronize();
+
+    thrust::device_vector<double> normalized_autocorr_function(f_size);
+    auto output_index = thrust::make_zip_iterator(thrust::make_tuple(output_vector.begin(), thrust::counting_iterator<size_t>(0)));
+    thrust::transform(output_index, output_index + f_size, normalized_autocorr_function.begin(), normalize_fft_autocorr(f_size));
+
+    cufftDestroy(plan);
+    cufftDestroy(inv_plan);
+
+
+    double autocorrelation_time = thrust::transform_reduce(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), OnlyPositive(), 0.0, thrust::plus<double>()) * ds;
+    return autocorrelation_time;
+}
+
+double get_autocorrtime_ff2(double* f, int f_size, double ds) {
+    // create a thrust device vector of f
+    thrust::device_vector<double> device_f(f_size);
+    thrust::copy(f, f + f_size, device_f.begin());
+    cout << "f_size = " << f_size << endl;
     double avg_f = thrust::reduce(device_f.begin(), device_f.end(), (double)0.0) / (double)(f_size);
     cout << "avg_f = " << avg_f << endl;
     // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
@@ -1153,19 +1243,19 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     thrust::device_vector<double> norm_autocorrelation_function(f_size, 0.0);     // I think we will use the normalized autocorrelation function so that we dont have to modify this thing if we want to calculate the autocorrelation time
 
     // it is just a large 1D FFT
-    using dim_t = std::array<int, 1>;
-    dim_t fft_size = {f_size};
+    int fft_size = 2 * f_size + 1;
     int nr_batches = 1;
     // Do it directly with cufft? We only need one but I guess it will be also fast if we only do one large fft?
     cufftHandle plan;
     cufftCreate(&plan);
-    cufftPlan1d(&plan, f_size, CUFFT_Z2Z, nr_batches);
+    cufftPlan1d(&plan, fft_size, CUFFT_Z2Z, nr_batches);
 
     // In and output? For even more performance we could indeed use an R2C transformation
-    thrust::device_vector<cufftDoubleComplex> input_vector(f_size);     // ... is this going to work? Does something like this work without cuda?
-    thrust::device_vector<cufftDoubleComplex> output_vector(f_size);
+    thrust::device_vector<cufftDoubleComplex> input_vector(fft_size);     // ... is this going to work? Does something like this work without cuda?
+    thrust::device_vector<cufftDoubleComplex> output_vector(fft_size);
 
     // seems we need to use transform to fill the device vector
+    // we transform the first f_size points and the rest is zero
     thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), [avg_f] __device__ (double x) {return cufftDoubleComplex(x - avg_f, 0);});
 
     thrust::host_vector<cufftDoubleComplex> host_input(input_vector);
@@ -1176,6 +1266,11 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
         cout << "FFT x: " << (host_input[i]).x << endl;
         cout << "FFT y: " << (host_input[i]).y << endl;
         cout << endl;
+        cout << "i = " << 2 * f_size - i - 1 << endl;
+        cout << "FFT x: " << (host_input[2 * f_size - 1 - i]).x << endl;
+        cout << "FFT y: " << (host_input[2 * f_size - 1 - i]).y << endl;
+        cout << endl;
+
     }
 
     cufftExecZ2Z(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
@@ -1209,10 +1304,10 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // And the inverse FFT?
     cufftHandle inv_plan;
     cufftCreate(&inv_plan);
-    cufftPlan1d(&inv_plan, f_size, CUFFT_Z2D, nr_batches);
+    cufftPlan1d(&inv_plan, fft_size, CUFFT_Z2D, nr_batches);
 
     // ah we probably need a vector that can use the real outpout
-    thrust::device_vector<cufftDoubleReal> real_output(f_size);
+    thrust::device_vector<cufftDoubleReal> real_output(fft_size);
     cufftExecZ2D(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
                  (cufftDoubleReal*)thrust::raw_pointer_cast(real_output.data()));
     cudaDeviceSynchronize();
@@ -1245,7 +1340,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
         cout << "i = " << i << endl;
         cout << "Brute: " << norm_autocorrelation_function[i] << endl;
         cout << "FFT x: " << (host_output2[i]) << endl;
-        cout << "FFT x / N: " << (host_output2[i]) / ((double)f_size * double(f_size)) << endl;
+        cout << "FFT x / N: " << (host_output2[i]) / ( 2.0 * (double)f_size * double(f_size)) << endl;
         // cout << "FFT x: " << (host_output[i]).x << endl;
         // cout << "FFT x / N: " << (host_output[i]).x / ((double)f_size * double(f_size)) << endl;
         // cout << "FFT y: " << (host_output[i]).y << endl;
@@ -1256,6 +1351,6 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     //autocorrelation_time = thrust::transform_reduce(output_vector.begin(), output_vector.end(), OnlyPositive(), 0.0, thrust::plus<double>());
     exit(0);
     return autocorrelation_time;
-} */
+}
 
 #endif //CUDAPROJECT_MAIN_CUH

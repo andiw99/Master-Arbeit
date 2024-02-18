@@ -390,6 +390,8 @@ class crit_temp_measurement(autonomous_measurement):
         print(f"T_min = {T_min}\n"
               f"J_perp = {self.J_perp}\n"
               f"h={self.h}")
+        # TODO this is still all a bit fishy but...
+        #T_max = T_min + self.h
         T_max = T_min + (self.h / (5 * np.abs(self.J_perp))) * T_min
 
         if self.T_min is None:
@@ -432,52 +434,13 @@ class crit_temp_measurement(autonomous_measurement):
         results = self.construct_results(self.discard_threshold, T_arr)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
-        intersections = []
-        intersections_y = []
         intersections, intersections_y = get_intersections(results)
 
         T_c = np.mean(intersections)
         U_L_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        fig, ax = plt.subplots(1, 1)
-
-        y_upper_lim = 0
-        y_lower_lim = np.infty
-        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
-                                 dtype=np.int64)
-        ind = 0
-        max_T = np.max(self.T_arr)
-        min_T = np.min(self.T_arr)
-        for i, size in enumerate(sorted(results.keys())):
-            if i in shown_inds:
-                T = np.array(results[size]["T"])
-                U_L = np.array(results[size]["U_L"])
-                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind])
-                ind += 1
-                if max_T:
-                    y_upper_lim = np.maximum(
-                        np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
-                    y_lower_lim = np.minimum(
-                        np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
-
-        y_span = y_upper_lim - y_lower_lim
-
-        ax.set_xlabel("T")
-        ax.set_ylabel(r"$U_L$")
-        ax.set_title("Binder Cumulant on T")
-        if min_T:
-            ax.set_xlim(min_T, ax.get_xlim()[1])
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        if max_T:
-            ax.set_xlim(ax.get_xlim()[0], max_T)
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, U_L_intersection,
-                   label=rf"$T_c = {T_c:.4f}$")
-        configure_ax(fig, ax)
-        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
-                    dpi=300, transparent=False)
-        plt.show()
+        self.plotBinderCurve(T_c, U_L_intersection, results)
 
         # constructing cum dic
         cum_dic = {}
@@ -510,6 +473,44 @@ class crit_temp_measurement(autonomous_measurement):
         fig.savefig(self.simulation_path + "/critical_exponent_time_avg.png",
                     format="png", dpi=250, transparent=False)
         plt.show()
+
+    def plotBinderCurve(self, T_c, U_L_intersection, results):
+        fig, ax = plt.subplots(1, 1)
+        y_upper_lim = 0
+        y_lower_lim = np.infty
+        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
+                                 dtype=np.int64)
+        ind = 0
+        max_T = np.max(self.T_arr) * 1.01
+        min_T = np.min(self.T_arr) * 0.99
+        for i, size in enumerate(sorted(results.keys())):
+            if i in shown_inds:
+                T = np.array(results[size]["T"])
+                U_L = np.array(results[size]["U_L"])
+                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind])
+                ind += 1
+                if max_T:
+                    y_upper_lim = np.maximum(
+                        np.max(U_L[(min_T <= T) & (T <= max_T)]), y_upper_lim)
+                    y_lower_lim = np.minimum(
+                        np.min(U_L[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+        y_span = y_upper_lim - y_lower_lim
+        ax.set_xlabel("T")
+        ax.set_ylabel(r"$U_L$")
+        ax.set_title("Binder Cumulant on T")
+        if min_T:
+            ax.set_xlim(min_T, ax.get_xlim()[1])
+            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+        if max_T:
+            ax.set_xlim(ax.get_xlim()[0], max_T)
+            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+        mark_point(ax, T_c, U_L_intersection,
+                   label=rf"$T_c = {T_c:.4f}$")
+        configure_ax(fig, ax)
+        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
+                    dpi=300, transparent=False)
+        plt.show()
+
     def conclude_old(self):
         # This function should plot stuff etc. keep it simple at this point
         # copied just the cumulanttimeaverage script!
@@ -634,18 +635,19 @@ class crit_temp_measurement(autonomous_measurement):
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
-        intersection = (U_L_min_T_min > U_L_max_T_min) & (
-                U_L_min_T_max < U_L_max_T_max)
+        intersection = ((U_L_min_T_min >= U_L_max_T_min) & (
+                U_L_min_T_max <= U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
         dT = T_arr[1] - T_arr[0]
         if intersection:
             # now the usual stuff, estimate the postion of the intersection
-            T_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
-                results)
-            intersections = []
             intersections, intersections_y = get_intersections(results)
+
             T_c = np.mean(intersections)
+
             print(f"Found an intersection at T_c = {T_c}")
+
             print("intersections: ", intersections)
+
             T_c_error = np.ptp(intersections)
             # the error will now be the minimum of this and a fourth of the stepsize
             T_c_error = max(T_c_error, dT / 5)
@@ -657,6 +659,9 @@ class crit_temp_measurement(autonomous_measurement):
                 print(f"Determined crit. Temp T_c = {T_c} +- {rel_intersec_error}")
                 return T_c, T_c_error
             else:
+                # We still want to plot the stuff to see where we at
+                U_L_intersection = np.mean(intersections_y)
+                self.plotBinderCurve(T_c, U_L_intersection, results)
                 # If the error is too large we do a child measurement with smaller error
                 self.equil_error /= 2
                 # We wanted to have our edgecases of within 5 or 20 percent of the interval edges...
@@ -689,7 +694,7 @@ class crit_temp_measurement(autonomous_measurement):
                 # this means we are below the critical temperature.
                 # TODO can we somehow approximate how far away we are?
                 # for now we just double the range i would say?
-                T_range = np.ptp(self.all_T_arr)
+                T_range = np.ptp(self.T_arr)
                 T_min = np.max(self.T_arr) + (dT)  # the next T_min is the current maximum plus the current stepsize
                 T_max = np.max(self.T_arr) + T_range
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)

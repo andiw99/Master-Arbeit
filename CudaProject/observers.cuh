@@ -726,7 +726,7 @@ class corr_equilibration_observer: public obsver<system, State>{
     vector<double> xiy{};
     vector<double> times{};
     int min_corr_nr = 5000;
-    int val_nr_gpu = 25000;                 // nr of cum values at which the calculation switches to gpu
+    int val_nr_gpu = 1000;                 // nr of cum values at which the calculation switches to gpu
     double dt = 0.01;
     double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
@@ -839,9 +839,9 @@ public:
                         double autocorr_time_x;
                         double autocorr_time_y;
 
-                        if(nr_xi_values - min_ind > 0) {
-                            autocorr_time_x = get_autocorrtime_gpu(xix_arr, nr_xi_values - min_ind, write_interval);
-                            autocorr_time_y = get_autocorrtime_gpu(xiy_arr, nr_xi_values - min_ind, write_interval);
+                        if(nr_xi_values - min_ind > val_nr_gpu) {
+                            autocorr_time_x = get_autocorrtime_fft(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime_fft(xiy_arr, nr_xi_values - min_ind, write_interval);
                         } else {
                             autocorr_time_x = get_autocorrtime(xix_arr, nr_xi_values - min_ind, write_interval);
                             autocorr_time_y = get_autocorrtime(xiy_arr, nr_xi_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
