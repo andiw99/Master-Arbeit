@@ -391,8 +391,10 @@ class crit_temp_measurement(autonomous_measurement):
               f"J_perp = {self.J_perp}\n"
               f"h={self.h}")
         # TODO this is still all a bit fishy but...
-        #T_max = T_min + self.h
-        T_max = T_min + (self.h / (5 * np.abs(self.J_perp))) * T_min
+        T_max = T_min + self.h
+        T_max = 2 * T_min
+        # or just 10 %?
+
 
         if self.T_min is None:
             # If we do not specify the critical temperature, we use the critical temperature estimation
@@ -1946,8 +1948,8 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/"
 
     Tc_exec_file = "AutoCumulant.cu"

@@ -1083,6 +1083,18 @@ struct AverageAndSubractMean
     }
 };
 
+struct SubractMeanDevideSTD
+{
+    double mean, var;
+    AverageAndSubractMean(double mean, double var): var(var), mean(mean) {}
+
+    __host__ __device__
+    cufftComplex operator()(double x) const
+    {
+        return cufftDoubleComplex((x - mean) / sqrt(var), 0.0)
+    }
+};
+
 struct OnlyPositiveComplex
 {
     OnlyPositiveComplex() {}
@@ -1195,8 +1207,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     thrust::device_vector<cufftDoubleComplex> output_vector(fft_size);
 
     // seems we need to use transform to fill the device vector
-    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(),
-                      [avg_f, variance_f] __device__ (double x) {return cufftDoubleComplex((x - avg_f) / sqrt(variance_f), 0);});
+    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), SubractMeanDevideSTD(avg_f, variance_f));
 
 
     cufftExecZ2Z(plan, (cufftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),

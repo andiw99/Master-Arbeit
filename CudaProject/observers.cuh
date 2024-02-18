@@ -408,7 +408,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     vector<double> U_L{};
     vector<double> times{};
     int min_cum_nr = 500;
-    int cum_nr_gpu = 25000;                 // nr of cum values at which the calculation switches to gpu
+    int cum_nr_gpu = 2000;                 // nr of cum values at which the calculation switches to gpu
     double write_density = 1.0 / 100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
     double dt = 0.01;
     double dt_half;
@@ -490,7 +490,7 @@ public:
                         double autocorr_time;
 
                         if(nr_cum_values - min_ind > cum_nr_gpu) {
-                            autocorr_time = get_autocorrtime_gpu(U_L_arr, nr_cum_values - min_ind, write_interval);
+                            autocorr_time = get_autocorrtime_fft(U_L_arr, nr_cum_values - min_ind, write_interval);
                         } else {
                             autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
                         }
