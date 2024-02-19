@@ -21,6 +21,7 @@
 #include <map>
 #include <boost/asio/ip/host_name.hpp>
 #include <hipfft.h>
+#include <numeric>
 
 
 // timing stuff from stackoverflow
@@ -1083,6 +1084,18 @@ struct AverageAndSubractMean
     }
 };
 
+struct SubractMeanDevideSTD
+{
+    double mean, var;
+    SubractMeanDevideSTD(double mean, double var): var(var), mean(mean) {}
+
+    __host__ __device__
+    hipfftDoubleComplex operator()(double x) const
+    {
+        return make_hipDoubleComplex((x - mean) / sqrt(var), 0.0);
+    }
+};
+
 struct OnlyPositiveComplex
 {
     OnlyPositiveComplex() {}
@@ -1195,8 +1208,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     thrust::device_vector<hipfftDoubleComplex> output_vector(fft_size);
 
     // seems we need to use transform to fill the device vector
-    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(),
-                      [avg_f, variance_f] __device__ (double x) {return hipfftDoubleComplex((x - avg_f) / sqrt(variance_f), 0);});
+    thrust::transform(device_f.begin(), device_f.end(), input_vector.begin(), SubractMeanDevideSTD(avg_f, variance_f));
 
 
     hipfftExecZ2Z(plan, (hipfftDoubleComplex*)thrust::raw_pointer_cast(input_vector.data()),
@@ -1351,6 +1363,38 @@ double get_autocorrtime_ff2(double* f, int f_size, double ds) {
     //autocorrelation_time = thrust::transform_reduce(output_vector.begin(), output_vector.end(), OnlyPositive(), 0.0, thrust::plus<double>());
     exit(0);
     return autocorrelation_time;
+}
+
+struct diff1D
+{
+    __host__ __device__
+    double operator()(const thrust::tuple<double, double>& x) const
+    {
+        return thrust::get<1>(x) - thrust::get<0>(x);
+    }
+};
+
+struct absDiff1DStd
+{
+    double operator()(double x, double y) const
+    {
+        return fabs(x - y);
+    }
+};
+
+double meanAbsDifference(double* f, int f_size) {
+    // since what size is the summation on GPU faster?
+    std::vector<double> diffs(f_size - 1);
+    transform(f, f + f_size - 1, f + 1, diffs.begin(), absDiff1DStd());
+
+    for (int i = 0; i< 20; i++){
+        cout << "|" <<f[i] << " - " << f[i+1]<< "|" << " = " <<  diffs[i] << endl;
+    }
+
+
+    double accumulated_abs_diff = reduce(diffs.begin(), diffs.end(), 0.0) / (double)(f_size - 1);
+
+    return accumulated_abs_diff;
 }
 
 #endif //CUDAPROJECT_MAIN_CUH

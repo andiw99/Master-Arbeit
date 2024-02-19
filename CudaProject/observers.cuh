@@ -477,7 +477,7 @@ public:
                         // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
                         int min_ind = (int)(equil_cutoff * nr_cum_values);
                         // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
-                        double avg_U_L = accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+                        long double avg_U_L = (long double) accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
 
                         std::vector<double> diff_total(nr_cum_values - min_ind);
 
@@ -510,12 +510,43 @@ public:
                         // the question is now if we want to extract avg_U_L and its error if we are equilibrated
                         // we definitely should? But how and where? somehow into the parameter file?
                         if(rel_stddev_total < max_error) {
-                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                            // I think in this case I want to see wether there is still a significant upwards or
+                            // downards trend to ensure the system is equilibrated
+                            // the question is what recent means, the last 20% of values? It shouldnt be to much
+                            // that it wouldnt be recent anymore and it should be so few that statistical fluctuations
+                            // would average out
+                            // to be honest, the trend stuff is probably the prestuff we should do before even considering
+                            // to calculate the error? Error calculation after all is pretty expensive
+                            int recent_ind = (int) (nr_cum_values * 0.9);
+                            double* recent_U_L = &U_L[recent_ind];
+                            // the idea is to check if the differences between the values show a trend to be positive
+                            // or negative. But I think that comes done to calculating the deviation of the recent
+                            // average from the total average
+                            // small differences will
+                            // Idea would be to compare this deviation to the deviation per step
+                            // If we are in a high temperature state, the deviation per step will be relatively larger
+                            // If should not be dependent on the stepsize
+                            // first of all compute the avergage absolute difference per step
+                            int recent_size = nr_cum_values - recent_ind;
+                            long double recent_avg_U_L = reduce(recent_U_L, recent_U_L + recent_size) / (double)recent_size;
+                            double mean_abs_delta_U = meanAbsDifference(recent_U_L, recent_size);
+                            // and we need the recent mean
+                            double moving_factor = fabs(avg_U_L - recent_avg_U_L) / ((double)recent_size * mean_abs_delta_U);
+
+                            cout << "recent_avg_U_L = " << recent_avg_U_L << endl;
                             cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
-                            // we set the system to be equilibrated
-                            sys.set_equilibration(t);
-                            // once we did this, we dont want to do that a second time?
-                            equilibrated = true;
+                            cout << "|U_L_recent - U_L| = " << avg_U_L - recent_avg_U_L << endl;
+                            cout << "mean abs delta = " << mean_abs_delta_U << endl;
+
+                            cout << "MOVING FACTOR = " << moving_factor << endl;
+
+                            if(moving_factor < 0.05) {
+                                // we set the system to be equilibrated
+                                cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                                sys.set_equilibration(t);
+                                // once we did this, we dont want to do that a second time?
+                                equilibrated = true;
+                            }
                         }
                     }
                 }
@@ -1051,6 +1082,7 @@ class quench_equilibration_observer : public standard_observer<system, State> {
     double quench_t;        // the time that the quench takes
     bool startpoint = true; // whether we are at the starting point whcih we want to write down
     double dt_half;         // we adopt this variable to f*ing have better timepoints?
+    double density = 1.0/10.0;  // should have the same density as the corr equilibration observer
 public:
     typedef standard_observer<system, State> standard_observer;
     using standard_observer::write_interval;
@@ -1074,7 +1106,10 @@ public:
         // not variable, for starters we can do that here to.
         double dt = paras[Parameter::dt];
         dt_half = dt/2.0;
-        write_interval = 100 * dt;      // We probably should make this density variable
+        if(paras[corr_write_density]) {
+            density = paras[corr_write_density];
+        }
+        write_interval = dt / density;      // We probably should make this density variable
         startpoint = true;              // reset the startpoint variable
         // set the quench_t
         quench_t = sys.get_quench_time();

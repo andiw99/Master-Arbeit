@@ -1499,7 +1499,18 @@ def get_equilibrium_position(J_para, J_perp, h, p, theta_guess=0.8):
     theta_equil = fsolve(equilibrium_angle_equation, theta_guess, args=(J_para, J_perp, h, p))
     return theta_equil
 
-
+def find_time_of_temperature_change(csv_file):
+    previous_temperature = None
+    with open(csv_file, 'r') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            if len(row) < 2:  # Skip empty lines or lines with fewer than 2 columns
+                continue
+            time, temperature = float(row[0]), float(row[1])
+            if previous_temperature is not None and temperature < previous_temperature * 0.99:
+                return previous_time  # Return time of prior line
+            previous_time, previous_temperature = time, temperature
+    return None  # Return None if no temperature change is found
 def main():
     print("This file is made to import, not to execute")
 

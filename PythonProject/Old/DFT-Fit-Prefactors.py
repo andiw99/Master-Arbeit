@@ -64,16 +64,16 @@ def main():
     # theta_SDF_5L = 1.243
 
     # Same angles
-    theta4x2 = 1.238
-    theta2x2 = 1.238
-    theta2x1 = 1.238
-    theta4x1 = 1.238
+    # theta4x2 = 1.238
+    # theta2x2 = 1.238
+    # theta2x1 = 1.238
+    # theta4x1 = 1.238
     # theta_SDF_3L = 1.244
     # theta_SDF_4L = 1.260
     # theta_SDF_5L = 1.243
 
     # wait no, we calculate p just from the thet
-    p = 2.1
+    p = np.pi / theta4x2
 
     # the slap seems to have periodic boundary conditions so this prefactor is wrong? It is just two
     #d iagonal_prefactor = 2      # accounts for the fact that there are some diagonal interactions missing in the slap
@@ -115,10 +115,11 @@ def main():
         "J_x": 0,
         "h": p * np.sin(p * theta4x2),
     }
-
-    equations = [p2x2, p2x1, p4x1, c4x2_equilibrium_angle]
+    # angle equations
+    # equations = [p2x2, p2x1, p4x1, c4x2_equilibrium_angle]
     # PBEsol
-    energies = [1.36, 74.21, 101.68, 0]           # Okay you devided two by twelve, one by 24 and one by two?
+    equations = [p2x2, p2x1, p4x1, sdf]
+    energies = [1.36, 74.21, 101.68, 111.3]           # Okay you devided two by twelve, one by 24 and one by two?
     # PBE
     # energies = [1.03, 78.5, 107.8, 131.4]
     config_names = ["p(2x2)", "p(2x1)", "p(4x1)", "angle"]

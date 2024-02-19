@@ -96,7 +96,7 @@ def prepare_data(cut_zero_impuls, cutoff, df):
 
 def main():
     # parameters
-    root = "../../Generated content/Silicon/Subsystems/Suite/Test5/Quench/128"
+    root = "../../Generated content/Silicon/Quench/Meshs/New/StructFactTest/PBC/400"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)

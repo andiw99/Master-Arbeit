@@ -1840,7 +1840,7 @@ public:
         // be the number of subsystems?
 
         // sum vector for alter, this will be the squared ft
-        thrust::device_vector<double> sum(Lx * Ly);
+        thrust::device_vector<double> sum(batch_size);
 
         hipfftHandle plan;
         hipfftCreate(&plan);

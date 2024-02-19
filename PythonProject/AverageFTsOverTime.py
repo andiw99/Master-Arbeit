@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 from decimal import Decimal
 
 
-def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log", direction="parallel"):
+def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log", direction="parallel", sim_path=None):
     if quench:
         setting_var = r"$\tau$"
     # first we need to find out which taus we want to plot
@@ -35,6 +35,10 @@ def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_
             try:
                 t = np.array(list(t_xi[tau].keys()))
                 if quench:
+                    if t_eq == 0:
+                        folder_path = f"{sim_path}/{size}/{tau}"
+                        csv_path = find_first_csv_file(folder_path)
+                        t_eq = find_time_of_temperature_change(csv_path)
                     # instead of using this complicated function in this case we
                     # only need to separate the equilibration and the quenching and then divide by tau
                     # t, t_q_s = rescale_t(t, float(tau), t_eq, quench_zoom)
@@ -149,7 +153,7 @@ def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.i
     configure_ax(fig, ax)
     return fig, ax
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Left-Right"
+    simulation_path = "../../Generated content/Silicon/Quench/Meshs/New/StructFactTest/PBC XY Switch/"
     cut_zero_impuls = True
     quench = True
     scale_time = True
@@ -160,12 +164,12 @@ def main():
     set_fts_to_zero = False
     min_tau_fit = 100
     max_tau_fit = np.infty
-    plot_struct = False
+    plot_struct = True
     cut_around_peak = True
     peak_cut_threshold = 0.1
     min_points_fraction = 0.8
     fitfunc = lorentz_offset
-    struct_func_time = 10000
+    struct_func_time = 00000
     t_xix = {}
     t_xiy = {}
     size_x_dic = {}
@@ -272,12 +276,14 @@ def main():
         parapath = find_first_txt_file(simulation_path)
         parameters = read_parameters_txt(parapath)
         t_eq = parameters["equil_time"]
+
     setting_var = "T"
     if quench:
         setting_var = r"$\tau$"
 
 
-    fig, ax = plot_process(size_x_dic, t_eq, t_eq_end=t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
+    fig, ax = plot_process(size_x_dic, t_eq, t_eq_end=t_eq, quench=quench, quench_zoom=quench_zoom,
+                           max_nr_curves=max_nr_curves, y_scale="log", sim_path=simulation_path)
     ax_equil = ax[0]
     ax_quench = ax[1]
     ax_equil.set_title("Equilibration")
@@ -291,7 +297,8 @@ def main():
     plt.show()
     exit()
 
-    fig, ax = plot_process(size_y_dic, t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves, y_scale="log")
+    fig, ax = plot_process(size_y_dic, t_eq, quench=quench, quench_zoom=quench_zoom, max_nr_curves=max_nr_curves,
+                           y_scale="log", sim_path=simulation_path)
     ax.set_title("Time during quench is scaled")
     ax.set_ylabel(r"$\xi_y$")
     ax.set_xlabel(

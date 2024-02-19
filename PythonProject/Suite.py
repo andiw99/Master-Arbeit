@@ -378,7 +378,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 10000
+        self.min_cum_nr = 100000
         self.cum_write_density = 1 / 5
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
 
@@ -392,7 +392,7 @@ class crit_temp_measurement(autonomous_measurement):
               f"h={self.h}")
         # TODO this is still all a bit fishy but...
         T_max = T_min + self.h
-        T_max = 2 * T_min
+        T_max = 10 * T_min
         # or just 10 %?
 
 
@@ -1405,7 +1405,7 @@ class amplitude_measurement(autonomous_measurement):
                         f"equil_error, {self.equil_error}\n"
                         f"equil_cutoff, {self.equil_cutoff}\n"
                         f"min_corr_nr, {self.min_corr_nr}\n"
-                        f"corr_write_density, {self.write_density}\n")
+                        f"corr_write_density, {self.corr_write_density}\n")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1940,17 +1940,21 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -150000
-    J_perp = -2340
-    h = 1.7e6
+    #J_para = -150000
+    J_para = -3.11
+    #J_perp = -2340
+    J_perp = -0.1
+    #h = 1.7e6
+    h = 0.5
     eta = 1.5
-    dt = 0.00001
+    #dt = 0.00001
+    dt = 0.01
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test8/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -1972,8 +1976,8 @@ def main():
 
 
     # Amplitude parameters
-    amplitude_size = 1024
-    equil_error = 0.01
+    amplitude_size = 2048
+    equil_error = 0.03
     equil_cutoff = 0.1
 
     # z parameters
@@ -1986,7 +1990,7 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": True,
+        "Tc": False,
         "Quench": False,
         "Amplitude": True,
         "z": False,
