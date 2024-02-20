@@ -1258,13 +1258,15 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // both M and tau are not multiplied with ds yet so we can directly compare the index of the function with its value
     // I dont see much benefit from doing this on gpu so we try a simple implementation
     thrust::host_vector<double> autocorr_time_scan_host(autocorr_time_scan);
-    int M_select;
+    int M_select = 0;
     for(int M = 10; M < f_size; M++) {
         if( M >= 5 * autocorr_time_scan_host[M]) {
+            M_select = M;
             break;
         }
+        // If it finds none.. what then? just use f_size? Use the M that yields the largest autocorr_time_scan?
     }
-    double autocorrelation_time = autocorr_time_scan_host[M_select];
+    double autocorrelation_time = autocorr_time_scan_host[M_select] * ds;
     // double autocorrelation_time = thrust::transform_reduce(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), OnlyPositive(), 0.0, thrust::plus<double>()) * ds;
     return autocorrelation_time;
 }

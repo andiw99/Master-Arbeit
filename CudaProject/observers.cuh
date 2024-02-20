@@ -69,6 +69,12 @@ public:
         ofile.open(filepath);
     }
 
+    void open_app_stream(fs::path filepath) {
+        cout << "open append stream is called with filepaht: " << filepath <<  endl;
+        // create_dir(filepath.parent_path()); If it is append we dont need that line anymore since by definition the folder has to exist
+        ofile.open(filepath, ios::app);
+    }
+
     void close_stream() {
         cout << "closing stream of " << this->get_name() << endl;
         ofile.close();
@@ -108,13 +114,14 @@ public:
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     standard_observer(int nr_values): nr_values(nr_values) {
         // this one has just the logic that we write nr_values equidistant points, applies to quench aswell as to
         // Relaxation. The init is a bit different since we need to find out the write interval
         // It also writes the run parameters to a file
     }
-    virtual void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys)  {
+    virtual void init(fs::path path, map<Parameter, double>& paras, const system &sys)  {
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
 
@@ -122,6 +129,14 @@ public:
         timepoint = 0.0;
         // I think we will add the run number to the paras of the run
         int run_nr = (int)paras[Parameter::run_nr];
+        bool pick_up = (paras[Parameter::random_init] == -1.0);     // if pickup is true, we have to do things a bit differently
+        fs::path folderpath;
+        if(pick_up) {
+            // first of all the path of the folder is the parentpath of the current folderpath
+            folderpath = path.parent_path();
+        } else {
+            folderpath = path;
+        }
         // we just write the parameters first
         close_stream();
         string filename = obsver::construct_filename(run_nr);
@@ -130,8 +145,11 @@ public:
         ofile << "system" << "," << sys.get_name() << endl;
         // dont forget to close!;
         close_stream();
-
-        open_stream(folderpath / (filename + ".csv"));
+        if (pick_up) {
+            open_app_stream(path + ".csv");  // with plus since we have the filename stem here?
+        } else {
+            open_stream(folderpath / (filename + ".csv"));
+        }
     }
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {

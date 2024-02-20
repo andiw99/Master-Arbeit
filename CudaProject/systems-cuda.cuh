@@ -1202,7 +1202,7 @@ public:
                     chess_trafo_rectangular(x, dim_size_x);
                 }
 
-            } else {
+            } else if (paras[random_init] == 1.0) {
                 // random initialization
                 double p_ampl = paras[p0];
 

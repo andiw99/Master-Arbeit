@@ -87,6 +87,29 @@ public:
         state_type x(2 * n);                            // N is not a parameter anymore
         sys Sys = sys(paras);
         Sys.print_info();
+        // We want to implement the pick up functionality that we had already in the past. The thing is that
+        // init state of the system would have to know the path to the file that we wan to use
+        // alternative would be to read the memory into x directly, but that mixes functionality again
+        // at this point I dont care to much anymore to be honest
+        if(paras[random_init] == -1.0) {
+            // If this is the case we want to memory initialize
+            // The thing is, do we want to continue to write into the files that we already have or do we
+            // write new files? Continueing would actually be nice but could be complicated and time consuming
+            // if they are large as I think it is not to easy to add something to a file in c++?
+            // it would have to be completely rewritten? Okay seems there is append mode, why didnt I know this?
+            // If in the current folder there are multiple files that could be continued, which one would we take?
+            // If we just use simulation path as the path to the file that is supposed to be continued, will there
+            // be problems besides in the observer?
+            // folder_path = simulation_path.parent_path();        // we assume the simulation path directly links to a file
+            // ahh we could do that but then we dont know the name of the file in the observers anymore
+            // read the old state/ file
+            ifstream previous_run = safe_read(simulation_path, true);
+            double prev_T, prev_t;          // I dont even think we need those?
+            vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, prev_t);
+            for(int i = 0; i < n; i++) {
+                x[i] = pre_lattice[i];
+            }
+        }
         Sys.init_state(paras, x);           // init state via correct state initializer that was created in repeat
 
         double end_t = Sys.get_end_t();
