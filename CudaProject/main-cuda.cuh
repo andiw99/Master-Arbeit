@@ -1128,6 +1128,18 @@ struct OnlyPositive
     }
 };
 
+struct thrustDivideBy
+{
+    double dividor;
+    thrustDivideBy() {}
+
+    __host__ __device__
+    double operator()(double x) const
+    {
+        return x / dividor;
+    }
+};
+
 struct normalize_fft_autocorr : thrust::unary_function<thrust::tuple<cufftDoubleComplex, size_t>, double> {
     int f_size;
     normalize_fft_autocorr(int f_size) : f_size(f_size), thrust::unary_function<thrust::tuple<cufftDoubleComplex, size_t>, double>(){

@@ -1952,8 +1952,8 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test8/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -1971,12 +1971,12 @@ def main():
     max_rel_intersection_error = 0.02
 
     # Quench parameters
-    max_size = 2048
+    max_size = 1024
     min_nr_sites = 1e6
 
 
     # Amplitude parameters
-    amplitude_size = 2048
+    amplitude_size = 1024
     equil_error = 0.03
     equil_cutoff = 0.1
 

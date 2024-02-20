@@ -831,7 +831,9 @@ public:
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint - dt_half) {
             double xix_val, xiy_val;
+            Singleton_timer::set_startpoint("Xi Calculation");
             sys.calc_xi(x, xix_val, xiy_val);
+            Singleton_timer::set_endpoint("Xi Calculation");
             // The logic of the cutting should take place here or only for calculating the mean? I think we also cut it
             // but we might change that later
             xix_val = min(xix_val, xi_cap * Lx);
@@ -871,11 +873,15 @@ public:
                         double autocorr_time_y;
 
                         if(nr_xi_values - min_ind > val_nr_gpu) {
+                            Singleton_timer::set_startpoint("Autocorrelation time fft calculation");
                             autocorr_time_x = get_autocorrtime_fft(xix_arr, nr_xi_values - min_ind, write_interval);
                             autocorr_time_y = get_autocorrtime_fft(xiy_arr, nr_xi_values - min_ind, write_interval);
+                            Singleton_timer::set_endpoint("Autocorrelation time fft calculation");
                         } else {
+                            Singleton_timer::set_startpoint("Autocorrelation time calculation");
                             autocorr_time_x = get_autocorrtime(xix_arr, nr_xi_values - min_ind, write_interval);
                             autocorr_time_y = get_autocorrtime(xiy_arr, nr_xi_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                            Singleton_timer::set_endpoint("Autocorrelation time calculation");
                         }
 
                         double xix_variance = 2 * autocorr_time_x / ((nr_xi_values-min_ind) * write_interval) * dist_var_x;
