@@ -1447,7 +1447,7 @@ public:
 
     struct rearrange_ft_inds : thrust::unary_function<int, int> {
         int Ly, Lx;
-        rearrange_ft_inds(int Ly, int Lx): Ly(Ly), Lx(Lx){
+        rearrange_ft_inds(int Lx, int Ly): Ly(Ly), Lx(Lx){
         }
 
         __host__ __device__ double operator()(int ind) const {
@@ -1910,6 +1910,7 @@ public:
         }
         Singleton_timer::set_endpoint("Xi calculation FFTs");
         Singleton_timer::set_startpoint("Xi calculation Evaluation of FFTs");
+        Singleton_timer::set_startpoint("Xi summing and averaging");
         thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
         thrust::device_vector<double> ft_squared_k_gpu(Lx);
         thrust::device_vector<double> ft_squared_l_gpu(Ly);
@@ -1922,7 +1923,21 @@ public:
                               sum.begin(), thrust::make_discard_iterator(), ft_squared_l_gpu.begin());
 
         auto rearranged_inds = thrust::make_transform_iterator(thrust::make_counting_iterator<int>(0), rearrange_ft_inds(Lx, Ly));
+        cout << "rearranged inds:" << endl;
+        for(int i = 0; i < 40; i++) {
+            cout << rearranged_inds[i] << endl;
+        }
         auto rearranged_sum = thrust::make_permutation_iterator(sum.begin(), rearranged_inds);
+
+        cout << "sum:" << endl;
+        for(int i = 0; i < 40; i++) {
+            cout << sum[i] << endl;
+        }
+        cout << endl;
+        cout << "rearranged sum" << endl;
+        for(int i = 0; i < 40; i++) {
+            cout << rearranged_sum[i] << endl;
+        }
 
         thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + nr_batches * batch_size,
                               rearranged_sum, thrust::make_discard_iterator(), ft_squared_k_gpu.begin());
@@ -1981,8 +1996,11 @@ public:
         print_array(ft_l_fit, ky.size());
         cout << "ky AFTER cut around peak:" << endl;
         print_vector(ky);*/
+        Singleton_timer::set_endpoint("Xi summing and averaging");
+        Singleton_timer::set_startpoint("Xi Fitting");
         Eigen::VectorXd paras_x = fit_offset_lorentz_peak(kx, ft_k_fit);
         Eigen::VectorXd paras_y = fit_offset_lorentz_peak(ky, ft_l_fit);
+        Singleton_timer::set_endpoint("Xi Fitting");
         xix = abs(paras_x(1));
         xiy = abs(paras_y(1));
         // TODO if you have memory leaks check this here

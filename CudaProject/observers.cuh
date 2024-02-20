@@ -761,8 +761,8 @@ class corr_equilibration_observer: public obsver<system, State>{
     double dt = 0.01;
     double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
-    double density = 1.0 / 10.0;            // standard density writes once every 100 steps
-    double error_factor = 1000.0;
+    double density = 1.0 / 100.0;            // standard density writes once every 100 steps
+    double error_factor = 10000.0;
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
     // for high temperature states we would usually need a larger number of systems to judge the equilibration
@@ -848,7 +848,7 @@ public:
                 int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
                 // we lack the complete logic to change the stepsize since we said we use a constant density 
                 if(nr_xi_values > min_corr_nr){
-                    int error_every_n_steps = (int)(error_factor * density);
+                    int error_every_n_steps = max((int)(error_factor * density), 1);
                     if(xix.size() % error_every_n_steps == 0) {
                         // if we reached the minimum number of values we check the error on the correlation lengths
                         int min_ind = (int)(equil_cutoff * nr_xi_values);
@@ -1088,7 +1088,7 @@ class quench_equilibration_observer : public standard_observer<system, State> {
     double quench_t;        // the time that the quench takes
     bool startpoint = true; // whether we are at the starting point whcih we want to write down
     double dt_half;         // we adopt this variable to f*ing have better timepoints?
-    double density = 1.0/10.0;  // should have the same density as the corr equilibration observer
+    double density = 1.0/100.0;  // should have the same density as the corr equilibration observer
 public:
     typedef standard_observer<system, State> standard_observer;
     using standard_observer::write_interval;
