@@ -4,7 +4,6 @@
 
 #ifndef CUDAPROJECT_MAIN_CUH
 #define CUDAPROJECT_MAIN_CUH
-//
 
 #include "../LearningProject/Header/Helpfunctions and Classes.h"
 #include <functional>
@@ -1128,6 +1127,18 @@ struct OnlyPositive
     }
 };
 
+struct thrustDivideBy
+{
+    double dividor;
+    thrustDivideBy(double dividor): dividor(dividor) {}
+
+    __host__ __device__
+    double operator()(double x) const
+    {
+        return x / dividor;
+    }
+};
+
 struct normalize_fft_autocorr : thrust::unary_function<thrust::tuple<hipfftDoubleComplex, size_t>, double> {
     int f_size;
     normalize_fft_autocorr(int f_size) : f_size(f_size), thrust::unary_function<thrust::tuple<hipfftDoubleComplex, size_t>, double>(){
@@ -1237,8 +1248,26 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     hipfftDestroy(plan);
     hipfftDestroy(inv_plan);
 
+    // we want to add the automatic windowing algorithm. I think an exclusive scan that you convieniently found earlier could work a charm
+    // no, inclusive scan will be even better. The normalized autocorr function is already double which is nice, so we just need another
 
-    double autocorrelation_time = thrust::transform_reduce(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), OnlyPositive(), 0.0, thrust::plus<double>()) * ds;
+    thrust::device_vector<double> autocorr_time_scan(f_size);
+    thrust::inclusive_scan(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), autocorr_time_scan.begin());
+
+    // now we just have to select the smallest index/time that satisfies that M >= 5 * autocorr_time
+    // both M and tau are not multiplied with ds yet so we can directly compare the index of the function with its value
+    // I dont see much benefit from doing this on gpu so we try a simple implementation
+    thrust::host_vector<double> autocorr_time_scan_host(autocorr_time_scan);
+    int M_select = 0;
+    for(int M = 10; M < f_size; M++) {
+        if( M >= 5 * autocorr_time_scan_host[M]) {
+            M_select = M;
+            break;
+        }
+        // If it finds none.. what then? just use f_size? Use the M that yields the largest autocorr_time_scan?
+    }
+    double autocorrelation_time = autocorr_time_scan_host[M_select] * ds;
+    // double autocorrelation_time = thrust::transform_reduce(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), OnlyPositive(), 0.0, thrust::plus<double>()) * ds;
     return autocorrelation_time;
 }
 
