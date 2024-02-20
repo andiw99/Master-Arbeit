@@ -1131,7 +1131,7 @@ struct OnlyPositive
 struct thrustDivideBy
 {
     double dividor;
-    thrustDivideBy() {}
+    thrustDivideBy(double dividor): dividor(dividor) {}
 
     __host__ __device__
     double operator()(double x) const

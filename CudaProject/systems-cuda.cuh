@@ -1449,7 +1449,7 @@ public:
         int Ly, Lx;
         rearrange_ft_inds(int Ly, int Lx): Ly(Ly), Lx(Lx){
         }
-        template<class Tup>
+
         __host__ __device__ double operator()(int ind) const {
             int row = ind % Ly;
             int col = ind / Ly;
@@ -1842,6 +1842,7 @@ public:
 
     template<class State>
     void calc_xi(State& x, double& xix, double& xiy) {
+        Singleton_timer::set_startpoint("Xi calculation FFTs");
         using dim_t = std::array<int, 2>;
         dim_t fft_size = {(int)Ly, (int)Lx};
         // data is x
@@ -1907,7 +1908,8 @@ public:
             thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
                               sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
         }
-
+        Singleton_timer::set_endpoint("Xi calculation FFTs");
+        Singleton_timer::set_startpoint("Xi calculation Evaluation of FFTs");
         thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
         thrust::device_vector<double> ft_squared_k_gpu(Lx);
         thrust::device_vector<double> ft_squared_l_gpu(Ly);
@@ -1939,19 +1941,22 @@ public:
         double* ft_l_fit;       // is it okay that the vector is called in the scope of the following if statement? could be problematic
         // I think now might be the point where we switch back to cpu for now
 
+        thrust::host_vector<double> ft_squared_k(ft_squared_k_gpu);
+        thrust::host_vector<double> ft_squared_l(ft_squared_l_gpu);
+
         if(cut_zero_impuls) {
             // since we now know how pointers work, we know that we can just increase the value of ft_squared_k
             // which is the memory adress of the first value in the array by 1 to increase the adress value by the size of a double
             // this way we have a pointer that points to the second value of ft_squared_k
-            ft_k_fit = &(thrust::host_vector<double>(ft_squared_k_gpu)[1]);
-            ft_l_fit = &(thrust::host_vector<double>(ft_squared_l_gpu)[1]);
+            ft_k_fit = &ft_squared_k[1];
+            ft_l_fit = &ft_squared_l[1];
             // remove first value form ks
             kx.erase(kx.begin());
             ky.erase(ky.begin());
             // size for fitting
         } else {
-            ft_k_fit = &(thrust::host_vector<double>(ft_squared_k_gpu)[0]);
-            ft_l_fit = &(thrust::host_vector<double>(ft_squared_l_gpu)[0]);
+            ft_k_fit = &ft_squared_k[0];
+            ft_l_fit = &ft_squared_l[0];
         }
 /*        cout << "ft_l_fit BEFORE cut around peak:" << endl;
         print_array(ft_l_fit, ky.size());
@@ -1981,10 +1986,10 @@ public:
         xix = abs(paras_x(1));
         xiy = abs(paras_y(1));
         // TODO if you have memory leaks check this here
-        delete[] ft_k_fit;
-        delete[] ft_l_fit;
+        // delete[] ft_k_fit;
+        // delete[] ft_l_fit;
         cufftDestroy(plan);
-
+        Singleton_timer::set_endpoint("Xi calculation Evaluation of FFTs");
     }
 
     template<class State>
@@ -2074,7 +2079,6 @@ public:
                               sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
         }
 
-        thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
         thrust::host_vector<double> host_sum(sum);
 /*        cout << endl << endl;
         for(int i = 0; i < batch_size; i++) {
@@ -2083,21 +2087,6 @@ public:
 
         double* ft_squared_k = new double[Lx]();
         double* ft_squared_l = new double[Ly]();
-        thrust::device_vector<double> ft_squared_k_gpu(Lx);
-        thrust::device_vector<double> ft_squared_l_gpu(Ly);
-
-        auto segment_keys_l_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx));     // segments i am summing are Ly long
-        auto segment_keys_k_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Ly));     // segments j are Ly long
-
-
-        thrust::reduce_by_key(segment_keys_l_sum, segment_keys_l_sum + nr_batches * batch_size,
-                              sum.begin(), thrust::make_discard_iterator(), ft_squared_l_gpu.begin());
-
-        auto rearranged_inds = thrust::make_transform_iterator(thrust::make_counting_iterator<int>(0), rearrange_ft_inds(Lx, Ly));
-        auto rearranged_sum = thrust::make_permutation_iterator(sum.begin(), rearranged_inds);
-
-        thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + nr_batches * batch_size,
-                              rearranged_sum, thrust::make_discard_iterator(), ft_squared_k_gpu.begin());
         // with a permutation iterator and an reduce by key we can perform this stuff on gpu
         for(int i = 0; i < Lx; i++) {
             for(int j = 0; j < Ly; j++) {
@@ -2116,9 +2105,6 @@ public:
             }
         }*/
 
-        // now the entries have to be averaged
-        thrust::transform(ft_squared_k_gpu.begin(), ft_squared_k_gpu.end(), ft_squared_k_gpu.begin(), thrustDivideBy((double)pow(Ly, 4)));
-        thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(Lx, 4)));
         // cout << endl;
         for(int i = 0; i < Lx; i++) {
             ft_squared_k[i] /=  pow(Ly, 4);
