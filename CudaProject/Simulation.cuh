@@ -4,8 +4,8 @@
 
 #ifndef CUDAPROJECT_SIMULATION_CUH
 #define CUDAPROJECT_SIMULATION_CUH
-#include "main-cuda.cuh"
-#include "systems-cuda.cuh"
+#include "main.cuh"
+#include "systems.cuh"
 // #include "deprecated-systems.cuh"
 #include "steppers.cuh"
 #include "observers.cuh"
@@ -91,7 +91,10 @@ public:
         // init state of the system would have to know the path to the file that we wan to use
         // alternative would be to read the memory into x directly, but that mixes functionality again
         // at this point I dont care to much anymore to be honest
+        double t = 0;
         if(paras[random_init] == -1.0) {
+            cout << "Memory init detected" << endl;
+            sleep(2);
             // If this is the case we want to memory initialize
             // The thing is, do we want to continue to write into the files that we already have or do we
             // write new files? Continueing would actually be nice but could be complicated and time consuming
@@ -103,9 +106,12 @@ public:
             // folder_path = simulation_path.parent_path();        // we assume the simulation path directly links to a file
             // ahh we could do that but then we dont know the name of the file in the observers anymore
             // read the old state/ file
+            simulation_path = simulation_path.parent_path(); // TODO very fishy, you should actually write a new simulation for this and not run it through the subsystemRelaxation simulation
+            folder_path = simulation_path;
+            simulation_path += ".csv";
             ifstream previous_run = safe_read(simulation_path, true);
-            double prev_T, prev_t;          // I dont even think we need those?
-            vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, prev_t);
+            double prev_T;          // I dont even think we need those?
+            vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, t);
             for(int i = 0; i < n; i++) {
                 x[i] = pre_lattice[i];
             }
@@ -127,7 +133,6 @@ public:
         // 3. run the simulation haha, observing logic is handled by the observer
         // now we still need all the observing logic, damn that was more work than anticipated
         cout << "For a " << (int)paras[Parameter::dim_size_x] << " x " << (int)paras[Parameter::dim_size_y] << " System" << endl;
-        double t = 0;
         stepper->step_until(end_t, Sys, x, paras[Parameter::dt], t, obsvers);
         cout << "Sys.get_step_nr():" << Sys.get_step_nr() << endl;
         step_nr += Sys.get_step_nr();

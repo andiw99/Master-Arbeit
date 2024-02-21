@@ -146,7 +146,8 @@ public:
         // dont forget to close!;
         close_stream();
         if (pick_up) {
-            open_app_stream(path + ".csv");  // with plus since we have the filename stem here?
+            path += ".csv";
+            open_app_stream(path);  // with plus since we have the filename stem here?
         } else {
             open_stream(folderpath / (filename + ".csv"));
         }
@@ -420,6 +421,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     double write_interval = 1;
     double timepoint = 0;
@@ -444,7 +446,7 @@ public:
     cum_equilibration_observer(int min_cum_nr, double write_density, double equil_cutoff) : min_cum_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {
     }
 
-    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
         if (paras[Parameter::min_cum_nr]){
@@ -456,7 +458,14 @@ public:
         U_L = vector<double>{};
         times = vector<double>{};
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".cum"));
+        } else {
+            path += ".cum";
+            readCumFromFile(path, U_L);
+            open_app_stream(path);
+        }
         cout << this->get_name() << " init called" << endl;
         ofile << "t,U_L" << endl;
 
@@ -768,6 +777,7 @@ class corr_equilibration_observer: public obsver<system, State>{
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     double write_interval = 1;
     double timepoint = 0;
@@ -817,7 +827,7 @@ public:
     }
     corr_equilibration_observer(int nr_values, int min_corr_nr, double density, double equil_cutoff):
     nr_values(nr_values), min_corr_nr(min_corr_nr), density(density), equil_cutoff(equil_cutoff) {}
-    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
         equil_cutoff = paras[Parameter::equil_cutoff];
@@ -831,7 +841,18 @@ public:
         xiy = vector<double>{};
         times = vector<double>{};
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".corr"));
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".corr"));
+        } else {
+            // If we have the memory initialization we also want to load the correlation length values into cache
+            // I thinkt we should do that before we decide to open this file also as output stream
+            path += ".corr";
+            cout << "Reading correlation lengths from file" << endl;
+            readXiFromFile(path, xix, xiy);
+            cout << "successful!" << endl;
+            open_app_stream(path);
+        }
         cout << this->get_name() << " init called" << endl;
         ofile << "t,xix,xiy" << endl;
 
@@ -950,6 +971,7 @@ class ft_observer : public obsver<system, State>{
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     int nr_values;
     double write_interval = 1;
@@ -959,12 +981,19 @@ class ft_observer : public obsver<system, State>{
 public:
     ft_observer(int nr_values) : nr_values(nr_values) {
     }
-    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         timepoint = 0.0;
 
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        fs::path folderpath;
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+        } else {
+            path += ".ft";
+            open_app_stream(path);
+        }
         cout << "ft observer init called" << endl;
         ofile << "t;ft_k;ft_l" << endl;
 
@@ -1016,6 +1045,7 @@ class quench_ft_observer : public obsver<system, State>{
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     int nr_values;
     double write_interval = 1;
@@ -1028,12 +1058,18 @@ class quench_ft_observer : public obsver<system, State>{
 public:
     quench_ft_observer(int nr_values) : nr_values(nr_values) {
     }
-    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         timepoint = 0.0;
 
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+        } else {
+            path += ".ft";
+            open_app_stream(path);
+        }
         cout << "quench ft observer init called" << endl;
         ofile << "t;ft_k;ft_l" << endl;
 
@@ -1178,6 +1214,7 @@ class density_quench_ft_observer : public obsver<system, State>{
     typedef obsver<system, State> obsver;
     using obsver::ofile;
     using obsver::open_stream;
+    using obsver::open_app_stream;
     using obsver::close_stream;
     int nr_values;
     double write_interval = 1;
@@ -1192,12 +1229,18 @@ class density_quench_ft_observer : public obsver<system, State>{
 public:
     density_quench_ft_observer(int nr_values) : nr_values(nr_values) {
     }
-    void init(fs::path folderpath, map<Parameter, double>& paras, const system &sys) override {
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         timepoint = 0.0;
 
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".ft"));
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+        } else {
+            path += ".ft";
+            open_app_stream(path);
+        }
         cout << "density quench ft observer init called" << endl;
         ofile << "t;ft_k;ft_l" << endl;
 

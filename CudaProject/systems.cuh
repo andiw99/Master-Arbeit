@@ -5,7 +5,7 @@
 #ifndef CUDAPROJECT_SYSTEMS_CUDA_CUH
 #define CUDAPROJECT_SYSTEMS_CUDA_CUH
 
-#include "main.cuh"
+#include "main-cuda.cuh"
 
 // #include "parameters.cuh"
 #include <cmath>
@@ -1202,7 +1202,7 @@ public:
                     chess_trafo_rectangular(x, dim_size_x);
                 }
 
-            } else {
+            } else if (paras[random_init] == 1.0) {
                 // random initialization
                 double p_ampl = paras[p0];
 
@@ -1442,6 +1442,18 @@ public:
                 }
             }
             return  thrust::get<0>(tup);
+        }
+    };
+
+    struct rearrange_ft_inds : thrust::unary_function<int, int> {
+        int Ly, Lx;
+        rearrange_ft_inds(int Lx, int Ly): Ly(Ly), Lx(Lx){
+        }
+
+        __host__ __device__ double operator()(int ind) const {
+            int row = ind % Ly;
+            int col = ind / Ly;
+            return  row * Lx + col;
         }
     };
 
@@ -1703,10 +1715,10 @@ public:
     }
 
     struct segment_functor {
-        size_t Lx, Ly;
-        segment_functor(size_t Lx, size_t Ly): Lx(Lx), Ly(Ly){}
+        size_t seg_len;
+        segment_functor(size_t seg_len): seg_len(seg_len){}
         __host__ __device__ int operator()(int ind) const {
-            return ind / (Lx * Ly);
+            return ind / (seg_len);
         }
     };
 
@@ -1761,7 +1773,7 @@ public:
             auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(XY_Silicon::p_XY / 2.0));
             thrust::device_vector<double> m_vec_gpu(nr_subsystems);
             //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
-            auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx, Ly));
+            auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx * Ly));
             thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
                                   segment_keys + (nr_subsystems * Lx * Ly),
                                   sin_cell,
@@ -1828,9 +1840,9 @@ public:
         }
     };
 
-
     template<class State>
     void calc_xi(State& x, double& xix, double& xiy) {
+        Singleton_timer::set_startpoint("Xi calculation FFTs");
         using dim_t = std::array<int, 2>;
         dim_t fft_size = {(int)Ly, (int)Lx};
         // data is x
@@ -1857,7 +1869,163 @@ public:
                 )
         );
         BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
-        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx)); // so cell trafo is the transformed running_chess_it(cell, ind) which is a double again
+
+        // from cell trafo we need to somehow create a pointer to complex<double>
+        // workaraound -> device vector erstellen
+        thrust::device_vector<hipfftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+
+        // fill input vector with the real part being cos of theta
+        BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+
+        // execute FFT
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD);
+        hipDeviceSynchronize();
+
+        //thrust::reduce_by_key(segment_keys, segment_keys + nr_batches * batch_size,
+        //                      output_vector.begin(), thrust::make_discard_iterator(), sum.begin())
+        // reduce by key doesnt work here as easy as expected. also since the number of batches is usally small
+        // for the correlation length calculation, this wont we the problem?
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size,
+                              output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
+        }
+
+        // Now everything again for the sin part?
+        input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+
+        // execute fft
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD); // fft into output vector
+        hipDeviceSynchronize();
+
+        // sum up
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
+        }
+        Singleton_timer::set_endpoint("Xi calculation FFTs");
+        Singleton_timer::set_startpoint("Xi calculation Evaluation of FFTs");
+        Singleton_timer::set_startpoint("Xi summing and averaging");
+        thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
+        thrust::device_vector<double> ft_squared_k_gpu(Lx);
+        thrust::device_vector<double> ft_squared_l_gpu(Ly);
+
+        auto segment_keys_l_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx));     // segments i am summing are Ly long
+        auto segment_keys_k_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Ly));     // segments j are Ly long
+
+
+        thrust::reduce_by_key(segment_keys_l_sum, segment_keys_l_sum + nr_batches * batch_size,
+                              sum.begin(), thrust::make_discard_iterator(), ft_squared_l_gpu.begin());
+
+        auto rearranged_inds = thrust::make_transform_iterator(thrust::make_counting_iterator<int>(0), rearrange_ft_inds(Lx, Ly));
+        auto rearranged_sum = thrust::make_permutation_iterator(sum.begin(), rearranged_inds);
+
+
+        thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + nr_batches * batch_size,
+                              rearranged_sum, thrust::make_discard_iterator(), ft_squared_k_gpu.begin());
+
+
+        // now the entries have to be averaged
+        thrust::transform(ft_squared_k_gpu.begin(), ft_squared_k_gpu.end(), ft_squared_k_gpu.begin(), thrustDivideBy((double)pow(Ly, 4)));
+        thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(Lx, 4)));
+
+        auto kx = get_frequencies_fftw_order(Lx);
+        auto ky = get_frequencies_fftw_order(Ly);
+        // cut zero impuls, I think we can always do that and it won't be much of a difference?
+        bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        bool cut_around_peak = true;
+        double* ft_k_fit;       // the memory is allocated by the vector, right? soooo do i need to free the memory?
+        double* ft_l_fit;       // is it okay that the vector is called in the scope of the following if statement? could be problematic
+        // I think now might be the point where we switch back to cpu for now
+
+        thrust::host_vector<double> ft_squared_k(ft_squared_k_gpu);
+        thrust::host_vector<double> ft_squared_l(ft_squared_l_gpu);
+
+        if(cut_zero_impuls) {
+            // since we now know how pointers work, we know that we can just increase the value of ft_squared_k
+            // which is the memory adress of the first value in the array by 1 to increase the adress value by the size of a double
+            // this way we have a pointer that points to the second value of ft_squared_k
+            ft_k_fit = &ft_squared_k[1];
+            ft_l_fit = &ft_squared_l[1];
+            // remove first value form ks
+            kx.erase(kx.begin());
+            ky.erase(ky.begin());
+            // size for fitting
+        } else {
+            ft_k_fit = &ft_squared_k[0];
+            ft_l_fit = &ft_squared_l[0];
+        }
+/*        cout << "ft_l_fit BEFORE cut around peak:" << endl;
+        print_array(ft_l_fit, ky.size());
+        cout << "" << endl;
+        cout << "ky BEFORE cut around peak:" << endl;
+        print_vector(ky);
+        cout << "" << endl;*/
+        if(cut_around_peak) {
+            auto cut_data_k = cut_data_around_peak(kx, ft_k_fit);   // It doesnt need more computation power if i asign it to a pair beforehand or?
+            kx = cut_data_k.first;
+            ft_k_fit = cut_data_k.second;
+
+            auto cut_data_l = cut_data_around_peak(ky, ft_l_fit);   // It doesnt need more computation power if i asign it to a pair beforehand or?
+            ky = cut_data_l.first;
+            ft_l_fit = cut_data_l.second;
+        }
+
+        // TODO improve the fit, have a thingy that makes it grounded and maybe only fit the peak ? For now ok
+        // We now call another function if we want to cut with offset, this is tedious to change but I dont know if
+        // we ever will so I won't bother for now
+/*        cout << "ft_l_fit after cut around peak:" << endl;
+        print_array(ft_l_fit, ky.size());
+        cout << "ky AFTER cut around peak:" << endl;
+        print_vector(ky);*/
+        Singleton_timer::set_endpoint("Xi summing and averaging");
+        Singleton_timer::set_startpoint("Xi Fitting");
+        Eigen::VectorXd paras_x = fit_offset_lorentz_peak(kx, ft_k_fit);
+        Eigen::VectorXd paras_y = fit_offset_lorentz_peak(ky, ft_l_fit);
+        Singleton_timer::set_endpoint("Xi Fitting");
+        xix = abs(paras_x(1));
+        xiy = abs(paras_y(1));
+        // TODO if you have memory leaks check this here
+        // delete[] ft_k_fit;
+        // delete[] ft_l_fit;
+        hipfftDestroy(plan);
+        Singleton_timer::set_endpoint("Xi calculation Evaluation of FFTs");
+    }
+
+    template<class State>
+    void calc_xi_old(State& x, double& xix, double& xiy) {
+        using dim_t = std::array<int, 2>;
+        dim_t fft_size = {(int)Ly, (int)Lx};
+        // data is x
+        int nr_batches = (int) (dim_size_x / Lx);     // so if I understand correctly the batch size is the number of multiple
+        int batch_size = fft_size[0] * fft_size[1];
+        // ffts running at the same time. so since I want to do a fft for every subsystem, my batch size will
+        // be the number of subsystems?
+
+        // sum vector for alter, this will be the squared ft
+        thrust::device_vector<double> sum(batch_size);
+
+        hipfftHandle plan;
+        hipfftCreate(&plan);
+        hipfftPlanMany(&plan, fft_size.size(), fft_size.data(),
+                      nullptr, 1, 0,
+                      nullptr, 1, 0,
+                      HIPFFT_C2C, nr_batches);
+
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx)); // so cell trafo is the transformed running_chess_it(cell, ind) which is a double again
 
         // from cell trafo we need to somehow create a pointer to complex<double>
         // workaraound -> device vector erstellen
@@ -1879,6 +2047,11 @@ public:
             cout << host_output[i].x << "  " << host_output[i].y << endl;
         }*/
 
+
+        //thrust::reduce_by_key(segment_keys, segment_keys + nr_batches * batch_size,
+        //                      output_vector.begin(), thrust::make_discard_iterator(), sum.begin())
+        // reduce by key doesnt work here as easy as expected. also since the number of batches is usally small
+        // for the correlation length calculation, this wont we the problem?
         for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size,
                               output_vector.begin() + (i + 1) * batch_size,
@@ -1912,32 +2085,31 @@ public:
         }
 
         thrust::host_vector<double> host_sum(sum);
-
-        for(int i = 0; i < batch_size; i++) {
-            host_sum[i] /= nr_batches;
-        }
-
 /*        cout << endl << endl;
         for(int i = 0; i < batch_size; i++) {
             cout << host_sum[i] << endl;
         }*/
 
-        double* ft_squared_k = new double[Lx];
-        double* ft_squared_l = new double[Ly];
-        for(int i = 0; i < Lx; i++) {
-            ft_squared_k[i] = 0.0;
-        }
-        // cout << endl;
-        for(int i = 0; i < Ly; i++) {
-            ft_squared_l[i] = 0.0;
-        }
+        double* ft_squared_k = new double[Lx]();
+        double* ft_squared_l = new double[Ly]();
+        // with a permutation iterator and an reduce by key we can perform this stuff on gpu
         for(int i = 0; i < Lx; i++) {
             for(int j = 0; j < Ly; j++) {
-                int k_ind = j * Lx + i;
+                int k_ind = j * Lx + i;     // j just increases by one usually.
                 ft_squared_k[i] += host_sum[k_ind];
                 ft_squared_l[j] += host_sum[k_ind];
             }
         }
+/*        for(int j = 0; j < Ly; j++) {
+            for(int i = 0; i < Lx; i++) {
+                int k_ind = j * Lx + i;
+                // if j stays the same and i always increases by one in the inner loop, we can calc ft_squared_l directly with reduce by key
+                // We swapped the loops here but that cannot possibly make a difference?
+                ft_squared_k[i] += host_sum[k_ind];
+                ft_squared_l[j] += host_sum[k_ind];
+            }
+        }*/
+
         // cout << endl;
         for(int i = 0; i < Lx; i++) {
             ft_squared_k[i] /=  pow(Ly, 4);
@@ -1960,6 +2132,8 @@ public:
         bool cut_around_peak = true;
         double* ft_k_fit;
         double* ft_l_fit;
+        // I think now might be the point where we switch back to cpu for now
+
         if(cut_zero_impuls) {
             // since we now know how pointers work, we know that we can just increase the value of ft_squared_k
             // which is the memory adress of the first value in the array by 1 to increase the adress value by the size of a double

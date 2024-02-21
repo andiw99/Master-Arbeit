@@ -1324,7 +1324,7 @@ class amplitude_measurement(autonomous_measurement):
         self.maximum_iterations = 2         # we first look at the interval [Tc, 1.05Tc] and If this doesnt work we inrease to [Tc, 1.1Tc] and If this doesnt work we abort
         self.iteration_nr = 0
         self.min_corr_nr = 5000
-        self.corr_write_density = 1 / 1000          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
+        self.corr_write_density = 1 / 2000          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
         self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
         self.Tc_fit_tolerance = 0.025        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
@@ -1941,7 +1941,7 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -150000
-    J_para = -3.11
+    J_para = -6
     #J_perp = -2340
     J_perp = -0.1
     #h = 1.7e6
@@ -1952,9 +1952,9 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Test8/"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/AmplitudeRatioComparison/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -1977,8 +1977,8 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 1024
-    equil_error = 0.03
-    equil_cutoff = 0.1
+    equil_error = 0.05
+    equil_cutoff = 0.01
 
     # z parameters
     size_min = 64

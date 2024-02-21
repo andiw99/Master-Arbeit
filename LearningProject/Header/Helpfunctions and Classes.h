@@ -1391,5 +1391,54 @@ Eigen::VectorXd fit_offset_lorentz_peak(vector<double>& k_values, double* ft_val
     return fit_matrix<LorentzianPeakOffsetFunctor>(X_Y_vals);
 }
 
+void readXiFromFile(const std::string& filename, std::vector<double>& xix_values, std::vector<double>& xiy_values) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    // first line is bullcr..?
+    getline(file, line);
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string token;
+        std::getline(iss, token, ','); // Read t, but don't store it
+        cout << token << endl;
+        std::getline(iss, token, ','); // Read xix
+        cout << token << endl;
+        double xix = std::stod(token);
+        std::getline(iss, token, ','); // Read xiy
+        cout << token << endl;
+        double xiy = std::stod(token);
+
+        xix_values.push_back(xix);
+        xiy_values.push_back(xiy);
+    }
+
+    file.close();
+}
+
+void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string token;
+        std::getline(iss, token, ','); // Read t, but don't store it
+        std::getline(iss, token, ','); // Read U_L
+        double U_L = std::stod(token);
+
+        U_L_vec.push_back(U_L);
+    }
+
+    file.close();
+}
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H
