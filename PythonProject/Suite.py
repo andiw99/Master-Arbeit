@@ -242,7 +242,7 @@ class autonomous_measurement():
         # also some parameters for the cluster
         self.host = host                            # adress of the cluster
         self.user = user                            # user on the cluster
-        self.walltime = "12:00:00"
+        self.walltime = "16:00:00"
         self.file = exec_file
         self.folder = "simulations"
         self.wait = 60
