@@ -1391,7 +1391,8 @@ Eigen::VectorXd fit_offset_lorentz_peak(vector<double>& k_values, double* ft_val
     return fit_matrix<LorentzianPeakOffsetFunctor>(X_Y_vals);
 }
 
-void readXiFromFile(const std::string& filename, std::vector<double>& xix_values, std::vector<double>& xiy_values) {
+void readXiFromFile(const std::string& filename, std::vector<double>& xix_values, std::vector<double>& xiy_values,
+                    std::vector<double>& times) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
@@ -1405,14 +1406,13 @@ void readXiFromFile(const std::string& filename, std::vector<double>& xix_values
         std::istringstream iss(line);
         std::string token;
         std::getline(iss, token, ','); // Read t, but don't store it
-        cout << token << endl;
+        double t = std::stod(token);
         std::getline(iss, token, ','); // Read xix
-        cout << token << endl;
         double xix = std::stod(token);
         std::getline(iss, token, ','); // Read xiy
-        cout << token << endl;
         double xiy = std::stod(token);
 
+        times.push_back(t);
         xix_values.push_back(xix);
         xiy_values.push_back(xiy);
     }
@@ -1420,7 +1420,7 @@ void readXiFromFile(const std::string& filename, std::vector<double>& xix_values
     file.close();
 }
 
-void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec) {
+void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec, std::vector<double>& times) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
@@ -1428,13 +1428,17 @@ void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec) 
     }
 
     std::string line;
+    // the first line is the header
+    getline(file, line);
     while (std::getline(file, line)) {
         std::istringstream iss(line);
         std::string token;
         std::getline(iss, token, ','); // Read t, but don't store it
+        double t = std::stod(token);
         std::getline(iss, token, ','); // Read U_L
         double U_L = std::stod(token);
 
+        times.push_back(t);
         U_L_vec.push_back(U_L);
     }
 

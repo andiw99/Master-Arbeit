@@ -6,7 +6,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    root = "../../Generated content/Silicon/Subsystems/Small/Binder"
+    root = "../../Generated content/Silicon/Subsystems/Suite/Test7"
     name = "binder.cumulants"
     name2 = "corr.lengths"
     root_dirs = os.listdir(root)

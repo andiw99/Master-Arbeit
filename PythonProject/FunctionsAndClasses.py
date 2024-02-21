@@ -1416,7 +1416,7 @@ def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
     p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
     return p_plus, p_minus
 
-def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
+def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=3):
     """
     Searches the best linear fit through the data. The T_arr, xi_inv_arr should be linear
     around the critical temperature
@@ -1425,6 +1425,7 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
     :param Tc_est: the estimated critical temperature
     :param tolerance: the tolerance for the Tc that we get out of the fit. It
                         should lie inside [Tc_est - tolerance * Tc_est, Tc_est + tolerance Tc_est]
+    :param min points: minimum number of points used in the regression
     :return:
     """
     # okay we want to fit the area above Tc so we just start to with all
@@ -1440,8 +1441,8 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0):
     # The minimum r_squared value that we need is the starting value for the best_r_sqaured
     best_r_squared = min_r_squared      # This value ranges to 1 I think and 1 is a really good fit?
     best_reg = None
-    for starting_pos in range(len(T_arr) - 4 + 1):
-        for ending_pos in range(starting_pos + 4, len(T_arr)+1):
+    for starting_pos in range(len(T_arr) - min_points + 1):
+        for ending_pos in range(starting_pos + min_points, len(T_arr)+1):
             # We should have at least 4 points i would say.
             T_fit = T_arr[starting_pos:ending_pos]
             xi_inv_fit = xi_inv_arr[starting_pos:ending_pos]

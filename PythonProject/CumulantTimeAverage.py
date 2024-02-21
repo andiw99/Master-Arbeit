@@ -7,13 +7,13 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/Test4/Tc/'
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/Test7/Tc/'
     threshold = 0.1  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
     linewidth = 1
-    min_T = 0.
-    max_T = 0.
+    min_T = 1.2
+    max_T = 1.4
     nr_curves = 6
 
     results = {}

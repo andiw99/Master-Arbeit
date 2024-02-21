@@ -127,7 +127,26 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff):
     else:
         return False
 
-def check_cum_valid(folderpath, variation_error_rate, num_per_var_val, ds):
+def check_cum_valid(folderpath, equil_error, equil_cutoff):
+    """
+    function that checks whether a cumulant measurement was valid
+    :param folderpath:
+    :param equil_error:
+    :param equil_cutoff:
+    :return:
+    """
+    # TODO implement
+    cum_avg, error = process_temp_folder(folderpath, equil_cutoff, "cum", "U_L")
+
+    rel_error = error / cum_avg
+
+    if rel_error <= equil_error:
+        return True
+    else:
+        return False
+
+
+def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
     """
     this function checks if a simulation in folderpath has .cum file with
     a variation error that is small than given
@@ -350,7 +369,7 @@ class autonomous_measurement():
 
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004,
+                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, T_min=None, T_max=None):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
@@ -375,6 +394,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.all_T_dic = {}                 # Bookkeeping dictionary for the different simulation spheres
         self.max_rel_intersec_error = intersection_error  # standard maximum error of 2%
         self.equil_error = equil_error           # standard equilibration error for the U_L runs
+        self.min_equil_error = min_equil_error      # If we allow arbitrarily small errors, the runs wont end
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
@@ -392,7 +412,7 @@ class crit_temp_measurement(autonomous_measurement):
               f"h={self.h}")
         # TODO this is still all a bit fishy but...
         T_max = T_min + self.h
-        T_max = 10 * T_min
+        T_max = 2 * T_min
         # or just 10 %?
 
 
@@ -483,8 +503,9 @@ class crit_temp_measurement(autonomous_measurement):
         shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
-        max_T = np.max(self.T_arr) * 1.01
-        min_T = np.min(self.T_arr) * 0.99
+        T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
+        max_T = np.max(T_arr) * 1.01
+        min_T = np.min(T_arr) * 0.99
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
                 T = np.array(results[size]["T"])
@@ -610,6 +631,11 @@ class crit_temp_measurement(autonomous_measurement):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
         simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
+        # We check how many fitting temp-size pairs are already available
+        valid_simulations = get_avail_simulations(self.sizes,
+                                                  self.T_arr,  self.simulation_path, 
+                                                  )
+        
         print("simulation_available", simulation_available)
         if not simulation_available or self.repeat:
             self.repeat = False                 # we set repeat to false again
@@ -652,7 +678,7 @@ class crit_temp_measurement(autonomous_measurement):
 
             T_c_error = np.ptp(intersections)
             # the error will now be the minimum of this and a fourth of the stepsize
-            T_c_error = max(T_c_error, dT / 5)
+            T_c_error = max(T_c_error, dT / 2)
             print(f"T_c_error = {T_c_error}")
             rel_intersec_error = T_c_error / T_c
             print(f"rel_intersec_error = {rel_intersec_error}")
@@ -665,17 +691,18 @@ class crit_temp_measurement(autonomous_measurement):
                 U_L_intersection = np.mean(intersections_y)
                 self.plotBinderCurve(T_c, U_L_intersection, results)
                 # If the error is too large we do a child measurement with smaller error
-                self.equil_error /= 2
+                self.equil_error = max(self.equil_error/ 2, self.min_equil_error)
                 # We wanted to have our edgecases of within 5 or 20 percent of the interval edges...
                 T_interval_low = np.max(T_arr[T_arr <= T_c])
                 T_interval_up = np.min(T_arr[T_arr >= T_c]) # this should hopefully guaranteed to be always dT larger than lower interval?
-                if T_c < (T_interval_low + 0.05 * dT):
-                    # in this case we want to half the new interval
-                    T_interval_up = T_interval_low + dT / 2
-                    T_interval_low -= 0.02 * dT
-                elif T_c > (T_interval_up - 0.2 * dT):
-                    T_interval_low = T_interval_up - dT / 2
-                    T_interval_up += 0.02 * dT
+                # This doesnt make sense as we saw
+                #if T_c < (T_interval_low + 0.05 * dT):
+                #    # in this case we want to half the new interval
+                #    T_interval_up = T_interval_low + dT / 2
+                #    T_interval_low -= 0.02 * dT
+                #elif T_c > (T_interval_up - 0.2 * dT):
+                #    T_interval_low = T_interval_up - dT / 2
+                #    T_interval_up += 0.02 * dT
                 # else we just take the whole interval
                 # We actually dont want to have exactly the same temperature as in the previous run
                 # we think we are fairly sure to include the critical point if we subtract 0.01dT from the interval edges
@@ -698,7 +725,7 @@ class crit_temp_measurement(autonomous_measurement):
                 # for now we just double the range i would say?
                 T_range = np.ptp(self.T_arr)
                 T_min = np.max(self.T_arr) + (dT)  # the next T_min is the current maximum plus the current stepsize
-                T_max = np.max(self.T_arr) + T_range
+                T_max = np.max(self.T_arr) + T_range + dT    # TODO add dT!!
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
                 # Okay we updated the temperature array... now we just run everything again?
             elif U_L_min_T_min < U_L_max_T_min:
@@ -889,9 +916,10 @@ class crit_temp_measurement(autonomous_measurement):
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
 class quench_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, size_min=64,
-                 size_max=4096, nr_sites=5e5, Ly_Lx=1/8, min_quench_steps=100, min_nr_sites=1e6,
-                 min_nr_systems=10, host="hemera", user="weitze73"):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc,
+                 nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
+                 min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
+                 host="hemera", user="weitze73"):
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
@@ -907,8 +935,9 @@ class quench_measurement(autonomous_measurement):
         self.tau_factor = 1                    # current tau
         self.tau_list = []                 # empty list to keep track of the taus that we used
         self.size = size_min            # current size, starts at size_min
-        self.equil_error = 0.02        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
+        self.equil_error = 0.05        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
         self.para_nr = 100
+        self.min_nr_corr_values = 500
 
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
@@ -964,7 +993,8 @@ class quench_measurement(autonomous_measurement):
                     f"nr_corr_values, {self.nr_measured_values} \n"
                     f"nr_ft_values, {self.nr_measured_values} \n"           # TODO probably deprecated, have to see later!
                     f"equil_error, {self.equil_error} \n"
-                    f"min_cum_nr, 50")
+                    f"min_cum_nr, 50\n"
+                    f"min_corr_nr, {self.min_nr_corr_values}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1303,11 +1333,12 @@ class quench_measurement(autonomous_measurement):
 
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
-                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.001, equil_cutoff=0.1, T_range_fraction=0.05):
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01):
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
+        self.T_min_fraction = T_min_fraction
         self.Tc = Tc                            # We need to know the critical temperature that we determined in previous measurements
         # I think we only use one size, being the largest possible
         # Is there some way of guessing how long a simulation will take?
@@ -1335,8 +1366,12 @@ class amplitude_measurement(autonomous_measurement):
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between
-        Tmax = self.Tc * (1 + self.T_range_fraction)
-        self.T_arr = np.linspace(self.Tc, Tmax, num=self.nr_Ts)
+        Tmax = self.Tc * (1 + self.T_min_fraction + self.T_range_fraction)
+        Tmin = self.Tc * (1 + self.T_min_fraction)
+        # I think we can drop Tc itself since it is to close to the critical point
+        # and everything that i am trying to calculate here is not accurate and
+        # takes a very long time
+        self.T_arr = np.linspace(Tmin, Tmax, num=self.nr_Ts)
         # Is that all, what else do we need to setup?
         # For now the total number of runs is just the nr of temps
         self.total_runs = self.nr_Ts
@@ -1446,6 +1481,28 @@ class amplitude_measurement(autonomous_measurement):
         # The best fit_inv function returns None if we didnt find a fitting segment
         if (reg_x is None) or (reg_y is None):
             print("No fitting fit.")
+            fig, ax = plt.subplots(1, 1)
+            # First plot the data points
+            ax.plot(T_xix,xix_arr, label=rf"$\xi_x$", linestyle="",
+                    marker="x")
+            ax.plot(T_xiy, xiy_arr, label=rf"$\xi_y$", linestyle="",
+                    marker="x")
+            ax.set_xlabel("T")
+            ax.set_ylabel(r"$\xi$")
+            configure_ax(fig, ax)
+            plt.show()
+
+            fig, ax = plt.subplots(1, 1)
+            # First plot the data points
+            ax.plot(T_xix, 1 / xix_arr, label=rf"$1 / \xi_x$", linestyle="",
+                    marker="x")
+            ax.plot(T_xiy, 1 / xiy_arr, label=rf"$1 / \xi_y$", linestyle="",
+                    marker="x")
+            ax.set_xlabel("T")
+            ax.set_ylabel(r"$\xi$")
+            configure_ax(fig, ax)
+            plt.show()
+
             # if we are doing to many iterations we have to return here
             if self.iteration_nr > self.maximum_iterations:
                 print("Maximum iterations reached. Aborting")
@@ -1497,7 +1554,7 @@ class amplitude_measurement(autonomous_measurement):
         ax.plot(T_y, reg_y.intercept + reg_y.slope * T_y,
                 label=rf"$\xi_y^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$")
         # We want to show the ratio on the plot
-        ax.plot([], [], label=rf"$\xi_x / \xi_y  = {xix_ampl / xiy_ampl}$", linestyle="", marker="")
+        ax.plot([], [], label=rf"$\xi_x / \xi_y  = {(xix_ampl / xiy_ampl):.2f}$", linestyle="", marker="")
         # like I said if we want them to be in one plot we need to scale the y axix to be logarthimic, you cant do that, the fits will cross zero and so wont look good logarithmic
         ax.set_xlabel("T")
         ax.set_ylabel(r"$1 / \xi$")
@@ -1636,7 +1693,7 @@ class z_measurement(autonomous_measurement):
         # so now we do the same thing as in z_extraction suite, we let the computer search the valid measurements
         valid_simulations = get_avail_simulations(self.sizes, [self.Tc],
                                                   self.simulation_path,
-                                                  check_cum_valid,
+                                                  check_cum_variation_valid,
                                                   check_function_args=(
                                                   self.variation_error_rate,
                                                   self.nr_points_diff_variance,
@@ -1671,7 +1728,7 @@ class z_measurement(autonomous_measurement):
         # what we have to write is the plotting and fitting...
         valid_simulations = get_avail_simulations(list(self.sizes) + self.valid_sizes, [self.Tc],
                                                   self.simulation_path,
-                                                  check_cum_valid,
+                                                  check_cum_variation_valid,
                                                   check_function_args=(
                                                   self.variation_error_rate,
                                                   self.nr_points_diff_variance,
@@ -1952,9 +2009,11 @@ def main():
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/AmplitudeRatioComparison/"
+    nr_Ts = 5
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = ("../../Generated content/Silicon/Subsystems/Suite/"
+                       "Test7/")
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -1990,7 +2049,7 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": False,
+        "Tc": True,
         "Quench": False,
         "Amplitude": True,
         "z": False,
@@ -2000,7 +2059,7 @@ def main():
     # the Scanned interval
     if measurements["Tc"]:
         sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
     else:

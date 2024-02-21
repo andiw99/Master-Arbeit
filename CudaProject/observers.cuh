@@ -461,13 +461,16 @@ public:
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(!pick_up) {
             open_stream(path / (obsver::construct_filename(run_nr) + ".cum"));
+            ofile << "t,U_L" << endl;
         } else {
             path += ".cum";
-            readCumFromFile(path, U_L);
+            readCumFromFile(path, U_L, times);
+            // the other observers that dont read the values in actually have a problem with defining the timepoint?
+            timepoint = times.back();
             open_app_stream(path);
         }
         cout << this->get_name() << " init called" << endl;
-        ofile << "t,U_L" << endl;
+
 
         // I think the starting write interval should be every one hundred steps
         dt = paras[Parameter::dt];
@@ -834,6 +837,7 @@ public:
         // the subsystems sizes for the xi cutting
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];
+        // the timepoint is only zero if we do not memory initialize
         timepoint = 0.0;
         equilibrated = false;
         // we also need to reset U_L and times, dont we?
@@ -844,17 +848,20 @@ public:
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(!pick_up) {
             open_stream(path / (obsver::construct_filename(run_nr) + ".corr"));
+            // We only want to do this if we are creating a new file?
+            ofile << "t,xix,xiy" << endl;
         } else {
             // If we have the memory initialization we also want to load the correlation length values into cache
             // I thinkt we should do that before we decide to open this file also as output stream
             path += ".corr";
             cout << "Reading correlation lengths from file" << endl;
-            readXiFromFile(path, xix, xiy);
+            readXiFromFile(path, xix, xiy, times);
+            timepoint = times.back();
             cout << "successful!" << endl;
             open_app_stream(path);
         }
         cout << this->get_name() << " init called" << endl;
-        ofile << "t,xix,xiy" << endl;
+
 
         // I think the starting write interval should be every one hundred steps
         dt = paras[Parameter::dt];
@@ -990,12 +997,12 @@ public:
         fs::path folderpath;
         if(!pick_up) {
             open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+            ofile << "t;ft_k;ft_l" << endl;
         } else {
             path += ".ft";
             open_app_stream(path);
         }
         cout << "ft observer init called" << endl;
-        ofile << "t;ft_k;ft_l" << endl;
 
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
@@ -1066,12 +1073,12 @@ public:
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(pick_up) {
             open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+            ofile << "t;ft_k;ft_l" << endl;
         } else {
             path += ".ft";
             open_app_stream(path);
         }
         cout << "quench ft observer init called" << endl;
-        ofile << "t;ft_k;ft_l" << endl;
 
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
@@ -1237,12 +1244,12 @@ public:
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(!pick_up) {
             open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+            ofile << "t;ft_k;ft_l" << endl;
         } else {
             path += ".ft";
             open_app_stream(path);
         }
         cout << "density quench ft observer init called" << endl;
-        ofile << "t;ft_k;ft_l" << endl;
 
         // I think this will have less performance impact than an if statement catching the first observer operation
         // Make sure to use this observer only with systems that have a get_end_T method
