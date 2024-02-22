@@ -834,6 +834,7 @@ public:
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
         equil_cutoff = paras[Parameter::equil_cutoff];
+        min_corr_nr = (int)paras[Parameter::min_corr_nr];
         // the subsystems sizes for the xi cutting
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];

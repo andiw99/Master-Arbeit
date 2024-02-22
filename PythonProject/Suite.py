@@ -243,7 +243,7 @@ def get_difference_std(cum_arr):
 
 class autonomous_measurement():
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
-                 host="hemera", user="weitze73"):
+                 host="hemera", user="weitze73", para_nr=100, wait=60):
         # This class is supposed to encapsulate some of the functionality that the following classes share
         # For every simulation I need the basic simulation parameters
         self.J_para = J_para
@@ -262,7 +262,7 @@ class autonomous_measurement():
         self.walltime = "16:00:00"
         self.file = exec_file
         self.folder = "simulations"
-        self.wait = 60
+        self.wait = 30
 
         # Besides the external simulation parameters that I have to provide there are some other attributes that
         # every autonomous suite needs
@@ -271,7 +271,7 @@ class autonomous_measurement():
         self.completed_jobs = set()
         self.connection = None
         self.total_runs = 0
-        self.para_nr = 100                            # every mearsurement has at least one current parameter number
+        self.para_nr = para_nr                            # every mearsurement has at least one current parameter number
 
 
     def check_completed_jobs(self):
@@ -368,9 +368,9 @@ class autonomous_measurement():
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
-                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.nr_Ts = nr_Ts
         self.size_min = size_min
         self.size_max = size_max
@@ -396,7 +396,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 100000
+        self.min_cum_nr = 10000
         self.cum_write_density = 1 / 5
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
@@ -453,7 +453,7 @@ class crit_temp_measurement(autonomous_measurement):
         # In the new conclude only the simulation with the highest hierarchy is used
         T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
 
-        results = self.construct_results(self.discard_threshold, T_arr)
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
         intersections, intersections_y = get_intersections(results)
@@ -498,6 +498,8 @@ class crit_temp_measurement(autonomous_measurement):
 
     def plotBinderCurve(self, T_c, U_L_intersection, results):
         fig, ax = plt.subplots(1, 1)
+        if not T_c:
+            T_c = 0
         y_upper_lim = 0
         y_lower_lim = np.infty
         shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
@@ -510,7 +512,7 @@ class crit_temp_measurement(autonomous_measurement):
             if i in shown_inds:
                 T = np.array(results[size]["T"])
                 U_L = np.array(results[size]["U_L"])
-                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind])
+                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
@@ -630,7 +632,7 @@ class crit_temp_measurement(autonomous_measurement):
     def iteration(self):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
-        simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
+        # simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
         # We check how many fitting temp-size pairs are already available
         valid_simulations = get_avail_simulations(self.sizes,
                                                   self.T_arr,
@@ -642,7 +644,7 @@ class crit_temp_measurement(autonomous_measurement):
         # I mean we could construct a parameter with 'jobs to run' and remove
         # valid jobs from this one, but that would be one more parameter to keep
         # track of
-        print("simulation_available", simulation_available)
+        print("valid simulations:", valid_simulations)
         self.jobs_to_do = list(product(self.sizes, self.T_arr))
 
         for valid_sim in valid_simulations:
@@ -665,7 +667,8 @@ class crit_temp_measurement(autonomous_measurement):
         sim_hierarchy_nr = np.max(list(self.all_T_dic.keys()))
         T_arr = self.all_T_dic[sim_hierarchy_nr]
         # for this one we want to check if it has an intersection
-        results = self.construct_results(self.discard_threshold, T_arr)
+        # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
 
         U_L_min_T_min = np.min(results[np.min(self.sizes)]['U_L'])
         U_L_max_T_min = np.min(results[np.max(self.sizes)]['U_L'])
@@ -729,6 +732,7 @@ class crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
+            self.plotBinderCurve(None, None, results)
             if U_L_min_T_max > U_L_max_T_max:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
@@ -869,16 +873,20 @@ class crit_temp_measurement(autonomous_measurement):
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
             return self.iteration()
 
-    def construct_results(self, threshold, selected_temps=None):
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
-            if (size_folder[0] != ".") & (size_folder != "plots"):
-                size_folder_path = os.path.join(self.simulation_path,
-                                                size_folder)
-                if os.path.isdir(size_folder_path):
-                    size_result = process_size_folder(size_folder_path,
-                                                      threshold, selected_temperatures=selected_temps)
-                    results[int(size_folder)] = size_result
+            size_folder_path = os.path.join(self.simulation_path,
+                                            size_folder)
+            if os.path.isdir(size_folder_path):
+                if selected_sizes is not None:
+                    size = int(size_folder)
+                    if size not in selected_sizes:
+                        continue
+                if (size_folder[0] != ".") & (size_folder != "plots"):
+                        size_result = process_size_folder(size_folder_path,
+                                                          threshold, selected_temperatures=selected_temps)
+                        results[int(size_folder)] = size_result
         return results
 
     def get_para_nr(self):
@@ -890,7 +898,8 @@ class crit_temp_measurement(autonomous_measurement):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
         print("Writing the parameter files...")
-        for i, (T, size) in enumerate(self.jobs_to_do):
+        self.total_runs = len(self.jobs_to_do)
+        for i, (size, T) in enumerate(self.jobs_to_do):
             # We now need to construct the parameterfile with the appropriate temperature and size
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
             # to construct the para set we need to know how many subsystems we should initialize
@@ -930,8 +939,8 @@ class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73"):
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+                 host="hemera", user="weitze73", wait=30):
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
         self.nr_sites = nr_sites        # nr of sites for one run
