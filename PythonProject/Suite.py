@@ -135,7 +135,6 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff):
     :param equil_cutoff:
     :return:
     """
-    # TODO implement
     cum_avg, error = process_temp_folder(folderpath, equil_cutoff, "cum", "U_L")
 
     rel_error = error / cum_avg
@@ -144,7 +143,6 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff):
         return True
     else:
         return False
-
 
 def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
     """
@@ -370,7 +368,7 @@ class autonomous_measurement():
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
-                 intersection_error=0.02, T_min=None, T_max=None):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         self.nr_Ts = nr_Ts
@@ -401,6 +399,8 @@ class crit_temp_measurement(autonomous_measurement):
         self.min_cum_nr = 100000
         self.cum_write_density = 1 / 5
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
+        self.equil_cutoff = equil_cutoff
+        self.jobs_to_do = None          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
 
         self.cur_para_nr = 0
     def init(self):
@@ -633,11 +633,22 @@ class crit_temp_measurement(autonomous_measurement):
         simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
         # We check how many fitting temp-size pairs are already available
         valid_simulations = get_avail_simulations(self.sizes,
-                                                  self.T_arr,  self.simulation_path, 
+                                                  self.T_arr,
+                                                  self.simulation_path,
+                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff)
                                                   )
-        
+        # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
+        # In the other two cases it was easy because we only had one size or one temperature always?
+        # I mean we could construct a parameter with 'jobs to run' and remove
+        # valid jobs from this one, but that would be one more parameter to keep
+        # track of
         print("simulation_available", simulation_available)
-        if not simulation_available or self.repeat:
+        self.jobs_to_do = list(product(self.sizes, self.T_arr))
+
+        for valid_sim in valid_simulations:
+            self.jobs_to_do.remove(valid_sim)       # should work? Or should we check whether the temperatue is close enough to the requested value? I think this is already done in the get avail sim function
+
+        if self.jobs_to_do or self.repeat:
             self.repeat = False                 # we set repeat to false again
             self.cur_para_nr = 0                # reset the parameter number
             self.write_para_files()  # setting up the parameter files for every simulation
@@ -879,7 +890,7 @@ class crit_temp_measurement(autonomous_measurement):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
         print("Writing the parameter files...")
-        for i, (T, size) in enumerate(product(self.T_arr, self.sizes)):
+        for i, (T, size) in enumerate(self.jobs_to_do):
             # We now need to construct the parameterfile with the appropriate temperature and size
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
             # to construct the para set we need to know how many subsystems we should initialize
