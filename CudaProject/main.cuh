@@ -1416,9 +1416,11 @@ double meanAbsDifference(double* f, int f_size) {
     std::vector<double> diffs(f_size - 1);
     transform(f, f + f_size - 1, f + 1, diffs.begin(), absDiff1DStd());
 
+/*
     for (int i = 0; i< 20; i++){
         cout << "|" <<f[i] << " - " << f[i+1]<< "|" << " = " <<  diffs[i] << endl;
     }
+*/
 
 
     double accumulated_abs_diff = reduce(diffs.begin(), diffs.end(), 0.0) / (double)(f_size - 1);

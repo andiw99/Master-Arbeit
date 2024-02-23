@@ -396,8 +396,8 @@ class crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 10000
-        self.cum_write_density = 1 / 5
+        self.min_cum_nr = 2500
+        self.cum_write_density = 1 / 100
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
         self.jobs_to_do = None          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
@@ -456,7 +456,7 @@ class crit_temp_measurement(autonomous_measurement):
         results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
-        intersections, intersections_y = get_intersections(results)
+        intersections, intersections_y = get_first_intersections(results)
 
         T_c = np.mean(intersections)
         U_L_intersection = np.mean(intersections_y)
@@ -552,7 +552,7 @@ class crit_temp_measurement(autonomous_measurement):
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
         intersections = []
         intersections_y = []
-        intersections, intersections_y = get_intersections(results)
+        intersections, intersections_y = get_first_intersections(results)
 
         T_c = np.mean(intersections)
         U_L_intersection = np.mean(intersections_y)
@@ -682,7 +682,7 @@ class crit_temp_measurement(autonomous_measurement):
         dT = T_arr[1] - T_arr[0]
         if intersection:
             # now the usual stuff, estimate the postion of the intersection
-            intersections, intersections_y = get_intersections(results)
+            intersections, intersections_y = get_first_intersections(results)
 
             T_c = np.mean(intersections)
 
@@ -804,7 +804,7 @@ class crit_temp_measurement(autonomous_measurement):
             #    intersection = find_intersection(T_range, U_L_1, U_L_2)
             #    intersections.append(intersection)
             # TODO this works only for 3 different sizes
-            intersections, intersections_y = get_intersections(all_results)
+            intersections, intersections_y = get_first_intersections(all_results)
             # more is it net?
             # simple error would be to be just max_intersection - min_intersection?
             T_c = np.mean(intersections)
@@ -929,6 +929,457 @@ class crit_temp_measurement(autonomous_measurement):
                         f"equil_error, {self.equil_error}\n"
                         f"cum_write_density, {self.cum_write_density}\n"
                         f"min_cum_nr, {self.min_cum_nr}")
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+class efficient_crit_temp_measurement(autonomous_measurement):
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
+                          size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
+        # call the constructor of the parent classe
+        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        self.nr_Ts = nr_Ts
+        self.size_min = size_min
+        self.size_max = size_max
+        self.max_steps = max_steps
+        self.nr_sites = nr_sites
+
+        # We can also specify the temperature interval ourselves If we want that
+        self.T_min = T_min
+        self.T_max = T_max
+
+        self.T_arr = np.array([])
+        self.max_T_step = 0.1               # fraction of the critical temperature that is the maximum stepsize for accepted measurements
+        self.sizes = np.array([])
+        self.max_time = 0
+        self.total_runs = 0
+
+        self.all_T_arr = np.array([])       # Bookkeeping for all the temperatures we have simulated in this setting
+        self.all_T_dic = {}                 # Bookkeeping dictionary for the different simulation spheres
+        self.max_rel_intersec_error = intersection_error  # standard maximum error of 2%
+        self.equil_error = equil_error           # standard equilibration error for the U_L runs
+        self.min_equil_error = min_equil_error      # If we allow arbitrarily small errors, the runs wont end
+        self.maximum_iterations = 4
+        self.iteration_nr = 0
+        self.repeat = False             # variable that is set to true if we have to repeat a simulation
+        self.min_cum_nr = 2500
+        self.cum_write_density = 1 / 100
+        self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
+        self.equil_cutoff = equil_cutoff
+        # jobs to do will be a set so we cannot possible do one job accidentally twice
+        self.jobs_to_do = set()          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
+        self.jobs_done = set()           # set with triplets of done jobs?
+
+        self.cur_para_nr = 0
+    def init(self):
+        # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
+        T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
+        # TODO really crude approximation of the maximum T, I really should think about something better
+        print(f"T_min = {T_min}\n"
+              f"J_perp = {self.J_perp}\n"
+              f"h={self.h}")
+        # TODO this is still all a bit fishy but...
+        T_max = T_min + self.h
+        T_max = 2 * T_min
+        # or just 10 %?
+
+
+        if self.T_min is None:
+            # If we do not specify the critical temperature, we use the critical temperature estimation
+            self.T_min = T_min
+        if self.T_max is None:
+            self.T_max = T_max
+            # If T_max is smaller, equal or slitghly larger than our specified T_min, what do we do then?
+
+        # We use nr_Ts datapoints
+        self.T_arr = np.linspace(self.T_min, self.T_max, self.nr_Ts)
+        # the T_array has to be added to the hierarchy
+        # I would say in this case the keys should be the errors at which they equilibrated
+        self.all_T_dic[self.equil_error] = self.T_arr  # This first array is on level 0
+
+        self.sizes = np.array([self.size_min, self.size_max])
+        print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
+        self.max_time = self.dt * self.max_steps
+        self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
+        self.jobs_to_do = set(product(self.sizes, self.T_arr))      # for the beginning this is still valid
+    def routine(self):
+        """
+        the outer routine for the T_c calculation
+        :param walltime: walltime per job+3,
+        :param file: file to be compiled, we may want to have a seperate file for the autonomous exection
+        :param folder: folder for the executables
+        :param wait: sleep for wait seconds before checking again if a job is finished
+        :return: -
+        """
+        self.init()                 # initializing determines the T range
+        T_c, T_c_error = self.iteration()  # recursive fuction that returns T_c
+        self.conclude()
+        return T_c, T_c_error
+
+    def conclude(self):
+        # In the new conclude only the simulation with the smallest error
+        T_arr = self.all_T_dic[np.min(list(self.all_T_dic.keys()))]
+
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
+
+        # interpolate and minimize is deprecated, we use the technique we also use in iteration
+        intersections, intersections_y = get_first_intersections(results)
+
+        T_c = np.mean(intersections)
+        U_L_intersection = np.mean(intersections_y)
+        T_c_error = np.ptp(intersections)
+
+        self.plotBinderCurve(T_c, U_L_intersection, results)
+
+        # constructing cum dic
+        cum_dic = {}
+        for size in results:
+            cum_dic[size] = results[size]["U_L"]
+
+        diff_arr, size_arr = calc_diff_at(T_c,
+                                          list(results.values())[0]["T"],
+                                          cum_dic)
+
+        popt, _ = curve_fit(linear_fit, np.log(size_arr),
+                            np.log(diff_arr))
+        nu = 1 / popt[0]
+
+        print("FITTING RESULTS:")
+        print("nu = ", nu)
+
+        fig, ax = plt.subplots(1, 1)
+        L_fit = np.linspace(0, np.max(size_arr) + 0.2 * np.max(size_arr), 101)
+        ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])),
+                label=rf"$\nu = {nu:.2f}$", color=colors[0])
+        ax.plot(size_arr, diff_arr, linestyle="", marker="x", color=colors[0])
+        ax.set_xlabel("L")
+        ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
+        ax.legend()
+        ax.set_title(
+            r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
+        configure_ax(fig, ax)
+        # save_plot(root, "/critical_exponent.pdf", format="pdf")
+        fig.savefig(self.simulation_path + "/critical_exponent_time_avg.png",
+                    format="png", dpi=250, transparent=False)
+        plt.show()
+
+    def plotBinderCurve(self, T_c, U_L_intersection, results):
+        fig, ax = plt.subplots(1, 1)
+        if not T_c:
+            T_c = 0
+        y_upper_lim = 0
+        y_lower_lim = np.infty
+        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
+                                 dtype=np.int64)
+        ind = 0
+        T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
+        max_T = np.max(T_arr) * 1.01
+        min_T = np.min(T_arr) * 0.99
+        for i, size in enumerate(sorted(results.keys())):
+            if i in shown_inds:
+                T = np.array(results[size]["T"])
+                U_L = np.array(results[size]["U_L"])
+                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
+                ind += 1
+                if max_T:
+                    y_upper_lim = np.maximum(
+                        np.max(U_L[(min_T <= T) & (T <= max_T)]), y_upper_lim)
+                    y_lower_lim = np.minimum(
+                        np.min(U_L[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+        y_span = y_upper_lim - y_lower_lim
+        ax.set_xlabel("T")
+        ax.set_ylabel(r"$U_L$")
+        ax.set_title("Binder Cumulant on T")
+        if min_T:
+            ax.set_xlim(min_T, ax.get_xlim()[1])
+            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+        if max_T:
+            ax.set_xlim(ax.get_xlim()[0], max_T)
+            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+        mark_point(ax, T_c, U_L_intersection,
+                   label=rf"$T_c = {T_c:.4f}$")
+        configure_ax(fig, ax)
+        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
+                    dpi=300, transparent=False)
+        plt.show()
+    def iteration(self):
+        self.iteration_nr += 1
+        # Here I want to have something that checks whether there is already a measurement
+        # simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
+        # We check how many fitting temp-size pairs are already available
+        valid_simulations = get_avail_simulations(self.sizes,
+                                                  self.T_arr,
+                                                  self.simulation_path,
+                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff)
+                                                  )
+        # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
+        # In the other two cases it was easy because we only had one size or one temperature always?
+        # I mean we could construct a parameter with 'jobs to run' and remove
+        # valid jobs from this one, but that would be one more parameter to keep
+        # track of
+        print("valid simulations:", valid_simulations)
+         # TODO does this work with set?
+
+        for valid_sim in valid_simulations:
+            self.jobs_to_do.remove(valid_sim)       # should work? Or should we check whether the temperatue is close enough to the requested value? I think this is already done in the get avail sim function
+            self.jobs_done.add(valid_sim)      # I think we dont even need the error here, if those done jobs are relevant again they by definition have had a larger error, otherwise they would have been picked up by valid simulations and would not be in jobs to do
+
+        if self.jobs_to_do or self.repeat:
+            self.repeat = False                 # we set repeat to false again
+            self.cur_para_nr = 0                # reset the parameter number
+            self.write_para_files()  # setting up the parameter files for every simulation
+            self.cur_para_nr = 0                # reset the parameter number
+            self.run_jobs()
+            self.jobs_done.update(self.jobs_to_do) # add the jobs we just did to the done jobs
+        else:
+            print("Found valid simulation, evaluating")
+        # after running the jobs, we need to
+        # calculate the binder cumulant for every run
+        return self.evaluate_simulation()
+
+    def evaluate_simulation(self):
+        # The simulation we are at right now is the one with the highest key
+        smallest_error = np.min(list(self.all_T_dic.keys()))
+        T_arr = self.all_T_dic[smallest_error]
+        # for this one we want to check if it has an intersection
+        # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
+
+        U_L_min_T_min = np.min(results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_min = np.min(results[np.max(self.sizes)]['U_L'])
+        U_L_min_T_max = np.max(results[np.min(self.sizes)]['U_L'])
+        U_L_max_T_max = np.max(results[np.max(self.sizes)]['U_L'])
+        # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
+        # and U_L_min_T_max < U_L_max_T_max
+        # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
+        intersection = ((U_L_min_T_min >= U_L_max_T_min) & (
+                U_L_min_T_max <= U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
+        if intersection:
+            # now the usual stuff, estimate the postion of the intersection
+            # now we actually want all intersections, not only the one with the lowest index
+            # the efficient thing is that we only use 2 sizes? x)
+            T_range = results[self.size_min]["T"]
+            U_L_small_size = results[self.size_min]["U_L"]
+            U_L_large_size = results[self.size_max]["U_L"]
+
+            # before we do anything we will check now if the values that we calculated lie in each others errorbars
+            # and redo thos calculations but only if they are far enough away from the low and high temperature phase
+            # how about we just advance all in the current error hierarchy if it is the case for one point...
+            # but that would mean that we always advance all points...
+            # how about we only advance the points that are part of the intersection...
+
+            intersections, intersections_y = find_intersections(T_range, U_L_small_size, U_L_large_size)
+
+            # If the length of the intersections is larger than 1 so if we have more than one intersection, we instantly have a problem
+            if len(intersections) > 1:
+                # so in what case are we here? We can only have more than one intersection if we are already
+                # in the second iteration, otherwise we only have two points
+                # This means we should probably redo all points that take part in the intersections
+                # Remember that we could also have 3 or more intersections, although i find that quite unprobable with small
+                # enough errors, we will for now deal with the two intersection case?
+                # we can instantly reduce the error if we see more than two intersections
+                self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                # now we redo the points in question, the points in question would be the points at the edges
+                # of the intersections and also all points between, although I dont think there would be any with this
+                # kind of algorithm
+                self.all_T_dic[self.equil_error] = set()
+                for intersection in intersections:
+                    lower_T_bound = np.max(T_arr[T_arr < intersection])
+                    upper_T_bound = np.min(T_arr[T_arr > intersection])
+                    for size in self.sizes:
+                        self.jobs_to_do.add((size, lower_T_bound))
+                        self.jobs_to_do.add((size, upper_T_bound))
+                    self.all_T_dic[self.equil_error].add(lower_T_bound)
+                    self.all_T_dic[self.equil_error].add(upper_T_bound)
+                # then we can instantly retake the measurement?
+
+                self.iteration()
+            else:
+                # else means we have exactly 1 intersection, (or zero if the 2.95 rule catches)
+                if len(intersections) == 1:
+                    intersection = intersections[0]
+                    lower_T_bound = np.max(T_arr[T_arr < intersection])
+                    upper_T_bound = np.min(T_arr[T_arr > intersection])
+                    lower_T_bound_ind = np.argmax(T_arr[T_arr < intersection])
+                    upper_T_bound_ind = np.argmin(T_arr[T_arr > intersection])
+
+                    U_L_lower_bound_small_size = results[self.size_min]["U_L"][T_arr < intersection][lower_T_bound_ind]
+                    U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][lower_T_bound_ind]
+                    U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][upper_T_bound_ind]
+                    U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][upper_T_bound_ind]
+
+                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_small_size > 1.05):
+                        # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
+                        if (U_L_lower_bound_small_size * (1 - self.equil_error) <
+                                U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
+                                U_L_upper_bound_large_size * (1 - self.equil_error)):
+                            # this means the error bars overlap and we redo the corresponding jobs with half the error
+                            self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                            for size in self.sizes:
+                                self.jobs_to_do.add((size, lower_T_bound))
+                                self.jobs_to_do.add((size, upper_T_bound))
+                            self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
+                            self.iteration()
+                    T_c = np.mean(intersections)
+                    print(f"Found an intersection at T_c = {T_c}")
+                    print("intersections: ", intersections)
+                    T_c_error = np.ptp(intersections)
+                elif not intersections:
+                    # means intersection is empty so we measured far away U_L points that do not intersection
+                    T_c = np.mean(T_arr)
+                    T_c_error = np.infty
+
+                T_interval_low = np.max(T_arr[T_arr <= T_c])
+                T_interval_up = np.min(T_arr[T_arr >= T_c]) # this should hopefully guaranteed to be always dT larger than lower interval?
+                dT = T_interval_up - T_interval_low
+                T_c_error = max(T_c_error, dT / 2)
+                print(f"T_c_error = {T_c_error}")
+                rel_intersec_error = T_c_error / T_c
+                print(f"rel_intersec_error = {rel_intersec_error}")
+                if rel_intersec_error < self.max_rel_intersec_error:
+                    # In this case we are done since we covered the case of large stepsizes, small errors with the dT / 4
+                    print(f"Determined crit. Temp T_c = {T_c} +- {rel_intersec_error}")
+                    return T_c, T_c_error
+                else:
+                    U_L_intersection = np.mean(intersections_y)
+                    self.plotBinderCurve(T_c, U_L_intersection, results)
+
+                    T_low = T_interval_low + dT/3
+                    T_up = T_interval_up - 2 * dT / 3
+                    new_Ts = np.linspace(T_low, T_up, self.nr_Ts)
+                    self.all_T_dic[self.equil_error] = np.concatenate((self.T_arr, new_Ts))
+                    self.T_arr = new_Ts
+                    # If we are here this directly means that we started a new child a a new level in the hierarchy
+
+                    print(f"Error was too large: Temp T_c = {T_c} +- {T_c_error} \n"
+                          f"Starting new run with T_min = {T_low}, T_max = {T_up}")
+                    return self.iteration()
+        else:
+            # This means we missed the intersection so we want to restart a simulation with the same error
+            print("We do not see a intersection")
+            self.plotBinderCurve(None, None, results)
+            if U_L_min_T_max > U_L_max_T_max:
+                print("The maximum temperature is too low")
+                # this means we are below the critical temperature.
+                # TODO can we somehow approximate how far away we are?
+                # for now we just double the range i would say?
+                T_range = np.ptp(self.T_arr)
+                dT = T_arr[1] - T_arr[0]
+                T_min = np.max(self.T_arr) + (dT)  # the next T_min is the current maximum plus the current stepsize
+                T_max = np.max(self.T_arr) + T_range + dT    # TODO add dT!!
+                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
+                # Okay we updated the temperature array... now we just run everything again?
+            elif U_L_min_T_min < U_L_max_T_min:
+                print("The minimum temperature is too high")
+                T_range = np.ptp(self.all_T_arr)
+                T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
+                T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
+                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
+            # we add the new stuff to the dictionary, but we already overwrote the T_arr, but the T_arr should still be
+            # fine
+            self.all_T_dic[self.equil_error] = np.concatenate((T_arr, self.T_arr))
+
+            return self.iteration()
+
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
+        results = {}
+        for size_folder in os.listdir(self.simulation_path):
+            size_folder_path = os.path.join(self.simulation_path,
+                                            size_folder)
+            if os.path.isdir(size_folder_path):
+                if selected_sizes is not None:
+                    size = int(size_folder)
+                    if size not in selected_sizes:
+                        continue
+                if (size_folder[0] != ".") & (size_folder != "plots"):
+                        size_result = process_size_folder(size_folder_path,
+                                                          threshold, selected_temperatures=selected_temps)
+                        results[int(size_folder)] = size_result
+        return results
+
+    def get_para_nr(self):
+        # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice
+        self.cur_para_nr += 1
+        return self.para_nr + self.cur_para_nr - 1
+
+    def write_advance_file(self, size, T, ind):
+        # we need to find the name of the file...
+        folder_path = self.simulation_path + f"/{size}/{T:.6f}"
+        csv_path = find_first_csv_file(folder_path)
+        path = pathlib.Path(csv_path).stem
+        nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
+        with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
+            f.write(path)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"nr_saves, 4 \n"
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, -1.0 \n"     # important, this has to be -1
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {size} \n"
+                    f"subsystem_max_Lx, {size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"
+                    f"nr_ft_values, 0 \n"
+                    f"equil_error, {self.equil_error}\n"
+                    f"cum_write_density, {self.cum_write_density}\n"
+                    f"min_cum_nr, {self.min_cum_nr}")
+
+        pass
+
+    def write_new_file(self, size, T, ind):
+        # We now need to construct the parameterfile with the appropriate temperature and size
+        # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
+        # to construct the para set we need to know how many subsystems we should initialize
+        nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
+        with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
+            f.write(self.simulation_path)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"nr_saves, 4 \n"
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, 0.0 \n"
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {size} \n"
+                    f"subsystem_max_Lx, {size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"
+                    f"nr_ft_values, 0 \n"
+                    f"equil_error, {self.equil_error}\n"
+                    f"cum_write_density, {self.cum_write_density}\n"
+                    f"min_cum_nr, {self.min_cum_nr}")
+    def write_para_files(self):
+        # you ..., you know that you have to construct the parameter file at hemera?
+        # and you need to do rsync after the jobs are finished!
+        print("Writing the parameter files...")
+        self.total_runs = len(self.jobs_to_do)
+        for i, (size, T) in enumerate(self.jobs_to_do):
+            if (size, T) in self.jobs_done:
+                # we already have this job with a too large error
+                self.write_advance_file(size, T, i)
+            else:
+                self.write_new_file(size, T, i)
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -2018,7 +2469,7 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -150000
-    J_para = -6
+    J_para = -9
     #J_perp = -2340
     J_perp = -0.1
     #h = 1.7e6
@@ -2030,8 +2481,8 @@ def main():
     min_size_Tc = 48
     nr_sizes_Tc = 3
     nr_Ts = 5
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     simulation_path = ("../../Generated content/Silicon/Subsystems/Suite/"
                        "Test7/")
 
@@ -2069,9 +2520,10 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": True,
+        "Tc": False,
+        "efficient Tc": True,
         "Quench": False,
-        "Amplitude": True,
+        "Amplitude": False,
         "z": False,
     }
 
@@ -2080,6 +2532,11 @@ def main():
     if measurements["Tc"]:
         sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts,
+                                    intersection_error=max_rel_intersection_error)
+        T_c, T_c_error = sim.routine()
+    elif measurements["efficient Tc"]:
+        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_Ts=nr_Ts,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
     else:

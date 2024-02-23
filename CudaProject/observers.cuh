@@ -588,6 +588,269 @@ public:
 };
 
 template <class system, class State>
+class cum_equilibration_observer_adaptive: public obsver<system, State>{
+    // does the same stuff as the normal equilibration observer but adapts the write density
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::open_app_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<double> U_L{};
+    vector<double> times{};
+    int min_cum_nr = 500;
+    int cum_nr_gpu = 2000;                 // nr of cum values at which the calculation switches to gpu
+    double write_density = 1.0 / 100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
+    double dt = 0.01;
+    double dt_half;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
+    double max_error= 0.001;
+    int cum_nr = 0;                         // current number in the averageing process
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+    double error_factor = 10000.0;
+    fs::path filepath;
+
+public:
+    cum_equilibration_observer_adaptive(int min_cum_nr) : min_cum_nr(min_cum_nr) {}
+
+    cum_equilibration_observer_adaptive(int min_cum_nr, double write_density) : min_cum_nr(min_cum_nr), write_density(write_density) {}
+
+    cum_equilibration_observer_adaptive(int min_cum_nr, double write_density, double equil_cutoff) : min_cum_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
+
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
+        if (paras[Parameter::min_cum_nr]){
+            min_cum_nr = (int)paras[Parameter::min_cum_nr];
+        }
+        timepoint = 0.0;
+        equilibrated = false;
+        // we also need to reset U_L and times, dont we?
+        U_L = vector<double>{};
+        times = vector<double>{};
+        close_stream();
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(!pick_up) {
+            filepath = path / (obsver::construct_filename(run_nr) + ".cum");
+            open_stream(filepath);
+            ofile << "t,U_L" << endl;
+        } else {
+            path += ".cum";
+            filepath = path;
+            readCumFromFile(path, U_L, times);
+            // the other observers that dont read the values in actually have a problem with defining the timepoint?
+            timepoint = times.back();
+            open_app_stream(path);
+        }
+        cout << this->get_name() << " init called" << endl;
+
+
+        // I think the starting write interval should be every one hundred steps
+        dt = paras[Parameter::dt];
+        dt_half = dt / 2.0;
+        write_interval = dt / write_density;
+    }
+
+    string get_name() override {
+        return "adaptive cum equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint - dt_half) {
+            // advancing the cum nr
+            cum_nr++;
+            // we calculate the cumulant and write it down
+            double cum = sys.calc_binder(x);
+            // with this observer we could think about writing at the end of the simulation, or at least rewriting
+            // the file if we changed the stepsize
+            ofile << t << "," << cum << endl;
+            // add the cumulant and the times to the vectors to keep track
+            U_L.push_back(cum);
+            times.push_back(t);
+            // now we want to see if we have to adjust the write interval
+            // we have to make sure that we got 5 fresh cum values
+            if(!equilibrated) {
+                int nr_cum_values = U_L.size();      // check how many cum values we already have
+                // now use the last avg_nr of cum values to calculate a mean U_L
+                // use transform reduce?
+                // does it work like this? U_L.end() - avg_nr is the n-th last value in the vector?
+                if(nr_cum_values >= min_cum_nr){
+                    int error_every_n_steps = (int)(error_factor * write_density) + 1;   // I think this + 1 makes everything nicer? Or does it?
+                    if(U_L.size() % error_every_n_steps == 0) {
+                        // We dont need to calculate the error and stuff everytime we write down a U_L
+                        // IF the density is small, we should write down more often
+                        // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
+                        int min_ind = (int)(equil_cutoff * nr_cum_values);
+                        // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
+                        long double avg_U_L = (long double) accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+
+                        std::vector<double> diff_total(nr_cum_values - min_ind);
+
+                        std::transform(U_L.begin() + min_ind, U_L.end(), diff_total.begin(), [avg_U_L](double x) { return x - avg_U_L; });
+
+                        double dist_var = std::inner_product(diff_total.begin(), diff_total.end(), diff_total.begin(), 0.0) / (nr_cum_values-min_ind);
+                        // this is the variance of the distribution (in wrong because the values are correlated), so we
+                        // need the autocorrelation time to adjust for this. The function works with arrays
+                        double* U_L_arr = &U_L[min_ind];
+                        double autocorr_time;
+
+                        if(nr_cum_values - min_ind > cum_nr_gpu) {
+                            autocorr_time = get_autocorrtime_fft(U_L_arr, nr_cum_values - min_ind, write_interval);
+                        } else {
+                            autocorr_time = get_autocorrtime(U_L_arr, nr_cum_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                        }
+                        double U_L_variance = 2 * autocorr_time / ((nr_cum_values-min_ind) * write_interval) * dist_var;
+                        double rel_stddev_total = sqrt(U_L_variance) / avg_U_L;
+
+                        cout << "Distriubtion variance: " << dist_var << endl;
+                        cout << "autocorrelation time: " << autocorr_time << endl;
+                        cout << "U_L variance: " << U_L_variance << endl;
+                        cout << "rel_stddev_total = " << rel_stddev_total << endl;
+
+
+                        // Okay we found out that this is not the real error, so we need a function that calculates the error
+                        // or first a function that calculates the integrated autocorrleation time
+                        // We indded have two auto correlation times for the two directions. Could they be individually sized?
+                        // the question is now if we want to extract avg_U_L and its error if we are equilibrated
+                        // we definitely should? But how and where? somehow into the parameter file?
+                        if(rel_stddev_total < max_error) {
+                            // I think in this case I want to see wether there is still a significant upwards or
+                            // downards trend to ensure the system is equilibrated
+                            // the question is what recent means, the last 20% of values? It shouldnt be to much
+                            // that it wouldnt be recent anymore and it should be so few that statistical fluctuations
+                            // would average out
+                            // to be honest, the trend stuff is probably the prestuff we should do before even considering
+                            // to calculate the error? Error calculation after all is pretty expensive
+                            double moving_factor = getMovingFactor(nr_cum_values, avg_U_L, min_ind);
+
+                            cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
+                            cout << "MOVING FACTOR = " << moving_factor << endl;
+
+                            if(moving_factor < 0.01) {
+                                // we set the system to be equilibrated
+                                cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                                sys.set_equilibration(t);
+                                // write autocorrelation time
+                                fs::path txt_path = filepath.replace_extension(".txt");
+                                ofstream parameter_file;
+                                parameter_file.open(txt_path, ios::app);
+                                parameter_file << "autocorrelation_time," << autocorr_time;
+                                // once we did this, we dont want to do that a second time?
+                                equilibrated = true;
+                            }
+                        }
+                        adapt_write_interval(nr_cum_values, autocorr_time);
+                    }
+                }
+            }
+            timepoint += write_interval;
+        }
+    }
+
+    double getMovingFactorOld(int nr_cum_values, long double avg_U_L) {
+        int recent_ind = (int) (nr_cum_values * 0.9);
+        double* recent_U_L = &U_L[recent_ind];
+        // the idea is to check if the differences between the values show a trend to be positive
+        // or negative. But I think that comes done to calculating the deviation of the recent
+        // average from the total average
+        // small differences will
+        // Idea would be to compare this deviation to the deviation per step
+        // If we are in a high temperature state, the deviation per step will be relatively larger
+        // If should not be dependent on the stepsize
+        // first of all compute the avergage absolute difference per step
+        int recent_size = nr_cum_values - recent_ind;
+        double recent_avg_U_L = reduce(recent_U_L, recent_U_L + recent_size) / (double)recent_size;
+        double mean_abs_delta_U = meanAbsDifference(recent_U_L, recent_size);
+        // and we need the recent mean
+        double moving_factor = fabs(avg_U_L - recent_avg_U_L) / ((double)recent_size * mean_abs_delta_U);
+
+        cout << "recent_avg_U_L = " << recent_avg_U_L << endl;
+        cout << "|U_L_recent - U_L| = " << avg_U_L - recent_avg_U_L << endl;
+        cout << "mean abs delta = " << mean_abs_delta_U << endl;
+        return moving_factor;
+    }
+
+    double getMovingFactor(int nr_cum_values, long double avg_U_L, int min_ind) {
+        int recent_ind = (int) (nr_cum_values * 0.8);
+        // the idea is to check if the differences between the values show a trend to be positive
+        // or negative. But I think that comes done to calculating the deviation of the recent
+        // average from the total average
+        // small differences will
+        // Idea would be to compare this deviation to the deviation per step
+        // If we are in a high temperature state, the deviation per step will be relatively larger
+        // If should not be dependent on the stepsize
+        // first of all compute the avergage absolute difference per step
+        int recent_size = nr_cum_values - recent_ind;
+        double U_L_start = reduce(U_L.begin() + min_ind, U_L.begin() + recent_ind) / (double)(recent_ind - min_ind);
+        double U_L_end = avg_U_L;
+
+        double* recent_U_L = &U_L[recent_ind];      // we need it still for the mean delta?
+        double mean_abs_delta_U = meanAbsDifference(recent_U_L, recent_size);
+        // and we need the recent mean
+        double moving_factor = fabs(U_L_end - U_L_start) / ((double)recent_size * mean_abs_delta_U);
+
+        cout << "U_L_start = " << U_L_start << endl;
+        cout << "|U_L_end - U_L_start| = " << avg_U_L - U_L_start << endl;
+        cout << "mean abs delta = " << mean_abs_delta_U << endl;
+        return moving_factor;
+    }
+
+    void adapt_write_interval(int nr_cum_values, double autocorr_time, int values_per_autocorr_time=20) {
+        // we want to adapt the write density on the autocorrelation time. But everytime we do this
+        // we have to delete the values that have smaller spacing between them (the intermediate values)
+        // It should be some kind of switch statement or something like this?
+        // We want to write approximately 10 cumulant values during one autocorrelation time? Or maybe 100 ?
+        // I think 10 should be fine
+        double autocorr_time_floored = pow(10.0, floor(log10(autocorr_time)));      // we floor the autocorrelation time to the next power of 10, so 3000 would get rounded to 1000 and 101 to 100
+        // we do this as we do not want to continuously change our stepping but in discrete steps
+        double new_write_interval = autocorr_time_floored / (double)values_per_autocorr_time;    // if autocorr is 1000, the write interval is 100, using 100 writes per autocorr time now because ten is not satisfying somehow
+        if(new_write_interval > write_interval) {
+            // in this case we have to drop values accordingly to new write interval
+            int keep_every_nth_val = (int)(new_write_interval / write_interval); // they should yield a glatt integer since we only work with powers of ten write interval might have been 1 and now it is 10 so we keep every 10th value
+            int new_nr_cum_values = nr_cum_values / keep_every_nth_val;         // if we have 101 values with a spacing of 1, we want to keep 101, 91, ..., 1, making up for 11 values
+            if (nr_cum_values % keep_every_nth_val != 0) {
+                // if this is the case we can extract one more value
+                new_nr_cum_values++;
+            }
+/*            cout << "the old number of cum values is " << nr_cum_values << endl;
+            cout << "the new number of cum values is " << new_nr_cum_values << endl;*/
+            // if we have 100 values with a spacing of 1, those would be the indices 0 to 99. We want to keep 99 and 89 (distance of 10 ds), 79, ..., 9 making up 10 values
+            // if we have 101 values with a spacing of 1, those would have the indices 0 to 100. We would want to keep 100, 90, ..., 10, 0 so eleven values? Right now we would be missing out on 0, which would not be two bad...
+            vector<double> new_U_L(new_nr_cum_values);
+            vector<double> new_times(new_nr_cum_values);
+            for(int i = 0; i < new_nr_cum_values; i++) {
+                // TODO is the plus one correct? If you get memory errors look here?
+                // okay so we work from behind because instead of keeping 0 - 100 we want to keep 1 - 101. But the order has to stay the same for the correlation function
+                // cout << "i = " << i << "   nr_cum_values - keep_every_nth_val * i - 1 = " << nr_cum_values - keep_every_nth_val * i - 1 << "    U_L = " << U_L[nr_cum_values - keep_every_nth_val * i - 1] << endl;
+                new_U_L[new_nr_cum_values - i - 1] = U_L[nr_cum_values - keep_every_nth_val * i - 1];       // - one because in a vector of length 5 the last index is 4
+                new_times[new_nr_cum_values - i - 1] = times[nr_cum_values - keep_every_nth_val * i - 1]; // if i = new_nr_cum_values - 1 = nr_cum_values / keep_ever_nth_val + 1 - 1 = nr_cum_values / keep .. so we are accessing times[-1] but why I dont get it
+            }
+            U_L = new_U_L;
+            times = new_times;
+            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
+            write_interval = new_write_interval;
+            write_density = dt / write_interval;
+            // this is all right?
+            // we decided to rewrite the file, it will save space and make the after simulation validation easier
+            rewrite_file();
+        }
+    }
+
+    void rewrite_file() {
+        int new_nr_cum_values = U_L.size();
+        close_stream();
+        open_stream(filepath);
+        ofile << "t,U_L" << endl;
+        for(int i = 0; i < new_nr_cum_values; i++) {
+            ofile << times[i] << "," << U_L[i] << endl;
+        }
+    }
+
+};
+
+
+template <class system, class State>
 class old_cum_equilibration_observer: public obsver<system, State>{
     // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
     // outside of the simulation class We definetely need its own constructor here
@@ -894,6 +1157,211 @@ public:
                 times.push_back(t);
                 int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
                 // we lack the complete logic to change the stepsize since we said we use a constant density 
+                if(nr_xi_values > min_corr_nr){
+                    int error_every_n_steps = max((int)(error_factor * density), 1);
+                    if(xix.size() % error_every_n_steps == 0) {
+                        // if we reached the minimum number of values we check the error on the correlation lengths
+                        int min_ind = (int)(equil_cutoff * nr_xi_values);
+                        // we need to calculate the average aswell as the stddev for both directions
+                        double avg_xix = accumulate(xix.begin() + min_ind, xix.end(), 0.0) / (double)(nr_xi_values - min_ind);
+                        double avg_xiy = accumulate(xiy.begin() + min_ind, xiy.end(), 0.0) / (double)(nr_xi_values - min_ind);
+
+                        std::vector<double> diff_xix_total(nr_xi_values - min_ind);
+                        std::vector<double> diff_xiy_total(nr_xi_values - min_ind);
+
+                        std::transform(xix.begin() + min_ind, xix.end(), diff_xix_total.begin(), [avg_xix](double x) { return x - avg_xix; });
+                        std::transform(xiy.begin() + min_ind, xiy.end(), diff_xiy_total.begin(), [avg_xiy](double x) { return x - avg_xiy; });
+
+                        double dist_var_x = std::inner_product(diff_xix_total.begin(), diff_xix_total.end(), diff_xix_total.begin(), 0.0) / (nr_xi_values - min_ind);
+                        double dist_var_y = std::inner_product(diff_xiy_total.begin(), diff_xiy_total.end(), diff_xiy_total.begin(), 0.0) / (nr_xi_values - min_ind);
+
+                        // autocorrelation time, works also for the correlation length
+                        double* xix_arr = &xix[min_ind];
+                        double* xiy_arr = &xiy[min_ind];
+
+                        double autocorr_time_x;
+                        double autocorr_time_y;
+
+                        if(nr_xi_values - min_ind > val_nr_gpu) {
+                            Singleton_timer::set_startpoint("Autocorrelation time fft calculation");
+                            autocorr_time_x = get_autocorrtime_fft(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime_fft(xiy_arr, nr_xi_values - min_ind, write_interval);
+                            Singleton_timer::set_endpoint("Autocorrelation time fft calculation");
+                        } else {
+                            Singleton_timer::set_startpoint("Autocorrelation time calculation");
+                            autocorr_time_x = get_autocorrtime(xix_arr, nr_xi_values - min_ind, write_interval);
+                            autocorr_time_y = get_autocorrtime(xiy_arr, nr_xi_values - min_ind, write_interval);  // actually ds is just the write interval? which should be 1 or something like this
+                            Singleton_timer::set_endpoint("Autocorrelation time calculation");
+                        }
+
+                        double xix_variance = 2 * autocorr_time_x / ((nr_xi_values-min_ind) * write_interval) * dist_var_x;
+                        double xiy_variance = 2 * autocorr_time_y / ((nr_xi_values-min_ind) * write_interval) * dist_var_y;
+
+
+                        double rel_stddev_xix_total = sqrt(xix_variance) / avg_xix;
+                        double rel_stddev_xiy_total = sqrt(xiy_variance) / avg_xiy;
+
+                        cout << "xix = " << avg_xix << endl;
+                        cout << "xiy = " << avg_xiy << endl;
+                        cout << "autocorrelation time x: " << autocorr_time_x << endl;
+                        cout << "autocorrelation time y: " << autocorr_time_y << endl;
+                        cout << "xix_variance = " << xix_variance << endl;
+                        cout << "xiy_variance = " << xiy_variance << endl;
+                        cout << "rel_stddev_total xix = " << rel_stddev_xix_total << endl;
+                        cout << "rel_stddev_total xiy = " << rel_stddev_xiy_total << endl;
+                        // I mean you are calculating the errors anyway, you could also write them down? But takes some time ofc, but it would make it easier to see how long a certain simulation will still take...
+
+
+                        // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
+                        double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
+
+                        if(rel_stddev_total < max_error) {
+                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                            cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
+                            cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
+                            // we set the system to be equilibrated
+                            sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
+                            // once we did this, we dont want to do that a second time?
+                            equilibrated = true;
+                            // the writ interval will now be the one that we destined for the quench, we just change it once here
+                            write_interval = quench_t / (double)nr_values;
+                        }
+                    }
+                }
+            }
+            timepoint += write_interval;
+        }
+    }
+
+};
+
+template <class system, class State>
+class corr_equilibration_observer_adaptive: public obsver<system, State>{
+    // This observer will be a mixture of the cum equilibration observer and the new density observer
+    // It will calculate xi with a fixed density during equilibration phase and then the specified number
+    // of xi's during the quench.
+    // The density during the equilibration does not have to change, or should it? I don't think so
+    // Problem could be that if the equilibration takes very long, we calculate a whole lot of xi values during the
+    // equilibratioon which slows down our simulation. An adaptive density doesn't look to good when plotting and has
+    // the weird artefact that we write the correlation length at different times for different simulations
+    // I think we will choose a mediocre density and start with this.
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::open_app_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<double> xix{};
+    vector<double> xiy{};
+    vector<double> times{};
+    int min_corr_nr = 5000;
+    int val_nr_gpu = 1000;                 // nr of cum values at which the calculation switches to gpu
+    double dt = 0.01;
+    double dt_half = dt / 2.0;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
+    double density = 1.0 / 100.0;            // standard density writes once every 100 steps
+    double error_factor = 10000.0;
+    // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
+    //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
+    // for high temperature states we would usually need a larger number of systems to judge the equilibration
+    // TODO could there be a way of combining the temperature with the error? A higher temperature would allow
+    // a larger error on xi and still judge it to be equilibrated. But this is again kind of handwavy, how large temperatures
+    // would result in how large leeway?
+    // also the error has the weird property that large systems with small nubmers of subsystems equilibrate later.
+    // For the Tc-Binder cumulant calculation this error is very suitable since we are looking for a precise U_L value anyway
+    // here we are just looking to judge the system to be in thermal equilibrium
+    // Would there be other ways of assessing the equilibration of our system? The energy? Will also fluctate, but maybe
+    // not as strongly as the correlation length?
+    // The good thing about the energy also is that the fluctuations scale with the number of lattice sites so large systems wont be
+    // in disadvantage
+    // Okay I think we will implement this for now and judge afterwards how good it works
+    // the question remains if the relaxation of the energy also means that the correlation length is relaxed, I for my
+    // case don't think so.
+    // If we want to extract the correlation length during the run we have to cut the zero impuls, I think this has
+    // to be adapted in the systems.
+    double max_error= 0.05;
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+    int nr_values;                  // nr of values that I want to be written down during the quench
+    double quench_t;                // quench time, important to calculate the write interval during the quench
+    size_t Lx;                      // sizes of the system. Important to validate if the extraction was meaningful
+    size_t Ly;
+    double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
+    // will distort the error estimation. If the total run was meaningful will then be judged afterwards.
+    // (If the xi is now close to this threshold this probably means that our system was evolving in a state with larger correlation length than we can meaningful extract)
+    // Okay short recap, we will now check evertime we calculate a xi if it is smaller than xi_cap * L and if it is not, we will cut it there
+    // Afterwards in the automatic suite, we will calculate the avg xi and if this is smaller then for example xi_cap / 2, then we will accept the measurement
+    // we will probably slightly influence the correlation lengths to be a bit smaller than the "real" value, since we do not include the statistical fluctuations where xi becomes larger than 0.2 L
+    // The goal is that we hold those occasions very small so that the influence is negligeable
+public:
+    corr_equilibration_observer_adaptive(int nr_values) : nr_values(nr_values) {
+    }
+    corr_equilibration_observer_adaptive(int nr_values, int min_corr_nr, double density, double equil_cutoff):
+            nr_values(nr_values), min_corr_nr(min_corr_nr), density(density), equil_cutoff(equil_cutoff) {}
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
+        equil_cutoff = paras[Parameter::equil_cutoff];
+        min_corr_nr = (int)paras[Parameter::min_corr_nr];
+        // the subsystems sizes for the xi cutting
+        Lx = (size_t)paras[Parameter::subsystem_Lx];
+        Ly = (size_t)paras[Parameter::subsystem_Ly];
+        // the timepoint is only zero if we do not memory initialize
+        timepoint = 0.0;
+        equilibrated = false;
+        // we also need to reset U_L and times, dont we?
+        xix = vector<double>{};
+        xiy = vector<double>{};
+        times = vector<double>{};
+        close_stream();
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".corr"));
+            // We only want to do this if we are creating a new file?
+            ofile << "t,xix,xiy" << endl;
+        } else {
+            // If we have the memory initialization we also want to load the correlation length values into cache
+            // I thinkt we should do that before we decide to open this file also as output stream
+            path += ".corr";
+            cout << "Reading correlation lengths from file" << endl;
+            readXiFromFile(path, xix, xiy, times);
+            timepoint = times.back();
+            cout << "successful!" << endl;
+            open_app_stream(path);
+        }
+        cout << this->get_name() << " init called" << endl;
+
+
+        // I think the starting write interval should be every one hundred steps
+        dt = paras[Parameter::dt];
+        dt_half = dt / 2.0;
+        quench_t = sys.get_quench_time();
+        write_interval = (1.0 / density) * dt;
+    }
+
+    string get_name() override {
+        return "corr equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint - dt_half) {
+            double xix_val, xiy_val;
+            Singleton_timer::set_startpoint("Xi Calculation");
+            sys.calc_xi(x, xix_val, xiy_val);
+            Singleton_timer::set_endpoint("Xi Calculation");
+            // The logic of the cutting should take place here or only for calculating the mean? I think we also cut it
+            // but we might change that later
+            xix_val = min(xix_val, xi_cap * Lx);
+            xiy_val = min(xiy_val, xi_cap * Ly);
+            ofile << t << "," << xix_val << "," << xiy_val << endl;
+            // add the correlation lengths and the times to the vectors to keep track
+            // we actually only need to keep track if we did not decide already that we are equilibrated?
+            if(!equilibrated) {
+                xix.push_back(xix_val);
+                xiy.push_back(xiy_val);
+                times.push_back(t);
+                int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
+                // we lack the complete logic to change the stepsize since we said we use a constant density
                 if(nr_xi_values > min_corr_nr){
                     int error_every_n_steps = max((int)(error_factor * density), 1);
                     if(xix.size() % error_every_n_steps == 0) {

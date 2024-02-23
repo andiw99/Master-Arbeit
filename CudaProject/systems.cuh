@@ -1919,14 +1919,14 @@ public:
         auto segment_keys_k_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Ly));     // segments j are Ly long
 
 
-        thrust::reduce_by_key(segment_keys_l_sum, segment_keys_l_sum + nr_batches * batch_size,
+        thrust::reduce_by_key(segment_keys_l_sum, segment_keys_l_sum + batch_size,
                               sum.begin(), thrust::make_discard_iterator(), ft_squared_l_gpu.begin());
 
         auto rearranged_inds = thrust::make_transform_iterator(thrust::make_counting_iterator<int>(0), rearrange_ft_inds(Lx, Ly));
         auto rearranged_sum = thrust::make_permutation_iterator(sum.begin(), rearranged_inds);
 
 
-        thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + nr_batches * batch_size,
+        thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + batch_size,
                               rearranged_sum, thrust::make_discard_iterator(), ft_squared_k_gpu.begin());
 
 

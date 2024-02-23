@@ -28,8 +28,8 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.002
-    min_equil_error = 0.0005
+    equil_error = 0.004
+    min_equil_error = 0.002
     max_rel_intersection_error = 0.01       # is this to small or fine?
     # since we need quantitative exact values, we should know T_c beforehand
     min_T = 0.94

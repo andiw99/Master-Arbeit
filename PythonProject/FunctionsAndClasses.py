@@ -560,7 +560,7 @@ def delete_last_line(filename):
     if len(lines) > 0:
         lines.pop()
 
-    # Write the remaining lines back to the file
+    # Write the remaining lines  back to the file
     with open(filename, 'w') as file:
         file.writelines(lines)
 
@@ -846,7 +846,7 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
         return (ind_i, ind_j)
 
 
-def find_intersection(x_range, y1, y2, res=10000):
+def find_first_intersection(x_range, y1, y2, res=10000):
     # Interpolate the curves
     #print("diff_func:")
     x_inter = np.linspace(x_range[0], x_range[-1], res)
@@ -873,12 +873,33 @@ def find_intersection(x_range, y1, y2, res=10000):
     # we take the index of the first index change. This assumes that the lines dont cross for low temperatures
     # for high temperatures they might cross more often
     # This is still not very good?
-    # We could do this sign thing for every diff curve and then choose always the one that has the least total difference to the other sign arrays
+    # We could do this sign thing for every diff curve and then choose always the
+    # one that has the least total difference to the other sign arrays
     ind_signchange = np.where(signchange == 1)[0][0]
     intersection_x = x_inter[ind_signchange]
     U_L_intersection = U_L_1_func[ind_signchange]
 
     return intersection_x, U_L_intersection
+
+def find_intersections(x_range, y1, y2, res=10000):
+    # Interpolate the curves
+    x_inter = np.linspace(x_range[0], x_range[-1], res)
+    diff_func = np.interp(x_inter, x_range, y1 - y2)
+    y_1_func = np.interp(x_inter, x_range, y1)        # we need that for the U_L value at the intersection...
+
+    diff_func_sign = np.sign(diff_func)
+    signchange = ((np.roll(diff_func_sign, 1) - diff_func_sign) != 0).astype(int)
+    signchange[0] = 0
+
+    ind_signchange = np.where(signchange == 1)[0]
+    intersections_x = []
+    intersections_y = []
+    for ind_sign in ind_signchange:
+        intersections_x.append(x_inter[ind_sign])
+        intersections_y.append(y_1_func[ind_sign])
+
+    return intersections_x, intersections_y
+
 
 def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_fraction=0.2):
     """
@@ -917,7 +938,12 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
 
     return x_cut, y_cut
 
-def get_intersections(size_T_cum_dic):
+def get_first_intersections(size_T_cum_dic):
+    """
+    returns the first intersection of every line pair
+    :param size_T_cum_dic:
+    :return:
+    """
     intersections = []
     intersections_y = []
     sizes = list(size_T_cum_dic.keys())
@@ -927,7 +953,7 @@ def get_intersections(size_T_cum_dic):
         U_L_2 = size_T_cum_dic[size2]["U_L"]
         # We assume that the Temperatures are the same for the two curves...
         T_arr = size_T_cum_dic[size1]["T"]
-        x_inter, y_inter = find_intersection(T_arr, U_L_1, U_L_2)
+        x_inter, y_inter = find_first_intersection(T_arr, U_L_1, U_L_2)
         intersections.append(x_inter)
         intersections_y.append(y_inter)
 
