@@ -606,6 +606,13 @@ def configure_ax(fig, ax, config=None):
     ax.tick_params(axis="y", direction='in', which='minor', length=int(config["y_ticklength"] * 0.75),
                    width=int(config["y_tickwidth"] * 0.75))
 
+    print("Y span = ", y_span)
+    if y_span < 1e-3:
+        print("Setting scientific mode?")
+        ax.ticklabel_format(axis="y", style="sci")
+    if x_span < 1e-3:
+        ax.ticklabel_format(axis="x", style="sci")
+
     if ax.get_xscale() != "log":
         remove_origin_ticks(ax)
 
@@ -623,7 +630,7 @@ def configure_ax(fig, ax, config=None):
             set_functions[i](default_texts[i])
 
     # rotate the y label
-    ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"], ha=config["labelhorizontalalignment"],
+    ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"], loc="center",
                   fontsize=config["ylabelsize"])
     ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
@@ -1442,7 +1449,14 @@ def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
     p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
     return p_plus, p_minus
 
-def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=3):
+
+def accept_xi_inv_fit(reg, Tc_est, tolerance):
+    xi_ampl = 1 / reg.slope
+    Tc = - reg.intercept * xi_ampl
+
+    return (Tc_est * (1-tolerance) < Tc < Tc_est * (1 + tolerance))
+
+def best_fit_inv_old(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=3):
     """
     Searches the best linear fit through the data. The T_arr, xi_inv_arr should be linear
     around the critical temperature
@@ -1486,6 +1500,40 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_poin
                 best_reg = reg
 
     return best_reg, best_starting_pos, best_ending_pos
+
+def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept_function_args=None):
+    x = np.array(x)
+    y = np.array(y)
+    best_starting_pos = 0
+    best_ending_pos = 0
+    # The minimum r_squared value that we need is the starting value for the best_r_sqaured
+    best_r_squared = min_r_squared      # This value ranges to 1 I think and 1 is a really good fit?
+    best_reg = None
+    for starting_pos in range(len(x) - min_points + 1):
+        for ending_pos in range(starting_pos + min_points, len(x)+1):
+            # We should have at least 4 points i would say.
+            x_fit = x[starting_pos:ending_pos]
+            y_fit = y_fit[starting_pos:ending_pos]
+
+            reg = linregress(x_fit, y_fit)
+
+            if accept_function:
+                accepted = accept_function(reg, *accept_function_args)
+            else:
+                accepted = True
+            # We only accept the outcome if we get the expected result (haha)
+            # The critical temperature that we get out of the fit has to bein +-10% range of the one that we calculated with the binder cumulant
+            if ((reg.rvalue ** 2 > best_r_squared) and accepted):
+                best_starting_pos = starting_pos
+                best_ending_pos = ending_pos
+                best_r_squared = reg.rvalue ** 2
+                best_reg = reg
+
+    return best_reg, best_starting_pos, best_ending_pos
+
+def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=3):
+    return best_lin_reg(T_arr, xi_inv_arr, min_r_squared, min_points, accept_function=accept_xi_inv_fit,
+                        accept_function_args=(Tc_est, tolerance))
 
 def fold(t, U_L, fold=3):
     t = np.array(t)

@@ -108,6 +108,37 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function, c
 
     return valid_folders
 
+def get_avail_jobs(jobs_to_do, directory_path, check_function, check_function_args):
+    """
+    Checks if the directory structure is valid based on a custom check function.
+
+    Parameters:
+    - sizes: List of sizes.
+    - temperatures: List of temperatures.
+    - directory_path: Path to the main directory.
+    - check_function: A custom function to check the validity of each temperature folder.
+
+    Returns:
+    - List of (size, temp) pairs for which a valid folder exists.
+    """
+    valid_folders = []
+
+    # Iterate over sizes
+    for size, temp in jobs_to_do:
+        size_path = os.path.join(directory_path, str(size))
+
+        # Check if the size folder exists
+        if os.path.exists(size_path) and os.path.isdir(size_path):
+            temp_path = os.path.join(size_path, f"{temp:.6f}")
+
+            # Check if the temperature folder exists and is valid based on the custom function
+            if (os.path.exists(temp_path) and os.path.isdir(temp_path)):
+                    sim_valid = check_function(temp_path, *check_function_args)
+                    if sim_valid:
+                        valid_folders.append((size, temp))
+
+    return valid_folders
+
 def check_corr_valid(folderpath, equil_error, equil_cutoff):
     # This function is supposed to check whether the .corr file in the folder (There should only be one)
     # has a low enough error, the error is specified by equil error in the class
@@ -172,6 +203,31 @@ def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val,
     squared_dif_var_mean_rate = squared_dif_var_mean / (num_per_var_val * ds)
     # If this mean is small than the validation error that we want to use, we accept the measurement
     if (dif_var_mean_rate < variation_error_rate) and (squared_dif_var_mean_rate < variation_error_rate ** 2):
+        return True
+    else:
+        return False
+
+def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
+    """
+    just checks if the simulation has more than the minimum nr of sites and systems
+    :param folderpath:
+    :param min_nr_systems:
+    :param min_nr_sites:
+    :return:
+    """
+    files = os.listdir(folderpath)
+    total_nr_sites = 0
+    total_nr_systems = 0
+    for file in files:
+        if file.endswith(".csv"):
+            para_file = folderpath + f"/{pathlib.Path(file).stem}.txt"
+            paras = read_parameters_txt(para_file)
+            nr_sites = paras["total_size"]
+            nr_systems = paras["nr_subsystems"]
+            total_nr_sites += nr_sites
+            total_nr_systems += nr_systems
+
+    if (total_nr_sites > min_nr_sites) and (total_nr_systems > min_nr_systems):
         return True
     else:
         return False
@@ -302,7 +358,8 @@ class autonomous_measurement():
                     just_completed_jobs.add(job_id)
                     self.completed_jobs.add(job_id)
                     # we rsync the new files
-                    subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
+                    self.call_rsync()
+
                 else:
                     # if it is not completed but not in jobs_on_hemera anymore,
                     # we have a problem
@@ -311,6 +368,15 @@ class autonomous_measurement():
         # remove the completed jobs from the running jobs list
         for job_id in just_completed_jobs:
             self.running_jobs.remove(job_id)
+
+    def call_rsync(self):
+        running = subprocess.call("./rsync.sh", cwd=pathlib.Path.home())
+        if running:
+            time.sleep(20)
+            return self.call_rsync()
+        else:
+            return
+
 
     def submit_jobs(self, file=None):
         if file == None:
@@ -343,7 +409,6 @@ class autonomous_measurement():
         self.connection = Connection('hemera')
         print("connecting to hemera...")
         self.completed_jobs = set()     # we have to reset the completed jobs otherwise the program thinks we already compleated all the jobs
-        self.nr_GPUS = min(self.nr_GPUS, self.total_runs)   # we dont need more GPUS than we have jobs
         while (len(self.completed_jobs)) < self.total_runs:
             # after this the set of running jobs is guaranteed to be empty
             # now we should check wheter some jobs are completed
@@ -451,7 +516,7 @@ class crit_temp_measurement(autonomous_measurement):
 
     def conclude(self):
         # In the new conclude only the simulation with the highest hierarchy is used
-        T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
+        T_arr = np.array(self.all_T_dic[np.max(list(self.all_T_dic.keys()))])
 
         results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
 
@@ -532,7 +597,8 @@ class crit_temp_measurement(autonomous_measurement):
         mark_point(ax, T_c, U_L_intersection,
                    label=rf"$T_c = {T_c:.4f}$")
         configure_ax(fig, ax)
-        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
+        create_directory_if_not_exists(f"{self.simulation_path}/plots/")
+        fig.savefig(self.simulation_path + f"plots/cum_time_avg-{self.size_min}-{self.size_max}.png", format="png",
                     dpi=300, transparent=False)
         plt.show()
 
@@ -876,17 +942,17 @@ class crit_temp_measurement(autonomous_measurement):
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
-            size_folder_path = os.path.join(self.simulation_path,
-                                            size_folder)
-            if os.path.isdir(size_folder_path):
-                if selected_sizes is not None:
-                    size = int(size_folder)
-                    if size not in selected_sizes:
-                        continue
-                if (size_folder[0] != ".") & (size_folder != "plots"):
-                        size_result = process_size_folder(size_folder_path,
-                                                          threshold, selected_temperatures=selected_temps)
-                        results[int(size_folder)] = size_result
+            if size_folder[0] != 0 and size_folder != "plots":
+                size_folder_path = os.path.join(self.simulation_path,
+                                                size_folder)
+                if os.path.isdir(size_folder_path):
+                    if selected_sizes is not None:
+                        size = int(size_folder)
+                        if size not in selected_sizes:
+                            continue
+                    size_result = process_size_folder(size_folder_path,
+                                                      threshold, selected_temperatures=selected_temps)
+                    results[int(size_folder)] = size_result
         return results
 
     def get_para_nr(self):
@@ -936,12 +1002,11 @@ class crit_temp_measurement(autonomous_measurement):
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
 class efficient_crit_temp_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
+    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
-        self.nr_Ts = nr_Ts
         self.size_min = size_min
         self.size_max = size_max
         self.max_steps = max_steps
@@ -995,7 +1060,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
             # If T_max is smaller, equal or slitghly larger than our specified T_min, what do we do then?
 
         # We use nr_Ts datapoints
-        self.T_arr = np.linspace(self.T_min, self.T_max, self.nr_Ts)
+        self.T_arr = np.array([self.T_min, self.T_max])
         # the T_array has to be added to the hierarchy
         # I would say in this case the keys should be the errors at which they equilibrated
         self.all_T_dic[self.equil_error] = self.T_arr  # This first array is on level 0
@@ -1003,7 +1068,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.sizes = np.array([self.size_min, self.size_max])
         print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
         self.max_time = self.dt * self.max_steps
-        self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
+        self.total_runs = len(self.sizes) * len(self.T_arr)  # every temp size combo will be a seperate simulation
         self.jobs_to_do = set(product(self.sizes, self.T_arr))      # for the beginning this is still valid
     def routine(self):
         """
@@ -1075,7 +1140,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
-        T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
+        T_arr = np.array(list(self.all_T_dic[np.min(list(self.all_T_dic.keys()))]))
         max_T = np.max(T_arr) * 1.01
         min_T = np.min(T_arr) * 0.99
         for i, size in enumerate(sorted(results.keys())):
@@ -1110,8 +1175,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # Here I want to have something that checks whether there is already a measurement
         # simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
         # We check how many fitting temp-size pairs are already available
-        valid_simulations = get_avail_simulations(self.sizes,
-                                                  self.T_arr,
+
+        valid_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
                                                   check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff)
                                                   )
@@ -1143,7 +1208,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def evaluate_simulation(self):
         # The simulation we are at right now is the one with the highest key
         smallest_error = np.min(list(self.all_T_dic.keys()))
-        T_arr = self.all_T_dic[smallest_error]
+        T_arr = np.array(sorted(list(self.all_T_dic[smallest_error])))
         # for this one we want to check if it has an intersection
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
         results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
@@ -1196,22 +1261,23 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     self.all_T_dic[self.equil_error].add(upper_T_bound)
                 # then we can instantly retake the measurement?
 
-                self.iteration()
+                return self.iteration()
             else:
                 # else means we have exactly 1 intersection, (or zero if the 2.95 rule catches)
                 if len(intersections) == 1:
                     intersection = intersections[0]
                     lower_T_bound = np.max(T_arr[T_arr < intersection])
                     upper_T_bound = np.min(T_arr[T_arr > intersection])
-                    lower_T_bound_ind = np.argmax(T_arr[T_arr < intersection])
-                    upper_T_bound_ind = np.argmin(T_arr[T_arr > intersection])
+                    # since T is ordered it is just always zero in this case
+                    # lower_T_bound_ind = np.argmax(T_arr[T_arr < intersection])
+                    # upper_T_bound_ind = np.argmin(T_arr[T_arr > intersection])
 
-                    U_L_lower_bound_small_size = results[self.size_min]["U_L"][T_arr < intersection][lower_T_bound_ind]
-                    U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][lower_T_bound_ind]
-                    U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][upper_T_bound_ind]
-                    U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][upper_T_bound_ind]
+                    U_L_lower_bound_small_size = results[self.size_min]["U_L"][T_arr < intersection][-1]
+                    U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][-1]
+                    U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][0]
+                    U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][0]
 
-                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_small_size > 1.05):
+                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
                         # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
                         if (U_L_lower_bound_small_size * (1 - self.equil_error) <
                                 U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
@@ -1222,7 +1288,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                                 self.jobs_to_do.add((size, lower_T_bound))
                                 self.jobs_to_do.add((size, upper_T_bound))
                             self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
-                            self.iteration()
+                            return self.iteration()
                     T_c = np.mean(intersections)
                     print(f"Found an intersection at T_c = {T_c}")
                     print("intersections: ", intersections)
@@ -1248,10 +1314,12 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     self.plotBinderCurve(T_c, U_L_intersection, results)
 
                     T_low = T_interval_low + dT/3
-                    T_up = T_interval_up - 2 * dT / 3
-                    new_Ts = np.linspace(T_low, T_up, self.nr_Ts)
-                    self.all_T_dic[self.equil_error] = np.concatenate((self.T_arr, new_Ts))
+                    T_up = T_interval_low + 2 * dT / 3
+                    new_Ts = np.linspace(T_low, T_up, 2)
+                    self.all_T_dic[self.equil_error] = set(np.sort(np.concatenate((T_arr, new_Ts))))
                     self.T_arr = new_Ts
+                    # and update the jobs to do
+                    self.jobs_to_do = set(product(self.sizes, self.T_arr))
                     # If we are here this directly means that we started a new child a a new level in the hierarchy
 
                     print(f"Error was too large: Temp T_c = {T_c} +- {T_c_error} \n"
@@ -1270,18 +1338,20 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 dT = T_arr[1] - T_arr[0]
                 T_min = np.max(self.T_arr) + (dT)  # the next T_min is the current maximum plus the current stepsize
                 T_max = np.max(self.T_arr) + T_range + dT    # TODO add dT!!
-                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
+                self.T_arr = np.linspace(T_min, T_max, 2)
                 # Okay we updated the temperature array... now we just run everything again?
             elif U_L_min_T_min < U_L_max_T_min:
                 print("The minimum temperature is too high")
                 T_range = np.ptp(self.all_T_arr)
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
                 T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
-                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
+                self.T_arr = np.linspace(T_min, T_max, 2)
             # we add the new stuff to the dictionary, but we already overwrote the T_arr, but the T_arr should still be
             # fine
-            self.all_T_dic[self.equil_error] = np.concatenate((T_arr, self.T_arr))
-
+            self.all_T_dic[self.equil_error] = set(np.sort(np.concatenate((T_arr, self.T_arr))))
+            for size in self.sizes:
+                self.jobs_to_do.add((size, T_min))
+                self.jobs_to_do.add((size, T_max))
             return self.iteration()
 
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
@@ -1390,7 +1460,7 @@ class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73", wait=30):
+                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7):
         super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
@@ -1399,6 +1469,7 @@ class quench_measurement(autonomous_measurement):
         self.min_quench_steps = min_quench_steps    # the minimum number of steps done during a quench, influences tau_min
         self.min_nr_sites = min_nr_sites            # the minimum nr of sites i want to simulate for every tau
         self.min_nr_systems = min_nr_systems        # the minimum nr of systems to go through the qunech, guaranteeing an approximately precice xi value
+        self.max_nr_steps = max_nr_steps            # for system whose correlation lengths rise very slowly only
 
         self.T_start = Tc
         self.T_end = Tc
@@ -1413,7 +1484,7 @@ class quench_measurement(autonomous_measurement):
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
         self.nr_measured_values = 300   # standard number of measured values during the quench
-        self.min_tau_scaling_fit = 10
+        self.min_tau_scaling_fit = 10   # this is whack, it should automatically find the best regression
 
     def setup(self):
         # We decide the start and end temperature
@@ -1474,9 +1545,11 @@ class quench_measurement(autonomous_measurement):
 
     def iteration(self):
         # Check directory structure again
-        sim_available = check_directory_structure([self.size], [self.tau()], self.simulation_path)      # the check directory structure takes lists in
+        sims_available = get_avail_simulations([self.size], [self.tau()], self.simulation_path,
+                                              check_quench_valid,
+                                              check_function_args=(self.min_nr_systems, self.min_nr_sites))      # the check directory structure takes lists in
         # one of the first things we do in the iteration is writing the parameter file
-        if not sim_available:
+        if not sims_available:
             # If no simulation is available, we have to run the simulation
             self.write_para_file()
             # then we just run the jobs
@@ -1524,6 +1597,11 @@ class quench_measurement(autonomous_measurement):
             # Should we preventively enlarge the size if for example xix > self.size / 15 or something like that?
             # not for now i would say, keep it simple at this point
             self.tau_factor += 1       # increase tau
+            # Calculate how many steps this would mean
+            nr_steps = (self.T_start - self.T_end) * self.tau() / self.dt
+            if nr_steps > self.max_nr_steps:
+                print(f"tau = {self.tau()} would require more than {self.max_nr_steps}, aborting here")
+                return
             self.tau_list.append(self.tau())    # and add it to the bookkeeping list
             return self.iteration()
 
@@ -1679,19 +1757,35 @@ class quench_measurement(autonomous_measurement):
                 xix_scaling.append(tau_xix_dic[tau])
                 xiy_scaling.append(tau_xiy_dic[tau])
         # We dont need a max tau in this case as the largest tau value is excluded and all other are basically guaranteed to be accurate
-        xix_scaling = np.array(xix_scaling)[
-            np.array(tau_scaling) > self.min_tau_scaling_fit]
-        xiy_scaling = np.array(xiy_scaling)[
-            np.array(tau_scaling) > self.min_tau_scaling_fit]
-        tau_scaling = np.array(tau_scaling)[
-            np.array(tau_scaling) > self.min_tau_scaling_fit]
+        # xix_scaling = np.array(xix_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+        # xiy_scaling = np.array(xiy_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+        # tau_scaling = np.array(tau_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+#
+        # # Do the fitting
+        # popt_x, _ = curve_fit(linear_fit, np.log(tau_scaling),
+        #                       np.log(xix_scaling))
+        # popt_y, _ = curve_fit(linear_fit, np.log(tau_scaling),
+        #                       np.log(xiy_scaling))
 
-        # Do the fitting
-        popt_x, _ = curve_fit(linear_fit, np.log(tau_scaling),
-                              np.log(xix_scaling))
-        popt_y, _ = curve_fit(linear_fit, np.log(tau_scaling),
-                              np.log(xiy_scaling))
 
+        # quench_exp_x = popt_x[0]
+        # quench_ampl_x = popt_x[1]
+        # quench_exp_y = popt_y[0]
+        # quench_ampl_y = popt_y[1]
+
+        log_tau = np.log(tau_scaling)
+        xix_scaling_log = np.log(xix_scaling)
+        xiy_scaling_log = np.log(xiy_scaling)
+
+        reg_x, min_tau_x, max_tau_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95)
+        reg_y, min_tau_y, max_tau_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95)
+        quench_exp_x =  reg_x.slope
+        quench_ampl_x = np.exp(reg_x.intercept)
+        quench_exp_y = reg_y.slope
+        quench_ampl_y = np.exp(reg_y.intercept)
 
         # now we have them dictionaries, we can plot the points
         figx, axx = plt.subplots(1, 1)
@@ -1708,9 +1802,9 @@ class quench_measurement(autonomous_measurement):
 
             axx.plot(tau, xix, marker=markers[i], linestyle="None", label=rf"$L_x = ${size}", color="C0")
         # Plot the fit
-        axx.plot(tau_scaling, poly(tau_scaling, popt_x[0], np.exp(popt_x[1])),
+        axx.plot(tau_scaling, poly(tau_scaling, quench_exp_x, np.exp(quench_ampl_x)),
                  color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_x[0]:.2f}")
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_x:.2f}")
         configure_ax(figx, axx)
         create_directory_if_not_exists(self.simulation_path+ "/plots")
         plt.savefig(self.simulation_path + "/plots/tau-xix.png", format="png")
@@ -1728,9 +1822,9 @@ class quench_measurement(autonomous_measurement):
             xiy = list(size_tau_xiy_dic[size].values())
 
             axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
-        axy.plot(tau_scaling, poly(tau_scaling, popt_y[0], np.exp(popt_y[1])),
+        axy.plot(tau_scaling, poly(tau_scaling, quench_exp_y, np.exp(quench_ampl_y)),
                  color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{popt_y[0]:.2f}")
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_y:.2f}")
         configure_ax(figy, axy)
         plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
         plt.show()
@@ -2483,8 +2577,7 @@ def main():
     nr_Ts = 5
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = ("../../Generated content/Silicon/Subsystems/Suite/"
-                       "Test7/")
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/efficient Tc/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -2536,7 +2629,7 @@ def main():
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_Ts=nr_Ts,
+                                    size_min=min_size_Tc, size_max=max_size_Tc,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
     else:

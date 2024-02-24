@@ -6,7 +6,7 @@ def main():
     # temperature and I want to vary the h
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
-    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
+    h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -32,8 +32,8 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.008
-    min_equil_error = 0.002
+    equil_error = 0.015
+    min_equil_error = 0.0075
     max_rel_intersection_error = 0.05
 
     # Quench parameters
@@ -44,9 +44,8 @@ def main():
         curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts,
-                                    equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error)
+        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end

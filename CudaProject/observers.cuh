@@ -734,13 +734,16 @@ public:
                                 // write autocorrelation time
                                 fs::path txt_path = filepath.replace_extension(".txt");
                                 ofstream parameter_file;
+                                // can there only be one output stream?
                                 parameter_file.open(txt_path, ios::app);
                                 parameter_file << "autocorrelation_time," << autocorr_time;
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
                             }
                         }
-                        adapt_write_interval(nr_cum_values, autocorr_time);
+                        if(!equilibrated) {
+                            adapt_write_interval(nr_cum_values, autocorr_time);
+                        }
                     }
                 }
             }
@@ -1287,6 +1290,7 @@ class corr_equilibration_observer_adaptive: public obsver<system, State>{
     size_t Lx;                      // sizes of the system. Important to validate if the extraction was meaningful
     size_t Ly;
     double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
+    fs::path filepath;              // path this observer writes to
     // will distort the error estimation. If the total run was meaningful will then be judged afterwards.
     // (If the xi is now close to this threshold this probably means that our system was evolving in a state with larger correlation length than we can meaningful extract)
     // Okay short recap, we will now check evertime we calculate a xi if it is smaller than xi_cap * L and if it is not, we will cut it there
@@ -1316,18 +1320,20 @@ public:
         close_stream();
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(!pick_up) {
-            open_stream(path / (obsver::construct_filename(run_nr) + ".corr"));
+            filepath = path / (obsver::construct_filename(run_nr) + ".corr");
+            open_stream(filepath);
             // We only want to do this if we are creating a new file?
             ofile << "t,xix,xiy" << endl;
         } else {
             // If we have the memory initialization we also want to load the correlation length values into cache
             // I thinkt we should do that before we decide to open this file also as output stream
             path += ".corr";
+            filepath = path;
             cout << "Reading correlation lengths from file" << endl;
             readXiFromFile(path, xix, xiy, times);
             timepoint = times.back();
             cout << "successful!" << endl;
-            open_app_stream(path);
+            open_app_stream(filepath);
         }
         cout << this->get_name() << " init called" << endl;
 
@@ -1363,7 +1369,7 @@ public:
                 int nr_xi_values = xix.size();      // check how many corr values we already have, the number of xiy values equals the number of xix values
                 // we lack the complete logic to change the stepsize since we said we use a constant density
                 if(nr_xi_values > min_corr_nr){
-                    int error_every_n_steps = max((int)(error_factor * density), 1);
+                    int error_every_n_steps = (int)(error_factor * density) + 1;
                     if(xix.size() % error_every_n_steps == 0) {
                         // if we reached the minimum number of values we check the error on the correlation lengths
                         int min_ind = (int)(equil_cutoff * nr_xi_values);
@@ -1431,10 +1437,68 @@ public:
                             // the writ interval will now be the one that we destined for the quench, we just change it once here
                             write_interval = quench_t / (double)nr_values;
                         }
+                        if(!equilibrated) {
+                            double autocorr_time = 0.5 * (autocorr_time_x + autocorr_time_y);
+                            adapt_write_interval(nr_xi_values, autocorr_time);
+                        }
                     }
                 }
             }
             timepoint += write_interval;
+        }
+    }
+
+    void adapt_write_interval(int nr_cum_values, double autocorr_time, int values_per_autocorr_time=20) {
+        // we want to adapt the write density on the autocorrelation time. But everytime we do this
+        // we have to delete the values that have smaller spacing between them (the intermediate values)
+        // It should be some kind of switch statement or something like this?
+        // We want to write approximately 10 cumulant values during one autocorrelation time? Or maybe 100 ?
+        // I think 10 should be fine
+        double autocorr_time_floored = pow(10.0, floor(log10(autocorr_time)));      // we floor the autocorrelation time to the next power of 10, so 3000 would get rounded to 1000 and 101 to 100
+        // we do this as we do not want to continuously change our stepping but in discrete steps
+        double new_write_interval = autocorr_time_floored / (double)values_per_autocorr_time;    // if autocorr is 1000, the write interval is 100, using 100 writes per autocorr time now because ten is not satisfying somehow
+        if(new_write_interval > write_interval) {
+            // in this case we have to drop values accordingly to new write interval
+            int keep_every_nth_val = (int)(new_write_interval / write_interval); // they should yield a glatt integer since we only work with powers of ten write interval might have been 1 and now it is 10 so we keep every 10th value
+            int new_nr_cum_values = nr_cum_values / keep_every_nth_val;         // if we have 101 values with a spacing of 1, we want to keep 101, 91, ..., 1, making up for 11 values
+            if (nr_cum_values % keep_every_nth_val != 0) {
+                // if this is the case we can extract one more value
+                new_nr_cum_values++;
+            }
+/*            cout << "the old number of cum values is " << nr_cum_values << endl;
+            cout << "the new number of cum values is " << new_nr_cum_values << endl;*/
+            // if we have 100 values with a spacing of 1, those would be the indices 0 to 99. We want to keep 99 and 89 (distance of 10 ds), 79, ..., 9 making up 10 values
+            // if we have 101 values with a spacing of 1, those would have the indices 0 to 100. We would want to keep 100, 90, ..., 10, 0 so eleven values? Right now we would be missing out on 0, which would not be two bad...
+            vector<double> new_xix(new_nr_cum_values);
+            vector<double> new_xiy(new_nr_cum_values);
+            vector<double> new_times(new_nr_cum_values);
+            for(int i = 0; i < new_nr_cum_values; i++) {
+                // TODO is the plus one correct? If you get memory errors look here?
+                // okay so we work from behind because instead of keeping 0 - 100 we want to keep 1 - 101. But the order has to stay the same for the correlation function
+                // cout << "i = " << i << "   nr_cum_values - keep_every_nth_val * i - 1 = " << nr_cum_values - keep_every_nth_val * i - 1 << "    U_L = " << U_L[nr_cum_values - keep_every_nth_val * i - 1] << endl;
+                new_xix[new_nr_cum_values - i - 1] = xix[nr_cum_values - keep_every_nth_val * i - 1];       // - one because in a vector of length 5 the last index is 4
+                new_xiy[new_nr_cum_values - i - 1] = xiy[nr_cum_values - keep_every_nth_val * i - 1];
+                new_times[new_nr_cum_values - i - 1] = times[nr_cum_values - keep_every_nth_val * i - 1]; // if i = new_nr_cum_values - 1 = nr_cum_values / keep_ever_nth_val + 1 - 1 = nr_cum_values / keep .. so we are accessing times[-1] but why I dont get it
+            }
+            xix = new_xix;
+            xiy = new_xiy;
+            times = new_times;
+            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
+            write_interval = new_write_interval;
+            density = dt / write_interval;
+            // this is all right?
+            // we decided to rewrite the file, it will save space and make the after simulation validation easier
+            rewrite_file();
+        }
+    }
+
+    void rewrite_file() {
+        int new_nr_xi_values = xix.size();
+        close_stream();
+        open_stream(filepath);
+        ofile << "t,U_L" << endl;
+        for(int i = 0; i < new_nr_xi_values; i++) {
+            ofile << times[i] << "," << xix[i] << "," << xiy[i] << endl;
         }
     }
 

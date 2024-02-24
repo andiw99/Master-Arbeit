@@ -122,7 +122,7 @@ def main():
             for used_size in use_sizes:
                 size_T_cum_dic[used_size] = results[used_size]
             # for this we can get the intersections now
-            intersections = get_intersections(size_T_cum_dic)
+            intersections = get_first_intersections(size_T_cum_dic)
             # Tc is the mean of intersections
             T_c_dic[lower_size_bound] = np.mean(intersections)
             # we can also calculate the error? Should the error be again the ptp or the standard deviation? Standard
