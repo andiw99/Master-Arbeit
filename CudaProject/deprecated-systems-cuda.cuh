@@ -5,7 +5,7 @@
 #ifndef CUDAPROJECT_DEPRECATED_SYSTEMS_CUH
 #define CUDAPROJECT_DEPRECATED_SYSTEMS_CUH
 
-#include "main.cuh"
+#include "main-cuda.cuh"
 #include "systems-cuda.cuh"
 
 using namespace std;

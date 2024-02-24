@@ -47,16 +47,15 @@ def start_ani(event, ax, bars, x, x_cut, dx, nr_bins=100):
             plt.pause(0.1)
 
 
-
 def cos_pair_potential(x1, x2, h, J):
     return h * np.cos(2 * x1) - J * np.cos(x1 - x2)
 
 
-def cos_combined_pair_potential(x1, x2, h, J):
-    return h * np.cos(2 * x1) + h * np.cos(2 * x2) - J * np.cos(x1 - x2)
+def cos_combined_pair_potential(x1, x2, h, J, p):
+    return h * np.cos(p * x1) + h * np.cos(p * x2) - J * np.cos(2 * (x1 - x2))
 
-def cos_potential_x(x, p_multi=2, h=20):
-    return  h * np.cos(p_multi * x)
+def cos_potential_x(x, p=2, h=20):
+    return  h * np.cos(p * x)
 
 def filter_cut(x, x_cut, dx):
     # so in x there are always (x1, x2) pairs and we now want a cut
@@ -70,41 +69,21 @@ def filter_cut(x, x_cut, dx):
 
 
 def main():
-    root = "../../Generated content/XY/XY Pairs/New/"
+    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-7/long/2/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
     potential_total = cos_combined_pair_potential
-    x_range = np.linspace(0, 2 * np.pi, 200)
+    # x_range = np.linspace(0, 2 * np.pi, 200)
+    x_range = np.linspace(-np.pi / 2, np.pi / 2, 200)
     T = 20
     x = []
-    dx = 0.1    # we look at a cut of the distribution that is 0.1 thick
-    x2 = np.pi / 2   # the cut is located around x2
+    dx = 0.2    # we look at a cut of the distribution that is 0.1 thick
+    x2 = np.pi / 2 -0.15   # the cut is located around x2
     nr_bins = 100
     x2_range = np.linspace(x2 - dx, x2 + dx, 100)
 
-    # first lets plot it in 3d to get a feeling for the distribution
-    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-    X1, X2 = np.meshgrid(x_range, x_range)
-    pot_2d = functools.partial(potential_total, h=20, J=20)
-    pot_vals = pot_2d(X1, X2)
-    W = np.exp(-1/T * pot_vals)
-    boltz_2d = functools.partial(boltzmann_dist_2d, beta=1/T, potential=pot_2d)
-    Z = dblquad(boltz_2d, 0, 2 * np.pi, 0, 2*np.pi)
-    W /= Z[0]
-
-    surf = ax.plot_surface(X1, X2, W, cmap=cm.coolwarm,
-                           linewidth=0, antialiased=False)
-    # Customize the z axis.
-    ax.zaxis.set_major_locator(LinearLocator(10))
-    # A StrMethodFormatter is used automatically
-    ax.zaxis.set_major_formatter('{x:.02f}')
-
-    # Add a color bar which maps values to colors.
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-
-    plt.show()
 
     for temp_dir in root_dirs:
         if (temp_dir != "NER plots") and (temp_dir != "plots"):
@@ -124,11 +103,34 @@ def main():
                     dt = parameters["dt"]
                     alpha = parameters["alpha"]
                     J = parameters["J"]
+                    p = parameters["p"]
                     break
 
+        # first lets plot it in 3d to get a feeling for the distribution
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        X1, X2 = np.meshgrid(x_range, x_range)
+        pot_2d = functools.partial(potential_total, h=alpha, J=J, p=p)
+        pot_vals = pot_2d(X1, X2)
+        W = np.exp(-1 / T * pot_vals)
+        boltz_2d = functools.partial(boltzmann_dist_2d, beta=1 / T, potential=pot_2d)
+        Z = dblquad(boltz_2d, 0, 2 * np.pi, 0, 2 * np.pi)
+        W /= Z[0]
+
+        surf = ax.plot_surface(X1, X2, W, cmap=cm.coolwarm,
+                               linewidth=0, antialiased=False)
+        # Customize the z axis.
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        # A StrMethodFormatter is used automatically
+        ax.zaxis.set_major_formatter('{x:.02f}')
+
+        # Add a color bar which maps values to colors.
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        plt.show()
+
         beta = 1 / T
-        pot_single = functools.partial(potential, h=alpha)
-        pot_total = functools.partial(potential_total, h=alpha, J=J)
+        pot_single = functools.partial(potential, h=alpha, p=p)
+        pot_total = functools.partial(potential_total, h=alpha, J=J, p=p)
         W_x = int_boltzmann_dist_x(x_range, beta, pot_total, x2_range)
         W_x_single = boltzmann_dist_x(x_range, beta, pot_single)
         Z = np.trapz(W_x, x_range)

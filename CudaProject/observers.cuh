@@ -616,7 +616,8 @@ public:
 
     cum_equilibration_observer_adaptive(int min_cum_nr, double write_density) : min_cum_nr(min_cum_nr), write_density(write_density) {}
 
-    cum_equilibration_observer_adaptive(int min_cum_nr, double write_density, double equil_cutoff) : min_cum_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
+    cum_equilibration_observer_adaptive(int min_cum_nr, double write_density, double equil_cutoff):
+    min_cum_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
 
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];

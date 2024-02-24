@@ -890,15 +890,16 @@ def find_first_intersection(x_range, y1, y2, res=10000):
 
 def find_intersections(x_range, y1, y2, res=10000):
     # Interpolate the curves
-    x_inter = np.linspace(x_range[0], x_range[-1], res)
-    diff_func = np.interp(x_inter, x_range, y1 - y2)
-    y_1_func = np.interp(x_inter, x_range, y1)        # we need that for the U_L value at the intersection...
+    x_inter = np.linspace(x_range[0], x_range[-1], res)[1:]
+    diff_func = np.interp(x_inter, x_range, y1 - y2)[1:]
+    y_1_func = np.interp(x_inter, x_range, y1)[1:]        # we need that for the U_L value at the intersection...
 
     diff_func_sign = np.sign(diff_func)
     signchange = ((np.roll(diff_func_sign, 1) - diff_func_sign) != 0).astype(int)
     signchange[0] = 0
 
-    ind_signchange = np.where(signchange == 1)[0]
+    ind_signchange = np.where(signchange == 1)[0]      # we exclude the first value because this means two U_L values are exactly the same and this means
+    # either insane chance (I dont believe this could ever happen, or U_L = 1 if we are deep in the low temp region)
     intersections_x = []
     intersections_y = []
     for ind_sign in ind_signchange:
@@ -1501,19 +1502,21 @@ def best_fit_inv_old(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_
 
     return best_reg, best_starting_pos, best_ending_pos
 
-def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept_function_args=None):
+def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept_function_args=None, more_points=True):
     x = np.array(x)
     y = np.array(y)
     best_starting_pos = 0
     best_ending_pos = 0
     # The minimum r_squared value that we need is the starting value for the best_r_sqaured
-    best_r_squared = min_r_squared      # This value ranges to 1 I think and 1 is a really good fit?
+    best_r_squared = min_r_squared     # This value ranges to 1 I think and 1 is a really good fit?
+    if more_points:
+        best_r_squared *=1
     best_reg = None
     for starting_pos in range(len(x) - min_points + 1):
         for ending_pos in range(starting_pos + min_points, len(x)+1):
             # We should have at least 4 points i would say.
             x_fit = x[starting_pos:ending_pos]
-            y_fit = y_fit[starting_pos:ending_pos]
+            y_fit = y[starting_pos:ending_pos]
 
             reg = linregress(x_fit, y_fit)
 
@@ -1523,10 +1526,19 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept
                 accepted = True
             # We only accept the outcome if we get the expected result (haha)
             # The critical temperature that we get out of the fit has to bein +-10% range of the one that we calculated with the binder cumulant
-            if ((reg.rvalue ** 2 > best_r_squared) and accepted):
+
+            # reg.rvalue ** 2 seems to be a good measure of the linearity, but I somehow want another method of judging
+            # which can incorporate the number of points used, so rather takes values that have more points
+            # how would we do that? if we just divide reg.rvalue by the number of points, so basically a rvalue per point
+            # we will always tend to using more points and loose linearity. Maybe by the root of the number of points?
+            if more_points:
+                quality_value = reg.rvalue ** 2 + (0.001 * (ending_pos - starting_pos - min_points)) # small bonus for fits that have more than 4 points
+            else:
+                quality_value = reg.rvalue ** 2
+            if ((quality_value > best_r_squared) and accepted):
                 best_starting_pos = starting_pos
                 best_ending_pos = ending_pos
-                best_r_squared = reg.rvalue ** 2
+                best_r_squared = quality_value
                 best_reg = reg
 
     return best_reg, best_starting_pos, best_ending_pos

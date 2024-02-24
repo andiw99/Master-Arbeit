@@ -16,6 +16,7 @@ def main():
     J_perp = -0.1
     h = 0.5
     eta = 1.5
+    p = 2.33
     dt = 0.01
 
     # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
@@ -32,7 +33,7 @@ def main():
     # We use small equilibration errors since we want to have really accurate
     equil_error = 0.01
     min_equil_error = 0.0025
-    max_rel_intersection_error = 0.01       # is this to small or fine?
+    max_rel_intersection_error = 0.005       # is this to small or fine?
     # since we need quantitative exact values, we should know T_c beforehand
     min_T = 0.94
     max_T = 0.96
@@ -49,8 +50,10 @@ def main():
 
     # I think this is good? almost every size is reused and we always have twice the size
 
-    small_Ls = [8,  12, 16, 24, 32, 48, 64]
-    large_Ls = [16, 24, 32, 48, 64, 96, 128]
+    # small_Ls = [8,  12, 16, 24, 32, 48, 64]
+    small_Ls = [64]
+    # large_Ls = [16, 24, 32, 48, 64, 96, 128]
+    large_Ls = [128]
     Ly_Lx = 1 / 2
 
     crit_temps = []
@@ -61,7 +64,7 @@ def main():
         #curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
+        Tc_sim = crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=L_small, size_max=L_large, Ly_Lx=Ly_Lx, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts, T_min=min_T, T_max=max_T,
                                     equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error, para_nr=para_nr)
         T_c, T_c_error = Tc_sim.routine()
@@ -86,6 +89,7 @@ def main():
     high_lim = ax.get_xlim()[1]
     ax.hlines(crit_temps[-1] * 0.999, low_lim, high_lim, linestyles="dashed", color="C0", label=f"$T_c = {(crit_temps[-1] * 0.999):.6f}$")
     ax.set_xlim(low_lim, high_lim)
+    ax.set_title("Intersection of $L_{min}$ and $L_{max} = 2 L_{min}$ depending on $L_{min}$")
     ax.set_xlabel(r"$L_{min}$")
     ax.set_ylabel(r"$T_c/\mathdefault{meV}$")
     configure_ax(fig, ax, config)

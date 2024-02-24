@@ -298,7 +298,7 @@ def get_difference_std(cum_arr):
     return dif_var
 
 class autonomous_measurement():
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
                  host="hemera", user="weitze73", para_nr=100, wait=60):
         # This class is supposed to encapsulate some of the functionality that the following classes share
         # For every simulation I need the basic simulation parameters
@@ -306,6 +306,7 @@ class autonomous_measurement():
         self.J_perp = J_perp
         self.h = h
         self.eta = eta
+        self.p = p
         self.dt = dt
         self.filepath = filepath
         self.simulation_path = simulation_path
@@ -431,11 +432,11 @@ class autonomous_measurement():
         # we add the currently simulated temperatures to the bookkeeping variable
 
 class crit_temp_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.nr_Ts = nr_Ts
         self.size_min = size_min
         self.size_max = size_max
@@ -978,6 +979,7 @@ class crit_temp_measurement(autonomous_measurement):
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
+                        f"p, {self.p} \n"
                         f"nr_saves, 4 \n"
                         f"nr_repeat, 0 \n"
                         f"min_temp, {T} \n"
@@ -1002,11 +1004,11 @@ class crit_temp_measurement(autonomous_measurement):
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
 class efficient_crit_temp_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.size_min = size_min
         self.size_max = size_max
         self.max_steps = max_steps
@@ -1457,11 +1459,11 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
 class quench_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
                  host="hemera", user="weitze73", wait=30, max_nr_steps=1e7):
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
         self.nr_sites = nr_sites        # nr of sites for one run
@@ -1775,6 +1777,7 @@ class quench_measurement(autonomous_measurement):
         # quench_ampl_x = popt_x[1]
         # quench_exp_y = popt_y[0]
         # quench_ampl_y = popt_y[1]
+        tau_scaling = np.array(tau_scaling)
 
         log_tau = np.log(tau_scaling)
         xix_scaling_log = np.log(xix_scaling)
@@ -1802,9 +1805,13 @@ class quench_measurement(autonomous_measurement):
 
             axx.plot(tau, xix, marker=markers[i], linestyle="None", label=rf"$L_x = ${size}", color="C0")
         # Plot the fit
-        axx.plot(tau_scaling, poly(tau_scaling, quench_exp_x, np.exp(quench_ampl_x)),
+        prev_y_low = axx.get_ylim()[0]
+        prev_y_up = axx.get_ylim()[1]
+        print("tau array:", tau_scaling[(tau_scaling >= min_tau_x) & (tau_scaling <= max_tau_x)])
+        axx.plot(tau_scaling[min_tau_x:max_tau_x], poly(tau_scaling[min_tau_x:max_tau_x], quench_exp_x, quench_ampl_x),
                  color="black", alpha=0.5, linestyle="dashed",
                  label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_x:.2f}")
+        axx.set_ylim(prev_y_low, prev_y_up)
         configure_ax(figx, axx)
         create_directory_if_not_exists(self.simulation_path+ "/plots")
         plt.savefig(self.simulation_path + "/plots/tau-xix.png", format="png")
@@ -1822,9 +1829,13 @@ class quench_measurement(autonomous_measurement):
             xiy = list(size_tau_xiy_dic[size].values())
 
             axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
-        axy.plot(tau_scaling, poly(tau_scaling, quench_exp_y, np.exp(quench_ampl_y)),
+        prev_y_low = axy.get_ylim()[0]
+        prev_y_up = axy.get_ylim()[1]
+        axy.plot(tau_scaling[min_tau_y:max_tau_y],
+                 poly(tau_scaling[min_tau_y:max_tau_y], quench_exp_y, (quench_ampl_y)),
                  color="black", alpha=0.5, linestyle="dashed",
                  label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_y:.2f}")
+        axy.set_ylim(prev_y_low, prev_y_up)
         configure_ax(figy, axy)
         plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
         plt.show()
@@ -1897,9 +1908,9 @@ class quench_measurement(autonomous_measurement):
         self.conclude()
 
 class amplitude_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01):
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
@@ -1988,6 +1999,7 @@ class amplitude_measurement(autonomous_measurement):
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
+                        f"p, {self.p} \n"                        
                         f"nr_saves, 4 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
                         f"nr_repeat, 0 \n"
                         f"min_temp, {T} \n"
@@ -2168,12 +2180,12 @@ class amplitude_measurement(autonomous_measurement):
         return self.para_nr + self.cur_para_nr - 1
 
 class z_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
                           size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
                  variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, cum_density=1/100,
                  test_cum_density=1/2, test_min_cum_nr=2000):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
         # ah maybe you should first write a concept about what this measurment should do
 
         self.Tc = Tc
@@ -2478,6 +2490,7 @@ class z_measurement(autonomous_measurement):
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
+                        f"p, {self.p} \n"
                         f"nr_saves, 2 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
                         f"nr_repeat, 0 \n"
                         f"min_temp, {self.Tc} \n"
@@ -2522,6 +2535,7 @@ class z_measurement(autonomous_measurement):
                         f"Jy, {self.J_perp} \n"
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
+                        f"p, {self.p} \n"                        
                         f"nr_saves, 2 \n"       # standard number of saves is 2... will this be changed anytime?
                         f"nr_repeat, 0 \n"
                         f"min_temp, {self.Tc} \n"
@@ -2569,6 +2583,7 @@ def main():
     #h = 1.7e6
     h = 0.5
     eta = 1.5
+    p = 2.33
     #dt = 0.00001
     dt = 0.01
     max_size_Tc = 80
@@ -2623,12 +2638,12 @@ def main():
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
     if measurements["Tc"]:
-        sim = crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+        sim = crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
-        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc,
                                     intersection_error=max_rel_intersection_error)
         T_c, T_c_error = sim.routine()
@@ -2636,15 +2651,15 @@ def main():
         T_c = float(input("Enter critical temperature:"))
         T_c_error = 0
     if measurements["Quench"]:
-        quench = quench_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
+        quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
         quench.run()
     if measurements["Amplitude"]:
-        ampl = amplitude_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "Amplitude",
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Amplitude",
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
                                      equil_error=equil_error, equil_cutoff=equil_cutoff)
         ampl.run()
     if measurements["z"]:
-        z_measure = z_measurement(J_para, J_perp, h, eta, dt, filepath, simulation_path + "z",
+        z_measure = z_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "z",
                                         z_exec_file, z_test_exec_file, T_c, nr_GPUS=nr_gpus, size_min=64, size_max=256,
                                         nr_sizes=nr_sizes, min_nr_sites=z_min_nr_sites, min_nr_systems=z_min_nr_systems,
                                      equil_error=z_equil_error)

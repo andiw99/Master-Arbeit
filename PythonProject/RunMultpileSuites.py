@@ -13,6 +13,7 @@ def main():
     # the simulation defining parameters are dt
     J_para = -3.11
     J_perp = -0.1
+    p = 2.54
     eta = 1.5
     dt = 0.01
 
@@ -32,7 +33,7 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.015
+    equil_error = 0.02
     min_equil_error = 0.0075
     max_rel_intersection_error = 0.05
 
@@ -44,14 +45,14 @@ def main():
         curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
 
         # Run Quench
-        quench = quench_measurement(J_para, J_perp, h, eta, dt, filepath, curr_sim_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
+        quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
         quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so
