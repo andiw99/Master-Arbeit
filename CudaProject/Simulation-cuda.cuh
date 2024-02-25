@@ -4,8 +4,8 @@
 
 #ifndef CUDAPROJECT_SIMULATION_CUH
 #define CUDAPROJECT_SIMULATION_CUH
-#include "main.cuh"
-#include "systems.cuh"
+#include "main-cuda.cuh"
+#include "systems-cuda.cuh"
 // #include "deprecated-systems.cuh"
 #include "steppers.cuh"
 #include "observers.cuh"

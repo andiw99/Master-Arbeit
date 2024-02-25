@@ -5,7 +5,7 @@
 #ifndef CUDAPROJECT_STEPPERS_CUH
 #define CUDAPROJECT_STEPPERS_CUH
 #include "../LearningProject/Header/Helpfunctions and Classes.h"
-#include "main.cuh"
+
 using namespace std;
 
 

@@ -69,7 +69,7 @@ def filter_cut(x, x_cut, dx):
 
 
 def main():
-    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-7/long/2/"
+    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2/"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
@@ -79,9 +79,9 @@ def main():
     x_range = np.linspace(-np.pi / 2, np.pi / 2, 200)
     T = 20
     x = []
-    dx = 0.2    # we look at a cut of the distribution that is 0.1 thick
-    x2 = np.pi / 2 -0.15   # the cut is located around x2
-    nr_bins = 100
+    dx = 0.15    # we look at a cut of the distribution that is 0.1 thick
+    x2 = np.pi / 2   # the cut is located around x2
+    nr_bins = 140
     x2_range = np.linspace(x2 - dx, x2 + dx, 100)
 
 
@@ -96,7 +96,9 @@ def main():
                     file_path = os.path.join(temp_path, file)
                     para_filepath = os.path.splitext(file_path)[0] + ".txt"
                     parameters = read_parameters_txt(para_filepath)
-                    row = range(int(parameters["nr_saves"]) + 1)
+                    with open(file_path, "rb") as f:
+                        nr_rows = sum(1 for _ in f)
+                    row = range(nr_rows)
                     x = read_large_df(file_path, row)[1:]
                     print(len(x))
                     T = parameters["T"]

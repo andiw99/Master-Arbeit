@@ -1,10 +1,9 @@
 //
-// Created by andi on 30.04.23.
+// Created by andi on 25.02.24.
 //
 
-#ifndef CUDAPROJECT_MAIN_CUH
-#define CUDAPROJECT_MAIN_CUH
-
+#ifndef CUDAPROJECT_MAIN_CUDA_CUH
+#define CUDAPROJECT_MAIN_CUDA_CUH
 #include "../LearningProject/Header/Helpfunctions and Classes.h"
 #include <functional>
 #include <thrust/host_vector.h>
@@ -38,6 +37,7 @@ enum Parameter {
     Jy,
     dt,
     end_time,
+    start_time,                             // for pickup capability
     starting_temp,
     end_temp,
     T,
@@ -93,6 +93,7 @@ map<Parameter, string> parameter_names {
         {Jy,"Jy"},
         {dt,"dt"},
         {end_time,"end_time"},
+        {start_time,"start_time"},
         {starting_temp,"starting_temp"},
         {end_temp,"end_temp"},
         {T,"T"},
@@ -148,6 +149,7 @@ map<string, Parameter> string_to_parameter {
         {"Jy", Jy},
         {"dt", dt},
         {"end_time", end_time},
+        {"start_time", start_time},
         {"starting_temp", starting_temp},
         {"end_temp", end_temp},
         {"T", T},
@@ -459,8 +461,8 @@ struct thrust_operations {
         template< class Tuple >
         __host__ __device__ void operator()(Tuple tup) const {
             thrust::get<0>(tup) = pref * (thrust::get<0>(tup) +             // v^n
-                                  0.5 *  (dt * thrust::get<1>(tup) +            // F
-                                          sqrt(dt) * thrust::get<2>(tup)));      // theta
+                                          0.5 *  (dt * thrust::get<1>(tup) +            // F
+                                                  sqrt(dt) * thrust::get<2>(tup)));      // theta
 
         }
     };
@@ -586,11 +588,17 @@ private:
 
     void Iwrite(fs::path simulation_path, int file_nr) {
         // I think I need to get the file nr from outside
+        fs::path filepath;
         string filename = construct_filename(file_nr);
-        fs::path filepath = simulation_path / (filename + ".perf" );
-        // If we want to write we need to open a filestream
+        if(fs::is_directory(simulation_path)) {
+            // If it is a directory we have th normal case so not pickup
+            filepath = simulation_path / (filename + ".perf" );
+        } else {
+            // pickup so filepath is the simulation parent path (folder to the simulation and the filename)
+            filepath = simulation_path.parent_path() / (filename + ".perf");
+        }
+
         ofstream ofile;
-        create_dir(filepath.parent_path());         // I dont think we would need that since for
         ofile.open(filepath);
         if(ofile.is_open()) {
             cout << "Singleton timer successfully opened file";
@@ -614,7 +622,6 @@ private:
             // I would like to format this but somehow this is impossible in c++
             ofile << name_time.first << ":" << ms << ", " << s << endl;
         }
-
         // once we have written we want to reset the times, so we just replace the timer?
         Timer = checkpoint_timer();     // I mean this calls the constructor so this should be a new timer
 
@@ -728,7 +735,7 @@ void fill_init_values(State &state, float x0, float p0, int run = 0, double mu=0
                       rand_normal_values(x0, mu, sigma));
 
 
-     // fill starting impulses
+    // fill starting impulses
     thrust::transform(index_sequence_begin + n,
                       index_sequence_begin + 2*n,
                       state.begin() + n,
@@ -1140,16 +1147,16 @@ struct thrustDivideBy
 };
 
 struct normalize_fft_autocorr : thrust::unary_function<thrust::tuple<hipfftDoubleComplex, size_t>, double> {
-    int f_size;
-    normalize_fft_autocorr(int f_size) : f_size(f_size), thrust::unary_function<thrust::tuple<hipfftDoubleComplex, size_t>, double>(){
-    }
-    template<class Tup>
-    __host__ __device__ double operator()(Tup tup) const {
-        // first we need to know in which system we are
-        double autocorr_value = thrust::get<0>(tup).x;
-        int index = thrust::get<1>(tup);
-        return  autocorr_value / (2.0 * f_size * (f_size - index));
-    }
+int f_size;
+normalize_fft_autocorr(int f_size) : f_size(f_size), thrust::unary_function<thrust::tuple<hipfftDoubleComplex, size_t>, double>(){
+}
+template<class Tup>
+__host__ __device__ double operator()(Tup tup) const {
+    // first we need to know in which system we are
+    double autocorr_value = thrust::get<0>(tup).x;
+    int index = thrust::get<1>(tup);
+    return  autocorr_value / (2.0 * f_size * (f_size - index));
+}
 };
 
 
@@ -1403,29 +1410,14 @@ struct diff1D
     }
 };
 
-struct absDiff1DStd
-{
-    double operator()(double x, double y) const
-    {
-        return fabs(x - y);
-    }
-};
 
-double meanAbsDifference(double* f, int f_size) {
-    // since what size is the summation on GPU faster?
-    std::vector<double> diffs(f_size - 1);
-    transform(f, f + f_size - 1, f + 1, diffs.begin(), absDiff1DStd());
-
-/*
-    for (int i = 0; i< 20; i++){
-        cout << "|" <<f[i] << " - " << f[i+1]<< "|" << " = " <<  diffs[i] << endl;
-    }
-*/
-
-
-    double accumulated_abs_diff = reduce(diffs.begin(), diffs.end(), 0.0) / (double)(f_size - 1);
-
-    return accumulated_abs_diff;
+void append_parameter(fs::path filepath, string value_name, double value) {
+    path txt_path = filepath.replace_extension(".txt");
+    ofstream parameter_file;
+    // can there only be one output stream?
+    parameter_file.open(txt_path, ios::app);
+    parameter_file << value_name << "," << value << endl;
+    parameter_file.close();
 }
 
-#endif //CUDAPROJECT_MAIN_CUH
+#endif //CUDAPROJECT_MAIN_CUDA_CUH

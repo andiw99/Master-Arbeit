@@ -1445,4 +1445,61 @@ void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec, 
     file.close();
 }
 
+struct absDiff1DStd
+{
+    double operator()(double x, double y) const
+    {
+        return fabs(x - y);
+    }
+};
+
+
+double meanAbsDifference(double* f, int f_size) {
+    // since what size is the summation on GPU faster?
+    std::vector<double> diffs(f_size - 1);
+    transform(f, f + f_size - 1, f + 1, diffs.begin(), absDiff1DStd());
+
+/*
+    for (int i = 0; i< 20; i++){
+        cout << "|" <<f[i] << " - " << f[i+1]<< "|" << " = " <<  diffs[i] << endl;
+    }
+*/
+
+
+
+    double accumulated_abs_diff = reduce(diffs.begin(), diffs.end(), 0.0) / (double)(f_size - 1);
+
+    return accumulated_abs_diff;
+}
+
+double getMovingFactor(int nr_values, int min_ind, vector<double>& f, double avg_f) {
+    int recent_ind = (int) (nr_values * 0.8);
+    // the idea is to check if the differences between the values show a trend to be positive
+    // or negative. But I think that comes done to calculating the deviation of the recent
+    // average from the total average
+    // small differences will
+    // Idea would be to compare this deviation to the deviation per step
+    // If we are in a high temperature state, the deviation per step will be relatively larger
+    // If should not be dependent on the stepsize
+    // first of all compute the avergage absolute difference per step
+    int recent_size = nr_values - recent_ind;
+    double f_start = reduce(f.begin() + min_ind, f.begin() + recent_ind) / (double)(recent_ind - min_ind);
+    double f_end = avg_f;
+
+    double* recent_f = &f[recent_ind];      // we need it still for the mean delta?
+    double mean_abs_delta = meanAbsDifference(recent_f, recent_size);
+/*    cout << "meanAbsDifference: " << mean_abs_delta << endl;
+    // and we need the recent mean
+    cout << "val_end - val_start = " << fabs(f_end - f_start) << endl;*/
+    double moving_factor = fabs(f_end - f_start) / ((double)recent_size * mean_abs_delta);
+
+    return moving_factor;
+}
+
+double getMovingFactor(int nr_f_values, int min_ind, vector<double>& f) {
+    double avg_f = accumulate(f.begin() + min_ind, f.end(), 0.0) / (double) (f.size() - min_ind);
+    return getMovingFactor(nr_f_values, min_ind, f, avg_f);
+}
+
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

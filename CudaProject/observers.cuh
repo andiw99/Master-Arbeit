@@ -148,6 +148,9 @@ public:
         if (pick_up) {
             path += ".csv";
             open_app_stream(path);  // with plus since we have the filename stem here?
+            write_interval = (paras[end_time] - paras[start_time]) / (double)nr_values;
+            timepoint = paras[Parameter::start_time] + write_interval;      // We dont want to write the starting position again
+            cout << "pickup, setting the next write to " << timepoint << endl;
         } else {
             open_stream(folderpath / (filename + ".csv"));
         }
@@ -684,7 +687,7 @@ public:
                         // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
                         int min_ind = (int)(equil_cutoff * nr_cum_values);
                         // again calculate mean and stddev. We want the standarddeviation of the mean value this time?
-                        long double avg_U_L = (long double) accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
+                        long double avg_U_L = (double) accumulate(U_L.begin() + min_ind, U_L.end(), 0.0) / (double)(nr_cum_values - min_ind);
 
                         std::vector<double> diff_total(nr_cum_values - min_ind);
 
@@ -732,12 +735,13 @@ public:
                                 // we set the system to be equilibrated
                                 cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                                 sys.set_equilibration(t);
+                                // write cumulant average
+                                append_parameter(filepath, "U_L", avg_U_L);
+                                // write error
+                                append_parameter(filepath, "U_L_error", rel_stddev_total);
                                 // write autocorrelation time
-                                fs::path txt_path = filepath.replace_extension(".txt");
-                                ofstream parameter_file;
-                                // can there only be one output stream?
-                                parameter_file.open(txt_path, ios::app);
-                                parameter_file << "autocorrelation_time," << autocorr_time;
+                                append_parameter(filepath, "autocorrelation_time", autocorr_time);
+
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
                             }
@@ -751,6 +755,7 @@ public:
             timepoint += write_interval;
         }
     }
+
 
     double getMovingFactorOld(int nr_cum_values, long double avg_U_L) {
         int recent_ind = (int) (nr_cum_values * 0.9);
@@ -852,7 +857,6 @@ public:
     }
 
 };
-
 
 template <class system, class State>
 class old_cum_equilibration_observer: public obsver<system, State>{
@@ -1241,6 +1245,8 @@ public:
 
 template <class system, class State>
 class corr_equilibration_observer_adaptive: public obsver<system, State>{
+
+
     // This observer will be a mixture of the cum equilibration observer and the new density observer
     // It will calculate xi with a fixed density during equilibration phase and then the specified number
     // of xi's during the quench.
@@ -1431,12 +1437,33 @@ public:
                             cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                             cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
                             cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
-                            // we set the system to be equilibrated
-                            sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
-                            // once we did this, we dont want to do that a second time?
-                            equilibrated = true;
-                            // the writ interval will now be the one that we destined for the quench, we just change it once here
-                            write_interval = quench_t / (double)nr_values;
+
+                            // we also implement the moving factor here
+                            double moving_factor_xix = getMovingFactor(nr_xi_values, min_ind, xix, avg_xix);
+                            double moving_factor_xiy = getMovingFactor(nr_xi_values, min_ind, xiy, avg_xiy);
+                            // lets just take the maximum...
+                            double moving_factor = max(moving_factor_xix, moving_factor_xiy);
+                            cout << "MOVING FACTOR = " << moving_factor << endl;
+
+                            if(moving_factor < 0.001) {
+                                // we set the system to be equilibrated
+                                sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
+
+                                append_parameter(filepath, "xix", avg_xix);
+                                // write error
+                                append_parameter(filepath, "xix_error", rel_stddev_xix_total);
+                                // write autocorrelation time
+                                append_parameter(filepath, "autocorrelation_time_xix", autocorr_time_x);
+                                append_parameter(filepath, "xiy", avg_xiy);
+                                // write error
+                                append_parameter(filepath, "xiy_error", rel_stddev_xiy_total);
+                                // write autocorrelation time
+                                append_parameter(filepath, "autocorrelation_time_xiy", autocorr_time_y);
+                                // once we did this, we dont want to do that a second time?
+                                equilibrated = true;
+                                // the writ interval will now be the one that we destined for the quench, we just change it once here
+                                write_interval = quench_t / (double)nr_values;
+                            }
                         }
                         if(!equilibrated) {
                             double autocorr_time = 0.5 * (autocorr_time_x + autocorr_time_y);
