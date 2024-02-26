@@ -83,6 +83,7 @@ enum Parameter {
     equil_cutoff,
     cum_write_density,
     corr_write_density,
+    moving_factor
 };
 
 map<Parameter, string> parameter_names {
@@ -139,6 +140,7 @@ map<Parameter, string> parameter_names {
         {cum_write_density, "cum_write_density"},
         {corr_write_density, "corr_write_density"},
         {min_corr_nr, "min_corr_nr"},
+        {moving_factor, "moving_factor"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -194,7 +196,8 @@ map<string, Parameter> string_to_parameter {
         {"equil_cutoff", equil_cutoff},
         {"cum_write_density", cum_write_density},
         {"corr_write_density", corr_write_density},
-        {"min_corr_nr", min_corr_nr}
+        {"min_corr_nr", min_corr_nr},
+        {"moving_factor", moving_factor}
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {
@@ -1259,6 +1262,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // no, inclusive scan will be even better. The normalized autocorr function is already double which is nice, so we just need another
 
     thrust::device_vector<double> autocorr_time_scan(f_size);
+    // TODO I might be lacking a factor of two here
     thrust::inclusive_scan(normalized_autocorr_function.begin(), normalized_autocorr_function.end(), autocorr_time_scan.begin());
 
     // now we just have to select the smallest index/time that satisfies that M >= 5 * autocorr_time

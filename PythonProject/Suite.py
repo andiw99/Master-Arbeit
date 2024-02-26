@@ -11,6 +11,7 @@ import subprocess
 import pathlib
 from scipy.interpolate import CubicSpline, PchipInterpolator
 from glob import glob
+import statsmodels.tsa.stattools as st
 
 def extract_numbers_after_newline(input_string):
     # Define the regular expression pattern
@@ -45,6 +46,7 @@ def check_completed_status(number, input_string):
 
 def check_directory_structure(sizes, temperatures, directory_path):
     # Check if the directory exists
+    found_simulations = []
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
         return False
 
@@ -158,7 +160,7 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff):
     else:
         return False
 
-def check_cum_valid(folderpath, equil_error, equil_cutoff):
+def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
     """
     function that checks whether a cumulant measurement was valid
     :param folderpath:
@@ -166,13 +168,56 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff):
     :param equil_cutoff:
     :return:
     """
-    cum_avg, error = process_temp_folder(folderpath, equil_cutoff, "cum", "U_L")
+    # I think this is outdated
+    # cum_avg, error = process_temp_folder(folderpath, equil_cutoff, "cum", "U_L")
+    cum, times = get_folder_average(folderpath)
+    # we have this cutoff...
+    cutoff_ind = int(equil_cutoff * len(times))
+    cum = cum[cutoff_ind:]
+    times = times[cutoff_ind:]
+    cum_avg = np.mean(cum)
+    # The folder average should in this usecase only average one file so
+    # if we somehow can extract the autocorrelation time, you know this would
+    # be great
+    txt_file = find_first_txt_file(folderpath)
+    parameters = read_parameters_txt(txt_file)
+
+    ds = times[1] - times[0]
+    try:
+        autocorr_time = parameters["autocorrelation_time"]
+    except KeyError:
+        # We are looking at a file at which we did not write donw the autocorrelation time yet
+        autocorr_function = st.acf(cum, nlags=len(cum)-1)
+        # I guess I have to rebuild the windowing algorithm here because otherwise
+        # This acf thing only returns 40 values somehow, is this a bad sign?
+        autocorr_time = 0
+        for M in range(10, len(cum)):
+            # M is the cut
+            cut_autocorr_function = autocorr_function[:M]
+            lags = ds * np.arange(len(cut_autocorr_function))
+            autocorr_time_M =  np.trapz(cut_autocorr_function, lags)
+            if (M * ds >= 5 * autocorr_time_M):
+                autocorr_time = autocorr_time_M
+                break
+            autocorr_time = autocorr_time_M
+
+    N = len(times)
+    cum_dist_var = np.var(cum)
+    variance = autocorr_time / (N * ds) * cum_dist_var
+    error = np.sqrt(variance)
 
     rel_error = error / cum_avg
 
-    if rel_error <= equil_error:
+    # Now for the moving factor
+    moving_factor = getMovingFactor(cum, cum_avg, 0.8)      # The fraction of points used for the f_start average
+
+    if (rel_error <= equil_error) and (moving_factor <= max_moving_factor):
         return True
     else:
+        if (rel_error <= equil_error) and (moving_factor > max_moving_factor):
+            print(f"Moving Factor {moving_factor:.5f} is too large! Otherwise {folderpath} would have been valid")
+        elif (rel_error > equil_error) and (moving_factor <= max_moving_factor):
+            print(f"Equil_error {equil_error:.5f} is too large! Otherwise {folderpath} would have been valid")
         return False
 
 def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
@@ -231,6 +276,15 @@ def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
         return True
     else:
         return False
+
+def check_exists(folderpath, file_ending=".cum"):
+    """
+    trivial check function that just returns true if the folder already exists
+    :param foderpath:
+    :return: true if at least one file with the required ending exists
+    """
+    files = [f for f in os.listdir(folderpath) if f.endswith(file_ending)]
+    return bool(files)
 
 
 def get_mean_dif_var(cum,num_per_var_val):
@@ -434,7 +488,7 @@ class autonomous_measurement():
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
-                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.nr_Ts = nr_Ts
@@ -443,6 +497,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.nr_sizes = nr_sizes
         self.max_steps = max_steps
         self.nr_sites = nr_sites
+        self.max_moving_factor = max_moving_factor
 
         # We can also specify the temperature interval ourselves If we want that
         self.T_min = T_min
@@ -704,7 +759,7 @@ class crit_temp_measurement(autonomous_measurement):
         valid_simulations = get_avail_simulations(self.sizes,
                                                   self.T_arr,
                                                   self.simulation_path,
-                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff)
+                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
                                                   )
         # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
         # In the other two cases it was easy because we only had one size or one temperature always?
@@ -996,7 +1051,8 @@ class crit_temp_measurement(autonomous_measurement):
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}\n"
                         f"cum_write_density, {self.cum_write_density}\n"
-                        f"min_cum_nr, {self.min_cum_nr}")
+                        f"min_cum_nr, {self.min_cum_nr}\n"
+                        f"moving_factor, {self.max_moving_factor}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1006,17 +1062,19 @@ class crit_temp_measurement(autonomous_measurement):
 class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
-                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, random_init=0, max_moving_factor=0.005):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.size_min = size_min
         self.size_max = size_max
         self.max_steps = max_steps
         self.nr_sites = nr_sites
+        self.max_moving_factor = max_moving_factor
 
         # We can also specify the temperature interval ourselves If we want that
         self.T_min = T_min
         self.T_max = T_max
+        self.random_init = random_init
 
         self.T_arr = np.array([])
         self.max_T_step = 0.1               # fraction of the critical temperature that is the maximum stepsize for accepted measurements
@@ -1175,12 +1233,21 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def iteration(self):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
-        # simulation_available = check_directory_structure(self.sizes, self.T_arr, self.simulation_path)
         # We check how many fitting temp-size pairs are already available
 
         valid_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff)
+                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
+                                                  )
+        # Okay so the thing is even if we have a simulation that is not valid,
+        # but there is at least already a simulation, we want to continue it instead of
+        # rerunning so we somehow need to get this simulation into jobs done.
+        # But I dont really want to change the behavior of get_avail_jobs for that
+        # I think check directory structure is perfect for this? No but we can run
+        # get_avail_jobs with a trival check function that returns true if it just finds a file
+        avail_simulations = get_avail_jobs(self.jobs_to_do,
+                                                  self.simulation_path,
+                                                  check_exists, check_function_args=[".cum"]
                                                   )
         # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
         # In the other two cases it was easy because we only had one size or one temperature always?
@@ -1192,7 +1259,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
 
         for valid_sim in valid_simulations:
             self.jobs_to_do.remove(valid_sim)       # should work? Or should we check whether the temperatue is close enough to the requested value? I think this is already done in the get avail sim function
-            self.jobs_done.add(valid_sim)      # I think we dont even need the error here, if those done jobs are relevant again they by definition have had a larger error, otherwise they would have been picked up by valid simulations and would not be in jobs to do
+        for avail_sim in avail_simulations:
+            self.jobs_done.add(avail_sim)      # I think we dont even need the error here, if those done jobs are relevant again they by definition have had a larger error, otherwise they would have been picked up by valid simulations and would not be in jobs to do
 
         if self.jobs_to_do or self.repeat:
             self.repeat = False                 # we set repeat to false again
@@ -1407,9 +1475,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
                     f"cum_write_density, {self.cum_write_density}\n"
-                    f"min_cum_nr, {self.min_cum_nr}")
-
-        pass
+                    f"min_cum_nr, {self.min_cum_nr}\n"
+                    f"moving_factor, {self.max_moving_factor}")
 
     def write_new_file(self, size, T, ind):
         # We now need to construct the parameterfile with the appropriate temperature and size
@@ -1429,7 +1496,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"min_temp, {T} \n"
                     f"max_temp, {T} \n"
                     f"nr_runs, 0.0 \n"
-                    f"random_init, 0.0 \n"
+                    f"random_init, {self.random_init} \n"
                     f"curand_random, 1 \n"
                     f"subsystem_min_Lx, {size} \n"
                     f"subsystem_max_Lx, {size} \n"
@@ -1440,7 +1507,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
                     f"cum_write_density, {self.cum_write_density}\n"
-                    f"min_cum_nr, {self.min_cum_nr}")
+                    f"min_cum_nr, {self.min_cum_nr}"
+                    f"moving_factor, {self.max_moving_factor}")
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
@@ -1909,7 +1977,7 @@ class quench_measurement(autonomous_measurement):
 
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
-                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01):
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01, max_moving_factor=0.005):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
@@ -1921,6 +1989,7 @@ class amplitude_measurement(autonomous_measurement):
         # 1000 is a save bet but I guess we would like to go up to even larger sizes?
         self.size = size
         self.max_steps = max_steps
+        self.max_moving_factor = max_moving_factor
 
         self.T_arr = np.array([])
         self.total_runs = 0                 # just a parameter to keep track of how many jobs we want to run in this iteration
@@ -1931,7 +2000,7 @@ class amplitude_measurement(autonomous_measurement):
         self.maximum_iterations = 2         # we first look at the interval [Tc, 1.05Tc] and If this doesnt work we inrease to [Tc, 1.1Tc] and If this doesnt work we abort
         self.iteration_nr = 0
         self.min_corr_nr = 5000
-        self.corr_write_density = 1 / 2000          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
+        self.corr_write_density = 1 / 100          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
         self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
         self.Tc_fit_tolerance = 0.025        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
@@ -1966,7 +2035,7 @@ class amplitude_measurement(autonomous_measurement):
         # Check if we have a simulation available
         # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
         valid_simulations = get_avail_simulations([self.size], self.T_arr, self.simulation_path, check_corr_valid,
-                                                  check_function_args=(self.equil_error, self.equil_cutoff))
+                                                  check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor))
         # For every valid simulation we do not have to do this simulation in the following
         for valid_simulation in valid_simulations:
             valid_temp = valid_simulation[1]        # valid simulations is tuple of (size, temp), we only need the temp here
@@ -2017,7 +2086,8 @@ class amplitude_measurement(autonomous_measurement):
                         f"equil_error, {self.equil_error}\n"
                         f"equil_cutoff, {self.equil_cutoff}\n"
                         f"min_corr_nr, {self.min_corr_nr}\n"
-                        f"corr_write_density, {self.corr_write_density}\n")
+                        f"corr_write_density, {self.corr_write_density}\n"
+                        f"moving_factor, {self.max_moving_factor}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -2572,27 +2642,28 @@ class z_measurement(autonomous_measurement):
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 15
+    nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    #J_para = -150000
-    J_para = -9
-    #J_perp = -2340
-    J_perp = -0.1
-    #h = 1.7e6
-    h = 0.5
+    J_para = -150000
+    #J_para = -9
+    J_perp = -2340
+    #J_perp = -0.1
+    h = 1.7e6
+    #h = 0.5
     eta = 1.5
     p = 2.33
     #dt = 0.00001
-    dt = 0.01
+    dt = 0.00001
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
     nr_Ts = 5
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/efficient Tc/"
+    random_init = 1.0
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/efficient Tc/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -2645,7 +2716,7 @@ def main():
     elif measurements["efficient Tc"]:
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc,
-                                    intersection_error=max_rel_intersection_error)
+                                    intersection_error=max_rel_intersection_error, random_init=random_init)
         T_c, T_c_error = sim.routine()
     else:
         T_c = float(input("Enter critical temperature:"))

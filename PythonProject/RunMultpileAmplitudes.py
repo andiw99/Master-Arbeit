@@ -22,7 +22,7 @@ def main():
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/"
 
     Tc_exec_file = "AutoCumulant.cu"
-    quench_exec_file = "AutoQuench.cu"
+    amplitude_exec_file = "AutoAmplitude.cu"
 
     # Tc parameters
     max_size_Tc = 80
@@ -33,33 +33,29 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.1
-    # We add the moving factor because I think that the point at 1.2 is not equilibrated
-    moving_factor = 0.005
+    equil_error = 0.04
     min_equil_error = 0.01
     max_rel_intersection_error = 0.05
 
-    # Quench parameters
-    max_size = 1024
-    min_nr_sites = 1e6
+    # Amplitude parameters
+    amplitude_size = 1024
+    equil_error = 0.05
+    equil_cutoff = 0.01
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath,
-                                                 curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                                 size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
-                                                 min_equil_error=min_equil_error,
-                                                 intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor)
+        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
 
-        # Run Quench
-        quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
-        quench.run()
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Amplitude",
+                                     amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
+                                     equil_error=equil_error, equil_cutoff=equil_cutoff)
+        ampl.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so
         # I dont need to worry to much that my computer loses connection and stuff (which it will)

@@ -439,6 +439,7 @@ class cum_equilibration_observer: public obsver<system, State>{
     double max_error= 0.001;
     int cum_nr = 0;                         // current number in the averageing process
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+    double max_moving_factor = 0.01;
 public:
     cum_equilibration_observer(int min_cum_nr) : min_cum_nr(min_cum_nr) {
     }
@@ -452,6 +453,7 @@ public:
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
+        max_moving_factor = paras[Parameter::moving_factor];
         if (paras[Parameter::min_cum_nr]){
             min_cum_nr = (int)paras[Parameter::min_cum_nr];
         }
@@ -573,7 +575,7 @@ public:
 
                             cout << "MOVING FACTOR = " << moving_factor << endl;
 
-                            if(moving_factor < 0.05) {
+                            if(moving_factor < max_moving_factor) {
                                 // we set the system to be equilibrated
                                 cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                                 sys.set_equilibration(t);
@@ -613,6 +615,7 @@ class cum_equilibration_observer_adaptive: public obsver<system, State>{
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
     double error_factor = 10000.0;
     fs::path filepath;
+    double max_moving_factor = 0.005;
 
 public:
     cum_equilibration_observer_adaptive(int min_cum_nr) : min_cum_nr(min_cum_nr) {}
@@ -625,6 +628,7 @@ public:
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
+        max_moving_factor = paras[Parameter::moving_factor];
         if (paras[Parameter::min_cum_nr]){
             min_cum_nr = (int)paras[Parameter::min_cum_nr];
         }
@@ -731,7 +735,7 @@ public:
                             cout << "U_L = " << avg_U_L << " +- " << rel_stddev_total * avg_U_L << endl;
                             cout << "MOVING FACTOR = " << moving_factor << endl;
 
-                            if(moving_factor < 0.01) {
+                            if(moving_factor < max_moving_factor) {
                                 // we set the system to be equilibrated
                                 cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                                 sys.set_equilibration(t);
@@ -755,7 +759,6 @@ public:
             timepoint += write_interval;
         }
     }
-
 
     double getMovingFactorOld(int nr_cum_values, long double avg_U_L) {
         int recent_ind = (int) (nr_cum_values * 0.9);
@@ -1298,6 +1301,7 @@ class corr_equilibration_observer_adaptive: public obsver<system, State>{
     size_t Ly;
     double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
     fs::path filepath;              // path this observer writes to
+    double max_moving_factor = 0.005;
     // will distort the error estimation. If the total run was meaningful will then be judged afterwards.
     // (If the xi is now close to this threshold this probably means that our system was evolving in a state with larger correlation length than we can meaningful extract)
     // Okay short recap, we will now check evertime we calculate a xi if it is smaller than xi_cap * L and if it is not, we will cut it there
@@ -1314,6 +1318,7 @@ public:
         max_error = paras[Parameter::equil_error];
         equil_cutoff = paras[Parameter::equil_cutoff];
         min_corr_nr = (int)paras[Parameter::min_corr_nr];
+        max_moving_factor = paras[Parameter::moving_factor];
         // the subsystems sizes for the xi cutting
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];
@@ -1445,7 +1450,7 @@ public:
                             double moving_factor = max(moving_factor_xix, moving_factor_xiy);
                             cout << "MOVING FACTOR = " << moving_factor << endl;
 
-                            if(moving_factor < 0.001) {
+                            if(moving_factor < max_moving_factor) {
                                 // we set the system to be equilibrated
                                 sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
 

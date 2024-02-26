@@ -1598,6 +1598,29 @@ def find_time_of_temperature_change(csv_file):
                 return previous_time  # Return time of prior line
             previous_time, previous_temperature = time, temperature
     return None  # Return None if no temperature change is found
+
+
+def meanAbsDiff(f):
+    diffs = np.ediff1d(f)
+    return np.mean(np.abs(diffs))
+
+def getMovingFactor(f, avg_f, fraction):
+    f_end = avg_f
+    recent_ind = int(fraction * len(f))
+    f_start = np.mean(f[:recent_ind])
+
+    mean_abs_delta = meanAbsDiff(f)
+
+    if mean_abs_delta == 0:
+        # This should usually not happen, only if we are in low temp and
+        # really nothing happens at all.
+        moving_factor = 0
+    else:
+        moving_factor = np.abs(f_end - f_start) / ((len(f) - recent_ind) * mean_abs_delta)
+
+    return moving_factor
+
+
 def main():
     print("This file is made to import, not to execute")
 
