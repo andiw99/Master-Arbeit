@@ -1449,10 +1449,10 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # we need to find the name of the file...
         folder_path = self.simulation_path + f"/{size}/{T:.6f}"
         csv_path = find_first_csv_file(folder_path)
-        path = pathlib.Path(csv_path).stem
+        name = pathlib.Path(csv_path).stem
         nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
         with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
-            f.write(path)
+            f.write(f"{folder_path}/{name}")
             f.write(f"\nend_time, {self.max_time} \n"
                     f"dt, {self.dt} \n"
                     f"J, {self.J_para} \n"
