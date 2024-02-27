@@ -77,7 +77,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
     # If all checks pass, return True
     return True
 
-def get_avail_simulations(sizes, temperatures, directory_path, check_function, check_function_args):
+def get_avail_simulations(sizes, temperatures, directory_path, check_function, check_function_args, temp_tolerance=0.001):
     """
     Checks if the directory structure is valid based on a custom check function.
 
@@ -99,8 +99,14 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function, c
         # Check if the size folder exists
         if os.path.exists(size_path) and os.path.isdir(size_path):
             # Iterate over temperatures
+            available_temps = [float(temp) for temp in os.listdir(size_path) if (temp[0]!="." and temp!="plots")]
             for temp in temperatures:
-                temp_path = os.path.join(size_path, f"{temp:.6f}")
+                for avail_temp in available_temps:
+                    if abs(avail_temp - float(temp)) < temp_tolerance * float(temp):
+                        use_temp = avail_temp
+                        break
+                    use_temp = float(temp)
+                temp_path = os.path.join(size_path, f"{use_temp:.6f}")
 
                 # Check if the temperature folder exists and is valid based on the custom function
                 if (os.path.exists(temp_path) and os.path.isdir(temp_path)):
@@ -1977,7 +1983,8 @@ class quench_measurement(autonomous_measurement):
 
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
-                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01, max_moving_factor=0.005):
+                 max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
+                 max_moving_factor=0.005, min_nr_sites=5e5):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
@@ -1988,6 +1995,7 @@ class amplitude_measurement(autonomous_measurement):
         # Is there some way of guessing how long a simulation will take?
         # 1000 is a save bet but I guess we would like to go up to even larger sizes?
         self.size = size
+        self.min_nr_sites = min_nr_sites
         self.max_steps = max_steps
         self.max_moving_factor = max_moving_factor
 
@@ -2035,7 +2043,8 @@ class amplitude_measurement(autonomous_measurement):
         # Check if we have a simulation available
         # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
         valid_simulations = get_avail_simulations([self.size], self.T_arr, self.simulation_path, check_corr_valid,
-                                                  check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor))
+                                                  check_function_args=(self.equil_error, self.equil_cutoff),        # TODO add moving factor
+                                                  temp_tolerance=0.01)
         # For every valid simulation we do not have to do this simulation in the following
         for valid_simulation in valid_simulations:
             valid_temp = valid_simulation[1]        # valid simulations is tuple of (size, temp), we only need the temp here
@@ -2057,6 +2066,7 @@ class amplitude_measurement(autonomous_measurement):
         return self.evaluate()
     def write_para_files(self):
         print("Writing the parameter files...")
+        nr_subsystems = np.ceil(self.min_nr_sites / (self.size ** 2 * self.Ly_Lx))
         for i, T in enumerate(self.T_arr):
             # We now need to construct the parameterfile with the appropriate temperature
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
@@ -2079,7 +2089,7 @@ class amplitude_measurement(autonomous_measurement):
                         f"subsystem_min_Lx, {self.size} \n"
                         f"subsystem_max_Lx, {self.size} \n"
                         f"nr_subsystem_sizes, 0  \n"
-                        f"nr_subsystems, {1} \n"    # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
+                        f"nr_subsystems, {nr_subsystems} \n"    # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
                         f"x_y_factor, {self.Ly_Lx} \n"
                         f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
                         f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar

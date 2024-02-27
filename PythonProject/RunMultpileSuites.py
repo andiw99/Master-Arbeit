@@ -6,7 +6,8 @@ def main():
     # temperature and I want to vary the h
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
-    h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
+    #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
+    h_arr = np.array([29.999999999999996])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -17,8 +18,8 @@ def main():
     eta = 1.5
     dt = 0.01
 
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    # filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/"
 
     Tc_exec_file = "AutoCumulant.cu"

@@ -1529,7 +1529,7 @@ public:
         int new_nr_xi_values = xix.size();
         close_stream();
         open_stream(filepath);
-        ofile << "t,U_L" << endl;
+        ofile << "t,xix,xiygit " << endl;
         for(int i = 0; i < new_nr_xi_values; i++) {
             ofile << times[i] << "," << xix[i] << "," << xiy[i] << endl;
         }

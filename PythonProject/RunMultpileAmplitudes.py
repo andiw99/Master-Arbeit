@@ -6,7 +6,7 @@ def main():
     # temperature and I want to vary the h
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
-    h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
+    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -17,8 +17,8 @@ def main():
     eta = 1.5
     dt = 0.01
 
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    # filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -34,6 +34,7 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     equil_error = 0.04
+    moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.05
 
@@ -46,13 +47,16 @@ def main():
         curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error)
+        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath,
+                                                 curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                    size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
+                                                 min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
+                                                 max_moving_factor=moving_factor)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
 
-        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Amplitude",
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Amplitude",
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
                                      equil_error=equil_error, equil_cutoff=equil_cutoff)
         ampl.run()
