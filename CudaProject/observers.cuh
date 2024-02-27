@@ -607,6 +607,7 @@ class cum_equilibration_observer_adaptive: public obsver<system, State>{
     int min_cum_nr = 500;
     int cum_nr_gpu = 2000;                 // nr of cum values at which the calculation switches to gpu
     double write_density = 1.0 / 100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
+    double min_write_density = 1.0 / 10000.0;   // I think 500 was already a bit slow for my taste
     double dt = 0.01;
     double dt_half;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of U_L a lot we cut a certain portion of U_L values
@@ -628,7 +629,10 @@ public:
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
-        max_moving_factor = paras[Parameter::moving_factor];
+        if(paras[Parameter::moving_factor] != 0.0) {
+            // check that we do not set the moving factor to be zero
+            max_moving_factor = paras[Parameter::moving_factor];
+        }
         if (paras[Parameter::min_cum_nr]){
             min_cum_nr = (int)paras[Parameter::min_cum_nr];
         }
@@ -744,8 +748,9 @@ public:
                                 // write error
                                 append_parameter(filepath, "U_L_error", rel_stddev_total);
                                 // write autocorrelation time
-                                append_parameter(filepath, "autocorrelation_time", autocorr_time);
-
+                                append_parameter(filepath, "autocorrelation_time_U_L", autocorr_time);
+                                // Also write the moving factor
+                                append_parameter(filepath, "moving_factor_U_L", moving_factor);
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
                             }
@@ -841,8 +846,8 @@ public:
             U_L = new_U_L;
             times = new_times;
             cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
-            write_interval = new_write_interval;
-            write_density = dt / write_interval;
+            write_density = max(dt / new_write_interval, min_write_density);
+            write_interval = write_density * dt;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();
@@ -1274,6 +1279,7 @@ class corr_equilibration_observer_adaptive: public obsver<system, State>{
     double dt_half = dt / 2.0;
     double equil_cutoff = 0.1;              // since the equilibration might influce the mean of xi
     double density = 1.0 / 100.0;            // standard density writes once every 100 steps
+    double min_density = 1.0 / 10000.0;
     double error_factor = 10000.0;
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
@@ -1459,11 +1465,13 @@ public:
                                 append_parameter(filepath, "xix_error", rel_stddev_xix_total);
                                 // write autocorrelation time
                                 append_parameter(filepath, "autocorrelation_time_xix", autocorr_time_x);
+                                // Also write the moving factor
+                                append_parameter(filepath, "moving_factor_xix", moving_factor);
+                                // and the same stuff in the y direction
                                 append_parameter(filepath, "xiy", avg_xiy);
-                                // write error
                                 append_parameter(filepath, "xiy_error", rel_stddev_xiy_total);
-                                // write autocorrelation time
                                 append_parameter(filepath, "autocorrelation_time_xiy", autocorr_time_y);
+                                append_parameter(filepath, "moving_factor_xiy", moving_factor);
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
                                 // the writ interval will now be the one that we destined for the quench, we just change it once here
@@ -1517,8 +1525,8 @@ public:
             xiy = new_xiy;
             times = new_times;
             cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
-            write_interval = new_write_interval;
-            density = dt / write_interval;
+            density = max(dt / new_write_interval, min_density);
+            write_interval = density * dt;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();

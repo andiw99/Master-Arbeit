@@ -15,6 +15,8 @@ from scipy.optimize import minimize
 from scipy.optimize import curve_fit
 from scipy.optimize import fsolve
 from scipy.stats import linregress
+import statsmodels.tsa.stattools as st
+
 
 
 # import matplotlib; matplotlib.use("TkAgg")
@@ -390,6 +392,10 @@ def read_parameters(filepath, nr_parameters):
 
 
 def read_parameters_txt(filepath, skipfooter=1):
+
+    if not filepath.endswith(".txt"):
+        filepath = os.path.splitext(filepath)[0] + ".txt"
+
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
     para_set = {}
     for label in df.index:
@@ -1102,7 +1108,7 @@ def find_fwhm(x, y):
 def critical_amplitude(eps, xi0):
     return xi0 / (eps ** 1)
 
-def process_file(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2):
+def process_file_old(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2):
     """
     Process a single file and calculate the average after the given threshold.
     Will now also return the error on the average
@@ -1118,12 +1124,49 @@ def process_file(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2
     else:
         xi_values = np.array(df[value])
         # We set the values that are larger than 20% of the system size to be 20% of the system size
-        xi_values = np.minimum(xi_values, L * cap)
+        xi_values = np.minimum(xi_values, L * cap)  # TODO okay haha you didnt think at all about that this is also supposed to work for U_L but it makes no difference
         average_value = np.mean(xi_values)
         stddev = np.std(xi_values)
         error = stddev / np.sqrt(nr_values)
     return average_value, error, nr_values
 
+def process_file(file_path, threshold, key='t', value='U_L'):
+    df = pd.read_csv(file_path)
+    if 0 < threshold < 1:
+        threshold = threshold * len(df[key])
+    df = df[int(threshold):]
+    nr_values = df.shape[0]
+    f = np.array(df[value])
+    times = np.array(df[key])
+
+    f_avg = np.mean(f)
+    f_dist_var = np.var(f)
+
+    paras = read_parameters_txt(file_path)
+    ds = times[1] - times[0]
+    try:
+        # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
+        autocorr_time = paras["autocorrelation_time_" + value]
+    except KeyError:
+        autocorr_time = integrated_autocorr_time(f, ds)
+
+    variance = autocorr_time / (nr_values * ds) * f_dist_var
+    error = np.sqrt(variance)
+
+    rel_error = error / f_avg
+    # What are we doing with the moving factor? I do not really want
+    # to return it here but if we already read the file...
+    # I guess just return it, it is one of the useful values you want to extract
+    # from a file
+
+    # Moving factor
+    try:
+        moving_factor = paras["moving_factor_" + value]
+    except KeyError:
+        # We already have a function that calculates it?
+        moving_factor = getMovingFactor(f, f_avg)
+
+    return f_avg, rel_error, moving_factor
 
 def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None):
     """
@@ -1144,7 +1187,7 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
         if (temp_folder != "plots") & (temp_folder[0] != "."):
             temp_folder_path = os.path.join(size_folder, temp_folder)
             if os.path.isdir(temp_folder_path):
-                val_avg, error = process_temp_folder(temp_folder_path, threshold, file_ending, value)
+                val_avg, error = process_temp_folder_old(temp_folder_path, threshold, file_ending, value)
                 if val_avg:
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
@@ -1155,7 +1198,7 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
     return result
 
 
-def process_temp_folder(temp_folder_path, threshold, file_ending, value):
+def process_temp_folder_old(temp_folder_path, threshold, file_ending, value):
     # So this averages the .cum or .corr files
     # We might need to calculate an error here, but how do we get the total error? -> gaussian error propagation
     temp_average = []
@@ -1175,7 +1218,7 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
             else:
                 direction = value[-1]
                 L = parameters["subsystem_L" + direction]         # We need the subsystem sizes to see if the values we average make sense
-            average_value, error, nr_values = process_file(file_path, threshold, 't', value, L=L)       # cap stays 20% for now I guess
+            average_value, error, nr_values = process_file_old(file_path, threshold, 't', value, L=L)       # cap stays 20% for now I guess
             temp_average.append(average_value)
             temp_error.append(error)
             nr_avg_values.append(nr_values)
@@ -1188,6 +1231,35 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
         val_avg = None
     return val_avg, error
 
+def process_temp_folder(temp_folder_path, threshold, file_ending, value):
+    # So this averages the .cum or .corr files
+    # We might need to calculate an error here, but how do we get the total error? -> gaussian error propagation
+    file_averages = []
+    moving_factors = []
+    file_errors = []
+    for file_name in os.listdir(temp_folder_path):
+        if file_name.endswith(file_ending):
+            # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
+            file_path = os.path.join(temp_folder_path, file_name)
+            para_file_path = os.path.splitext(file_path)[0] + ".txt"
+            # fing sh... I guess It doesnt matter but it is so ugly
+            average_value, error, moving_factor = process_file(file_path, threshold, 't', value)
+            file_averages.append(average_value)
+            file_errors.append(error)
+            moving_factors.append(moving_factor)
+    if file_averages:  # Why is here an if this should not be here?? If we are in a temperature folder we want to geht values back, am I right? If we dont have anything at all, we made something wrong before?
+        # What are we doing now for the average, If one run had more subsystems this should just be reflecting in the error? So we just do
+        # a weighted averagae here?
+        # Frequently used weights seem to be the inverse variance
+        file_errors = np.array(file_errors)
+        weights = 1 / (file_errors ** 2)
+        val_avg = np.average(file_averages, weights=weights)
+        error = np.sqrt(1 / np.sum(weights))
+        # Do we want to return an average moving factor? A weighted moving factor? Just the list?
+    else:  # Okay I dont care but this should not be like this I think. Is this even on the right plane? Shouldnt it be one bacK? OMG I dont understand my own code!!!
+        val_avg = None
+        error = None
+    return val_avg, error, moving_factors
 
 def average_ft(folderpath, ending=".ft"):
     files = os.listdir(folderpath)
@@ -1604,7 +1676,7 @@ def meanAbsDiff(f):
     diffs = np.ediff1d(f)
     return np.mean(np.abs(diffs))
 
-def getMovingFactor(f, avg_f, fraction):
+def getMovingFactor(f, avg_f, fraction=0.8):
     f_end = avg_f
     recent_ind = int(fraction * len(f))
     f_start = np.mean(f[:recent_ind])
@@ -1619,6 +1691,23 @@ def getMovingFactor(f, avg_f, fraction):
         moving_factor = np.abs(f_end - f_start) / ((len(f) - recent_ind) * mean_abs_delta)
 
     return moving_factor
+
+def integrated_autocorr_time(f, ds):
+    # We are looking at a file at which we did not write donw the autocorrelation time yet
+    autocorr_function = st.acf(f, nlags=len(f) - 1)
+    # I guess I have to rebuild the windowing algorithm here because otherwise
+    # This acf thing only returns 40 values somehow, is this a bad sign?
+    autocorr_time = 0
+    for M in range(10, len(f)):
+        # M is the cut
+        cut_autocorr_function = autocorr_function[:M]
+        lags = ds * np.arange(len(cut_autocorr_function))
+        autocorr_time_M = np.trapz(cut_autocorr_function, lags)
+        if (M * ds >= 5 * autocorr_time_M):
+            autocorr_time = autocorr_time_M
+            break
+        autocorr_time = autocorr_time_M
+    return autocorr_time
 
 
 def main():

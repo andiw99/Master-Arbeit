@@ -147,23 +147,41 @@ def get_avail_jobs(jobs_to_do, directory_path, check_function, check_function_ar
 
     return valid_folders
 
-def check_corr_valid(folderpath, equil_error, equil_cutoff):
+def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.01):
     # This function is supposed to check whether the .corr file in the folder (There should only be one)
     # has a low enough error, the error is specified by equil error in the class
     # We also need the threshold to calculate the accurate values with the accurate errors
-    xix_avg, xix_error = process_temp_folder(folderpath, equil_cutoff, value="xix", file_ending="corr")
-    xiy_avg, xiy_error = process_temp_folder(folderpath, equil_cutoff, value="xiy", file_ending="corr")
+    # If we want to calculate the autocorrletioin time here we
+    # would either have to rewrite process temp folder, which wouldnt even
+    # be that dumb since this error calculation is not up to date anyway?
+    # How would we actually calculate the error?
+    # Weighted average other the file averages. The file averages
+    # have to calculate their own autocorrlation time etc?
+    # yeah probably since we cannot be sure that we can average the cumulant
+    # values beforehand as we dont know if we have the same number
+    # We want to change this to use a process function but we also need the moving factor
+    # If we use only process file we ignore other files in the folder and
+    # also we have to construct the filename from the foldername
+    xix_avg, xix_error, moving_factors_x = process_temp_folder(folderpath,
+                                equil_cutoff, value="xix", file_ending="corr")
+    xiy_avg, xiy_error, moving_factors_y = process_temp_folder(folderpath,
+                                equil_cutoff, value="xiy", file_ending="corr")
 
     # We have the error, so we can check if it is small enough
     # How do we check in the observer again? is not written actually...
     # We need the relative errors here
+    moving_factor = np.mean(moving_factors_x + moving_factors_y)
     xix_rel_error = xix_error / xix_avg
     xiy_rel_error = xiy_error / xiy_avg
     avg_error = 1/ 2 * (xix_rel_error + xiy_rel_error)
 
-    if avg_error < equil_error:
+    if (avg_error < equil_error) and (moving_factor < max_moving_factor):
         return True
     else:
+        if (avg_error > equil_error) and (moving_factor < max_moving_factor):
+            print(f"Avg error {avg_error} too large")
+        elif (avg_error < equil_error) and (moving_factor > max_moving_factor):
+            print(f"Moving factor {moving_factor} too large")
         return False
 
 def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
@@ -176,46 +194,41 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
     """
     # I think this is outdated
     # cum_avg, error = process_temp_folder(folderpath, equil_cutoff, "cum", "U_L")
-    cum, times = get_folder_average(folderpath)
-    # we have this cutoff...
-    cutoff_ind = int(equil_cutoff * len(times))
-    cum = cum[cutoff_ind:]
-    times = times[cutoff_ind:]
-    cum_avg = np.mean(cum)
-    # The folder average should in this usecase only average one file so
-    # if we somehow can extract the autocorrelation time, you know this would
-    # be great
-    txt_file = find_first_txt_file(folderpath)
-    parameters = read_parameters_txt(txt_file)
-
-    ds = times[1] - times[0]
-    try:
-        autocorr_time = parameters["autocorrelation_time"]
-    except KeyError:
-        # We are looking at a file at which we did not write donw the autocorrelation time yet
-        autocorr_function = st.acf(cum, nlags=len(cum)-1)
-        # I guess I have to rebuild the windowing algorithm here because otherwise
-        # This acf thing only returns 40 values somehow, is this a bad sign?
-        autocorr_time = 0
-        for M in range(10, len(cum)):
-            # M is the cut
-            cut_autocorr_function = autocorr_function[:M]
-            lags = ds * np.arange(len(cut_autocorr_function))
-            autocorr_time_M =  np.trapz(cut_autocorr_function, lags)
-            if (M * ds >= 5 * autocorr_time_M):
-                autocorr_time = autocorr_time_M
-                break
-            autocorr_time = autocorr_time_M
-
-    N = len(times)
-    cum_dist_var = np.var(cum)
-    variance = autocorr_time / (N * ds) * cum_dist_var
-    error = np.sqrt(variance)
-
-    rel_error = error / cum_avg
+    # cum, times = get_folder_average(folderpath)
+    # # we have this cutoff...
+    # cutoff_ind = int(equil_cutoff * len(times))
+    # cum = cum[cutoff_ind:]
+    # times = times[cutoff_ind:]
+    # cum_avg = np.mean(cum)
+    # # The folder average should in this usecase only average one file so
+    # # if we somehow can extract the autocorrelation time, you know this would
+    # # be great
+    # txt_file = find_first_txt_file(folderpath)
+    # parameters = read_parameters_txt(txt_file)
+#
+    # ds = times[1] - times[0]
+    # try:
+    #     autocorr_time = parameters["autocorrelation_time"]
+    # except KeyError:
+    #     autocorr_time = integrated_autocorr_time(cum, ds)
+#
+    # N = len(times)
+    # cum_dist_var = np.var(cum)
+    # variance = autocorr_time / (N * ds) * cum_dist_var
+    # error = np.sqrt(variance)
+#
 
     # Now for the moving factor
-    moving_factor = getMovingFactor(cum, cum_avg, 0.8)      # The fraction of points used for the f_start average
+
+    cum_avg, error, moving_factors = process_temp_folder(folderpath,
+                                equil_cutoff, value="U_L", file_ending="cum")
+
+    # We have the error, so we can check if it is small enough
+    rel_error = error / cum_avg
+    # How do we check in the observer again? is not written actually...
+    # We need the relative errors here
+    moving_factor = np.mean(moving_factors)
+
 
     if (rel_error <= equil_error) and (moving_factor <= max_moving_factor):
         return True
@@ -338,7 +351,6 @@ def get_folder_average(folderpath, file_ending="cum", value="U_L"):
     cum = cum / len(cum_files)
     times = np.array(times)
     return cum, times
-
 
 def get_difference_std(cum_arr):
     """
