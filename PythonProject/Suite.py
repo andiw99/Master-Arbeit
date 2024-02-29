@@ -1551,6 +1551,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                         temp_diff = np.abs(T - done_temp)
                         if temp_diff < min_T_diff:
                             best_done_T = done_temp
+                            min_T_diff = temp_diff
 
                 done_folder_path = self.simulation_path + f"/{size}/{best_done_T:.6f}"
                 done_csv_path = find_first_csv_file(done_folder_path)

@@ -10,6 +10,7 @@ inter_file=${4:-"main.cpp"}
 hipify-perl systems-cuda.cuh > systems.cuh
 hipify-perl main-cuda.cuh > main.cuh
 # hipify-perl deprecated-systems-cuda.cuh > deprecated-systems.cuh
+echo pearled
 hipify-perl $input_file > $inter_file
 # ./hipify-clang $input_file --cuda-path=/usr/local/cuda -- -std=c++17
 
