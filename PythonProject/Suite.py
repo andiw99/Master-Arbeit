@@ -236,7 +236,7 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
         if (rel_error <= equil_error) and (moving_factor > max_moving_factor):
             print(f"Moving Factor {moving_factor:.5f} is too large! Otherwise {folderpath} would have been valid")
         elif (rel_error > equil_error) and (moving_factor <= max_moving_factor):
-            print(f"Equil_error {equil_error:.5f} is too large! Otherwise {folderpath} would have been valid")
+            print(f"Equil_error {rel_error:.5f} is too large! Otherwise {folderpath} would have been valid")
         return False
 
 def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
@@ -1364,19 +1364,19 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][-1]
                     U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][0]
                     U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][0]
-
-                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
-                        # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
-                        if (U_L_lower_bound_small_size * (1 - self.equil_error) <
-                                U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
-                                U_L_upper_bound_large_size * (1 - self.equil_error)):
-                            # this means the error bars overlap and we redo the corresponding jobs with half the error
-                            self.equil_error = max(self.equil_error / 2, self.min_equil_error)
-                            for size in self.sizes:
-                                self.jobs_to_do.add((size, lower_T_bound))
-                                self.jobs_to_do.add((size, upper_T_bound))
-                            self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
-                            return self.iteration()
+                    # TODO comment in again
+                    #if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
+                    #    # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
+                    #    if (U_L_lower_bound_small_size * (1 - self.equil_error) <
+                    #            U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
+                    #            U_L_upper_bound_large_size * (1 - self.equil_error)):
+                    #        # this means the error bars overlap and we redo the corresponding jobs with half the error
+                    #        self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                    #        for size in self.sizes:
+                    #            self.jobs_to_do.add((size, lower_T_bound))
+                    #            self.jobs_to_do.add((size, upper_T_bound))
+                    #        self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
+                    #        return self.iteration()
                     T_c = np.mean(intersections)
                     print(f"Found an intersection at T_c = {T_c}")
                     print("intersections: ", intersections)
@@ -1463,14 +1463,18 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.cur_para_nr += 1
         return self.para_nr + self.cur_para_nr - 1
 
-    def write_advance_file(self, size, T, ind):
+    def write_advance_file(self, size, T, ind, mode=-1, done_path=None):
         # we need to find the name of the file...
-        folder_path = self.simulation_path + f"/{size}/{T:.6f}"
-        csv_path = find_first_csv_file(folder_path)
-        name = pathlib.Path(csv_path).stem
+        if not done_path:
+            folder_path = self.simulation_path + f"/{size}/{T:.6f}"
+            csv_path = find_first_csv_file(folder_path)
+            name = pathlib.Path(csv_path).stem
+            filepath = f"{folder_path}/{name}"
+        else:
+            filepath = done_path
         nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
         with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
-            f.write(f"{folder_path}/{name}")
+            f.write(filepath)
             f.write(f"\nend_time, {self.max_time} \n"
                     f"dt, {self.dt} \n"
                     f"J, {self.J_para} \n"
@@ -1482,7 +1486,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"min_temp, {T} \n"
                     f"max_temp, {T} \n"
                     f"nr_runs, 0.0 \n"
-                    f"random_init, -1.0 \n"     # important, this has to be -1
+                    f"random_init, {mode} \n"     # important, this has to be -1
                     f"curand_random, 1 \n"
                     f"subsystem_min_Lx, {size} \n"
                     f"subsystem_max_Lx, {size} \n"
@@ -1525,7 +1529,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
                     f"cum_write_density, {self.cum_write_density}\n"
-                    f"min_cum_nr, {self.min_cum_nr}"
+                    f"min_cum_nr, {self.min_cum_nr}\n"
                     f"moving_factor, {self.max_moving_factor}")
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
@@ -1535,7 +1539,25 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         for i, (size, T) in enumerate(self.jobs_to_do):
             if (size, T) in self.jobs_done:
                 # we already have this job with a too large error
-                self.write_advance_file(size, T, i)
+                self.write_advance_file(size, T, i, -1)
+            elif self.jobs_done:
+                # If jobs done is not empty this means we alread have a measurment
+                # with the same parameters but at a different temperature
+                best_done_T = 0
+                min_T_diff = np.infty
+                for ind, (done_size, done_temp) in enumerate(self.jobs_done):
+                    # the size has to coincide
+                    if done_size == size:
+                        temp_diff = np.abs(T - done_temp)
+                        if temp_diff < min_T_diff:
+                            best_done_T = done_temp
+
+                done_folder_path = self.simulation_path + f"/{size}/{best_done_T:.6f}"
+                done_csv_path = find_first_csv_file(done_folder_path)
+                name = pathlib.Path(done_csv_path).stem
+                done_path = f"{done_folder_path}/{name}"
+
+                self.write_advance_file(size, T, i, -2, done_path)
             else:
                 self.write_new_file(size, T, i)
         # we need to copy the files to hemera

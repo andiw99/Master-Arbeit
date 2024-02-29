@@ -18,8 +18,8 @@ def main():
     eta = 1.5
     dt = 0.01
 
-    # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -34,9 +34,9 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.1
+    equil_error = 0.05
     # We add the moving factor because I think that the point at 1.2 is not equilibrated
-    moving_factor = 0.005
+    moving_factor = 0.2
     min_equil_error = 0.01
     max_rel_intersection_error = 0.05
 

@@ -1140,7 +1140,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     times = np.array(df[key])
 
     f_avg = np.mean(f)
-    f_dist_var = np.var(f)
+    f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
 
     paras = read_parameters_txt(file_path)
     ds = times[1] - times[0]
@@ -1707,6 +1707,13 @@ def integrated_autocorr_time(f, ds):
             autocorr_time = autocorr_time_M
             break
         autocorr_time = autocorr_time_M
+
+    if np.isnan(autocorr_time):
+        # if we again have only ones, wait but we dont for the files that I see here
+        # Okay but if is really constant, the autocorrtime should be 0 I guess
+        # or 1 I guess, I dont know
+        autocorr_time = 1
+
     return autocorr_time
 
 

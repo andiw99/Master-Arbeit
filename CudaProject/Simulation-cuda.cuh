@@ -92,6 +92,10 @@ public:
         // alternative would be to read the memory into x directly, but that mixes functionality again
         // at this point I dont care to much anymore to be honest
         double t = 0;
+        // We now want to read certain file and write to another
+        // in the case of random_init > 0, the path that we hand to the observers are the folderpaths of the
+        // folder where we are supposed to write
+        // in the case of random_init < 0, we added the folder and the size? and then removed them again
         if(paras[random_init] == -1.0) {
             cout << "Memory init detected" << endl;
             sleep(2);
@@ -107,6 +111,7 @@ public:
             // ahh we could do that but then we dont know the name of the file in the observers anymore
             // read the old state/ file
             simulation_path = simulation_path.parent_path(); // TODO very fishy, you should actually write a new simulation for this and not run it through the subsystemRelaxation simulation
+            // why does this even work? This should be the file + the size?
             folder_path = simulation_path;
             simulation_path += ".csv";
             ifstream previous_run = safe_read(simulation_path, true);
@@ -115,8 +120,26 @@ public:
             for(int i = 0; i < n; i++) {
                 x[i] = pre_lattice[i];
             }
+        } else if(paras[random_init] == -2.0) {
+            // This case should read a certain file and write it to another
+            fs::path input_file_path = simulation_path.parent_path();
+            input_file_path += ".csv";
+            // read this and add
+            ifstream previous_run = safe_read(simulation_path, true);
+            double prev_T;          // I dont even think we need those?
+            vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, t);
+            for (int i = 0; i < n; i++) {
+                x[i] = pre_lattice[i];
+            }
+            // and the thing we want to write to will be
+            folder_path = simulation_path.parent_path() / (string) paras[Parameter::subsystem_Lx] /
+                          (string) paras[Parameter::T];
+            // okay so we read the corresponding state
+            // we dont read and write the observables like U_L
+            // which is okay since for this usecase we dont want them as they are at another temperature anyway
+            // If we want to use a whol other folder we will have to rewrite more stuff
+            // then we would need to add two paths, one to read, one to write
         }
-
         // set the t
         paras[Parameter::start_time] = t;
 
@@ -202,7 +225,6 @@ public:
         }
     }
 };
-
 
 template <
             template<class, class, class,class, class, class> class stepper_type,
