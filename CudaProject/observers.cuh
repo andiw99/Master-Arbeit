@@ -1537,7 +1537,7 @@ public:
         int new_nr_xi_values = xix.size();
         close_stream();
         open_stream(filepath);
-        ofile << "t,xix,xiygit " << endl;
+        ofile << "t,xix,xiy" << endl;
         for(int i = 0; i < new_nr_xi_values; i++) {
             ofile << times[i] << "," << xix[i] << "," << xiy[i] << endl;
         }
