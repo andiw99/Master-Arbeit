@@ -1448,7 +1448,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         for size_folder in os.listdir(self.simulation_path):
             size_folder_path = os.path.join(self.simulation_path,
                                             size_folder)
-            if os.path.isdir(size_folder_path):
+            if os.path.isdir(size_folder_path) and size_folder[0] != ".":
                 if selected_sizes is not None:
                     size = int((size_folder))
                     if size not in selected_sizes:
@@ -1859,6 +1859,7 @@ class quench_measurement(autonomous_measurement):
         xix_scaling = []
         xiy_scaling = []
 
+
         for size in sorted(list(size_tau_xix_dic.keys())):
             tau_xix_dic = size_tau_xix_dic[size]
             tau_xiy_dic = size_tau_xiy_dic[size]
@@ -1948,6 +1949,21 @@ class quench_measurement(autonomous_measurement):
         axy.set_ylim(prev_y_low, prev_y_up)
         configure_ax(figy, axy)
         plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
+        plt.show()
+        
+        fig, ax = plt.subplots(1, 1)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_xlabel(r"$\tau$")
+        ax.set_ylabel(r"$\xi_y$")
+
+        xix_xiy_ratio = np.array(xix_scaling) / np.array(xiy_scaling)
+        ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecoler=None,
+                markeredgecolor="C0", label=r"\hat{\xi_x} / \hat{\xi_y}")
+
+
+        configure_ax(fig, ax)
+        plt.savefig(self.simulation_path + "/plots/xix_xiy.png", format="png")
         plt.show()
 
     def get_size_quench_results(self):
@@ -2698,18 +2714,18 @@ def main():
     #J_perp = -0.1
     h = 1.7e6
     #h = 0.5
-    eta = 1.5
+    eta = 0.01
     p = 2.33
-    #dt = 0.00001
     dt = 0.00001
+    # dt = 0.01
     max_size_Tc = 80
     min_size_Tc = 48
     nr_sizes_Tc = 3
     nr_Ts = 5
-    random_init = 1.0
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/efficient Tc/"
+    random_init = 0.0
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/efficient Tc2/small eta/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"

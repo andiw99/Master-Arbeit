@@ -91,7 +91,7 @@ def evaluate_file(file_path):
 
 # Example usage:
 def main():
-    path = "../../../Generated content/DFT/p1-si-relaxed-geom-pbesol-pbe-pz/pbesol/"  # Replace with the path to your file
+    path = "../../../Generated content/DFT/p1-si-relaxed-geom-pbesol-pbe-pz/flip/"  # Replace with the path to your file
     if os.path.isdir(path):
         # if this is the case we want to go through all files and calculate the angels
         files = os.listdir(path)

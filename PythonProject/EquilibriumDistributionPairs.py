@@ -69,7 +69,7 @@ def filter_cut(x, x_cut, dx):
 
 
 def main():
-    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2/"
+    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/eta/medium/2"
     #root = "../../Generated content/Testing Convergence/0.01/"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
@@ -99,7 +99,7 @@ def main():
                     with open(file_path, "rb") as f:
                         nr_rows = sum(1 for _ in f)
                     row = range(nr_rows)
-                    x = read_large_df(file_path, row)[1:]
+                    x = read_large_df(file_path, row)
                     print(len(x))
                     T = parameters["T"]
                     dt = parameters["dt"]

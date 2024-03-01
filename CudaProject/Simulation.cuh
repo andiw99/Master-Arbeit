@@ -131,6 +131,8 @@ public:
             for (int i = 0; i < n; i++) {
                 x[i] = pre_lattice[i];
             }
+            // we want the time to be zero
+            t = 0.0;
             // and the thing we want to write to will be
             folder_path = simulation_path.parent_path().parent_path().parent_path().parent_path() /
                     to_string((int)paras[Parameter::subsystem_Lx]) /

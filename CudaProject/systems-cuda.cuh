@@ -1189,7 +1189,8 @@ public:
         size_t n, dim_size_x;
         double equil_pos, range_min, range_max;
 
-        init_functor(size_t n, double equil_pos, double range_min, double range_max, size_t dim_size_x): n(n), equil_pos(equil_pos), range_min(range_min), range_max(range_max), dim_size_x(dim_size_x) {}
+        init_functor(size_t n, double equil_pos, double range_min, double range_max, size_t dim_size_x): n(n),
+        equil_pos(equil_pos), range_min(range_min), range_max(range_max), dim_size_x(dim_size_x) {}
         template<class State>
         void operator()(map<Parameter, double>& paras, State &x) {
             cout << "XY init_state is called with equil_pos = " << equil_pos << endl;
@@ -1197,6 +1198,11 @@ public:
                 // equilibrium initialization -> we are in XY model with p=2, meaning we have
                 // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
                 thrust::fill(x.begin(), x.begin()+n, equil_pos);
+                // The measurments for systems with large h really do not want to leave this state, so we
+                // flip every 100th dimer
+                for(int i = 0; i < n - 100; i += 100) {
+                    x[i] *= (-1);   // is this again valid because I am accessing the gpu state?
+                }
                 if(paras[Parameter::J] < 0) {
                     cout << "initializing with chess trafo" << endl;
                     chess_trafo_rectangular(x, dim_size_x);
