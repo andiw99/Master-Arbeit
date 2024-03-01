@@ -1309,8 +1309,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
-        intersection = ((U_L_min_T_min >= U_L_max_T_min) & (
-                U_L_min_T_max <= U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
+        intersection = ((U_L_min_T_min > U_L_max_T_min) & (
+                U_L_min_T_max < U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
         if intersection:
             # now the usual stuff, estimate the postion of the intersection
             # now we actually want all intersections, not only the one with the lowest index
@@ -1958,7 +1958,7 @@ class quench_measurement(autonomous_measurement):
         ax.set_ylabel(r"$\xi_y$")
 
         xix_xiy_ratio = np.array(xix_scaling) / np.array(xiy_scaling)
-        ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecoler=None,
+        ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecolor=None,
                 markeredgecolor="C0", label=r"\hat{\xi_x} / \hat{\xi_y}")
 
 

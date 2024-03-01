@@ -636,7 +636,7 @@ public:
         if (paras[Parameter::min_cum_nr]){
             min_cum_nr = (int)paras[Parameter::min_cum_nr];
         }
-        timepoint = 0.0;
+        timepoint = paras[Parameter::start_time];
         equilibrated = false;
         // we also need to reset U_L and times, dont we?
         U_L = vector<double>{};
@@ -652,7 +652,9 @@ public:
             filepath = path;
             readCumFromFile(path, U_L, times);
             // the other observers that dont read the values in actually have a problem with defining the timepoint?
-            timepoint = times.back();
+            // problem is that you set the timepoint here to the back of U_L, but it might be that the .csv
+            // file has not written that many states because it somehow didnt finish...
+            cout << "Pickup, setting timepoint of " << this->get_name()  << " to " << timepoint << endl;
             open_app_stream(path);
         }
         cout << this->get_name() << " init called" << endl;
@@ -847,7 +849,7 @@ public:
             times = new_times;
             cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
             write_density = max(dt / new_write_interval, min_write_density);
-            write_interval = write_density * dt;
+            write_interval =  dt / write_density;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();
@@ -1526,7 +1528,7 @@ public:
             times = new_times;
             cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
             density = max(dt / new_write_interval, min_density);
-            write_interval = density * dt;
+            write_interval = dt / density;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();

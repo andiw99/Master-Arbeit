@@ -1144,11 +1144,11 @@ def process_file(file_path, threshold, key='t', value='U_L'):
 
     paras = read_parameters_txt(file_path)
     ds = times[1] - times[0]
-    try:
-        # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
-        autocorr_time = paras["autocorrelation_time_" + value]
-    except KeyError:
-        autocorr_time = integrated_autocorr_time(f, ds)
+    # try:
+    #     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
+    #     autocorr_time = paras["autocorrelation_time_" + value]
+    # except KeyError:
+    autocorr_time = integrated_autocorr_time(f, ds)
 
     variance = autocorr_time / (nr_values * ds) * f_dist_var
     error = np.sqrt(variance)
@@ -1160,11 +1160,11 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     # from a file
 
     # Moving factor
-    try:
-        moving_factor = paras["moving_factor_" + value]
-    except KeyError:
-        # We already have a function that calculates it?
-        moving_factor = getMovingFactor(f, f_avg)
+    #try:
+    #    moving_factor = paras["moving_factor_" + value]
+    #except KeyError:
+    #    # We already have a function that calculates it?
+    moving_factor = getMovingFactor(f, f_avg)
 
     return f_avg, rel_error, moving_factor
 
