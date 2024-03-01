@@ -43,6 +43,7 @@ def main():
     # Quench parameters
     max_size = 1024
     min_nr_sites = 1e6
+    max_nr_quench_steps = 4e7
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
@@ -59,7 +60,9 @@ def main():
         # require some work on my end
 
         # Run Quench
-        quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Quench", quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size, min_nr_sites=min_nr_sites )
+        quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Quench",
+                                    quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size,
+                                    min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps)
         quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

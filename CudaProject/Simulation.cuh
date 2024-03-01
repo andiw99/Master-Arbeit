@@ -132,7 +132,8 @@ public:
                 x[i] = pre_lattice[i];
             }
             // and the thing we want to write to will be
-            folder_path = simulation_path.parent_path().parent_path().parent_path().parent_path() / to_string(paras[Parameter::subsystem_Lx]) /
+            folder_path = simulation_path.parent_path().parent_path().parent_path().parent_path() /
+                    to_string((int)paras[Parameter::subsystem_Lx]) /
                           to_string(paras[Parameter::T]);
             cout << "folder path: " << folder_path << endl ;
             // okay so we read the corresponding state

@@ -1080,7 +1080,8 @@ class crit_temp_measurement(autonomous_measurement):
 class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
-                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, random_init=0, max_moving_factor=0.005):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
+                 random_init=0, max_moving_factor=0.005):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.size_min = size_min
@@ -1449,13 +1450,13 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                                             size_folder)
             if os.path.isdir(size_folder_path):
                 if selected_sizes is not None:
-                    size = int(size_folder)
+                    size = int((size_folder))
                     if size not in selected_sizes:
                         continue
                 if (size_folder[0] != ".") & (size_folder != "plots"):
                         size_result = process_size_folder(size_folder_path,
                                                           threshold, selected_temperatures=selected_temps)
-                        results[int(size_folder)] = size_result
+                        results[int((size_folder))] = size_result
         return results
 
     def get_para_nr(self):
@@ -1892,8 +1893,8 @@ class quench_measurement(autonomous_measurement):
         xix_scaling_log = np.log(xix_scaling)
         xiy_scaling_log = np.log(xiy_scaling)
 
-        reg_x, min_tau_x, max_tau_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95)
-        reg_y, min_tau_y, max_tau_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95)
+        reg_x, min_tau_x, max_tau_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
+        reg_y, min_tau_y, max_tau_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
         quench_exp_x =  reg_x.slope
         quench_ampl_x = np.exp(reg_x.intercept)
         quench_exp_y = reg_y.slope
