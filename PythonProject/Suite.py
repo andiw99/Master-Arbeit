@@ -161,9 +161,9 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
     # We want to change this to use a process function but we also need the moving factor
     # If we use only process file we ignore other files in the folder and
     # also we have to construct the filename from the foldername
-    xix_avg, xix_error, moving_factors_x = process_temp_folder(folderpath,
+    xix_avg, xix_error, moving_factors_x, nr_values = process_temp_folder(folderpath,
                                 equil_cutoff, value="xix", file_ending="corr")
-    xiy_avg, xiy_error, moving_factors_y = process_temp_folder(folderpath,
+    xiy_avg, xiy_error, moving_factors_y, nr_values = process_temp_folder(folderpath,
                                 equil_cutoff, value="xiy", file_ending="corr")
 
     # We have the error, so we can check if it is small enough
@@ -1577,8 +1577,8 @@ class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7):
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait)
+                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100):
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
         self.nr_sites = nr_sites        # nr of sites for one run
@@ -1964,7 +1964,7 @@ class quench_measurement(autonomous_measurement):
 
         xix_xiy_ratio = np.array(xix_scaling) / np.array(xiy_scaling)
         ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecolor=None,
-                markeredgecolor="C0", label=r"\hat{\xi_x} / \hat{\xi_y}")
+                markeredgecolor="C0", label=r"$\hat{\xi_x} / \hat{\xi_y}$")
 
 
         configure_ax(fig, ax)
@@ -2719,7 +2719,7 @@ def main():
     #J_perp = -0.1
     h = 1e6
     #h = 0.5
-    eta = 0.01
+    eta = 100
     p = 2.33
     dt = 0.00001
     # dt = 0.01
@@ -2730,7 +2730,7 @@ def main():
     random_init = 0.0
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/small eta/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/large eta/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -2745,8 +2745,8 @@ def main():
     # want to work with the new error
 
     max_rel_intersection_error = 0.02
-    min_cum_nr = 20000
-    moving_factor = 0.002
+    min_cum_nr = 40000
+    moving_factor = 0.001
 
     # Quench parameters
     max_size = 1024

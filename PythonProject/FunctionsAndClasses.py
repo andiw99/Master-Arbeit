@@ -403,7 +403,7 @@ def read_parameters_txt(filepath, skipfooter=1):
         except ValueError:
             pass
         except TypeError:
-            para_set[label] = float(df.loc[label, 1][0])
+            para_set[label] = float(df.loc[label, 1][-1])       # take the last one as it should be the most recent
     return para_set
 
 
@@ -1136,6 +1136,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     df = pd.read_csv(file_path)
     if 0 < threshold < 1:
         threshold = threshold * len(df[key])
+    total_nr_values = df.shape[0]
     df = df[int(threshold):]
     nr_values = df.shape[0]
     f = np.array(df[value])
@@ -1167,7 +1168,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     #    # We already have a function that calculates it?
     moving_factor = getMovingFactor(f, f_avg)
 
-    return f_avg, rel_error, moving_factor, nr_values
+    return f_avg, rel_error, moving_factor, total_nr_values
 
 def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None):
     """

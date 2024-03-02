@@ -651,6 +651,8 @@ public:
             path += ".cum";
             filepath = path;
             readCumFromFile(path, U_L, times);
+            write_interval = times[1] - times[0];
+            write_density = dt / write_interval;    // We should adapt the write interval of the file that we read
             // the other observers that dont read the values in actually have a problem with defining the timepoint?
             // problem is that you set the timepoint here to the back of U_L, but it might be that the .csv
             // file has not written that many states because it somehow didnt finish...
@@ -1356,6 +1358,9 @@ public:
             readXiFromFile(path, xix, xiy, times);
             timepoint = times.back();
             cout << "successful!" << endl;
+            // we should adapt the write interval from the file that we read
+            write_interval = times[1] - times[0];
+            density = dt / write_interval;
             open_app_stream(filepath);
         }
         cout << this->get_name() << " init called" << endl;
@@ -1533,6 +1538,7 @@ public:
             density = max(dt / new_write_interval, min_density);
             write_interval = dt / density;
             cout << "  write_interval_new = " << new_write_interval << endl;
+            min_corr_nr /= 2;       // should behave as the other observer
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();
