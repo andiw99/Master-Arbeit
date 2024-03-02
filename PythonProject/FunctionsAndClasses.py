@@ -392,10 +392,9 @@ def read_parameters(filepath, nr_parameters):
 
 
 def read_parameters_txt(filepath, skipfooter=1):
-
+    print(filepath)
     if not filepath.endswith(".txt"):
         filepath = os.path.splitext(filepath)[0] + ".txt"
-
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
     para_set = {}
     for label in df.index:
@@ -403,6 +402,8 @@ def read_parameters_txt(filepath, skipfooter=1):
             para_set[label] = float(df.loc[label, 1])
         except ValueError:
             pass
+        except TypeError:
+            para_set[label] = float(df.loc[label, 1][0])
     return para_set
 
 
@@ -1131,6 +1132,7 @@ def process_file_old(file_path, threshold, key='t', value='U_L', L=np.infty, cap
     return average_value, error, nr_values
 
 def process_file(file_path, threshold, key='t', value='U_L'):
+    print(file_path)
     df = pd.read_csv(file_path)
     if 0 < threshold < 1:
         threshold = threshold * len(df[key])
@@ -1142,7 +1144,6 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     f_avg = np.mean(f)
     f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
 
-    paras = read_parameters_txt(file_path)
     ds = times[1] - times[0]
     # try:
     #     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
@@ -1166,7 +1167,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
     #    # We already have a function that calculates it?
     moving_factor = getMovingFactor(f, f_avg)
 
-    return f_avg, rel_error, moving_factor
+    return f_avg, rel_error, moving_factor, nr_values
 
 def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None):
     """
@@ -1237,16 +1238,18 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
     file_averages = []
     moving_factors = []
     file_errors = []
+    nr_values = []
     for file_name in os.listdir(temp_folder_path):
         if file_name.endswith(file_ending):
             # it could be that some files have a cumulant averaged out of more subsystems, that shoudl be taken into consideration
             file_path = os.path.join(temp_folder_path, file_name)
             para_file_path = os.path.splitext(file_path)[0] + ".txt"
             # fing sh... I guess It doesnt matter but it is so ugly
-            average_value, error, moving_factor = process_file(file_path, threshold, 't', value)
+            average_value, error, moving_factor, nr_vals = process_file(file_path, threshold, 't', value)
             file_averages.append(average_value)
             file_errors.append(error)
             moving_factors.append(moving_factor)
+            nr_values.append(nr_vals)
     if file_averages:  # Why is here an if this should not be here?? If we are in a temperature folder we want to geht values back, am I right? If we dont have anything at all, we made something wrong before?
         # What are we doing now for the average, If one run had more subsystems this should just be reflecting in the error? So we just do
         # a weighted averagae here?
@@ -1259,7 +1262,7 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
     else:  # Okay I dont care but this should not be like this I think. Is this even on the right plane? Shouldnt it be one bacK? OMG I dont understand my own code!!!
         val_avg = None
         error = None
-    return val_avg, error, moving_factors
+    return val_avg, error, moving_factors, nr_values
 
 def average_ft(folderpath, ending=".ft"):
     files = os.listdir(folderpath)

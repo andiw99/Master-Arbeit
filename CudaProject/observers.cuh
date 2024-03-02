@@ -847,9 +847,12 @@ public:
             }
             U_L = new_U_L;
             times = new_times;
-            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
+            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval;
             write_density = max(dt / new_write_interval, min_write_density);
             write_interval =  dt / write_density;
+            cout  << "  write_interval_new = " << new_write_interval << endl;
+            // If we make the write_interval that much slower we also adapt the minimum cum nr
+            min_cum_nr /= 2;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();
@@ -1526,9 +1529,10 @@ public:
             xix = new_xix;
             xiy = new_xiy;
             times = new_times;
-            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval << "  write_interval_new = " << new_write_interval << endl;
+            cout << "ADAPTED NEW WRITE INTERVAL: write_interval_old = " << write_interval;
             density = max(dt / new_write_interval, min_density);
             write_interval = dt / density;
+            cout << "  write_interval_new = " << new_write_interval << endl;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();

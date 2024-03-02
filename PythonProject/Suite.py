@@ -107,7 +107,6 @@ def get_avail_simulations(sizes, temperatures, directory_path, check_function, c
                         break
                     use_temp = float(temp)
                 temp_path = os.path.join(size_path, f"{use_temp:.6f}")
-
                 # Check if the temperature folder exists and is valid based on the custom function
                 if (os.path.exists(temp_path) and os.path.isdir(temp_path)):
                         sim_valid = check_function(temp_path, *check_function_args)
@@ -184,7 +183,7 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
             print(f"Moving factor {moving_factor} too large")
         return False
 
-def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
+def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, min_cum_nr=2500):
     """
     function that checks whether a cumulant measurement was valid
     :param folderpath:
@@ -220,7 +219,7 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
 
     # Now for the moving factor
 
-    cum_avg, error, moving_factors = process_temp_folder(folderpath,
+    cum_avg, error, moving_factors, nr_values = process_temp_folder(folderpath,
                                 equil_cutoff, value="U_L", file_ending="cum")
 
     # We have the error, so we can check if it is small enough
@@ -228,15 +227,18 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor):
     # How do we check in the observer again? is not written actually...
     # We need the relative errors here
     moving_factor = np.mean(moving_factors)
+    nr_vals = np.mean(nr_values)
 
 
-    if (rel_error <= equil_error) and (moving_factor <= max_moving_factor):
+    if (rel_error <= equil_error) and (moving_factor <= max_moving_factor) and (nr_vals >= min_cum_nr):
         return True
     else:
         if (rel_error <= equil_error) and (moving_factor > max_moving_factor):
             print(f"Moving Factor {moving_factor:.5f} is too large! Otherwise {folderpath} would have been valid")
         elif (rel_error > equil_error) and (moving_factor <= max_moving_factor):
             print(f"Equil_error {rel_error:.5f} is too large! Otherwise {folderpath} would have been valid")
+        if nr_vals < min_cum_nr:
+            print("Not enough values, but I hope we will just use that one as base?")
         return False
 
 def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
@@ -1081,7 +1083,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
-                 random_init=0, max_moving_factor=0.005):
+                 random_init=0, max_moving_factor=0.005, min_cum_nr=2500):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.size_min = size_min
@@ -1109,7 +1111,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 2500
+        self.min_cum_nr = min_cum_nr
         self.cum_write_density = 1 / 100
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
@@ -1256,7 +1258,10 @@ class efficient_crit_temp_measurement(autonomous_measurement):
 
         valid_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
+                                                  check_cum_valid, check_function_args=(self.equil_error,
+                                                                                        self.equil_cutoff,
+                                                                                        self.max_moving_factor,
+                                                                                        self.min_cum_nr)
                                                   )
         # Okay so the thing is even if we have a simulation that is not valid,
         # but there is at least already a simulation, we want to continue it instead of
@@ -1431,7 +1436,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 # Okay we updated the temperature array... now we just run everything again?
             elif U_L_min_T_min < U_L_max_T_min:
                 print("The minimum temperature is too high")
-                T_range = np.ptp(self.all_T_arr)
+                T_range = np.ptp(self.T_arr)
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
                 T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
                 self.T_arr = np.linspace(T_min, T_max, 2)
@@ -2036,8 +2041,8 @@ class quench_measurement(autonomous_measurement):
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
-                 max_moving_factor=0.005, min_nr_sites=5e5):
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150):
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
@@ -2712,7 +2717,7 @@ def main():
     #J_para = -9
     J_perp = -2340
     #J_perp = -0.1
-    h = 1.7e6
+    h = 1e6
     #h = 0.5
     eta = 0.01
     p = 2.33
@@ -2725,7 +2730,7 @@ def main():
     random_init = 0.0
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/efficient Tc2/small eta/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/small eta/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -2740,6 +2745,8 @@ def main():
     # want to work with the new error
 
     max_rel_intersection_error = 0.02
+    min_cum_nr = 20000
+    moving_factor = 0.002
 
     # Quench parameters
     max_size = 1024
@@ -2778,7 +2785,8 @@ def main():
     elif measurements["efficient Tc"]:
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc,
-                                    intersection_error=max_rel_intersection_error, random_init=random_init)
+                                    intersection_error=max_rel_intersection_error, random_init=random_init,
+                                  max_moving_factor=moving_factor, min_cum_nr=min_cum_nr)
         T_c, T_c_error = sim.routine()
     else:
         T_c = float(input("Enter critical temperature:"))

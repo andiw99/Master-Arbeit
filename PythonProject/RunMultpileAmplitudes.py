@@ -29,6 +29,7 @@ def main():
     min_size_Tc = 48
     nr_sizes_Tc = 2
     nr_Ts = 3
+    para_nr_Tc = 130
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
@@ -42,6 +43,7 @@ def main():
     amplitude_size = 1024
     equil_error = 0.05
     equil_cutoff = 0.01
+    para_nr_ampl = 160
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
@@ -51,14 +53,14 @@ def main():
                                                  curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor)
+                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
 
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Amplitude",
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
-                                     equil_error=equil_error, equil_cutoff=equil_cutoff)
+                                     equil_error=equil_error, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl)
         ampl.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

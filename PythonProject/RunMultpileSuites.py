@@ -7,8 +7,8 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
-    #h_arr = np.array([0.4161791450287818])
-    h_arr = np.array([15])
+    h_arr = np.array([0.4161791450287818])
+    #h_arr = np.array([15])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -16,8 +16,8 @@ def main():
     J_para = -3.11
     J_perp = -0.1
     p = 2.54
-    #eta_arr = [0.1, 1, 10, 100]
-    eta_arr = [1]
+    eta_arr = [0.1, 1, 10, 100]
+    #eta_arr = [1]
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
