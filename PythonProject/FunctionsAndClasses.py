@@ -392,7 +392,7 @@ def read_parameters(filepath, nr_parameters):
 
 
 def read_parameters_txt(filepath, skipfooter=1):
-    #print(filepath)
+    print(filepath)
     if not filepath.endswith(".txt"):
         filepath = os.path.splitext(filepath)[0] + ".txt"
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
@@ -1755,6 +1755,21 @@ def integrated_autocorr_time(f, ds):
 
     return autocorr_time
 
+
+def get_largest_value_with_linestyle(ax, linestyle):
+    largest_value = None
+
+    for line in ax.lines:
+        line_linestyle = line.get_linestyle()
+        if line_linestyle == linestyle:
+            x_data = line.get_xdata()
+            y_data = line.get_ydata()
+            max_y_value = max(y_data)
+
+            if largest_value is None or max_y_value > largest_value:
+                largest_value = max_y_value
+
+    return largest_value
 
 def main():
     print("This file is made to import, not to execute")

@@ -42,12 +42,12 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 2048
-    equil_error = 0.025
+    equil_error = 0.05
     equil_cutoff = 0.01
     para_nr_ampl = 160
     T_min_fraction = 0.01
     T_range_fraction = 0.03
-    nr_Ts = 3
+    nr_Ts = 4
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"

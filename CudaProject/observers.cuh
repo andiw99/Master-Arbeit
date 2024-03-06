@@ -854,10 +854,12 @@ public:
             write_interval =  dt / write_density;
             cout  << "  write_interval_new = " << new_write_interval << endl;
             // If we make the write_interval that much slower we also adapt the minimum cum nr
-            min_cum_nr /= 2;
-            // this is all right?
+            min_cum_nr = new_nr_cum_values;      // I think this is better, it should be some kind of initial minimum number of cumulant values
+            cout << "new min cum nr is  min_cum_nr = " << new_nr_cum_values << endl;
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();
+            // as soon as the autocorrelation time takes over the autocorrelation time should decide when to stop
+            // this is all right?
         }
     }
 
@@ -1538,7 +1540,8 @@ public:
             density = max(dt / new_write_interval, min_density);
             write_interval = dt / density;
             cout << "  write_interval_new = " << new_write_interval << endl;
-            min_corr_nr /= 2;       // should behave as the other observer
+            min_corr_nr = new_nr_cum_values;       // should behave as the other observer
+            cout << "new minimum corr number is min_corr_nr = " << min_corr_nr << endl;
             // this is all right?
             // we decided to rewrite the file, it will save space and make the after simulation validation easier
             rewrite_file();

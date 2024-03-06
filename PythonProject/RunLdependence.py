@@ -31,7 +31,7 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.005
+    equil_error = 0.01
     min_equil_error = 0.0025
     max_rel_intersection_error = 0.005       # is this to small or fine?
     equil_cutoff = 0.1
@@ -52,10 +52,10 @@ def main():
     # I think this is good? almost every size is reused and we always have twice the size
 
     #small_Ls = [8,  12, 16, 20, 24, 32, 48, 64]
-    small_Ls = [20, 28, 40]
+    small_Ls = [20, 28, 40, 56]
     #small_Ls = [64]
     #large_Ls = [16, 24, 32, 48, 64, 96, 128]
-    large_Ls = [40, 56, 80]
+    large_Ls = [40, 56, 80, 112]
     #large_Ls = [128]
     Ly_Lx = 1 / 2
 
