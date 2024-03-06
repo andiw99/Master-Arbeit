@@ -10,7 +10,7 @@ def main():
     h_arr = np.array([0.4161791450287818])
     #h_arr = np.array([1.7320508075688776])
     #h_arr = np.array([10])
-    nr_gpus = 6
+    nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -21,8 +21,8 @@ def main():
     eta_arr = [0.01, 0.05]
     dt = 0.01
 
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -49,7 +49,7 @@ def main():
     max_size = 8200
     min_nr_sites = 1e6
     max_nr_quench_steps = 4e7
-    max_tau = 70000
+    max_tau = 17000
     para_nr_quench = 230
 
     for h in h_arr:

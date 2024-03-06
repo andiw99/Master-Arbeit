@@ -1609,7 +1609,8 @@ def best_fit_inv_old(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_
 
     return best_reg, best_starting_pos, best_ending_pos
 
-def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept_function_args=None, more_points=True):
+def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
+                 accept_function_args=None, more_points=True, require_end=False):
     x = np.array(x)
     y = np.array(y)
     best_starting_pos = 0
@@ -1622,6 +1623,9 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None, accept
     for starting_pos in range(len(x) - min_points + 1):
         for ending_pos in range(starting_pos + min_points, len(x)+1):
             # We should have at least 4 points i would say.
+            if require_end:
+                if ending_pos != len(x):
+                    continue
             x_fit = x[starting_pos:ending_pos]
             y_fit = y[starting_pos:ending_pos]
 

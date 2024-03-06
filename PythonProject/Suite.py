@@ -1908,8 +1908,12 @@ class quench_measurement(autonomous_measurement):
         xix_scaling_log = np.log(xix_scaling)
         xiy_scaling_log = np.log(xiy_scaling)
 
-        reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
-        reg_y, min_tau_ind_y, max_tau_ind_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
+        reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log,
+                                                           min_r_squared=0.95, more_points=True,
+                                                           min_points=3, require_end=True) # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
+        reg_y, min_tau_ind_y, max_tau_ind_y = best_lin_reg(log_tau, xiy_scaling_log,
+                                                           min_r_squared=0.95, more_points=True,
+                                                           min_points=3, require_end=True)
         quench_exp_x =  reg_x.slope
         quench_ampl_x = np.exp(reg_x.intercept)
         quench_exp_y = reg_y.slope
@@ -2738,9 +2742,9 @@ def main():
     #J_para = -9
     J_perp = -2340
     #J_perp = -0.1
-    h = 1e6
+    h = 10000
     #h = 0.5
-    eta = 0.001
+    eta = 1
     p = 2.33
     dt = 0.00001
     # dt = 0.01
@@ -2749,9 +2753,9 @@ def main():
     nr_sizes_Tc = 3
     nr_Ts = 5
     random_init = 0.0
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/smallest eta/"
+    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/small h/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -2766,7 +2770,7 @@ def main():
     # want to work with the new error
 
     max_rel_intersection_error = 0.02
-    min_cum_nr = 40000
+    min_cum_nr = 100000
     moving_factor = 0.001
 
     # Quench parameters
