@@ -31,9 +31,10 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.01
+    equil_error = 0.005
     min_equil_error = 0.0025
     max_rel_intersection_error = 0.005       # is this to small or fine?
+    equil_cutoff = 0.1
     # since we need quantitative exact values, we should know T_c beforehand
     min_T = 0.94
     max_T = 0.96
@@ -50,10 +51,12 @@ def main():
 
     # I think this is good? almost every size is reused and we always have twice the size
 
-    # small_Ls = [8,  12, 16, 24, 32, 48, 64]
-    small_Ls = [64]
-    # large_Ls = [16, 24, 32, 48, 64, 96, 128]
-    large_Ls = [128]
+    #small_Ls = [8,  12, 16, 20, 24, 32, 48, 64]
+    small_Ls = [20, 28, 40]
+    #small_Ls = [64]
+    #large_Ls = [16, 24, 32, 48, 64, 96, 128]
+    large_Ls = [40, 56, 80]
+    #large_Ls = [128]
     Ly_Lx = 1 / 2
 
     crit_temps = []
@@ -64,9 +67,12 @@ def main():
         #curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
-        Tc_sim = crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=L_small, size_max=L_large, Ly_Lx=Ly_Lx, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts, T_min=min_T, T_max=max_T,
-                                    equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error, para_nr=para_nr)
+        # Tc_sim = crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
+        #                             size_min=L_small, size_max=L_large, Ly_Lx=Ly_Lx, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts, T_min=min_T, T_max=max_T,
+        #                             equil_error=equil_error, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error, para_nr=para_nr)
+        Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
+                                                 size_min=L_small, size_max=L_large, Ly_Lx=Ly_Lx, T_min=min_T, T_max=max_T,
+                                                 equil_error=equil_error, equil_cutoff=equil_cutoff, min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error, para_nr=para_nr)
         T_c, T_c_error = Tc_sim.routine()
         crit_temps.append(T_c)
         crit_temp_errors.append(T_c_error)

@@ -13,11 +13,12 @@ def inv_xi_fit(T, xi, Tc):
 
 def main():
     # parameters
-    simulation_folder = ("../../Generated content/Silicon/Amplitude/Small/")
+    simulation_folder = "../../Generated content/Silicon/Subsystems/Suite/h/0.4161791450287818/Amplitude/"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(simulation_folder)
     nu_est = 0.8
+    mode = "corr"
     T_c_est_min = 0.95
     T_c_est_max = 0.956
     T_min_fit_min = 0.96
@@ -34,8 +35,8 @@ def main():
     results_x = {}
     results_y = {}
 
-    results_ft_x = {}
-    results_ft_y = {}
+    results_x = {}
+    results_y = {}
 
     for size_folder in os.listdir(simulation_folder):
         if (size_folder != "plots") & (size_folder[0] != "."):
@@ -43,18 +44,24 @@ def main():
             if os.path.isdir(size_folder_path):
                 #size_result_x = process_size_folder(size_folder_path, threshold, key='T', value="xix", file_ending=".corr")
                 #size_result_y = process_size_folder(size_folder_path, threshold, key='T', value="xiy", file_ending=".corr")
-
-                T_arr, xix_ft_arr, xiy_ft_arr = process_size_folder_ft(cut_zero_impuls,
+                if mode == "ft":
+                    T_arr, xix_ft_arr, xiy_ft_arr = process_size_folder_ft(cut_zero_impuls,
                                                                        size_folder_path, threshold)
+                    try:
+                        # results_x[int(size_folder)] = size_result_x
+                        # results_y[int(size_folder)] = size_result_y
+                        results_x[int(size_folder)] = (T_arr, xix_ft_arr)
+                        results_y[int(size_folder)] = (T_arr, xiy_ft_arr)
 
-                try:
-                    #results_x[int(size_folder)] = size_result_x
-                    #results_y[int(size_folder)] = size_result_y
-                    results_ft_x[int(size_folder)] = (T_arr, xix_ft_arr)
-                    results_ft_y[int(size_folder)] = (T_arr, xiy_ft_arr)
+                    except ValueError:
+                        pass
+                elif mode == "corr":
+                    results_dic_x = process_size_folder(size_folder_path, threshold=0.1, value="xix", file_ending="corr")
+                    results_dic_y = process_size_folder(size_folder_path, threshold=0.1, value="xiy", file_ending="corr")
+                    results_x[int(size_folder)] = (results_dic_x["T"], results_dic_x["xix"])
+                    results_y[int(size_folder)] = (results_dic_y["T"], results_dic_y["xiy"])
 
-                except ValueError:
-                    pass
+
     print(results_x)
     print(results_y)
 
@@ -121,8 +128,8 @@ def main():
     #
     #     plt.show()
 
-    for ((sizex, valuex), (sizey, valuey)) in zip(results_ft_x.items(),
-                                                  results_ft_y.items()):
+    for ((sizex, valuex), (sizey, valuey)) in zip(results_x.items(),
+                                                  results_y.items()):
         # I want to plot the 1 / correlation lengths
         # sizex and sizey are what the names suggest
         # value_x should be tuples of (T_arr, xix_array)
@@ -144,20 +151,24 @@ def main():
 
 
         # We look for the most linear region lol
-        Tc_guess = 0.95     # this will be mandatory in the future
-        reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_arr, xix_inv_sorted, Tc_guess, tolerance=0.05)
-        print(f"x: Included Temperatures between {T_arr[T_include_start_x]} and {T_arr[T_include_end_x]}.")
+        Tc_guess = T_arr[0]     # this will be mandatory in the future
+        reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_arr, xix_inv_sorted, Tc_guess, tolerance=0.2)
+        print(f"x: Included Temperatures between {T_arr[T_include_start_x]} and {T_arr[T_include_end_x-1]}.")
         print(f"The r²-value is r² = {reg_x.rvalue ** 2}")
         reg_y, T_include_start_y, T_include_end_y = best_fit_inv(T_arr,
-                                                                 xiy_inv_sorted, Tc_guess, tolerance=0.05)
+                                                                 xiy_inv_sorted, Tc_guess, tolerance=0.2)
         print(
             f"y: Included Temperatures between {T_arr[T_include_start_y]} and {T_arr[T_include_end_y]}.")
         print(f"The r²-value is r² = {reg_y.rvalue ** 2}")
         # from the regression parameter we can get the estimated Tc
-        xix_ampl = 1 / reg_x.slope
-        xiy_ampl = 1 / reg_y.slope
-        Tc_x = - reg_x.intercept * xix_ampl
-        Tc_y = - reg_y.intercept * xiy_ampl
+        # xix_ampl = 1 / reg_x.slope
+        # xiy_ampl = 1 / reg_y.slope
+        # Tc_x = - reg_x.intercept * xix_ampl
+        # Tc_y = - reg_y.intercept * xiy_ampl
+        xix_ampl = - 1 / reg_x.intercept
+        xiy_ampl = - 1 / reg_y.intercept
+        Tc_x = - reg_x.intercept / reg_x.slope
+        Tc_y = - reg_y.intercept / reg_y.slope
 
         #T_min = 0.96        # for now we have a manual T_min for the fit
         # cut the plotting data
@@ -281,11 +292,11 @@ def main():
                    fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (1 + config_x["increasefontsize"])))
 
         # Save the plot
-        plt.savefig(simulation_folder + "/plots/T-xi.png", format="png")
+        plt.savefig(simulation_folder + f"/plots/T-xi-{sizex}.png", format="png")
         plt.show()
 
     exit()
-    for ((sizex, valuex), (sizey, valuey)) in zip(results_ft_x.items(), results_ft_y.items()):
+    for ((sizex, valuex), (sizey, valuey)) in zip(results_x.items(), results_y.items()):
         # the values here are the T_arr, xix_arr pairs
         T = valuex[0]
         xix_sorted = np.array(valuex[1])[np.argsort(T)]

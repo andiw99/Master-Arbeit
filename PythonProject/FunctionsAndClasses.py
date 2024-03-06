@@ -392,7 +392,7 @@ def read_parameters(filepath, nr_parameters):
 
 
 def read_parameters_txt(filepath, skipfooter=1):
-    print(filepath)
+    #print(filepath)
     if not filepath.endswith(".txt"):
         filepath = os.path.splitext(filepath)[0] + ".txt"
     df = pd.read_csv(filepath, delimiter=",", header=None, index_col=0)
@@ -695,6 +695,21 @@ def calc_diff_at(T_inter, T, value_dic):
     size_arr = np.sort(size_arr)
     return num_diff_arr, size_arr
 
+def simple_diff(x_eval, x_range, y_range):
+    nearest_x, index = \
+        find_nearest_value_and_index( x_range, x_eval)
+
+    if nearest_x > x_eval:
+        # Rückwärtsdiff
+        num_diff = (y_range[index] - y_range[index - 1]) / (x_range[index] - x_range[index-1])
+    elif nearest_x < x_eval:
+        # Vorwärtsdiff
+        num_diff = (y_range[index + 1] - y_range[index]) / (x_range[index + 1] - x_range[index])
+    else:
+        # Central diff
+        num_diff = (y_range[index + 1] - y_range[index - 1]) / (x_range[index + 1] - x_range[index - 1])
+
+    return num_diff
 def interpolate_and_minimize(data_sets, res=100):
     """
     Determine the intersection of different sets of discrete x-y values.
@@ -860,12 +875,26 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
         return (ind_i, ind_j)
 
 
-def find_first_intersection(x_range, y1, y2, res=10000):
+def find_common_range(x1, x2, y1, y2):
+    common_x_min = max(np.min(x1), np.min(x2))
+    common_x_max = min(np.max(x1), np.max(x2))
+
+    common_indices1 = (x1 >= common_x_min) & (x1 <= common_x_max)
+    common_indices2 = (x2 >= common_x_min) & (x2 <= common_x_max)
+
+    return x1[common_indices1], y1[common_indices1], y2[common_indices2]
+
+def find_first_intersection(x1, x2, y1, y2, res=10000):
     # Interpolate the curves
     #print("diff_func:")
+    x_range, _, _ = find_common_range(x1, x2, y1, y2)
     x_inter = np.linspace(x_range[0], x_range[-1], res)
-    diff_func = np.interp(x_inter, x_range, y1 - y2)
-    U_L_1_func = np.interp(x_inter, x_range, y1)        # we need that for the U_L value at the intersection...
+    y1 = np.interp(x_inter, x1, y1)
+    y2 = np.interp(x_inter, x2, y2)
+    #print(x_range)
+    #print(y1 - y2)
+    diff_func = y1 - y2
+    U_L_1_func = y1        # we need that for the U_L value at the intersection...
     #fig, ax = plt.subplots(1, 1)
     #ax.plot(x_inter, diff_func)
     #plt.show()
@@ -967,8 +996,9 @@ def get_first_intersections(size_T_cum_dic):
         U_L_1 = size_T_cum_dic[size1]["U_L"]
         U_L_2 = size_T_cum_dic[size2]["U_L"]
         # We assume that the Temperatures are the same for the two curves...
-        T_arr = size_T_cum_dic[size1]["T"]
-        x_inter, y_inter = find_first_intersection(T_arr, U_L_1, U_L_2)
+        T_arr_1 = size_T_cum_dic[size1]["T"]
+        T_arr_2 = size_T_cum_dic[size2]["T"]
+        x_inter, y_inter = find_first_intersection(T_arr_1, T_arr_2, U_L_1, U_L_2)
         intersections.append(x_inter)
         intersections_y.append(y_inter)
 
@@ -1177,16 +1207,17 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
     eps = 1e-4
     result = {key: [], value: []}
     for temp_folder in os.listdir(size_folder):
-        if selected_temperatures is not None:
-            temp = float(temp_folder)
-            selected = False
-            # we have to look if approximately this temperature is present in selected_temperatures
-            for sel_temp in selected_temperatures:
-                if sel_temp - eps < temp < sel_temp + eps:
-                    selected = True
-            if not selected:
-                continue
         if (temp_folder != "plots") & (temp_folder[0] != "."):
+            if selected_temperatures is not None:
+                temp = float(temp_folder)
+                selected = False
+                # we have to look if approximately this temperature is present in selected_temperatures
+                for sel_temp in selected_temperatures:
+                    if sel_temp - eps < temp < sel_temp + eps:
+                        selected = True
+                if not selected:
+                    continue
+
             temp_folder_path = os.path.join(size_folder, temp_folder)
             if os.path.isdir(temp_folder_path):
                 val_avg, error = process_temp_folder_old(temp_folder_path, threshold, file_ending, value)
@@ -1275,7 +1306,7 @@ def average_ft(folderpath, ending=".ft"):
         if file.endswith(ending):
             filepath = os.path.join(folderpath, file)
             df = pd.read_csv(filepath, sep=";")
-            print(filepath, "firstfile = ", first_file)
+            #print(filepath, "firstfile = ", first_file)
             for j, t in enumerate(df['t']):
                 if first_file:
                     t_ft_k[t] = string_to_array(df["ft_k"][j])
@@ -1286,7 +1317,7 @@ def average_ft(folderpath, ending=".ft"):
             first_file = False
             nr_files += 1
     # average
-    print(f"averaged {nr_files} files")
+    #print(f"averaged {nr_files} files")
     for t in t_ft_k:
         t_ft_k[t] /= nr_files
         t_ft_l[t] /= nr_files
@@ -1327,10 +1358,10 @@ def average_lastline_ft(folderpath, ending=".ft"):
         if file.endswith(ending):
             filepath = os.path.join(folderpath, file)
             df = pd.read_csv(filepath, sep=";")
-            print(filepath, "firstfile = ", first_file)
+            #print(filepath, "firstfile = ", first_file)
             if first_file:
-                print("df['ft_k'].iloc[-1]")
-                print(df["ft_k"].iloc[-1])
+                # print("df['ft_k'].iloc[-1]")
+                # print(df["ft_k"].iloc[-1])
                 t_ft_k = string_to_array(df["ft_k"].iloc[-1])
                 t_ft_l = string_to_array(df["ft_l"].iloc[-1])
             else:
@@ -1339,7 +1370,7 @@ def average_lastline_ft(folderpath, ending=".ft"):
             first_file = False
             nr_files += 1
     # average
-    print(f"averaged {nr_files} files")
+    #print(f"averaged {nr_files} files")
     t_ft_k /= nr_files
     t_ft_l /= nr_files
     return t_ft_k, t_ft_l

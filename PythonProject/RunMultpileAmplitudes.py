@@ -6,7 +6,8 @@ def main():
     # temperature and I want to vary the h
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
-    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
+    #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
+    h_arr = np.array([0.4161791450287818])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -40,10 +41,13 @@ def main():
     max_rel_intersection_error = 0.05
 
     # Amplitude parameters
-    amplitude_size = 1024
-    equil_error = 0.05
+    amplitude_size = 2048
+    equil_error = 0.025
     equil_cutoff = 0.01
     para_nr_ampl = 160
+    T_min_fraction = 0.01
+    T_range_fraction = 0.03
+    nr_Ts = 3
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
@@ -60,7 +64,8 @@ def main():
 
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Amplitude",
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
-                                     equil_error=equil_error, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl)
+                                     equil_error=equil_error, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
+                                     T_min_fraction=T_min_fraction, T_range_fraction=T_range_fraction, nr_Ts=nr_Ts)
         ampl.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

@@ -7,8 +7,9 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
-    #h_arr = np.array([0.4161791450287818])
-    h_arr = np.array([15])
+    h_arr = np.array([0.4161791450287818])
+    #h_arr = np.array([1.7320508075688776])
+    #h_arr = np.array([10])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -16,8 +17,8 @@ def main():
     J_para = -3.11
     J_perp = -0.1
     p = 2.54
-    #eta_arr = [0.1, 1, 10, 100]
-    eta_arr = [1]
+    #eta_arr = [1]
+    eta_arr = [0.01, 0.05]
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
@@ -33,6 +34,7 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = 210
+    min_cum_nr = 10000
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
@@ -44,9 +46,10 @@ def main():
     max_rel_intersection_error = 0.05
 
     # Quench parameters
-    max_size = 4096
+    max_size = 8200
     min_nr_sites = 1e6
     max_nr_quench_steps = 4e7
+    max_tau = 70000
     para_nr_quench = 230
 
     for h in h_arr:
@@ -60,7 +63,7 @@ def main():
                                                  min_equil_error=min_equil_error,
                                                  intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor,
-                                                 para_nr=para_nr_Tc)
+                                                 para_nr=para_nr_Tc, min_cum_nr=min_cum_nr)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
@@ -71,7 +74,7 @@ def main():
             quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + f"Quench/{eta}",
                                         quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size,
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
-                                        para_nr=para_nr_quench)
+                                        para_nr=para_nr_quench, tau_max=max_tau)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

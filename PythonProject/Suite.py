@@ -219,18 +219,17 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, mi
 
     # Now for the moving factor
 
-    cum_avg, error, moving_factors, nr_values = process_temp_folder(folderpath,
+    cum_avg, rel_error, moving_factors, nr_values = process_temp_folder(folderpath,
                                 equil_cutoff, value="U_L", file_ending="cum")
 
     # We have the error, so we can check if it is small enough
-    rel_error = error / cum_avg
     # How do we check in the observer again? is not written actually...
     # We need the relative errors here
     moving_factor = np.mean(moving_factors)
     nr_vals = np.mean(nr_values)
 
 
-    if (rel_error <= equil_error) and (moving_factor <= max_moving_factor) and (nr_vals >= min_cum_nr):
+    if (rel_error <= equil_error) and (moving_factor <= max_moving_factor):
         return True
     else:
         if (rel_error <= equil_error) and (moving_factor > max_moving_factor):
@@ -292,8 +291,10 @@ def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
             nr_systems = paras["nr_subsystems"]
             total_nr_sites += nr_sites
             total_nr_systems += nr_systems
+    #print(folderpath)
+    #print(total_nr_sites, total_nr_systems)
 
-    if (total_nr_sites > min_nr_sites) and (total_nr_systems > min_nr_systems):
+    if (total_nr_sites >= min_nr_sites) and (total_nr_systems >= min_nr_systems):
         return True
     else:
         return False
@@ -306,7 +307,6 @@ def check_exists(folderpath, file_ending=".cum"):
     """
     files = [f for f in os.listdir(folderpath) if f.endswith(file_ending)]
     return bool(files)
-
 
 def get_mean_dif_var(cum,num_per_var_val):
     nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
@@ -326,7 +326,6 @@ def get_mean_dif_var(cum,num_per_var_val):
     dif_var_mean = np.mean(dif_var_arr)
     squared_dif_var_mean = np.mean(np.array(dif_var_arr) ** 2)    # this way large variances are punished harder
     return dif_var_mean, squared_dif_var_mean
-
 
 def get_folder_average(folderpath, file_ending="cum", value="U_L"):
     """
@@ -451,7 +450,6 @@ class autonomous_measurement():
             return self.call_rsync()
         else:
             return
-
 
     def submit_jobs(self, file=None):
         if file == None:
@@ -1083,7 +1081,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                           size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
-                 random_init=0, max_moving_factor=0.005, min_cum_nr=2500):
+                 random_init=0, max_moving_factor=0.005, min_cum_nr=5000):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.size_min = size_min
@@ -1248,8 +1246,10 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         mark_point(ax, T_c, U_L_intersection,
                    label=rf"$T_c = {T_c:.4f}$")
         configure_ax(fig, ax)
-        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
+        create_directory_if_not_exists(f"{self.simulation_path}/plots/")
+        fig.savefig(self.simulation_path + f"/plots/cum_time_avg-{self.size_min}-{self.size_max}.png", format="png",
                     dpi=300, transparent=False)
+
         plt.show()
     def iteration(self):
         self.iteration_nr += 1
@@ -1451,14 +1451,15 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
-            size_folder_path = os.path.join(self.simulation_path,
-                                            size_folder)
-            if os.path.isdir(size_folder_path) and size_folder[0] != ".":
-                if selected_sizes is not None:
-                    size = int((size_folder))
-                    if size not in selected_sizes:
-                        continue
-                if (size_folder[0] != ".") & (size_folder != "plots"):
+            if size_folder != "plots":
+                size_folder_path = os.path.join(self.simulation_path,
+                                                size_folder)
+                if os.path.isdir(size_folder_path) and size_folder[0] != ".":
+                    if selected_sizes is not None:
+                        size = int((size_folder))
+                        if size not in selected_sizes:
+                            continue
+                    if (size_folder[0] != ".") & (size_folder != "plots"):
                         size_result = process_size_folder(size_folder_path,
                                                           threshold, selected_temperatures=selected_temps)
                         results[int((size_folder))] = size_result
@@ -1502,6 +1503,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_corr_values, 0 \n"
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
                     f"cum_write_density, {self.cum_write_density}\n"
                     f"min_cum_nr, {self.min_cum_nr}\n"
                     f"moving_factor, {self.max_moving_factor}")
@@ -1534,6 +1536,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_corr_values, 0 \n"
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
                     f"cum_write_density, {self.cum_write_density}\n"
                     f"min_cum_nr, {self.min_cum_nr}\n"
                     f"moving_factor, {self.max_moving_factor}")
@@ -1558,13 +1561,15 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                         if temp_diff < min_T_diff:
                             best_done_T = done_temp
                             min_T_diff = temp_diff
+                if best_done_T:
+                    done_folder_path = self.simulation_path + f"/{size}/{best_done_T:.6f}"
+                    done_csv_path = find_first_csv_file(done_folder_path)
+                    name = pathlib.Path(done_csv_path).stem
+                    done_path = f"{done_folder_path}/{name}"
 
-                done_folder_path = self.simulation_path + f"/{size}/{best_done_T:.6f}"
-                done_csv_path = find_first_csv_file(done_folder_path)
-                name = pathlib.Path(done_csv_path).stem
-                done_path = f"{done_folder_path}/{name}"
-
-                self.write_advance_file(size, T, i, -2, done_path)
+                    self.write_advance_file(size, T, i, -2, done_path)
+                else:
+                    self.write_new_file(size, T, i)
             else:
                 self.write_new_file(size, T, i)
         # we need to copy the files to hemera
@@ -1577,7 +1582,7 @@ class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100):
+                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
@@ -1591,6 +1596,7 @@ class quench_measurement(autonomous_measurement):
         self.T_start = Tc
         self.T_end = Tc
         self.tau_min = 1
+        self.tau_max = tau_max
         self.tau_factor = 1                    # current tau
         self.tau_list = []                 # empty list to keep track of the taus that we used
         self.size = size_min            # current size, starts at size_min
@@ -1718,6 +1724,9 @@ class quench_measurement(autonomous_measurement):
             nr_steps = (self.T_start - self.T_end) * self.tau() / self.dt
             if nr_steps > self.max_nr_steps:
                 print(f"tau = {self.tau()} would require more than {self.max_nr_steps}, aborting here")
+                return
+            elif self.tau() > self.tau_max:
+                print(f"Reached maximum tau {self.tau()} > {self.tau_max}, aborting here")
                 return
             self.tau_list.append(self.tau())    # and add it to the bookkeeping list
             return self.iteration()
@@ -1899,8 +1908,8 @@ class quench_measurement(autonomous_measurement):
         xix_scaling_log = np.log(xix_scaling)
         xiy_scaling_log = np.log(xiy_scaling)
 
-        reg_x, min_tau_x, max_tau_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
-        reg_y, min_tau_y, max_tau_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
+        reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
+        reg_y, min_tau_ind_y, max_tau_ind_y = best_lin_reg(log_tau, xiy_scaling_log, min_r_squared=0.95, more_points=True, min_points=3)
         quench_exp_x =  reg_x.slope
         quench_ampl_x = np.exp(reg_x.intercept)
         quench_exp_y = reg_y.slope
@@ -1923,8 +1932,8 @@ class quench_measurement(autonomous_measurement):
         # Plot the fit
         prev_y_low = axx.get_ylim()[0]
         prev_y_up = axx.get_ylim()[1]
-        print("tau array:", tau_scaling[(tau_scaling >= min_tau_x) & (tau_scaling <= max_tau_x)])
-        axx.plot(tau_scaling[min_tau_x:max_tau_x], poly(tau_scaling[min_tau_x:max_tau_x], quench_exp_x, quench_ampl_x),
+        print("tau array:", tau_scaling[(tau_scaling >= min_tau_ind_x) & (tau_scaling <= max_tau_ind_x)])
+        axx.plot(tau_scaling[min_tau_ind_x:max_tau_ind_x], poly(tau_scaling[min_tau_ind_x:max_tau_ind_x], quench_exp_x, quench_ampl_x),
                  color="black", alpha=0.5, linestyle="dashed",
                  label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_x:.2f}")
         axx.set_ylim(prev_y_low, prev_y_up)
@@ -1947,8 +1956,8 @@ class quench_measurement(autonomous_measurement):
             axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
         prev_y_low = axy.get_ylim()[0]
         prev_y_up = axy.get_ylim()[1]
-        axy.plot(tau_scaling[min_tau_y:max_tau_y],
-                 poly(tau_scaling[min_tau_y:max_tau_y], quench_exp_y, (quench_ampl_y)),
+        axy.plot(tau_scaling[min_tau_ind_y:max_tau_ind_y],
+                 poly(tau_scaling[min_tau_ind_y:max_tau_ind_y], quench_exp_y, (quench_ampl_y)),
                  color="black", alpha=0.5, linestyle="dashed",
                  label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_y:.2f}")
         axy.set_ylim(prev_y_low, prev_y_up)
@@ -1966,6 +1975,11 @@ class quench_measurement(autonomous_measurement):
         ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecolor=None,
                 markeredgecolor="C0", label=r"$\hat{\xi_x} / \hat{\xi_y}$")
 
+        xix_xiy = np.mean(xix_xiy_ratio[min_tau_ind_x:])
+        xix_xiy_fast = np.mean(xix_xiy_ratio[:min_tau_ind_x])
+
+        ax.plot([], [], linestyle="", label=rf"$\langle \xi_x / \xi_y \rangle = {xix_xiy}$")
+        ax.plot([], [], linestyle="", label=r"$\langle \xi_x / \xi_y (\tau < \tau_{min}) \rangle = $" +  f"{xix_xiy_fast}")
 
         configure_ax(fig, ax)
         plt.savefig(self.simulation_path + "/plots/xix_xiy.png", format="png")
@@ -2068,10 +2082,9 @@ class amplitude_measurement(autonomous_measurement):
         self.corr_write_density = 1 / 100          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
         self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
-        self.Tc_fit_tolerance = 0.025        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
+        self.Tc_fit_tolerance = 0.15        # 5% tolerance for the Tc obtained from the linear regression around the critical point. If its further away, we do not accept the fit
         self.min_r_sqaured = 0.98           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
 
-        self.para_nr = 110                 # A different para nr for this simulation?
         self.cur_para_nr = 0                # same method as in Tc?
     def setup(self):
         # This function will determine the initial T range
@@ -2108,6 +2121,7 @@ class amplitude_measurement(autonomous_measurement):
             Ts = list(self.T_arr)                   # change to list as we then can easier use remove
             Ts.remove(valid_temp)                   # remove the valid T from the Ts we still have to do
             self.T_arr = np.array(Ts)               # overwrite the original array with the new Ts
+            self.total_runs = len(self.T_arr)
 
         if self.T_arr.size != 0:
             # if the array is not empty this means that there are still simulations to do
@@ -2248,14 +2262,21 @@ class amplitude_measurement(autonomous_measurement):
         # Or i mean it will be linear but every other polynomial would also be linear
         # what will it be... decide! I see them in a single log plot tbh
         # first we will calculate the critical temperatures of the two cases aswell as the critical amplitudes
+
         reg_x = x_result[0]
         reg_y = y_result[0]
         T_x = x_data[0]
         T_y = y_data[0]
-        xix_ampl = 1 / reg_x.slope
-        xiy_ampl = 1 / reg_y.slope
-        Tc_x = - reg_x.intercept * xix_ampl
-        Tc_y = - reg_y.intercept * xiy_ampl
+        # Seems this was wrong? But I dont believe it tbh
+        # xix_ampl = 1 / reg_x.slope
+        # xiy_ampl = 1 / reg_y.slope
+        # Tc_x = - reg_x.intercept * xix_ampl
+        # Tc_y = - reg_y.intercept * xiy_ampl
+
+        xix_ampl = - 1 / reg_x.intercept
+        xiy_ampl = - 1 / reg_y.intercept
+        Tc_x = - reg_x.intercept / reg_x.slope
+        Tc_y = - reg_y.intercept / reg_y.slope
 
         # With this we can just plot the stuff? first the inverse stuff
         fig, ax = plt.subplots(1, 1)
@@ -2719,7 +2740,7 @@ def main():
     #J_perp = -0.1
     h = 1e6
     #h = 0.5
-    eta = 100
+    eta = 0.001
     p = 2.33
     dt = 0.00001
     # dt = 0.01
@@ -2730,7 +2751,7 @@ def main():
     random_init = 0.0
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/large eta/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/smaller h/smallest eta/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"

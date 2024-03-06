@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/Test7/Tc/'
+    simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/L/'
     threshold = 0.1  # Example threshold value, adjust as needed
     max_L_fit = 100
     transparent_plots = False
@@ -29,7 +29,7 @@ def main():
     # x_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(results)
     # print("Critical Temperature T_c = ", T_intersection)
 
-    T_cs, U_Ls = get_intersections(results)
+    T_cs, U_Ls = get_first_intersections(results)
     # more is it net?
     # simple error would be to be just max_intersection - min_intersection?
     T_c = np.mean(T_cs)
