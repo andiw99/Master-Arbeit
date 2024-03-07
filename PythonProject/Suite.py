@@ -1370,19 +1370,19 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][-1]
                     U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][0]
                     U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][0]
-                    # TODO comment in again
-                    #if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
-                    #    # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
-                    #    if (U_L_lower_bound_small_size * (1 - self.equil_error) <
-                    #            U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
-                    #            U_L_upper_bound_large_size * (1 - self.equil_error)):
-                    #        # this means the error bars overlap and we redo the corresponding jobs with half the error
-                    #        self.equil_error = max(self.equil_error / 2, self.min_equil_error)
-                    #        for size in self.sizes:
-                    #            self.jobs_to_do.add((size, lower_T_bound))
-                    #            self.jobs_to_do.add((size, upper_T_bound))
-                    #        self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
-                    #        return self.iteration()
+
+                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
+                        # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
+                        if (U_L_lower_bound_small_size * (1 - self.equil_error) <
+                                U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
+                                U_L_upper_bound_large_size * (1 - self.equil_error)):
+                            # this means the error bars overlap and we redo the corresponding jobs with half the error
+                            self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                            for size in self.sizes:
+                                self.jobs_to_do.add((size, lower_T_bound))
+                                self.jobs_to_do.add((size, upper_T_bound))
+                            self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
+                            return self.iteration()
                     T_c = np.mean(intersections)
                     print(f"Found an intersection at T_c = {T_c}")
                     print("intersections: ", intersections)
@@ -3028,7 +3028,7 @@ def main():
     # want to work with the new error
 
     max_rel_intersection_error = 0.02
-    min_cum_nr = 100000
+    min_cum_nr = 25000
     moving_factor = 0.001
 
     # Quench parameters
