@@ -23,6 +23,10 @@ import statsmodels.tsa.stattools as st
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
 markers = ["o", "s", ".", "x", "+", "*", "D", "1", "2", "v", "^"]
+blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
+
+def get_point_kwargs_color(color):
+    return {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": color}
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)

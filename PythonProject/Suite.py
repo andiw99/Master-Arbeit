@@ -183,7 +183,7 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
             print(f"Moving factor {moving_factor} too large")
         return False
 
-def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, min_cum_nr=2500):
+def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, min_cum_nr=25):
     """
     function that checks whether a cumulant measurement was valid
     :param folderpath:
@@ -1079,11 +1079,14 @@ class crit_temp_measurement(autonomous_measurement):
 
 class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
-                          size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
+                 size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
-                 random_init=0, max_moving_factor=0.005, min_cum_nr=5000):
+                 random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L"):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+
+        self.value_name = value_name
+
         self.size_min = size_min
         self.size_max = size_max
         self.max_steps = max_steps
@@ -1109,8 +1112,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = min_cum_nr
-        self.cum_write_density = 1 / 100
+        self.min_val_nr = min_val_nr
+        self.val_write_density = 1 / 100
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
         # jobs to do will be a set so we cannot possible do one job accidentally twice
@@ -1118,6 +1121,9 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.jobs_done = set()           # set with triplets of done jobs?
 
         self.cur_para_nr = 0
+        self.check_function = check_cum_valid
+        self.file_ending = "cum"
+
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -1173,19 +1179,19 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         intersections, intersections_y = get_first_intersections(results)
 
         T_c = np.mean(intersections)
-        U_L_intersection = np.mean(intersections_y)
+        val_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        self.plotBinderCurve(T_c, U_L_intersection, results)
+        self.plotValueCurve(T_c, val_intersection, results)
 
         # constructing cum dic
-        cum_dic = {}
+        val_dic = {}
         for size in results:
-            cum_dic[size] = results[size]["U_L"]
+            val_dic[size] = results[size][self.file_ending]
 
         diff_arr, size_arr = calc_diff_at(T_c,
                                           list(results.values())[0]["T"],
-                                          cum_dic)
+                                          val_dic)
 
         popt, _ = curve_fit(linear_fit, np.log(size_arr),
                             np.log(diff_arr))
@@ -1200,17 +1206,18 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 label=rf"$\nu = {nu:.2f}$", color=colors[0])
         ax.plot(size_arr, diff_arr, linestyle="", marker="x", color=colors[0])
         ax.set_xlabel("L")
-        ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
+        ax.set_ylabel(r"$\frac{d" + f"{self.value_name}" + r"}{d \varepsilon}$")
         ax.legend()
         ax.set_title(
-            r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
+            r"$\frac{d" + f"{self.value_name}" + r"}{d \varepsilon}$ for different System sizes $L$")
         configure_ax(fig, ax)
         # save_plot(root, "/critical_exponent.pdf", format="pdf")
         fig.savefig(self.simulation_path + "/critical_exponent_time_avg.png",
                     format="png", dpi=250, transparent=False)
         plt.show()
 
-    def plotBinderCurve(self, T_c, U_L_intersection, results):
+    def plotValueCurve(self, T_c, val_intersection, results, value_name="U_L",
+                       title="Binder Cumulant on T", plotname="cum_time_avg"):
         fig, ax = plt.subplots(1, 1)
         if not T_c:
             T_c = 0
@@ -1225,29 +1232,29 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
                 T = np.array(results[size]["T"])
-                U_L = np.array(results[size]["U_L"])
-                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
+                val = np.array(results[size][value_name])
+                ax.plot(T, val, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
-                        np.max(U_L[(min_T <= T) & (T <= max_T)]), y_upper_lim)
+                        np.max(val[(min_T <= T) & (T <= max_T)]), y_upper_lim)
                     y_lower_lim = np.minimum(
-                        np.min(U_L[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+                        np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
         y_span = y_upper_lim - y_lower_lim
         ax.set_xlabel("T")
-        ax.set_ylabel(r"$U_L$")
-        ax.set_title("Binder Cumulant on T")
+        ax.set_ylabel(rf"${value_name}$")
+        ax.set_title(title)
         if min_T:
             ax.set_xlim(min_T, ax.get_xlim()[1])
             ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
         if max_T:
             ax.set_xlim(ax.get_xlim()[0], max_T)
             ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, U_L_intersection,
+        mark_point(ax, T_c, val_intersection,
                    label=rf"$T_c = {T_c:.4f}$")
         configure_ax(fig, ax)
         create_directory_if_not_exists(f"{self.simulation_path}/plots/")
-        fig.savefig(self.simulation_path + f"/plots/cum_time_avg-{self.size_min}-{self.size_max}.png", format="png",
+        fig.savefig(self.simulation_path + f"/plots/{plotname}-{self.size_min}-{self.size_max}-{self.equil_error}.png", format="png",
                     dpi=300, transparent=False)
 
         plt.show()
@@ -1255,13 +1262,13 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
         # We check how many fitting temp-size pairs are already available
-
+        # also for corr we just check here that the required error is small enough. The stuff with the ''if it is to close together'' comes later
+        # so we only have to adjust the check_function
         valid_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_cum_valid, check_function_args=(self.equil_error,
+                                                  self.check_function, check_function_args=(self.equil_error,
                                                                                         self.equil_cutoff,
-                                                                                        self.max_moving_factor,
-                                                                                        self.min_cum_nr)
+                                                                                        self.max_moving_factor)
                                                   )
         # Okay so the thing is even if we have a simulation that is not valid,
         # but there is at least already a simulation, we want to continue it instead of
@@ -1271,7 +1278,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # get_avail_jobs with a trival check function that returns true if it just finds a file
         avail_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_exists, check_function_args=[".cum"]
+                                                  check_exists, check_function_args=[self.file_ending]        # what do we do with the file ending here
                                                   )
         # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
         # In the other two cases it was easy because we only had one size or one temperature always?
@@ -1305,24 +1312,24 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         T_arr = np.array(sorted(list(self.all_T_dic[smallest_error])))
         # for this one we want to check if it has an intersection
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
-
-        U_L_min_T_min = np.min(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_min = np.min(results[np.max(self.sizes)]['U_L'])
-        U_L_min_T_max = np.max(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_max = np.max(results[np.max(self.sizes)]['U_L'])
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)     # If i just implement this for xi and for U_L which makes almost no difference, am I not almost done? it will just use L / xi instead of U
+        # Ah another problem is with the error and the validation function, but besides that I think we are basically fine.
+        val_min_T_min = np.min(results[np.min(self.sizes)][self.value_name])
+        val_max_T_min = np.min(results[np.max(self.sizes)][self.value_name])
+        val_min_T_max = np.max(results[np.min(self.sizes)][self.value_name])
+        val_max_T_max = np.max(results[np.max(self.sizes)][self.value_name])
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
-        intersection = ((U_L_min_T_min > U_L_max_T_min) & (
-                U_L_min_T_max < U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
+        intersection = ((val_min_T_min > val_max_T_min) & (
+                val_min_T_max < val_max_T_max)) or self.intersection_anyway(val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max)      # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
         if intersection:
             # now the usual stuff, estimate the postion of the intersection
             # now we actually want all intersections, not only the one with the lowest index
             # the efficient thing is that we only use 2 sizes? x)
             T_range = results[self.size_min]["T"]
-            U_L_small_size = results[self.size_min]["U_L"]
-            U_L_large_size = results[self.size_max]["U_L"]
+            val_small_size = results[self.size_min][self.value_name]
+            val_large_size = results[self.size_max][self.value_name]
 
             # before we do anything we will check now if the values that we calculated lie in each others errorbars
             # and redo thos calculations but only if they are far enough away from the low and high temperature phase
@@ -1330,7 +1337,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
             # but that would mean that we always advance all points...
             # how about we only advance the points that are part of the intersection...
 
-            intersections, intersections_y = find_intersections(T_range, U_L_small_size, U_L_large_size)
+            intersections, intersections_y = find_intersections(T_range, val_small_size, val_large_size)
 
             # If the length of the intersections is larger than 1 so if we have more than one intersection, we instantly have a problem
             if len(intersections) > 1:
@@ -1366,23 +1373,16 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     # lower_T_bound_ind = np.argmax(T_arr[T_arr < intersection])
                     # upper_T_bound_ind = np.argmin(T_arr[T_arr > intersection])
 
-                    U_L_lower_bound_small_size = results[self.size_min]["U_L"][T_arr < intersection][-1]
-                    U_L_lower_bound_large_size = results[self.size_max]["U_L"][T_arr < intersection][-1]
-                    U_L_upper_bound_small_size = results[self.size_min]["U_L"][T_arr > intersection][0]
-                    U_L_upper_bound_large_size = results[self.size_max]["U_L"][T_arr > intersection][0]
+                    val_lower_bound_small_size = results[self.size_min][self.value_name][T_arr < intersection][-1]
+                    val_lower_bound_large_size = results[self.size_max][self.value_name][T_arr < intersection][-1]
+                    val_upper_bound_small_size = results[self.size_min][self.value_name][T_arr > intersection][0]
+                    val_upper_bound_large_size = results[self.size_max][self.value_name][T_arr > intersection][0]
 
-                    if (U_L_upper_bound_small_size < 2.95) and (U_L_lower_bound_large_size > 1.05):
-                        # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
-                        if (U_L_lower_bound_small_size * (1 - self.equil_error) <
-                                U_L_lower_bound_large_size * (1 + self.equil_error)) or (U_L_upper_bound_small_size * (1 + self.equil_error) >
-                                U_L_upper_bound_large_size * (1 - self.equil_error)):
-                            # this means the error bars overlap and we redo the corresponding jobs with half the error
-                            self.equil_error = max(self.equil_error / 2, self.min_equil_error)
-                            for size in self.sizes:
-                                self.jobs_to_do.add((size, lower_T_bound))
-                                self.jobs_to_do.add((size, upper_T_bound))
-                            self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
-                            return self.iteration()
+                    errors_overlap = self.check_errors_overlap(lower_T_bound, upper_T_bound, val_lower_bound_large_size,
+                                                               val_lower_bound_small_size, val_upper_bound_large_size,
+                                                               val_upper_bound_small_size)
+                    if errors_overlap:
+                        return self.iteration()
                     T_c = np.mean(intersections)
                     print(f"Found an intersection at T_c = {T_c}")
                     print("intersections: ", intersections)
@@ -1404,8 +1404,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     print(f"Determined crit. Temp T_c = {T_c} +- {rel_intersec_error}")
                     return T_c, T_c_error
                 else:
-                    U_L_intersection = np.mean(intersections_y)
-                    self.plotBinderCurve(T_c, U_L_intersection, results)
+                    val_intersection = np.mean(intersections_y)
+                    self.plotValueCurve(T_c, val_intersection, results)
 
                     T_low = T_interval_low + dT/3
                     T_up = T_interval_low + 2 * dT / 3
@@ -1422,8 +1422,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
-            self.plotBinderCurve(None, None, results)
-            if U_L_min_T_max > U_L_max_T_max:
+            self.plotValueCurve(None, None, results)
+            if val_min_T_max > val_max_T_max:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
                 # TODO can we somehow approximate how far away we are?
@@ -1434,7 +1434,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 T_max = np.max(self.T_arr) + T_range + dT    # TODO add dT!!
                 self.T_arr = np.linspace(T_min, T_max, 2)
                 # Okay we updated the temperature array... now we just run everything again?
-            elif U_L_min_T_min < U_L_max_T_min:
+            elif val_min_T_min < val_max_T_min:
                 print("The minimum temperature is too high")
                 T_range = np.ptp(self.T_arr)
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
@@ -1448,7 +1448,35 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 self.jobs_to_do.add((size, T_max))
             return self.iteration()
 
-    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
+    def check_errors_overlap(self, lower_T_bound, upper_T_bound, val_lower_bound_large_size, val_lower_bound_small_size,
+                             val_upper_bound_large_size, val_upper_bound_small_size):
+        # Those numbers are kind of willkürlihc
+        errors_overlap = False
+        if (self.check_if_values_to_close(val_upper_bound_small_size, val_lower_bound_large_size)
+                and self.equil_error > self.min_equil_error):
+            # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
+            # for the correlation length we here have the problem that the error on L/xi is not just the error on xi
+            # and we (kinda) lost the information on xi
+            if (val_lower_bound_small_size * (1 - self.equil_error) <
+                val_lower_bound_large_size * (1 + self.equil_error)) or (
+                    val_upper_bound_small_size * (1 + self.equil_error) >
+                    val_upper_bound_large_size * (1 - self.equil_error)):
+                # this means the error bars overlap and we redo the corresponding jobs with half the error
+                self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                for size in self.sizes:
+                    self.jobs_to_do.add((size, lower_T_bound))
+                    self.jobs_to_do.add((size, upper_T_bound))
+                self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
+                errors_overlap = True
+        return errors_overlap
+
+    def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
+        return (val_max_T_max / val_max_T_min > 2.95)
+
+    def check_if_values_to_close(self, val_upper_bound_small_size, val_lower_bound_large_size):
+        return (val_upper_bound_small_size < 2.95) and (val_lower_bound_large_size > 1.01)
+
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None, value_name="U_L", file_ending="cum"):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
             if size_folder != "plots":
@@ -1461,7 +1489,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                             continue
                     if (size_folder[0] != ".") & (size_folder != "plots"):
                         size_result = process_size_folder(size_folder_path,
-                                                          threshold, selected_temperatures=selected_temps)
+                                                          threshold, selected_temperatures=selected_temps,
+                                                          value=value_name, file_ending=file_ending)
                         results[int((size_folder))] = size_result
         return results
 
@@ -1504,8 +1533,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
                     f"equil_cutoff, {self.equil_cutoff}\n"
-                    f"cum_write_density, {self.cum_write_density}\n"
-                    f"min_cum_nr, {self.min_cum_nr}\n"
+                    f"{self.file_ending}_write_density, {self.val_write_density}\n"
+                    f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
                     f"moving_factor, {self.max_moving_factor}")
 
     def write_new_file(self, size, T, ind):
@@ -1537,8 +1566,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"nr_ft_values, 0 \n"
                     f"equil_error, {self.equil_error}\n"
                     f"equil_cutoff, {self.equil_cutoff}\n"
-                    f"cum_write_density, {self.cum_write_density}\n"
-                    f"min_cum_nr, {self.min_cum_nr}\n"
+                    f"{self.file_ending}_write_density, {self.val_write_density}\n"
+                    f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
                     f"moving_factor, {self.max_moving_factor}")
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
@@ -1578,6 +1607,70 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
+class efficient_crit_temp_measurement_corr(efficient_crit_temp_measurement):
+    def __init__(self, *args, **kwargs):
+        # call the constructor of the parent classe
+        super().__init__(*args, **kwargs)
+        self.check_function = check_corr_valid
+        self.file_ending = "corr"
+
+
+    def plotValueCurve(self, T_c, val_intersection, results):
+        super().plotValueCurve(T_c, val_intersection, results, value_name=self.value_name, title="L/xi on T",
+                               plotname="corr_time_avg")
+
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
+        results = super().construct_results(threshold, selected_temps, selected_sizes, self.value_name,
+                                            file_ending="corr")
+        # And now we somehow need to find out L? The Ls are sadly different in the two directions
+        # We make it easy...
+        for size in results:
+            if self.value_name == "xix":
+                L = size
+            else:
+                L = size * self.Ly_Lx
+            results[size][self.value_name] = L / results[size][self.value_name]
+        return results
+
+    def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
+        return False
+
+    def check_errors_overlap(self, lower_T_bound, upper_T_bound, val_lower_bound_large_size, val_lower_bound_small_size,
+                             val_upper_bound_large_size, val_upper_bound_small_size):
+        # Those numbers are kind of willkürlihc
+        errors_overlap = False
+        if self.equil_error > self.min_equil_error:
+            # otherwise we say that the U_L span is so large that we aller wahrscheinlichkeit nach have an intersection between
+            # for the correlation length we here have the problem that the error on L/xi is not just the error on xi
+            # and we (kinda) lost the information on xi
+
+            low_overlap = (val_lower_bound_small_size * (1 - self.get_error(val_lower_bound_small_size, self.size_min))
+                           < val_lower_bound_large_size * (1 + self.get_error(val_lower_bound_large_size, self.size_max)))
+            up_overlap = (val_upper_bound_small_size * (1 + self.get_error(val_upper_bound_small_size, self.size_min)) >
+                          val_upper_bound_large_size * (1 - self.get_error(val_upper_bound_large_size, self.size_max)))
+            if low_overlap or up_overlap:
+                # this means the error bars overlap and we redo the corresponding jobs with half the error
+                self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                for size in self.sizes:
+                    self.jobs_to_do.add((size, lower_T_bound))
+                    self.jobs_to_do.add((size, upper_T_bound))
+                self.all_T_dic[self.equil_error] = {lower_T_bound, upper_T_bound}
+                errors_overlap = True
+        return errors_overlap
+
+    def get_error(self, L_xi, L):
+        # okay so  1 / L_xi * L is xi
+        xi = 1 / L_xi * L
+        abs_error = xi * self.equil_error
+        abs_errro_L_xi = L_xi / xi * abs_error
+        rel_error_L_xi = abs_errro_L_xi / L_xi
+        return rel_error_L_xi
+
+    def get_L(self, L):
+        if self.value_name == "xix":
+            return L
+        else:
+            return int(L * self.Ly_Lx)
 class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
@@ -2118,7 +2211,7 @@ class amplitude_measurement(autonomous_measurement):
         # I think we should improve the pickup capability, if we run for example half the jobs of simulation we should be able to use them
         valid_simulations = get_avail_simulations([self.size], self.T_arr, self.simulation_path, check_corr_valid,
                                                   check_function_args=(self.equil_error, self.equil_cutoff),        # TODO add moving factor
-                                                  temp_tolerance=0.01)
+                                                  temp_tolerance=0.002)
         # For every valid simulation we do not have to do this simulation in the following
         for valid_simulation in valid_simulations:
             valid_temp = valid_simulation[1]        # valid simulations is tuple of (size, temp), we only need the temp here
@@ -2229,7 +2322,7 @@ class amplitude_measurement(autonomous_measurement):
                 print("We have to repeat the simulation")
             # so we extend the temperatures that we investigate
             stepsize = self.T_arr[1] - self.T_arr[0]
-            self.T_arr = np.linspace(np.max(self.T_arr) + stepsize, (1 + 2 * self.T_range_fraction) * self.Tc)
+            self.T_arr = np.linspace(np.max(self.T_arr) + stepsize, (1 + 2 * self.T_range_fraction + self.T_min_fraction) * self.Tc, self.nr_Ts)
             # Just iteration now?
             return self.iteration()
         else:
@@ -3000,7 +3093,7 @@ def main():
     #J_para = -9
     J_perp = -2340
     #J_perp = -0.1
-    h = 10000
+    h = 50000
     #h = 0.5
     eta = 1
     p = 2.33
@@ -3011,9 +3104,9 @@ def main():
     nr_sizes_Tc = 3
     nr_Ts = 5
     random_init = 0.0
-    #filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/small h/"
+    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=50000/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -3028,7 +3121,7 @@ def main():
     # want to work with the new error
 
     max_rel_intersection_error = 0.02
-    min_cum_nr = 25000
+    min_cum_nr = 50000
     moving_factor = 0.001
 
     # Quench parameters
@@ -3067,9 +3160,9 @@ def main():
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                    size_min=min_size_Tc, size_max=max_size_Tc,
-                                    intersection_error=max_rel_intersection_error, random_init=random_init,
-                                  max_moving_factor=moving_factor, min_cum_nr=min_cum_nr)
+                                              size_min=min_size_Tc, size_max=max_size_Tc,
+                                              intersection_error=max_rel_intersection_error, random_init=random_init,
+                                              max_moving_factor=moving_factor, min_val_nr=min_cum_nr)
         T_c, T_c_error = sim.routine()
     else:
         T_c = float(input("Enter critical temperature:"))
