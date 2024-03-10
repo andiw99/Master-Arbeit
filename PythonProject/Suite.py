@@ -506,7 +506,8 @@ class autonomous_measurement():
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
-                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005):
+                 intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
+                 min_val_nr=2500, value_name="U_L", random_init=0):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.nr_Ts = nr_Ts
@@ -524,6 +525,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.T_arr = np.array([])
         self.max_T_step = 0.1               # fraction of the critical temperature that is the maximum stepsize for accepted measurements
         self.sizes = np.array([])
+        self.random_init = random_init
         self.max_time = 0
         self.total_runs = 0
 
@@ -535,13 +537,16 @@ class crit_temp_measurement(autonomous_measurement):
         self.maximum_iterations = 4
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
-        self.min_cum_nr = 2500
-        self.cum_write_density = 1 / 100
+        self.min_val_nr = min_val_nr
+        self.val_write_density = 1 / 100
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
         self.jobs_to_do = None          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
 
         self.cur_para_nr = 0
+        self.check_function = check_cum_valid
+        self.file_ending = "cum"
+        self.value_name = value_name
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -601,7 +606,7 @@ class crit_temp_measurement(autonomous_measurement):
         U_L_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        self.plotBinderCurve(T_c, U_L_intersection, results)
+        self.plot_value_curve(T_c, U_L_intersection, results)
 
         # constructing cum dic
         cum_dic = {}
@@ -635,7 +640,8 @@ class crit_temp_measurement(autonomous_measurement):
                     format="png", dpi=250, transparent=False)
         plt.show()
 
-    def plotBinderCurve(self, T_c, U_L_intersection, results):
+    def plot_value_curve(self, T_c, val_intersection, results, value_name="U_L",
+                       title="Binder Cumulant on T", plotname="cum_time_avg"):
         fig, ax = plt.subplots(1, 1)
         if not T_c:
             T_c = 0
@@ -644,36 +650,38 @@ class crit_temp_measurement(autonomous_measurement):
         shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
-        T_arr = self.all_T_dic[np.max(list(self.all_T_dic.keys()))]
+        T_arr = np.array(list(self.all_T_dic[np.min(list(self.all_T_dic.keys()))]))
         max_T = np.max(T_arr) * 1.01
         min_T = np.min(T_arr) * 0.99
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
                 T = np.array(results[size]["T"])
-                U_L = np.array(results[size]["U_L"])
-                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
+                val = np.array(results[size][value_name])
+                ax.plot(T, val, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
-                        np.max(U_L[(min_T <= T) & (T <= max_T)]), y_upper_lim)
+                        np.max(val[(min_T <= T) & (T <= max_T)]), y_upper_lim)
                     y_lower_lim = np.minimum(
-                        np.min(U_L[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+                        np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+        y_upper_lim = 20
         y_span = y_upper_lim - y_lower_lim
         ax.set_xlabel("T")
-        ax.set_ylabel(r"$U_L$")
-        ax.set_title("Binder Cumulant on T")
+        ax.set_ylabel(rf"${value_name}$")
+        ax.set_title(title)
         if min_T:
             ax.set_xlim(min_T, ax.get_xlim()[1])
             ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
         if max_T:
             ax.set_xlim(ax.get_xlim()[0], max_T)
             ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, U_L_intersection,
+        mark_point(ax, T_c, val_intersection,
                    label=rf"$T_c = {T_c:.4f}$")
         configure_ax(fig, ax)
         create_directory_if_not_exists(f"{self.simulation_path}/plots/")
-        fig.savefig(self.simulation_path + f"plots/cum_time_avg-{self.size_min}-{self.size_max}.png", format="png",
+        fig.savefig(self.simulation_path + f"/plots/{plotname}-{self.size_min}-{self.size_max}-{self.equil_error}.png", format="png",
                     dpi=300, transparent=False)
+
         plt.show()
 
     def conclude_old(self):
@@ -777,7 +785,7 @@ class crit_temp_measurement(autonomous_measurement):
         valid_simulations = get_avail_simulations(self.sizes,
                                                   self.T_arr,
                                                   self.simulation_path,
-                                                  check_cum_valid, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
+                                                  self.check_function, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
                                                   )
         # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
         # In the other two cases it was easy because we only had one size or one temperature always?
@@ -810,19 +818,19 @@ class crit_temp_measurement(autonomous_measurement):
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
         results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
 
-        U_L_min_T_min = np.min(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_min = np.min(results[np.max(self.sizes)]['U_L'])
-        U_L_min_T_max = np.max(results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_max = np.max(results[np.max(self.sizes)]['U_L'])
+        val_min_T_min_size = results[np.min(self.sizes)][self.value_name][0]
+        val_min_T_max_size = results[np.max(self.sizes)][self.value_name][0]
+        val_max_T_min_size = results[np.min(self.sizes)][self.value_name][-1]
+        val_max_T_max_size = results[np.max(self.sizes)][self.value_name][-1]
         # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
         # and U_L_min_T_max < U_L_max_T_max
         # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
-        intersection = ((U_L_min_T_min >= U_L_max_T_min) & (
-                U_L_min_T_max <= U_L_max_T_max)) or (U_L_max_T_max / U_L_max_T_min > 2.95)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
+        intersection = ((val_min_T_min_size >= val_min_T_max_size) & (
+                val_max_T_min_size <= val_max_T_max_size)) or self.intersection_anyway(val_min_T_min_size, val_min_T_max_size, val_max_T_min_size, val_max_T_max_size)       # TODO this is a bit fishy but will probably work in 99% of times, catches the case that the maximum temperature is far in the high temperaturef region and therefore inflicated with strong fluctiations
         dT = T_arr[1] - T_arr[0]
         if intersection:
             # now the usual stuff, estimate the postion of the intersection
-            intersections, intersections_y = get_first_intersections(results)
+            intersections, intersections_y = get_first_intersections(results, self.value_name)
 
             T_c = np.mean(intersections)
 
@@ -842,8 +850,8 @@ class crit_temp_measurement(autonomous_measurement):
                 return T_c, T_c_error
             else:
                 # We still want to plot the stuff to see where we at
-                U_L_intersection = np.mean(intersections_y)
-                self.plotBinderCurve(T_c, U_L_intersection, results)
+                val_intersection = np.mean(intersections_y)
+                self.plot_value_curve(T_c, val_intersection, results)
                 # If the error is too large we do a child measurement with smaller error
                 self.equil_error = max(self.equil_error/ 2, self.min_equil_error)
                 # We wanted to have our edgecases of within 5 or 20 percent of the interval edges...
@@ -872,8 +880,8 @@ class crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
-            self.plotBinderCurve(None, None, results)
-            if U_L_min_T_max > U_L_max_T_max:
+            self.plot_value_curve(None, None, results)
+            if val_max_T_min_size > val_max_T_max_size:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
                 # TODO can we somehow approximate how far away we are?
@@ -883,7 +891,7 @@ class crit_temp_measurement(autonomous_measurement):
                 T_max = np.max(self.T_arr) + T_range + dT    # TODO add dT!!
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
                 # Okay we updated the temperature array... now we just run everything again?
-            elif U_L_min_T_min < U_L_max_T_min:
+            elif val_min_T_min_size < val_min_T_max_size:
                 print("The minimum temperature is too high")
                 T_range = np.ptp(self.all_T_arr)
                 T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
@@ -894,7 +902,8 @@ class crit_temp_measurement(autonomous_measurement):
             self.all_T_dic[sim_hierarchy_nr] = np.concatenate((T_arr, self.T_arr))
 
             return self.iteration()
-
+    def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
+        return (val_max_T_max / val_max_T_min > 2.95)
     def evaluate_simulation_old(self):
         self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))   # we do it here, before evaluating
         all_results = self.construct_results(self.discard_threshold, self.all_T_arr)     # for all results we use the self.all_T_arr? Since we want to reproduce always the measurements that we already did so that we can resume it where we left it of
@@ -1013,7 +1022,8 @@ class crit_temp_measurement(autonomous_measurement):
                 self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
             return self.iteration()
 
-    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None,
+                          value_name="U_L", file_ending="cum"):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
             if size_folder[0] != 0 and size_folder != "plots":
@@ -1025,7 +1035,8 @@ class crit_temp_measurement(autonomous_measurement):
                         if size not in selected_sizes:
                             continue
                     size_result = process_size_folder(size_folder_path,
-                                                      threshold, selected_temperatures=selected_temps)
+                                                          threshold, selected_temperatures=selected_temps,
+                                                          value=value_name, file_ending=file_ending)
                     results[int(size_folder)] = size_result
         return results
 
@@ -1058,7 +1069,7 @@ class crit_temp_measurement(autonomous_measurement):
                         f"min_temp, {T} \n"
                         f"max_temp, {T} \n"
                         f"nr_runs, 0.0 \n"
-                        f"random_init, 0.0 \n"
+                        f"random_init, {self.random_init} \n"
                         f"curand_random, 1 \n"
                         f"subsystem_min_Lx, {size} \n"
                         f"subsystem_max_Lx, {size} \n"
@@ -1068,14 +1079,42 @@ class crit_temp_measurement(autonomous_measurement):
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}\n"
-                        f"cum_write_density, {self.cum_write_density}\n"
-                        f"min_cum_nr, {self.min_cum_nr}\n"
+                        f"{self.file_ending}_write_density, {self.val_write_density}\n"
+                        f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
                         f"moving_factor, {self.max_moving_factor}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+class crit_temp_measurement_corr(crit_temp_measurement):
+    def __init__(self, *args, **kwargs):
+        # call the constructor of the parent classe
+        super().__init__(*args, **kwargs)
+        self.check_function = check_corr_valid
+        self.file_ending = "corr"
+
+
+    def plot_value_curve(self, T_c, val_intersection, results):
+        super().plot_value_curve(T_c, val_intersection, results, value_name=self.value_name, title="L/xi on T",
+                               plotname="corr_time_avg")
+
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
+        results = super().construct_results(threshold, selected_temps, selected_sizes, self.value_name,
+                                            file_ending="corr")
+        # And now we somehow need to find out L? The Ls are sadly different in the two directions
+        # We make it easy...
+        for size in results:
+            if self.value_name == "xix":
+                L = size
+            else:
+                L = size * self.Ly_Lx
+            results[size][self.value_name] = L / results[size][self.value_name]
+        return results
+
+    def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
+        return False
 
 class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
@@ -1476,7 +1515,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def check_if_values_to_close(self, val_upper_bound_small_size, val_lower_bound_large_size):
         return (val_upper_bound_small_size < 2.95) and (val_lower_bound_large_size > 1.01)
 
-    def construct_results(self, threshold, selected_temps=None, selected_sizes=None, value_name="U_L", file_ending="cum"):
+    def construct_results(self, threshold, selected_temps=None, selected_sizes=None,
+                          value_name="U_L", file_ending="cum"):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
             if size_folder != "plots":

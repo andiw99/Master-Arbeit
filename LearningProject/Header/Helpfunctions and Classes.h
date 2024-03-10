@@ -1501,5 +1501,19 @@ double getMovingFactor(int nr_f_values, int min_ind, vector<double>& f) {
     return getMovingFactor(nr_f_values, min_ind, f, avg_f);
 }
 
+std::vector<int> generateRandomIntegers(int n, int N) {
+    std::vector<int> randomIntegers;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, N);
+
+    for (int i = 0; i < n; ++i) {
+        randomIntegers.push_back(dis(gen));
+    }
+
+    return randomIntegers;
+}
+
 
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

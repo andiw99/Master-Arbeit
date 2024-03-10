@@ -1199,10 +1199,24 @@ public:
                 // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
                 thrust::fill(x.begin(), x.begin()+n, equil_pos);
                 // The measurments for systems with large h really do not want to leave this state, so we
-                // flip every 100th dimer
-                for(int i = 0; i < n - 33; i += 33) {
+                // flip every 10th dimer ... does this make a difference for the correlation function?
+                // should we flip random dimers?
+
+/*                for(int i = 0; i < n - 10; i += 10) {
                     x[i] *= (-1);   // is this again valid because I am accessing the gpu state?
+                }*/
+/*                int subsystem_size = (int)(paras[subsystem_Lx] * paras[subsystem_Ly]);
+                int nr_random_numbers = subsystem_size / 10; // every 10th?*/
+                vector<int> random_numbers = generateRandomIntegers(n / 10, n - 1);
+                for(int flip_ind : random_numbers) {
+                    x[flip_ind] *= (-1);
                 }
+/*                for(int subsys_nr = 0; subsys_nr < (int)paras[nr_subsystems]; subsys_nr++) {
+                    int ind = subsys_nr * subsystem_size;
+                    // ah shit it is again more complicated than this...
+                    vector<int> randomNumbers = generateRandomIntegers(nr_random_numbers, subsystem_size);
+                }*/
+
                 if(paras[Parameter::J] < 0) {
                     cout << "initializing with chess trafo" << endl;
                     chess_trafo_rectangular(x, dim_size_x);

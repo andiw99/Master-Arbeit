@@ -12,23 +12,24 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -10
+    J_para = -3
     J_perp = -0.1
-    Ly_Lx = 1 / 32
+    #Ly_Lx = 1 / 16
+    Ly_Lx = 1 / 2
     p = 2.54
     eta = 1.5
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=2/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
 
     # Tc parameters
-    max_size_Tc = 80
-    min_size_Tc = 48
+    max_size_Tc = 128
+    min_size_Tc = 64
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
@@ -36,7 +37,8 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.04
+    min_cum_nr = 10000
+    equil_error = 0.025
     moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.01
@@ -58,7 +60,7 @@ def main():
                                                  curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx)
+                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx, min_val_nr=min_cum_nr)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end

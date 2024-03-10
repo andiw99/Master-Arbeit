@@ -986,7 +986,7 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
 
     return x_cut, y_cut
 
-def get_first_intersections(size_T_cum_dic):
+def get_first_intersections(size_T_cum_dic, value_name):
     """
     returns the first intersection of every line pair
     :param size_T_cum_dic:
@@ -997,8 +997,8 @@ def get_first_intersections(size_T_cum_dic):
     sizes = list(size_T_cum_dic.keys())
 
     for (size1, size2) in combinations(sizes, 2):
-        U_L_1 = size_T_cum_dic[size1]["U_L"]
-        U_L_2 = size_T_cum_dic[size2]["U_L"]
+        U_L_1 = size_T_cum_dic[size1][value_name]
+        U_L_2 = size_T_cum_dic[size2][value_name]
         # We assume that the Temperatures are the same for the two curves...
         T_arr_1 = size_T_cum_dic[size1]["T"]
         T_arr_2 = size_T_cum_dic[size2]["T"]

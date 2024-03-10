@@ -27,14 +27,14 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips/"
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
 
     # Tc parameters
-    max_size_Tc = 80
-    min_size_Tc = 48
+    max_size_Tc = 120
+    min_size_Tc = 80
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
@@ -49,38 +49,31 @@ def main():
     min_equil_error = 0.005
     max_rel_intersection_error = 0.025
 
-    # Quench parameters
-    max_size = 8200
-    min_nr_sites = 1e6
-    max_nr_quench_steps = 4e7
-    max_tau = 17000
-    para_nr_quench = 230
+    # sample parameters to get a fee
+    T_min = 0.8
+    T_max = 1.1
+    nr_Ts = 7
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
 
         # Run Tc Sim:
         eta = np.mean(eta_arr)          # Which eta is the fastest?
-        Tc_sim = efficient_crit_temp_measurement_corr(J_para, J_perp, h, eta, p, dt, filepath,
+        # Tc_sim = efficient_crit_temp_measurement_corr(J_para, J_perp, h, eta, p, dt, filepath,
+        #                                          curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+        #                                          size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
+        #                                          min_equil_error=min_equil_error,
+        #                                          intersection_error=max_rel_intersection_error,
+        #                                          max_moving_factor=moving_factor,
+        #                                          para_nr=para_nr_Tc, min_val_nr=min_cum_nr, value_name="xix", random_init=1)
+        Tc_sim = crit_temp_measurement_corr(J_para, J_perp, h, eta, p, dt, filepath,
                                                  curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                                 size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
-                                                 min_equil_error=min_equil_error,
-                                                 intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor,
-                                                 para_nr=para_nr_Tc, min_val_nr=min_cum_nr, value_name="xix", random_init=1)
+                                                 size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=2, equil_error=equil_error,
+                                                 min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
+                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, min_val_nr=min_cum_nr,
+                                                 T_min=T_min, T_max=T_max, nr_Ts=nr_Ts,
+                                                 value_name="xix", random_init=0)
         T_c, T_c_error = Tc_sim.routine()
-        # We could in principle run the quenches in parallel, but that would
-        # require some work on my end
-
-        # Run Quench
-        # Quench can be influenced by eta
-        #for eta in eta_arr:
-        #    quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + f"Quench/{eta}",
-        #                                quench_exec_file, T_c, nr_GPUS=nr_gpus, size_max=max_size,
-        #                                min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
-        #                                para_nr=para_nr_quench, tau_max=max_tau)
-        #    quench.run()
-
         # the good thing is, both of the simulation implement pickup capabilities so
         # I dont need to worry to much that my computer loses connection and stuff (which it will)
 
