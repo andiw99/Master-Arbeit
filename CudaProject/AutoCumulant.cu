@@ -29,8 +29,8 @@ int main(int argc, char* argv[]) {
     // Okay so we initialize the observer first haha
     auto* relax_obs =
             new equilibration_observer<relax_system, state_type>();     //
-    auto* cum_obs = new m_equilibration_observer_adaptive<relax_system, state_type>(paras[min_cum_nr],
-                                                                              paras[cum_write_density],
+    auto* cum_obs = new m_equilibration_observer_adaptive<relax_system, state_type>(paras[min_mag_nr],
+                                                                              paras[mag_write_density],
                                                                               paras[equil_cutoff]);
     // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
     //auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);

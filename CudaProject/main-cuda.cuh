@@ -83,7 +83,9 @@ enum Parameter {
     equil_cutoff,
     cum_write_density,
     corr_write_density,
-    moving_factor
+    moving_factor,
+    min_mag_nr,
+    mag_write_density,
 };
 
 map<Parameter, string> parameter_names {
@@ -140,7 +142,9 @@ map<Parameter, string> parameter_names {
         {cum_write_density, "cum_write_density"},
         {corr_write_density, "corr_write_density"},
         {min_corr_nr, "min_corr_nr"},
-        {moving_factor, "moving_factor"}
+        {moving_factor, "moving_factor"},
+        {mag_write_density, "mag_write_density"},
+        {min_mag_nr, "min_mag_nr"},
 };
 
 map<string, Parameter> string_to_parameter {
@@ -197,7 +201,9 @@ map<string, Parameter> string_to_parameter {
         {"cum_write_density", cum_write_density},
         {"corr_write_density", corr_write_density},
         {"min_corr_nr", min_corr_nr},
-        {"moving_factor", moving_factor}
+        {"moving_factor", moving_factor},
+        {"mag_write_density", mag_write_density},
+        {"min_mag_nr", min_mag_nr},
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {
