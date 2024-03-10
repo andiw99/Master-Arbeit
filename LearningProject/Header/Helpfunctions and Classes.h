@@ -1534,7 +1534,7 @@ double findFWHM(const double* y, const std::vector<double>& x, int size) {
     }
 
     // Calculate FWHM
-    double fwhm = x2 - x1;
+    double fwhm = fabs(x2 - x1);
     return fwhm;
 }
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

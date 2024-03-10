@@ -1199,10 +1199,24 @@ public:
                 // our equilibria at pi/2 and 3pi/2, we initialize everything in the pi/2 minimum
                 thrust::fill(x.begin(), x.begin()+n, equil_pos);
                 // The measurments for systems with large h really do not want to leave this state, so we
-                // flip every 100th dimer
-                for(int i = 0; i < n - 100; i += 100) {
+                // flip every 10th dimer ... does this make a difference for the correlation function?
+                // should we flip random dimers?
+
+/*                for(int i = 0; i < n - 10; i += 10) {
                     x[i] *= (-1);   // is this again valid because I am accessing the gpu state?
+                }*/
+/*                int subsystem_size = (int)(paras[subsystem_Lx] * paras[subsystem_Ly]);
+                int nr_random_numbers = subsystem_size / 10; // every 10th?*/
+                vector<int> random_numbers = generateRandomIntegers(0, n - 1);
+                for(int flip_ind : random_numbers) {
+                    x[flip_ind] *= (-1);
                 }
+/*                for(int subsys_nr = 0; subsys_nr < (int)paras[nr_subsystems]; subsys_nr++) {
+                    int ind = subsys_nr * subsystem_size;
+                    // ah shit it is again more complicated than this...
+                    vector<int> randomNumbers = generateRandomIntegers(nr_random_numbers, subsystem_size);
+                }*/
+
                 if(paras[Parameter::J] < 0) {
                     cout << "initializing with chess trafo" << endl;
                     chess_trafo_rectangular(x, dim_size_x);
@@ -1770,7 +1784,14 @@ public:
         /*thrust::for_each(tuple, tuple + (dim_size_x * Ly), running_chess_trafo(dim_size_x, Lx));*/
         auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
 /*        for (int j = 0; j < dim_size_x * Ly; j++) {
-            cout << "pos in sub: " << j << " pos in whole: " << subsystem_inds[j] << " value:" << cell_trafo[j] << endl;
+            cout << "pos in sys: " << j  << " value: " << cell_trafo[j] << endl;
+        }
+        for (int j = 0; j < dim_size_x * Ly; j++) {
+            if (j % dim_size_x == 0) {
+                cout << endl;
+            }
+            cout << cell_trafo[j] << ", ";
+
         }*/
 
         if (gpu) {
@@ -1780,6 +1801,12 @@ public:
             thrust::device_vector<double> m_vec_gpu(nr_subsystems);
             //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
             auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx * Ly));
+/*            for (int j = 0; j < dim_size_x * Ly; j++) {
+                if (j % dim_size_x == 0) {
+                    cout << endl;
+                }
+                cout << segment_keys[j] << ", ";
+            }*/
             thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
                                   segment_keys + (nr_subsystems * Lx * Ly),
                                   sin_cell,
@@ -1791,6 +1818,11 @@ public:
             // I am not sure what will timewise be the better option, I guess simpler would be copying for now
             // we need to average the U_Ls
             //auto avg_functor = [this] __device__ (double m) {return m/(double)(Lx * Ly);};
+            cout << endl << endl << "m_vec_gpu [";
+            for(int i = 0; i < nr_subsystems; i++) {
+                cout << m_vec_gpu[i] << ", ";
+            }
+            cout << "]" << endl;
             thrust::transform(m_vec_gpu.begin(), m_vec_gpu.end(), m_vec_gpu.begin(), avg_functor(Lx, Ly));
             m_vec = thrust::host_vector<double>(m_vec_gpu);
         } else {
@@ -1818,6 +1850,8 @@ public:
                                             0.0, // initial value for the reduction (sum)
                                             std::plus<double>(), // transformation (square)
                                             [](double m) -> double { return m * m; });
+        cout << "Dividing by " << m_vec.size() << endl;
+        // exit(0);
         m_L2 /= m_vec.size();
         double m_L4 = std::transform_reduce(m_vec.begin(), m_vec.end(),
                                             0.0, // initial value for the reduction (sum)
@@ -1826,7 +1860,7 @@ public:
         m_L4 /= m_vec.size();
 
         double cum = m_L4 / (m_L2 * m_L2);
-
+        cout << "cum = " << cum << endl << endl;
         return cum;
     }
 
@@ -1996,6 +2030,15 @@ public:
         Singleton_timer::set_endpoint("Xi Fitting");
         xix = abs(paras_x(1));
         xiy = abs(paras_y(1));
+        // We check if they are to small to be believable
+/*        if (xix < 0.1) {
+            double fwhm = findFWHM(ft_k_fit, kx, kx.size());
+            xix = 1 / fwhm;     // TODO this is only the scaling, for numerical values we would need a factor?
+        }
+        if (xiy < 0.1) {
+            double fwhm = findFWHM(ft_l_fit, ky, ky.size());
+            xiy = 1 / fwhm;     // TODO this is only the scaling, for numerical values we would need a factor?
+        }*/
         // TODO if you have memory leaks check this here
         // delete[] ft_k_fit;
         // delete[] ft_l_fit;

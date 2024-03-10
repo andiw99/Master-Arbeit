@@ -18,17 +18,17 @@ def main():
     Ly_Lx = 1 / 2
     p = 2.54
     eta = 1.5
-    dt = 0.01
+    dt = 0.005
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=2/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-nr-systems/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
 
     # Tc parameters
-    max_size_Tc = 128
+    max_size_Tc = 192
     min_size_Tc = 64
     nr_sizes_Tc = 2
     nr_Ts = 3

@@ -273,12 +273,16 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     if chess_trafo:
         print("doing chess trafo")
         if config["subsystem"]:
+            print("cell_L = ", cell_L, "  Lx = ", Lx)
             if cell_L < Lx:
                 row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
             else:
+                print("cell_L > Lx")
                 row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
         else:
             row = chess_board_trafo(row)
+    print(title)
+    print(row)
     colormap = config["colormap"]
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap=colormap, vmax=2 * np.pi, vmin=0)
@@ -287,13 +291,13 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     elif config["angle"] == 3:
         # this should actually use the minimum of the system, but well I think
         # we can calculate it?
-        print("p = ", p)
-        print("J_para = ", J_para)
-        print("J_perp = ", J_perp)
-        print("h = ", h)
+        # print("p = ", p)
+        # print("J_para = ", J_para)
+        # print("J_perp = ", J_perp)
+        # print("h = ", h)
         theta_equil = get_equilibrium_position(J_para, J_perp, h, p)
-        print("equilibrium angle equation: ", equilibrium_angle_equation(theta_equil, J_para, J_perp, h, p))
-        print(theta_equil)
+        # print("equilibrium angle equation: ", equilibrium_angle_equation(theta_equil, J_para, J_perp, h, p))
+        # print(theta_equil)
         cf = ax.pcolormesh(row, cmap=colormap, vmax= 1.15 * theta_equil,
                            vmin=-1.15 * theta_equil, rasterized=True, antialiased=True)
     else:
@@ -460,8 +464,8 @@ def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
     subsystems_per_row = x.shape[1] // subsystem_Lx
     subsystems_per_col = x.shape[0] // subsystem_Ly
     print(subsystems_per_row, "  ", subsystems_per_col)
-    for row in range(subsystems_per_row):
-        for col in range(subsystems_per_col):
+    for col in range(subsystems_per_row):
+        for row in range(subsystems_per_col):
             # extract i-th subsystem
             #embed()
             subsystem = x[row * subsystem_Ly : (row+1) * subsystem_Ly, col * subsystem_Lx : (col+1) * subsystem_Lx]
