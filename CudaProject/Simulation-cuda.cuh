@@ -135,7 +135,7 @@ public:
             folder_path = simulation_path.parent_path() / (string) paras[Parameter::subsystem_Lx] /
                           (string) paras[Parameter::T];
             // okay so we read the corresponding state
-            // we dont read and write the observables like U_L
+            // we dont read and write the observables like m_vec
             // which is okay since for this usecase we dont want them as they are at another temperature anyway
             // If we want to use a whol other folder we will have to rewrite more stuff
             // then we would need to add two paths, one to read, one to write

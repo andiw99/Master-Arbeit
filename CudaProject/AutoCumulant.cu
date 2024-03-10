@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     // Okay so we initialize the observer first haha
     auto* relax_obs =
             new equilibration_observer<relax_system, state_type>();     //
-    auto* corr_obs = new cum_equilibration_observer_adaptive<relax_system, state_type>(paras[min_cum_nr],
+    auto* cum_obs = new m_equilibration_observer_adaptive<relax_system, state_type>(paras[min_cum_nr],
                                                                               paras[cum_write_density],
                                                                               paras[equil_cutoff]);
     // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
             state_type,
             algebra, operations,
             relax_system>(paras, simulation_path);
-    simulation.register_observer(corr_obs);
+    simulation.register_observer(cum_obs);
     simulation.register_observer(relax_obs);
     // simulation.register_observer(ft_obs);
     simulation.simulate();

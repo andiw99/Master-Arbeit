@@ -1120,7 +1120,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                  size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
-                 random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L"):
+                 random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum", process_file_func=process_file_old):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
 
@@ -1161,7 +1161,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
 
         self.cur_para_nr = 0
         self.check_function = check_cum_valid
-        self.file_ending = "cum"
+        self.file_ending = file_ending
+        self.process_file_func = process_file_func
 
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
@@ -1516,7 +1517,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         return (val_upper_bound_small_size < 2.95) and (val_lower_bound_large_size > 1.01)
 
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None,
-                          value_name="U_L", file_ending="cum"):
+                          value_name="U_L", file_ending="cum", process_file_func=process_file_old):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
             if size_folder != "plots":
@@ -1530,7 +1531,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     if (size_folder[0] != ".") & (size_folder != "plots"):
                         size_result = process_size_folder(size_folder_path,
                                                           threshold, selected_temperatures=selected_temps,
-                                                          value=value_name, file_ending=file_ending)
+                                                          value=value_name, file_ending=file_ending, process_file_func=process_file_func)
                         results[int((size_folder))] = size_result
         return results
 

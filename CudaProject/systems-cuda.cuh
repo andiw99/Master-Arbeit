@@ -1818,12 +1818,12 @@ public:
             // I am not sure what will timewise be the better option, I guess simpler would be copying for now
             // we need to average the U_Ls
             //auto avg_functor = [this] __device__ (double m) {return m/(double)(Lx * Ly);};
-            cout << endl << endl << "m_vec_gpu [";
+/*            cout << endl << endl << "m_vec_gpu [";
             for(int i = 0; i < nr_subsystems; i++) {
                 cout << m_vec_gpu[i] << ", ";
             }
-            cout << "]" << endl;
-            thrust::transform(m_vec_gpu.begin(), m_vec_gpu.end(), m_vec_gpu.begin(), avg_functor(Lx, Ly));
+            cout << "]" << endl;*/ // from those values it seems he does everything correct so the error has to be earlier
+            thrust::transform(m_vec_gpu.begin(), m_vec_gpu.end(), m_vec_gpu.begin(), avg_functor((double)Lx, (double)Ly));
             m_vec = thrust::host_vector<double>(m_vec_gpu);
         } else {
             for(int i = 0; i < nr_subsystems; i++) {
@@ -1862,6 +1862,74 @@ public:
         double cum = m_L4 / (m_L2 * m_L2);
         cout << "cum = " << cum << endl << endl;
         return cum;
+    }
+
+    template<class State>
+    double calc_m(State& x) {
+        // We return the average over the subsystems we have?
+        // so we need to extract the subsystems and calc m, average at the end
+        // actually we should implement this for the normal XY model and make it useable for everything
+        // ahh difficult becauso polymorphism doenst work and we inherit from two classes
+        // hmmm decisions...
+        // we also cannot really reuse the methods from our lattice calculations because we want to use
+        // gpu methods
+        // i think for now we will only implement it for this class...
+        bool gpu = true;
+        int nr_subsystems = dim_size_x / Lx;
+        thrust::host_vector<double> m_vec{};
+        // damn is this already it for the cell?
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+
+        // doing chess trafo
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0)));
+        //BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+
+        if (gpu) {
+            // before we used reduce by key, we extracted the sinus of the cell by using transform reduce,
+            // now we should transform beforehand i guess
+            auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(XY_Silicon::p_XY / 2.0));
+            thrust::device_vector<double> m_vec_gpu(nr_subsystems);
+            //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
+            auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx * Ly));
+            thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
+                                  segment_keys + (nr_subsystems * Lx * Ly),
+                                  sin_cell,
+                                  thrust::make_discard_iterator(),
+                                  m_vec_gpu.begin());
+
+            thrust::transform(m_vec_gpu.begin(), m_vec_gpu.end(), m_vec_gpu.begin(), avg_functor((double)Lx, (double)Ly));
+            m_vec = thrust::host_vector<double>(m_vec_gpu);
+        } else {
+            for(int i = 0; i < nr_subsystems; i++) {
+                // for every subsystem we need to extract it
+                double m;
+                if (gpu) {
+                    m = thrust::transform_reduce(cell_trafo + i * (Lx * Ly), cell_trafo + (i+1) * (Lx * Ly),
+                                                 sin_functor_thrust<double>(XY_Silicon::p_XY /  2.0), 0.0, thrust::plus<double>()) / ((double) (Lx * Ly));
+                    // cout << "m =" << m << endl;
+                } else {
+                    vector<double> cell(Lx * Ly);
+                    extract_cell(x, cell, i, Lx, Ly, dim_size_x);
+                    // could work right? :)
+                    // chess trafo
+                    chess_trafo_rectangular(cell, Lx);
+                    // calc m
+                    m = transform_reduce(cell.begin(), cell.end(), 0.0, plus<double>(), sin_functor(XY_Silicon::p_XY /  2.0)) / ((double) (Lx * Ly));
+                }
+                m_vec.push_back(m);
+            }
+        }
+
+        double m = std::reduce(m_vec.begin(), m_vec.end()) / (double)m_vec.size();
+
+        return m;
     }
 
     struct cos_real_to_complex {

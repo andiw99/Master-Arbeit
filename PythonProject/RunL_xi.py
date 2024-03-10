@@ -27,7 +27,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips-more-vals/"
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -38,7 +38,7 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
-    min_cum_nr = 2000
+    min_val_nr = 10000
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
@@ -70,7 +70,7 @@ def main():
                                                  curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                                  size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=2, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, min_val_nr=min_cum_nr,
+                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, min_val_nr=min_val_nr,
                                                  T_min=T_min, T_max=T_max, nr_Ts=nr_Ts,
                                                  value_name="xix", random_init=0)
         T_c, T_c_error = Tc_sim.routine()
