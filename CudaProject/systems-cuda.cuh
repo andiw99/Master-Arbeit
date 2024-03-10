@@ -2010,6 +2010,15 @@ public:
         Singleton_timer::set_endpoint("Xi Fitting");
         xix = abs(paras_x(1));
         xiy = abs(paras_y(1));
+        // We check if they are to small to be believable
+        if (xix < 0.1) {
+            double fwhm = findFWHM(ft_k_fit, kx, kx.size());
+            xix = 1 / fwhm;     // TODO this is only the scaling, for numerical values we would need a factor?
+        }
+        if (xiy < 0.1) {
+            double fwhm = findFWHM(ft_l_fit, ky, ky.size());
+            xiy = 1 / fwhm;     // TODO this is only the scaling, for numerical values we would need a factor?
+        }
         // TODO if you have memory leaks check this here
         // delete[] ft_k_fit;
         // delete[] ft_l_fit;

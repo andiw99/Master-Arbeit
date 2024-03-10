@@ -128,8 +128,10 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     else:
         fig, axes = plt.subplots(int(np.sqrt(nr_of_meshs)), int(np.sqrt(nr_of_meshs)), figsize=[2 + 10 * stretch, 10])
     i = 0
+    if nr_of_meshs == 1:
+        axes = [axes]
     for axs in (axes):
-        if nr_of_meshs == 2:
+        if nr_of_meshs <= 2:
             axs = [axs]
         for ax in (axs):
             ind = i

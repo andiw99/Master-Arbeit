@@ -1515,5 +1515,26 @@ std::vector<int> generateRandomIntegers(int n, int N) {
     return randomIntegers;
 }
 
+double findFWHM(const double* y, const std::vector<double>& x, int size) {
+    double halfMax = 0.5 * (*std::max_element(y, y + size)); // Half of the maximum y value
+    double x1 = 0.0, x2 = 0.0; // Initialize variables for storing x values
 
+    // Find the x values corresponding to the points where y(x) crosses the half-maximum line
+    bool found1 = false, found2 = false;
+    for (int i = 0; i < size - 1; ++i) {
+        if (!found1 && y[i] >= halfMax) {
+            x1 = x[i];
+            found1 = true;
+        }
+        if (!found2 && y[i] < halfMax && y[i + 1] >= halfMax) {
+            x2 = x[i];
+            found2 = true;
+        }
+        if (found1 && found2) break; // Break loop if both points are found
+    }
+
+    // Calculate FWHM
+    double fwhm = x2 - x1;
+    return fwhm;
+}
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

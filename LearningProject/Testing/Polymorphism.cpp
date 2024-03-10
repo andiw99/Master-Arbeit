@@ -475,4 +475,7 @@ int main(int argc, char* argv[]) {
         cout << "i = " << i << endl;
     }
 
+    vector<double> test111 = get_frequencies_fftw_order(50);
+    print_vector(test111);
+
 }
