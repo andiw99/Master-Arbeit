@@ -1464,7 +1464,8 @@ void readMagFromFile(const std::string& filename, std::vector<double>& m_vec, st
             while (std::getline(mIss, mValue, ',')) {
                 m_vec.push_back(std::stod(mValue));
             }
-        times.push_back(stod(t));
+            times.push_back(stod(t));
+        }
     }
 
     file.close();
