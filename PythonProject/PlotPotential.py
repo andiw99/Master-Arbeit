@@ -179,16 +179,17 @@ def main():
     plt.show()
 
 
-    fig, ax = plt.subplots(1, 1, figsize=(3 * 1.5, 2* 1.5))
+    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
     config = {
         "nr_y_minor_ticks": 3,
         "nr_y_major_ticks": 3,
-        "gridalpha": 0.2
+        "gridalpha": 0.2,
+        "increasefontsize": 0.5
     }
     q = np.linspace(- 3/4 * np.pi * 0.95, 3/4 * np.pi * 0.95, 400)
     q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
     interval = (- np.pi / 2, np.pi / 2)
-    p = 2.2
+    p = 2.5
     p_sin = p / 2
     m = np.sin(p_sin * q)
     V_dashed = cos_potential(q_dashed, 1, p, interval)

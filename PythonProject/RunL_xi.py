@@ -38,7 +38,7 @@ def main():
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
-    min_val_nr = 10000
+    min_val_nr = 2000
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with

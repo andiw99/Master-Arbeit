@@ -183,7 +183,8 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
             print(f"Moving factor {moving_factor} too large")
         return False
 
-def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, min_cum_nr=25):
+def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, value_name="U_L", file_ending="cum",
+                    process_file_func=process_file, min_cum_nr=25):
     """
     function that checks whether a cumulant measurement was valid
     :param folderpath:
@@ -220,7 +221,7 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, mi
     # Now for the moving factor
 
     cum_avg, rel_error, moving_factors, nr_values = process_temp_folder(folderpath,
-                                equil_cutoff, value="U_L", file_ending="cum")
+                                equil_cutoff, value=value_name, file_ending=file_ending, process_file_func=process_file_func)
 
     # We have the error, so we can check if it is small enough
     # How do we check in the observer again? is not written actually...
@@ -1308,7 +1309,10 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                                                   self.simulation_path,
                                                   self.check_function, check_function_args=(self.equil_error,
                                                                                         self.equil_cutoff,
-                                                                                        self.max_moving_factor)
+                                                                                        self.max_moving_factor,
+                                                                                            self.value_name,
+                                                                                            self.file_ending,
+                                                                                            self.process_file_func)
                                                   )
         # Okay so the thing is even if we have a simulation that is not valid,
         # but there is at least already a simulation, we want to continue it instead of
@@ -1352,7 +1356,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         T_arr = np.array(sorted(list(self.all_T_dic[smallest_error])))
         # for this one we want to check if it has an intersection
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)     # If i just implement this for xi and for U_L which makes almost no difference, am I not almost done? it will just use L / xi instead of U
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes,  value_name=self.value_name,
+                                         file_ending=self.file_ending, process_file_func=self.process_file_func)     # If i just implement this for xi and for U_L which makes almost no difference, am I not almost done? it will just use L / xi instead of U
         # Ah another problem is with the error and the validation function, but besides that I think we are basically fine.
         val_min_T_min = np.min(results[np.min(self.sizes)][self.value_name])
         val_max_T_min = np.min(results[np.max(self.sizes)][self.value_name])
@@ -1445,7 +1450,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     return T_c, T_c_error
                 else:
                     val_intersection = np.mean(intersections_y)
-                    self.plotValueCurve(T_c, val_intersection, results)
+                    self.plotValueCurve(T_c, val_intersection, results, value_name=self.value_name, title="Binder Cumulant on T", plotname="cum_mag_avg")
 
                     T_low = T_interval_low + dT/3
                     T_up = T_interval_low + 2 * dT / 3
@@ -1462,7 +1467,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
-            self.plotValueCurve(None, None, results)
+            self.plotValueCurve(None, None, results, self.value_name,
+                                title="No Intersection", plotname=f"{self.file_ending}_time_avg")
             if val_min_T_max > val_max_T_max:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
@@ -1517,7 +1523,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         return (val_upper_bound_small_size < 2.95) and (val_lower_bound_large_size > 1.01)
 
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None,
-                          value_name="U_L", file_ending="cum", process_file_func=process_file_old):
+                          value_name="U_L", file_ending="cum", process_file_func=process_file):
         results = {}
         for size_folder in os.listdir(self.simulation_path):
             if size_folder != "plots":

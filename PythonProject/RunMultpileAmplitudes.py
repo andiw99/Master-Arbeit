@@ -40,7 +40,7 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_cum_nr = 10000
+    min_cum_nr = 2000
     equil_error = 0.025
     moving_factor = 0.02
     min_equil_error = 0.01

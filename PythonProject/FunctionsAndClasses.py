@@ -1223,9 +1223,9 @@ def process_mag_file_to_U_L(file_path, threshold, key='t', value='U_L'):
 
     m_avg = np.mean(m)
     m2 = np.mean(m ** 2)
-    m2_err = np.std(m ** 2)
+    m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
     m4 = np.mean(m ** 4)
-    m4_err = np.std(m ** 4)
+    m4_err = np.std(m ** 4) / np.sqrt(len(m))
 
     U_L = m4 / m2 ** 2
 
@@ -1258,7 +1258,7 @@ def process_mag_file_to_U_L(file_path, threshold, key='t', value='U_L'):
 
     return U_L, rel_error, moving_factor, total_nr_values
 
-def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None, process_file_func=process_file_old):
+def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None, process_file_func=process_file):
     """
     Process all files in a size folder and return a dictionary with temperature and average values.
     """
@@ -1278,7 +1278,7 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
 
             temp_folder_path = os.path.join(size_folder, temp_folder)
             if os.path.isdir(temp_folder_path):
-                val_avg, error = process_temp_folder_old(temp_folder_path, threshold, file_ending, value, process_file_func)
+                val_avg, error, _, _ = process_temp_folder(temp_folder_path, threshold, file_ending, value, process_file_func)
                 if val_avg:
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
@@ -1322,7 +1322,7 @@ def process_temp_folder_old(temp_folder_path, threshold, file_ending, value, pro
         val_avg = None
     return val_avg, error
 
-def process_temp_folder(temp_folder_path, threshold, file_ending, value):
+def process_temp_folder(temp_folder_path, threshold, file_ending, value, process_file_func=process_file):
     # So this averages the .cum or .corr files
     # We might need to calculate an error here, but how do we get the total error? -> gaussian error propagation
     file_averages = []
@@ -1335,7 +1335,7 @@ def process_temp_folder(temp_folder_path, threshold, file_ending, value):
             file_path = os.path.join(temp_folder_path, file_name)
             para_file_path = os.path.splitext(file_path)[0] + ".txt"
             # fing sh... I guess It doesnt matter but it is so ugly
-            average_value, error, moving_factor, nr_vals = process_file(file_path, threshold, 't', value)
+            average_value, error, moving_factor, nr_vals = process_file_func(file_path, threshold, 't', value)
             file_averages.append(average_value)
             file_errors.append(error)
             moving_factors.append(moving_factor)

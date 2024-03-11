@@ -897,7 +897,7 @@ class m_equilibration_observer_adaptive: public obsver<system, State>{
     double max_error= 0.001;
     int m_nr = 0;                         // current number in the averageing process
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
-    double eval_factor = 10000.0;
+    double eval_factor = 100.0;
     fs::path filepath;
     double max_moving_factor = 0.005;
 
@@ -1037,6 +1037,8 @@ public:
                         cout << "Distriubtion variance: " << dist_var << endl;
                         cout << "autocorrelation time: " << autocorr_time << endl;
                         */
+                        double avg_m = std::reduce(m, m + nr_values_to_use) / (double)nr_values_to_use;
+                        cout << "avg_m = " << avg_m << endl;
                         cout << "m_vec variance: " << U_L_variance << endl;
                         cout << "U_L: " << U_L << endl;
                         cout << "rel_stddev_total = " << rel_stddev_total << endl;
@@ -1055,7 +1057,6 @@ public:
                             // would average out
                             // to be honest, the trend stuff is probably the prestuff we should do before even considering
                             // to calculate the error? Error calculation after all is pretty expensive
-                            double avg_m = std::reduce(m, m + nr_values_to_use) / (double)nr_values_to_use;
                             double moving_factor = getMovingFactor(nr_m_values, avg_m, min_ind);
 
                             cout << "U_L = " << U_L << " +- " << rel_stddev_total * U_L << endl;
