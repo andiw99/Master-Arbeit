@@ -1121,7 +1121,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
                  size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
-                 random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum", process_file_func=process_file_old):
+                 random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
+                 process_file_func=process_file_old, val_write_density=1/100):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
 
@@ -1153,7 +1154,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
         self.min_val_nr = min_val_nr
-        self.val_write_density = 1 / 100
+        self.val_write_density = val_write_density
         self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
         # jobs to do will be a set so we cannot possible do one job accidentally twice

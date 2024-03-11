@@ -22,7 +22,7 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-fixed-2/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-fixed-3/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -41,7 +41,8 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     min_cum_nr = 2000
-    equil_error = 0.04
+    equil_error = 0.03
+    val_write_density = 1 / 1000            # otherwise the files become to large?
     moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.01
@@ -65,7 +66,7 @@ def main():
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx,
                                                  min_val_nr=min_cum_nr, file_ending=file_ending, value_name=value_name,
-                                                 process_file_func=process_file_func)
+                                                 process_file_func=process_file_func, val_write_density=val_write_density)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end

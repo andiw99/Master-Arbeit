@@ -897,7 +897,7 @@ class m_equilibration_observer_adaptive: public obsver<system, State>{
     double max_error= 0.001;
     int m_nr = 0;                         // current number in the averageing process
     bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
-    double eval_factor = 100.0;
+    double eval_factor = 10000.0;
     fs::path filepath;
     double max_moving_factor = 0.005;
 
@@ -964,9 +964,9 @@ public:
             // with this observer we could think about writing at the end of the simulation, or at least rewriting
             // the file if we changed the stepsize
             // How do we do this, we cannot save every m value... I think we will try for now?
-            ofile << t;
+            ofile << t << ";";
             for (double m_val : m_val_vec) {
-                 ofile << "," << m_val;
+                 ofile << m_val << ",";
             }
             ofile << endl;
             // add the cumulant and the times to the vectors to keep track
