@@ -952,7 +952,7 @@ public:
     }
 
     string get_name() override {
-        return "adaptive cum equilibration observer";
+        return "m equilibration observer";
     }
 
     void operator()(system &sys, const State &x , double t ) override {
@@ -960,12 +960,18 @@ public:
             // advancing the cum nr
             m_nr++;
             // we calculate the cumulant and write it down
-            double m_val = sys.calc_m(x);
+            thrust::host_vector<double> m_val_vec = sys.calc_m_vec(x);
             // with this observer we could think about writing at the end of the simulation, or at least rewriting
             // the file if we changed the stepsize
-            ofile << t << "," << m_val << endl;
+            // How do we do this, we cannot save every m value... I think we will try for now?
+            ofile << t;
+            for (double m_val : m_val_vec) {
+                 ofile << "," << m_val;
+            }
+            ofile << endl;
             // add the cumulant and the times to the vectors to keep track
-            m_vec.push_back(m_val);
+            // m_vec.push_back(m_val);
+            m_vec.insert(m_vec.end(), m_val_vec.begin(), m_val_vec.end());
             times.push_back(t);
             // now we want to see if we have to adjust the write interval
             // we have to make sure that we got 5 fresh cum values

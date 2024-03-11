@@ -1866,6 +1866,14 @@ public:
 
     template<class State>
     double calc_m(State& x) {
+        vector<double> m_vec = calc_m_vec(x);
+        double m = std::reduce(m_vec.begin(), m_vec.end()) / (double)m_vec.size();
+
+        return m;
+    }
+
+    template<class State>
+    thrust::host_vector<double> calc_m_vec(State& x) {
         // We return the average over the subsystems we have?
         // so we need to extract the subsystems and calc m, average at the end
         // actually we should implement this for the normal XY model and make it useable for everything
@@ -1927,9 +1935,7 @@ public:
             }
         }
 
-        double m = std::reduce(m_vec.begin(), m_vec.end()) / (double)m_vec.size();
-
-        return m;
+        return m_vec;
     }
 
     struct cos_real_to_complex {

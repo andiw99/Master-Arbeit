@@ -18,11 +18,11 @@ def main():
     Ly_Lx = 1 / 2
     p = 2.54
     eta = 1.5
-    dt = 0.005
+    dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-fixed/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-fixed-2/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -32,7 +32,7 @@ def main():
     min_size_Tc = 64
     file_ending = "mag"
     value_name = "m"
-    process_file_func = process_mag_file_to_U_L
+    process_file_func = process_new_mag_file_to_U_L
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
@@ -41,7 +41,7 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     min_cum_nr = 2000
-    equil_error = 0.025
+    equil_error = 0.04
     moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.01
