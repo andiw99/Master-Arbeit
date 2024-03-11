@@ -366,15 +366,6 @@ def main():
     plt.show()
 
 
-def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero, min_points_fraction):
-    p_k = get_frequencies_fftw_order(len(ft_k_fit))
-    if cut_zero_impuls:
-        p_k, ft_k_fit = cut_zero_imp(p_k, ft_k_fit)
-    if set_fts_to_zero:
-        ft_k_fit -= np.min(ft_k_fit)
-    if cut_around_peak:
-        p_k, ft_k_fit = cut_data_around_peak(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold, min_points_fraction=min_points_fraction)
-    return ft_k_fit, p_k
 
 
 if __name__ == "__main__":

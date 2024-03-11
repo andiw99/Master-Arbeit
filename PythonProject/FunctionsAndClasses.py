@@ -995,6 +995,49 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
 
     return x_cut, y_cut
 
+def cut_data_around_peak_order(x_values, y_values, threshold_fraction=0.5, min_points_fraction=0.2):
+    """
+    reduces peaked data to the data around the peak. Assumes the order that p = 0 is the first and then p > 0 and then p < 0
+    :param threshold_fraction:  values below threshold_fraction * peak hight are cut
+    :param min_points_fraction: we will be left at least with min_points_fraction of the datapoints we begun with
+    :return: cut data
+    """
+    # we remove the offset of the y_values as they are not relevant for the peak position
+    y_offset = np.min(y_values)
+    y_values -= y_offset
+    # Find the index and value of the peak
+    peak_index = 0
+    peak_value = y_values[peak_index]
+
+    # Calculate the threshold based on the fraction of the peak value
+    threshold = threshold_fraction * peak_value
+
+    # Find the range of indices where the y-values are above the threshold
+    cut_index = len(y_values)
+    for ind, val in enumerate(y_values):
+        if val < threshold:
+            # means we found the index after which we want to cut.
+            cut_index = ind
+            break
+    y_cut = np.concatenate((y_values[:cut_index], y_values[-cut_index:]))
+    # If the length of this is to small, we reduce the threshold fraction? Quick fix
+    if len(y_cut) < min_points_fraction * len(y_values):
+        # We always cut two values so if we only cut the two lowest values we cannot reach more values
+        if len(y_cut) < len(x_values) - 2:
+            new_threshold = 0.9 * threshold_fraction        # small steps?
+            # We need to add back the offset so that it wont be zero next iteration
+            y_values += y_offset
+            return cut_data_around_peak_order(x_values, y_values, new_threshold, min_points_fraction)
+    # I think if we
+    # Extract the subset of data around the peak
+    x_cut = np.concatenate((x_values[:cut_index], x_values[-cut_index:]))
+
+    # we have to add the offset back again
+    y_cut += y_offset
+
+    return x_cut, y_cut
+
+
 def get_first_intersections(size_T_cum_dic, value_name):
     """
     returns the first intersection of every line pair
@@ -1519,7 +1562,7 @@ def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
     except RuntimeError:
         print("RuntimeError in your function fit_lorentz. Maybe no fit possible because"
               " of to many fluctuations or because it is just flat. Returning 0")
-        return (0, 0, 0), None
+        return (0, 0), None
         exit()
         # function has form of a delta peak
         # we delete the largest value
@@ -1881,6 +1924,17 @@ def get_largest_value_with_linestyle(ax, linestyle):
                 largest_value = max_y_value
 
     return largest_value
+
+def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero, min_points_fraction):
+    p_k = get_frequencies_fftw_order(len(ft_k_fit))
+    if cut_zero_impuls:
+        p_k, ft_k_fit = cut_zero_imp(p_k, ft_k_fit)
+    if set_fts_to_zero:
+        ft_k_fit -= np.min(ft_k_fit)
+    if cut_around_peak:
+        p_k, ft_k_fit = cut_data_around_peak_order(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold,
+                                             min_points_fraction=min_points_fraction)
+    return ft_k_fit, p_k
 
 def main():
     print("This file is made to import, not to execute")

@@ -6,10 +6,10 @@ import matplotlib.ticker as ticker
 
 
 def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True,
-            plot_struct = False, cut_zero_impuls = False):
+            plot_struct = False, cut_zero_impuls = False, cut_around_peak=False):
 
 
-    ft_avg_x, ft_avg_y, px, py, x_error, y_error = prepare_data(cut_zero_impuls, cutoff, df)
+    ft_avg_x, ft_avg_y, px, py, x_error, y_error = prepare_data(cut_zero_impuls, cutoff, df, cut_around_peak)
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -33,9 +33,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     # xix = 1 / (np.abs(popt_x[2]) * 2)
     # xiy = 1/ (np.abs(popt_y[2]) * 2)
     xix = np.abs(popt_x[0])
-    xix_err = perr_x[0]
     xiy = np.abs(popt_y[0])
-    xiy_err = perr_y[0]
 
     # plotting
     if not parameters:
@@ -59,14 +57,17 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
     #print("Corr Length y:", xiy)
+    xix_err = perr_x[0]
+    xiy_err = perr_y[0]
+
     return xix, xiy, xix_err, xiy_err
 
 
-def prepare_data(cut_zero_impuls, cutoff, df):
+def prepare_data(cut_zero_impuls, cutoff, df, cut_around_peak=False, peak_cut_threshold=0.2, min_points_fraction=0.2, set_Fts_to_zero=False):
     px = df["px"]
     px = np.array(px)
     indices = [(-cutoff < x) & (x < cutoff) for x in px]
-    # cutoff
+    #cutoff
     px = px[indices]
     px = px[~np.isnan(px)]
     ft_avg_y = np.array(df["ft_avg_y"])[indices]
@@ -76,35 +77,43 @@ def prepare_data(cut_zero_impuls, cutoff, df):
     py = py[~np.isnan(py)]
     ft_avg_x = np.array(df["ft_avg_x"])[indices]
     ft_avg_x = ft_avg_x[~np.isnan(ft_avg_x)]
-    try:
-        y_error = np.array(df["stddev_y"])
-        y_error = y_error[~np.isnan(y_error)]
-        x_error = np.array(df["stddev_x"])
-        x_error = x_error[~np.isnan(x_error)]
-    except:
-        y_error = None
-        x_error = None
-    if cut_zero_impuls:
-        ft_avg_y = ft_avg_y[px != 0]
-        y_error = y_error[px != 0]
-        px = px[px != 0]
-        ft_avg_x = ft_avg_x[py != 0]
-        x_error = x_error[py != 0]
-        py = py[py != 0]
+
+    # reorder...
+    ft_avg_x = np.concatenate((ft_avg_x[len(ft_avg_x)//2:], ft_avg_x[:len(ft_avg_x)//2]))
+    ft_avg_y = np.concatenate((ft_avg_y[len(ft_avg_y)//2:], ft_avg_y[:len(ft_avg_y)//2]))
+
+    ft_avg_x, py = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_avg_x,
+                                     peak_cut_threshold, set_Fts_to_zero,
+                                 min_points_fraction)
+    ft_avg_y, px = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_avg_y,
+                                     peak_cut_threshold, set_Fts_to_zero,
+                                 min_points_fraction)
+
+
+    y_error = None
+    x_error = None
+    #if cut_zero_impuls:
+        #ft_avg_y = ft_avg_y[px != 0]
+        #y_error = y_error[px != 0]
+        #px = px[px != 0]
+        #ft_avg_x = ft_avg_x[py != 0]
+        #x_error = x_error[py != 0]
+        #py = py[py != 0]
     return ft_avg_x, ft_avg_y, px, py, x_error, y_error
 
 
 def main():
     # parameters
-    root = "../../Generated content/Silicon/Quench/Meshs/New/StructFactTest/PBC/400"
+    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips-more-vals/0.4161791450287818/Tc/120"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
     cutoff =  np.pi
     fitfunc = MF_lorentz
-    errors_for_fit=False
+    errors_for_fit = False
     plot_struct = True
     cut_zero_impuls = True
+    cut_around_peak = False
     nu_est = 0.8
     T_c_est = 0.7
     print(root_dirs)
@@ -155,7 +164,8 @@ def main():
                                                       cutoff=cutoff, fitfunc=fitfunc,
                                                       errors_for_fit=errors_for_fit,
                                                       plot_struct=plot_struct,
-                                                      cut_zero_impuls=cut_zero_impuls)
+                                                      cut_zero_impuls=cut_zero_impuls,
+                                                        cut_around_peak=cut_around_peak)
 
                 xi = np.abs(1 / 2 * (xix + xiy))
                 xi_err = 1 / 2 * (xix_err + xiy_err)

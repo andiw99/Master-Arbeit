@@ -41,7 +41,7 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     min_cum_nr = 2000
-    equil_error = 0.03
+    equil_error = 0.02
     val_write_density = 1 / 1000            # otherwise the files become to large?
     moving_factor = 0.02
     min_equil_error = 0.01

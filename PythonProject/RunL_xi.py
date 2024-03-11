@@ -27,7 +27,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips-more-vals/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/"
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -52,7 +52,7 @@ def main():
     # sample parameters to get a fee
     T_min = 0.8
     T_max = 1.1
-    nr_Ts = 7
+    nr_Ts = 1
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
