@@ -51,12 +51,15 @@ def read_last_line(path):
 def string_to_array(input_string):
     # Split the input string by commas and convert each element to a float
     # input_string = input_string.strip()
-    values = [float(x) for x in input_string.split(',')]
+    values = string_to_list(input_string)
 
     # Create a NumPy array from the list of float values
     array = np.array(values)
 
     return array
+
+def string_to_list(input_string):
+    return [float(x) for x in input_string.split(',')]
 
 
 def read_multiple_csv(filepaths, nrows=None):
@@ -1259,15 +1262,17 @@ def process_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     return U_L, rel_error, moving_factor, total_nr_values
 
 def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
-    print(file_path)
-    df = pd.read_csv(file_path)
+    print("This?", file_path)
+    df = pd.read_csv(file_path, sep=";")
     if 0 < threshold < 1:
         threshold = threshold * len(df[key])
     total_nr_values = df.shape[0]
     df = df[int(threshold):]
     nr_values = df.shape[0]
-    m = df[value].str.split(',').apply(lambda x: [float(i) for i in x])
-    m = np.array(m.tolist())
+    m = []
+    for ind, line in enumerate(df[value]):
+        m += string_to_list(line[:-1])
+    m = np.array(m)
     times = np.array(df[key])
 
     m_avg = np.mean(m)

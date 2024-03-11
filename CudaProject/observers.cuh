@@ -929,11 +929,11 @@ public:
         if(!pick_up) {
             filepath = path / (obsver::construct_filename(run_nr) + ".mag");
             open_stream(filepath);
-            ofile << "t,m" << endl;
+            ofile << "t;m" << endl;
         } else {
             path += ".mag";
             filepath = path;
-            readCumFromFile(path, m_vec, times);
+            readMagFromFile(path, m_vec, times);
             write_interval = times[1] - times[0];
             write_density = dt / write_interval;    // We should adapt the write interval of the file that we read
             // the other observers that dont read the values in actually have a problem with defining the timepoint?

@@ -1445,6 +1445,32 @@ void readCumFromFile(const std::string& filename, std::vector<double>& U_L_vec, 
     file.close();
 }
 
+void readMagFromFile(const std::string& filename, std::vector<double>& m_vec, std::vector<double>& times) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    // the first line is the header
+    getline(file, line);
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string t, mVec;
+        if (std::getline(iss, t, ';') && std::getline(iss, mVec, ';')) {
+            std::istringstream mIss(mVec);
+            std::string mValue;
+            while (std::getline(mIss, mValue, ',')) {
+                m_vec.push_back(std::stod(mValue));
+            }
+        times.push_back(stod(t));
+    }
+
+    file.close();
+}
+
+
 struct absDiff1DStd
 {
     double operator()(double x, double y) const
