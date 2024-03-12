@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     auto* cum_obs = new m_equilibration_observer_adaptive<relax_system, state_type>(paras[min_mag_nr],
                                                                               paras[mag_write_density],
                                                                               paras[equil_cutoff]);
+
     // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
     //auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 
@@ -42,6 +43,7 @@ int main(int argc, char* argv[]) {
             relax_system>(paras, simulation_path);
     simulation.register_observer(cum_obs);
     simulation.register_observer(relax_obs);
+    simulation.register_observer(ft_obs);
     // simulation.register_observer(ft_obs);
     simulation.simulate();
     return 0;

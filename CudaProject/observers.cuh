@@ -902,9 +902,9 @@ class m_equilibration_observer_adaptive: public obsver<system, State>{
     double max_moving_factor = 0.005;
 
 public:
-    m_equilibration_observer_adaptive(int min_cum_nr) : min_m_nr(min_cum_nr) {}
+    m_equilibration_observer_adaptive(int min_m_nr) : min_m_nr(min_m_nr) {}
 
-    m_equilibration_observer_adaptive(int min_cum_nr, double write_density) : min_m_nr(min_cum_nr), write_density(write_density) {}
+    m_equilibration_observer_adaptive(int min_m_nr, double write_density) : min_m_nr(min_m_nr), write_density(write_density) {}
 
     m_equilibration_observer_adaptive(int min_cum_nr, double write_density, double equil_cutoff):
             min_m_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
@@ -976,7 +976,7 @@ public:
             // now we want to see if we have to adjust the write interval
             // we have to make sure that we got 5 fresh cum values
             if(!equilibrated) {
-                int nr_m_values = m_vec.size();      // check how many cum values we already have
+                int nr_m_values = m_vec.size() / m_val_vec.size();      // check how often we measured
                 // now use the last avg_nr of cum values to calculate a mean m_vec
                 // use transform reduce?
                 // does it work like this? m_vec.end() - avg_nr is the n-th last value in the vector?
@@ -1932,6 +1932,84 @@ public:
 
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint) {
+            double *ft_k, *ft_l;
+            ft_k = new double[Lx];
+            ft_l = new double[Ly];
+
+            sys.calc_ft(x, ft_k, ft_l);
+            ofile << t << ";";
+            for(int i = 0; i < Lx; i++) {
+                if(i == 0) {
+                    ofile << ft_k[i];
+                } else {
+                    ofile << "," << ft_k[i];
+                }
+            }
+            ofile << ";";
+            for(int j = 0; j < Ly; j++) {
+                if(j == 0) {
+                    ofile << ft_l[j];
+                } else {
+                    ofile << "," << ft_l[j];
+                }
+            }
+            ofile << endl;
+            timepoint += write_interval;
+        }
+    }
+};
+
+template <class system, class State>
+class ft_observer_density : public obsver<system, State>{
+    // Okay the observing pattern could be totally wild, i probably somehow have to initialize the observer
+    // outside of the simulation class We definetely need its own constructor here
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::open_app_stream;
+    using obsver::close_stream;
+    int nr_values;
+    double write_interval;
+    double write_density;
+    double timepoint = 0;
+    double dt;
+    size_t Lx;
+    size_t Ly;
+public:
+    ft_observer_density() {
+    }
+    void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
+        int run_nr = (int)paras[Parameter::run_nr];
+        write_density = paras[Parameter::ft_write_density];
+        dt = paras[Parameter::dt];
+        timepoint = 0.0;
+
+        close_stream();
+        bool pick_up = (paras[Parameter::random_init]  == -1.0);
+        fs::path folderpath;
+        if(!pick_up) {
+            open_stream(path / (obsver::construct_filename(run_nr) + ".ft"));
+            ofile << "t;ft_k;ft_l" << endl;
+        } else {
+            path += ".ft";
+            open_app_stream(path);
+        }
+        cout << "ft observer init called" << endl;
+
+        // I think this will have less performance impact than an if statement catching the first observer operation
+        // Make sure to use this observer only with systems that have a get_end_T method
+        double end_t = paras[end_time];
+        Lx = paras[subsystem_Lx];
+        Ly = paras[subsystem_Ly];
+        write_interval = dt / write_density;
+    }
+
+    string get_name() override {
+        return "ft density observer";
+    }
+
+    void operator()(system &sys, const State &x , double t ) override {
+        if(t > timepoint - 0.5 * dt) {
             double *ft_k, *ft_l;
             ft_k = new double[Lx];
             ft_l = new double[Ly];

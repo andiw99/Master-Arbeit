@@ -153,7 +153,8 @@ def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.i
     configure_ax(fig, ax)
     return fig, ax
 def main():
-    simulation_path = "../../Generated content/Silicon/Quench/Meshs/New/StructFactTest/PBC XY Switch/"
+    #simulation_path = "../../Generated content/Silicon/Quench/Meshs/New/StructFactTest/PBC XY Switch/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/0.4161791450287818/Tc/160-ft"
     cut_zero_impuls = True
     quench = True
     scale_time = True

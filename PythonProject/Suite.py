@@ -1215,21 +1215,23 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # In the new conclude only the simulation with the smallest error
         T_arr = self.all_T_dic[np.min(list(self.all_T_dic.keys()))]
 
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
+        results = self.construct_results(self.discard_threshold, T_arr, self.sizes,  value_name=self.value_name,
+                                         file_ending=self.file_ending, process_file_func=self.process_file_func)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
-        intersections, intersections_y = get_first_intersections(results)
+        intersections, intersections_y = get_first_intersections(results, self.value_name)
 
         T_c = np.mean(intersections)
         val_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        self.plotValueCurve(T_c, val_intersection, results)
+        self.plotValueCurve(T_c, val_intersection, results, value_name=self.value_name,
+                       title="Binder Cumulant on T", plotname=f"{self.file_ending}_time_avg")
 
         # constructing cum dic
         val_dic = {}
         for size in results:
-            val_dic[size] = results[size][self.file_ending]
+            val_dic[size] = results[size][self.value_name]
 
         diff_arr, size_arr = calc_diff_at(T_c,
                                           list(results.values())[0]["T"],

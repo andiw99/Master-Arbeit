@@ -16,6 +16,7 @@ from scipy.optimize import curve_fit
 from scipy.optimize import fsolve
 from scipy.stats import linregress
 import statsmodels.tsa.stattools as st
+from pathlib import Path
 
 
 
@@ -61,7 +62,6 @@ def string_to_array(input_string):
 def string_to_list(input_string):
     return [float(x) for x in input_string.split(',')]
 
-
 def read_multiple_csv(filepaths, nrows=None):
     trajectories = []
     for filepath in filepaths:
@@ -70,11 +70,9 @@ def read_multiple_csv(filepaths, nrows=None):
 
     return trajectories
 
-
 def read_struct_func(filepath):
     df = pd.read_csv(filepath, delimiter=",", index_col=False)
     return df
-
 
 def corr_scaling_right(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
@@ -246,7 +244,6 @@ def plot_colormesh(ax, row, parameters, config):
 
     return cf
 
-
 def plot_rectangular_colormesh(ax, row, parameters, config):
     title=f"t = {parameters['t']:.2f}, T = {parameters['T']}"
     ax.set_title(title)
@@ -330,7 +327,6 @@ def make_dir(path):
     except FileExistsError:
         pass
 
-
 def save_plot(path, name, format="png"):
     make_dir(path)
     plt.savefig(path + name, format=format)
@@ -347,7 +343,6 @@ def plot_name_paras(paras):
         except:
             pass
     return fname
-
 
 def list_folders_and_subfolders(directory_path):
     folder_list = []
@@ -372,7 +367,6 @@ def get_plotted_files(root):
             f.write(root + "plotted_files.txt\n")
         return [root + "plotted_files.txt"]
 
-
 def new_files_in_dir(cur_dir, root, old_files=None, plot_all=False):
     filepaths = []
     if not old_files:
@@ -392,7 +386,6 @@ def new_files_in_dir(cur_dir, root, old_files=None, plot_all=False):
 
     return filepaths
 
-
 def read_parameters(filepath, nr_parameters):
     # TODO inefficient since i need to read the file two times but
     # therefore better for flexibility
@@ -402,7 +395,6 @@ def read_parameters(filepath, nr_parameters):
     for label in df.index:
         para_set[label] = df.loc[label, 1]
     return para_set
-
 
 def read_parameters_txt(filepath, skipfooter=1):
     print(filepath)
@@ -419,7 +411,6 @@ def read_parameters_txt(filepath, skipfooter=1):
             para_set[label] = float(df.loc[label, 1][-1])       # take the last one as it should be the most recent
     return para_set
 
-
 def read_multiple_parameters(filepaths, nr_parameters=8, txt=True):
     parameters = []
     for filepath in filepaths:
@@ -433,7 +424,6 @@ def read_multiple_parameters(filepaths, nr_parameters=8, txt=True):
         parameters.append(para_set)
 
     return parameters
-
 
 def chess_board_trafo(x):
     """
@@ -456,7 +446,6 @@ def chess_board_trafo(x):
 
     # Lol we have to return this since it is not in place
     return x
-
 
 def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
     """
@@ -495,7 +484,6 @@ def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
             x[row * subsystem_Ly : (row+1) * subsystem_Ly, col * subsystem_Lx : (col+1) * subsystem_Lx] = subsystem
     return x
 
-
 from decimal import Decimal, ROUND_HALF_UP
 
 def round_to_first_non_zero(number):
@@ -525,7 +513,6 @@ def round_to_first_non_zero(number):
 
     # If all digits are zeros, return the original number
     return number
-
 
 def create_config(given_config, default_config):
     config = {}
@@ -589,6 +576,7 @@ def get_10_power(x):
         return 0
     else:
         return int(np.floor(np.log10(abs(x))))
+
 def configure_ax(fig, ax, config=None):
     """
     Takes a fig and an axes and configures the axes and stuff. If no config map is provided standard config is used
@@ -723,6 +711,7 @@ def simple_diff(x_eval, x_range, y_range):
         num_diff = (y_range[index + 1] - y_range[index - 1]) / (x_range[index + 1] - x_range[index - 1])
 
     return num_diff
+
 def interpolate_and_minimize(data_sets, res=100):
     """
     Determine the intersection of different sets of discrete x-y values.
@@ -787,7 +776,6 @@ def remove_origin_ticks(ax):
         setter(list(new_major_ticks))
         setter(list(new_minor_ticks), minor=True)
 
-
 def get_spans(ax):
     # The base of those ticks should be read of the data
     xmin = np.infty
@@ -816,7 +804,6 @@ def get_spans(ax):
     y_span = round_to_first_non_zero(ymax - ymin)
     return x_span, y_span, (xmin, xmax, ymin, ymax)
 
-
 def pd_chess_board_trafo(x):
     for i in range(x.shape[0]//2):
         for j in range(x.shape[1]//2):
@@ -842,7 +829,6 @@ def crit_poly_fit_corr(L, nu, A, B, omega):
 def ising_corr_poly_fit(L, A, B, omega):
     return A * L * (1 + B * L ** (-omega))
 
-
 def crit_poly_fit(L, nu, A):
     return A * L ** (1/nu)
 
@@ -859,8 +845,6 @@ def find_nearest_value_and_index(x_arr, x_star):
             min_diff = diff
 
     return nearest_value, nearest_index
-
-
 
 def get_intersection_index(y, z, x_y = [], x_z = []):
     def get_intersection_index(y, z):
@@ -886,7 +870,6 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
                 ind_i = i
                 ind_j = j
         return (ind_i, ind_j)
-
 
 def find_common_range(x1, x2, y1, y2):
     common_x_min = max(np.min(x1), np.min(x2))
@@ -956,7 +939,6 @@ def find_intersections(x_range, y1, y2, res=10000):
         intersections_y.append(y_1_func[ind_sign])
 
     return intersections_x, intersections_y
-
 
 def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_fraction=0.2):
     """
@@ -1037,7 +1019,6 @@ def cut_data_around_peak_order(x_values, y_values, threshold_fraction=0.5, min_p
 
     return x_cut, y_cut
 
-
 def get_first_intersections(size_T_cum_dic, value_name):
     """
     returns the first intersection of every line pair
@@ -1110,8 +1091,34 @@ def extract_rectangle_from_rectangle(row_data, cell_nr, nr_cells, cell_Lx, cell_
 
     for i in range(cells_per_row):
         for j in range(int(cell_Ly)):
-            system.append(rows[j][i *  row_length: (i + 1) * row_length])
+            system.append(rows[j][i * row_length: (i + 1) * row_length])
     return np.array(system)
+
+def extract_subsystem_from_matrix(matrix, Lx, cell_nr):
+    """
+    takes the matrix that is returned by reshape line and extracts the subsystem with cell_nr
+    :param matrix:
+    :param Lx:
+    :param cell_nr:
+    :return:
+    """
+    subsystem = matrix[:, cell_nr * Lx: (cell_nr + 1) * Lx]
+
+    return subsystem
+
+def reshape_line(line, dim_size_x, dim_size_y):
+    """
+    takes the line that is in your csv files and reshapes it to a 2D array with dimensions dim_size_y, dim_size_x
+    :param line:
+    :param dim_size_x:
+    :param dim_size_y:
+    :return:
+    """
+
+    line = np.array(line)
+    mat = line.reshape((dim_size_y, dim_size_x))
+    return mat
+
 def list_directory_names(path):
     paths = os.listdir(path)
     dirs = []
@@ -1147,7 +1154,6 @@ def second_order_num_diff(x, y):
             dy_dx = (y[i] - y[i - 1]) / h
         dif[i] = dy_dx
     return dif
-
 
 def find_fwhm(x, y):
     """
@@ -1529,7 +1535,6 @@ def average_lastline_ft(folderpath, ending=".ft"):
     t_ft_l /= nr_files
     return t_ft_k, t_ft_l
 
-
 def get_frequencies_fftw_order(nr_times):
     K = nr_times // 2
     freqs = []
@@ -1537,8 +1542,11 @@ def get_frequencies_fftw_order(nr_times):
         if i + K < nr_times:
             ind = i + K
         else:
-            ind = i - K
-        freqs.append(2 * np.pi * (ind - nr_times/2) / nr_times)
+            if nr_times % 2 != 0:
+                ind = i - K - 1
+            else:
+                ind = i - K
+        freqs.append(2 * np.pi * (ind - K) / nr_times)
     return freqs
 
 def lorentzian(x, a, x0, gamma):
@@ -1626,7 +1634,6 @@ def rescale_t(t, tau, t_eq, zoom = 1):
     t_q_s = (total_time - 2 * t_eq) / tau * zoom
     return np.array(new_t), t_q_s
 
-
 def plot_struct_func(px, py, fx, fy, error_x=0, error_y=0):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     axx = axes[0]
@@ -1655,7 +1662,6 @@ def T_c_est(J_para, J_perp, h=0):
         T_c_est = fsolve(T_c_XY, T_c_est, args=(J_perp, J_para))
     return T_c_est
 
-
 def BJ_x(BJ_y):
     # calculates the critical effective coupling beta * Jx in dependence of the
     # given coupling beta * Jy
@@ -1665,7 +1671,6 @@ def BJ_x(BJ_y):
         # is that all legal? it feels so illegal
         BJ_x = 2 * np.exp(-BJ_y / 2)
     return BJ_x
-
 
 def BJ_assert(BJ_x, BJ_y):
     # has to return zero otherwise something is wrong
@@ -1710,7 +1715,6 @@ def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
     p_plus = - (1/2) * p  +  np.sqrt((p/2) ** 2 - q)
     p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
     return p_plus, p_minus
-
 
 def accept_xi_inv_fit(reg, Tc_est, tolerance):
     xi_ampl = 1 / reg.slope
@@ -1864,7 +1868,6 @@ def find_time_of_temperature_change(csv_file):
             previous_time, previous_temperature = time, temperature
     return None  # Return None if no temperature change is found
 
-
 def meanAbsDiff(f):
     diffs = np.ediff1d(f)
     return np.mean(np.abs(diffs))
@@ -1909,7 +1912,6 @@ def integrated_autocorr_time(f, ds):
 
     return autocorr_time
 
-
 def get_largest_value_with_linestyle(ax, linestyle):
     largest_value = None
 
@@ -1935,6 +1937,64 @@ def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_thresh
         p_k, ft_k_fit = cut_data_around_peak_order(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold,
                                              min_points_fraction=min_points_fraction)
     return ft_k_fit, p_k
+
+def calc_structure_factor(filepath):
+    #df = read_csv(filepath)
+    df = read_large_df(filepath)
+    filepath = Path(filepath)
+    parameters = read_parameters_txt(str(filepath.with_suffix(".txt")))
+    Lx = int(parameters["subsystem_Lx"])
+    Ly = int(parameters["subsystem_Ly"])
+    dim_size_x = int(parameters["dim_size_x"])
+    nr_subsystems = int(parameters["nr_subsystems"])
+    struct_fact_k = {}
+    struct_fact_l = {}
+    for line in df:
+        t = line[0]
+        sin_ft = np.zeros((nr_subsystems, Ly, Lx), dtype=np.complex128)
+        cos_ft = np.zeros((nr_subsystems, Ly, Lx), dtype=np.complex128)
+        lattice = line[2:]      # or is this again to easy for f*ing pandas
+        lattice = reshape_line(lattice, dim_size_x, Ly)
+        for cell_nr in range(nr_subsystems):
+            cell = extract_subsystem_from_matrix(lattice, Lx, cell_nr)
+            sin_cell = np.sin(cell) + 0j
+            cos_cell = np.cos(cell) + 0j
+            sin_trafo = np.fft.fftshift(np.fft.fft2(sin_cell)) #np.fft.fftshift
+            cos_trafo = np.fft.fftshift(np.fft.fft2(cos_cell)) #np.fft.fftshift
+            sin_ft[cell_nr] = sin_trafo
+            cos_ft[cell_nr] = cos_trafo
+
+        sin_ft_squared = np.zeros((Ly, Lx))
+        cos_ft_squared = np.zeros((Ly, Lx))
+        for cell_nr in range(nr_subsystems):
+            sin_ft_squared += np.abs(sin_ft[cell_nr]) ** 2
+            cos_ft_squared += np.abs(cos_ft[cell_nr]) ** 2
+        # Averaging?
+        sin_ft_squared /= nr_subsystems
+        cos_ft_squared /= nr_subsystems
+
+        st_fact_k = np.zeros(Ly)
+        st_fact_l = np.zeros(Lx)
+
+        # now for the two directions
+        for l in range(Lx):
+            for k in range(Ly):
+                st_fact_k[k] += sin_ft_squared[k, l] + cos_ft_squared[k, l]
+                st_fact_l[l] += sin_ft_squared[k, l] + cos_ft_squared[k, l]
+
+        # averaging
+        st_fact_k /= (Lx ** 4)
+        st_fact_l /= (Ly ** 4)
+
+        # reordering or something
+        #st_fact_k = np.concatenate((np.array([st_fact_k[0]]), st_fact_k[1: len(st_fact_k) // 2 + 1][::-1], st_fact_k[len(st_fact_k) // 2 + 1:][::-1]))
+        #st_fact_l = np.concatenate((np.array([st_fact_l[0]]), st_fact_l[1: len(st_fact_l) // 2][::-1],
+        #                            st_fact_l[len(st_fact_l) // 2:][::-1]))
+
+        struct_fact_k[t] = st_fact_k
+        struct_fact_l[t] = st_fact_l
+    return struct_fact_k, struct_fact_l
+
 
 def main():
     print("This file is made to import, not to execute")

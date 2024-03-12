@@ -42,7 +42,7 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
         T = parameters["T"]
     if plot_struct:
         fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
-        p = np.linspace(min(px), max(px), px.size)
+        p = np.linspace(min(px), max(px), np.array(px).size)
         lorentz_x = fitfunc(p, *popt_x)
         lorentz_y = fitfunc(p, *popt_y)
         axes[0].plot(p, lorentz_x, label="Lorentzian fit")
@@ -57,8 +57,16 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #print("FWHM y:", np.abs(popt_y[2]) * 2)
     #print("Corr Length x:", xix)
     #print("Corr Length y:", xiy)
-    xix_err = perr_x[0]
-    xiy_err = perr_y[0]
+    try:
+        if perr_x.any():
+            xix_err = perr_x[0]
+            xiy_err = perr_y[0]
+        else:
+            xix_err = None
+            xiy_err = None
+    except:
+        xix_err = None
+        xiy_err = None
 
     return xix, xiy, xix_err, xiy_err
 
@@ -104,7 +112,7 @@ def prepare_data(cut_zero_impuls, cutoff, df, cut_around_peak=False, peak_cut_th
 
 def main():
     # parameters
-    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips-more-vals/0.4161791450287818/Tc/120"
+    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/0.4161791450287818/Tc/160-ft"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
@@ -144,6 +152,40 @@ def main():
                     if(os.path.splitext(f)[1] == ".txt"):
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
                 df = read_struct_func(filename)
+                csv_file = find_first_csv_file(dir_path)
+                struct_fact_k, struct_fact_l = calc_structure_factor(csv_file)
+                st_fact_k = struct_fact_k[np.max(list(struct_fact_k.keys()))]
+                st_fact_l = struct_fact_l[np.max(list(struct_fact_l.keys()))]
+                print(st_fact_l)
+                print(st_fact_k)
+
+                ft_k, k = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_k,
+                                     0.2, False,0.2)
+                ft_l, l = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_l,
+                                     0.2, False,0.2)
+                print("\n", st_fact_k)
+                print(k)
+                fig, ax = plot_struct_func(l, k, ft_l, ft_k)
+                ax[0].set_ylim(0, 1.5)
+                plt.show()
+                try:
+                    t_ft_l, t_ft_k = average_ft(dir_path)
+                    st_fact_k = t_ft_k[np.max(list(t_ft_k.keys()))]
+                    st_fact_l = t_ft_l[np.max(list(t_ft_l.keys()))]
+
+                    ft_k, k = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_k,
+                                         0.2, False,0.2)
+                    ft_l, l = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_l,
+                                         0.2, False,0.2)
+                    print(".ft file;:")
+                    print("\n", st_fact_k)
+                    print(k)
+                    fig, ax = plot_struct_func(l, k, ft_l, ft_k)
+                    #ax[0].set_ylim(0, 100)
+                    plt.show()
+                except:
+                    pass
+
 
                 if not parameters:
                     T = 0
@@ -168,7 +210,10 @@ def main():
                                                         cut_around_peak=cut_around_peak)
 
                 xi = np.abs(1 / 2 * (xix + xiy))
-                xi_err = 1 / 2 * (xix_err + xiy_err)
+                if xix_err == None:
+                    xi_err = None
+                else:
+                    xi_err = 1 / 2 * (xix_err + xiy_err)
 
                 T_arr.append(T)
                 xix_arr.append(xix)
