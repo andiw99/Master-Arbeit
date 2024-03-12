@@ -82,15 +82,36 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def read_large_df(filepath, rows=None):
+def read_large_df(filepath, rows=None, skiprows=0, sep=None):
     df = []
     with open(filepath) as f:
         for i, line in enumerate(f):
-            if rows:
-                if i in rows:
+            if i >= skiprows:
+                if rows:
+                    if i in rows:
+                        if sep:
+                            line = line.split(";")[1]
+                        df.append(string_to_array(line[:-2]))
+                else:
+                    if sep:
+                        line = line.split(";")[1]
                     df.append(string_to_array(line[:-2]))
-            else:
-                df.append(string_to_array(line[:-2]))
+    return df
+
+def read_large_df(filepath, rows=None, skiprows=0, sep=None):
+    df = []
+    with open(filepath) as f:
+        for i, line in enumerate(f):
+            if i >= skiprows:
+                if rows:
+                    if i in rows:
+                        if sep:
+                            line = line.split(";")[1]
+                        df.append(string_to_list(line[:-2]))
+                else:
+                    if sep:
+                        line = line.split(";")[1]
+                    df.append(string_to_list(line[:-2]))
     return df
 
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
@@ -455,7 +476,6 @@ def chess_board_trafo_rectangular_subsystems(x, subsystem_Lx, subsystem_Ly):
     """
     subsystems_per_row = x.shape[1] // subsystem_Lx
     subsystems_per_col = x.shape[0] // subsystem_Ly
-    print(subsystems_per_row, "  ", subsystems_per_col)
     for col in range(subsystems_per_row):
         for row in range(subsystems_per_col):
             # extract i-th subsystem
@@ -1264,7 +1284,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
 
 def process_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     print(file_path)
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, sep=";")
     if 0 < threshold < 1:
         threshold = threshold * len(df[key])
     total_nr_values = df.shape[0]
@@ -1312,17 +1332,18 @@ def process_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
 
 def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     print("This?", file_path)
-    df = pd.read_csv(file_path, sep=";")
+    # df = pd.read_csv(file_path, sep=";")
+    df = read_large_df(file_path, skiprows=1, sep=";")
     if 0 < threshold < 1:
-        threshold = threshold * len(df[key])
-    total_nr_values = df.shape[0]
+        threshold = threshold * len(df)
+    total_nr_values = len(df)
     df = df[int(threshold):]
-    nr_values = df.shape[0]
+    nr_values = len(df)
     m = []
-    for ind, line in enumerate(df[value]):
-        m += string_to_list(line[:-1])
+    for ind, line in enumerate(df):
+        m += line
     m = np.array(m)
-    times = np.array(df[key])
+    #times = np.array(df[key])
 
     m_avg = np.mean(m)
     m2 = np.mean(m ** 2)
@@ -1602,6 +1623,7 @@ def pi_formatter(value, ticknumber):
         return r"$\frac{" + str(fraction[0]) +  "}{" + str(fraction[1]) + "} \pi$"
 
 def cut_zero_imp(p, ft, ft_err=None):
+    # nr cuts is the number of values to cut around zero
     p, ft = np.array(p), np.array(ft)
     # be aware this only works if we have an even lenght and the zero is included...
     if len(p) % 2 == 0:
@@ -1620,6 +1642,16 @@ def cut_zero_imp(p, ft, ft_err=None):
         p = p[1:]
         return p, ft
 
+def cut_around_zero(p, ft, nr_additional_cuts = 0):
+    # assumes order
+    if nr_additional_cuts == 0:
+        p = p[1:]
+        ft = ft[1:]
+    else:
+        p = p[1 + nr_additional_cuts // 2:-nr_additional_cuts // 2]
+        ft = ft[1 + nr_additional_cuts // 2:-nr_additional_cuts // 2]
+    return p, ft
+
 def rescale_t(t, tau, t_eq, zoom = 1):
     total_time = np.max(t)
     t = np.array(t) - t_eq
@@ -1634,7 +1666,7 @@ def rescale_t(t, tau, t_eq, zoom = 1):
     t_q_s = (total_time - 2 * t_eq) / tau * zoom
     return np.array(new_t), t_q_s
 
-def plot_struct_func(px, py, fx, fy, error_x=0, error_y=0):
+def plot_struct_func(px, py, fx, fy, error_x=None, error_y=None):
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     axx = axes[0]
     axy = axes[1]
@@ -1927,10 +1959,15 @@ def get_largest_value_with_linestyle(ax, linestyle):
 
     return largest_value
 
-def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero, min_points_fraction):
+def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_threshold, set_fts_to_zero,
+                     min_points_fraction, nr_additional_cuts=0):
     p_k = get_frequencies_fftw_order(len(ft_k_fit))
     if cut_zero_impuls:
-        p_k, ft_k_fit = cut_zero_imp(p_k, ft_k_fit)
+        print("before cut")
+        print(p_k, ft_k_fit)
+        p_k, ft_k_fit = cut_around_zero(p_k, ft_k_fit, nr_additional_cuts)
+        print("after cut")
+        print(p_k, ft_k_fit)
     if set_fts_to_zero:
         ft_k_fit -= np.min(ft_k_fit)
     if cut_around_peak:
@@ -1938,7 +1975,7 @@ def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_thresh
                                              min_points_fraction=min_points_fraction)
     return ft_k_fit, p_k
 
-def calc_structure_factor(filepath):
+def calc_structure_factor(filepath, zero_padding=False, zero_padding_center=False):
     #df = read_csv(filepath)
     df = read_large_df(filepath)
     filepath = Path(filepath)
@@ -1946,45 +1983,74 @@ def calc_structure_factor(filepath):
     Lx = int(parameters["subsystem_Lx"])
     Ly = int(parameters["subsystem_Ly"])
     dim_size_x = int(parameters["dim_size_x"])
+    if zero_padding:
+        result_dim_y = 8 * Ly
+        result_dim_x = 8 * Lx
+    else:
+        result_dim_y = Ly
+        result_dim_x = Lx
+
     nr_subsystems = int(parameters["nr_subsystems"])
     struct_fact_k = {}
     struct_fact_l = {}
     for line in df:
         t = line[0]
-        sin_ft = np.zeros((nr_subsystems, Ly, Lx), dtype=np.complex128)
-        cos_ft = np.zeros((nr_subsystems, Ly, Lx), dtype=np.complex128)
+        sin_ft = np.zeros((nr_subsystems, result_dim_y, result_dim_x), dtype=np.complex128)
+        cos_ft = np.zeros((nr_subsystems, result_dim_y, result_dim_x), dtype=np.complex128)
         lattice = line[2:]      # or is this again to easy for f*ing pandas
         lattice = reshape_line(lattice, dim_size_x, Ly)
         for cell_nr in range(nr_subsystems):
             cell = extract_subsystem_from_matrix(lattice, Lx, cell_nr)
+            cell = chess_board_trafo_rectangular_subsystems(cell, Lx, Ly)
+            if zero_padding:
+                new_cell_zeros = np.zeros((result_dim_y, result_dim_x), dtype=np.complex128)
+                if zero_padding_center:
+                    start_row = result_dim_y // 2 - Ly // 2
+                    start_col = result_dim_x // 2 - Lx // 2
+                    end_row = start_row + Ly
+                    end_col = start_col + Lx
+                    new_cell_zeros[start_row:end_row, start_col:end_col] = cell
+                else:
+                    new_cell_zeros[:Ly, :Lx] = cell
+                cell = new_cell_zeros
+            #print("cell:\n", cell)
             sin_cell = np.sin(cell) + 0j
             cos_cell = np.cos(cell) + 0j
-            sin_trafo = np.fft.fftshift(np.fft.fft2(sin_cell)) #np.fft.fftshift
-            cos_trafo = np.fft.fftshift(np.fft.fft2(cos_cell)) #np.fft.fftshift
+            sin_trafo = (np.fft.fft2(sin_cell)) #np.fft.fftshift
+            #print("sin output: \n", sin_trafo)
+            cos_trafo = (np.fft.fft2(cos_cell)) #np.fft.fftshift
+            #print("cos output: \n", cos_trafo)
             sin_ft[cell_nr] = sin_trafo
             cos_ft[cell_nr] = cos_trafo
 
-        sin_ft_squared = np.zeros((Ly, Lx))
-        cos_ft_squared = np.zeros((Ly, Lx))
+        sin_ft_squared = np.zeros((result_dim_y, result_dim_x))
+        cos_ft_squared = np.zeros((result_dim_y, result_dim_x))
         for cell_nr in range(nr_subsystems):
+            #print("abs sin ft")
+            #print(np.abs(sin_ft[cell_nr]))
             sin_ft_squared += np.abs(sin_ft[cell_nr]) ** 2
+            #print("abs cos ft")
+            #print(np.abs(cos_ft[cell_nr]))
             cos_ft_squared += np.abs(cos_ft[cell_nr]) ** 2
         # Averaging?
-        sin_ft_squared /= nr_subsystems
-        cos_ft_squared /= nr_subsystems
+        # sin_ft_squared /= nr_subsystems
+        # cos_ft_squared /= nr_subsystems
 
-        st_fact_k = np.zeros(Ly)
-        st_fact_l = np.zeros(Lx)
+        st_fact_k = np.zeros(result_dim_y)
+        st_fact_l = np.zeros(result_dim_x)
 
         # now for the two directions
-        for l in range(Lx):
-            for k in range(Ly):
+        for l in range(result_dim_x):
+            for k in range(result_dim_y):
                 st_fact_k[k] += sin_ft_squared[k, l] + cos_ft_squared[k, l]
                 st_fact_l[l] += sin_ft_squared[k, l] + cos_ft_squared[k, l]
 
+        #print("ft_k_squared of this csv file")
+        #print(st_fact_k)
+
         # averaging
-        st_fact_k /= (Lx ** 4)
-        st_fact_l /= (Ly ** 4)
+        st_fact_k /= (Lx ** 4 * nr_subsystems)
+        st_fact_l /= (Ly ** 4 * nr_subsystems)
 
         # reordering or something
         #st_fact_k = np.concatenate((np.array([st_fact_k[0]]), st_fact_k[1: len(st_fact_k) // 2 + 1][::-1], st_fact_k[len(st_fact_k) // 2 + 1:][::-1]))
@@ -1994,6 +2060,39 @@ def calc_structure_factor(filepath):
         struct_fact_k[t] = st_fact_k
         struct_fact_l[t] = st_fact_l
     return struct_fact_k, struct_fact_l
+
+
+def dft2d(mat):
+    """
+    computes the classic 2D dft
+    :param mat:
+    :return:
+    """
+    transform = np.zeros_like(mat, dtype=np.complex128)
+
+    M = mat.shape[0]
+    N = mat.shape[1]
+    for k in range(mat.shape[0]):
+        for l in range(mat.shape[1]):
+            for m in range(mat.shape[0]):       # shape 0 is in y direction, or lets say in m direction
+                for n in range(mat.shape[1]):
+                    transform[k, l] += mat[m, n] * np.exp(-2j * np.pi * m * k / M) * np.exp(-2j * np.pi * n * l / N)
+
+    return transform
+
+
+def get_2nd_moment_corr_length(ft):
+    """
+    calculates the 2nd moment correlation lenght from the fourier transform (haha it doesnt) Implementation from
+    Stackoverflow, cannot be correct. Assumes order
+    :param ft:
+    :return:
+    """
+    L = len(ft)
+    ft_zero = ft[0]
+    ft_smallest_wave = ft[1]
+
+    return  L / ( 2 * np.pi) * np.sqrt(ft_zero / ft_smallest_wave - 1)
 
 
 def main():

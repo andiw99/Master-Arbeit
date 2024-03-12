@@ -8,7 +8,6 @@ import matplotlib.ticker as ticker
 def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fitfunc=lorentzian, errors_for_fit=True,
             plot_struct = False, cut_zero_impuls = False, cut_around_peak=False):
 
-
     ft_avg_x, ft_avg_y, px, py, x_error, y_error = prepare_data(cut_zero_impuls, cutoff, df, cut_around_peak)
     # sorting
     #ft_avg_x = ft_avg_x[np.argsort(px)]
@@ -18,6 +17,9 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     #py = np.sort(py)
     #px = ((px + 2 * max(px)) % (2 * max(px))) - max(px)
     #py = ((py + 2 * max(px)) % (2 * max(py))) - max(py)
+
+    print(px)
+    print(ft_avg_y)
 
     if errors_for_fit:
         popt_x, perr_x = fit_lorentz(px, ft_avg_y, fitfunc, y_error)
@@ -41,12 +43,25 @@ def analyze(df, parameters=None, savepath="./structfact.png", cutoff=np.pi/2, fi
     else:
         T = parameters["T"]
     if plot_struct:
+        print("struct.fact file ")
+        print(ft_avg_x)
         fig, axes = plot_struct_func(px, py,ft_avg_y, ft_avg_x, y_error, x_error)
+        axk, axl = axes
+        axk_ylims = axk.get_ylim()
+        axl_ylims = axl.get_ylim()
         p = np.linspace(min(px), max(px), np.array(px).size)
-        lorentz_x = fitfunc(p, *popt_x)
-        lorentz_y = fitfunc(p, *popt_y)
+        try:
+            lorentz_x = fitfunc(p, *popt_x)
+            lorentz_y = fitfunc(p, *popt_y)
+        except:
+            popt_x = (0, 0, 0)
+            popt_y = (0, 0, 0)
+            lorentz_x = fitfunc(p, *(popt_x))
+            lorentz_y = fitfunc(p, *(popt_y))
         axes[0].plot(p, lorentz_x, label="Lorentzian fit")
         axes[1].plot(p, lorentz_y, label="Lorentzian fit")
+        axk.set_ylim(axk_ylims)
+        axl.set_ylim(axl_ylims)
         axes[0].set_title(rf"$\xi_x = {xix:.2f} \quad T = {T:2f}$")
         axes[1].set_title(rf"$\xi_y = {xiy:.2f}\quad T = {T:2f}$")
         configure_ax(fig, axes[0])
@@ -112,12 +127,13 @@ def prepare_data(cut_zero_impuls, cutoff, df, cut_around_peak=False, peak_cut_th
 
 def main():
     # parameters
-    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/0.4161791450287818/Tc/160-ft"
+    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/0.4161791450287818/Tc/OBC/160"
+    root = "../../Generated content/Silicon/Subsystems/Suite/L_xi/scan-more-flips-more-vals/0.4161791450287818/Tc/160"
     name = "struct.fact"
     png_name = "struct.fact-fit2"
     root_dirs = os.listdir(root)
     cutoff =  np.pi
-    fitfunc = MF_lorentz
+    fitfunc = lorentz_offset
     errors_for_fit = False
     plot_struct = True
     cut_zero_impuls = True
@@ -151,6 +167,7 @@ def main():
                     # we take the first file to be the parameters
                     if(os.path.splitext(f)[1] == ".txt"):
                         parameters = read_parameters_txt(os.path.join(dir_path, f))
+                        T = parameters["T"]
                 df = read_struct_func(filename)
                 csv_file = find_first_csv_file(dir_path)
                 struct_fact_k, struct_fact_l = calc_structure_factor(csv_file)
@@ -159,14 +176,39 @@ def main():
                 print(st_fact_l)
                 print(st_fact_k)
 
+                xix_2nd = get_2nd_moment_corr_length(st_fact_l)
+                xiy_2nd = get_2nd_moment_corr_length(st_fact_k)
+
                 ft_k, k = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_k,
-                                     0.2, False,0.2)
+                                     0.2, False,
+                                           0.2, nr_additional_cuts=0)
+                ft_k = ft_k[np.argsort(k)]
+                k = np.sort(k)
+                #k = 4 * k
                 ft_l, l = prepare_fit_data(cut_around_peak, cut_zero_impuls, st_fact_l,
-                                     0.2, False,0.2)
+                                     0.2, False,0.2, nr_additional_cuts=0)
+                ft_l = ft_l[np.argsort(l)]
+                l = np.sort(l)
+                #l = 4 * l
+                popt_x, perr_x = fit_lorentz(k, ft_k, fitfunc)
+                popt_y, perr_y = fit_lorentz(l, ft_l, fitfunc)
+                xix = np.abs(popt_x[0])
+                xiy = np.abs(popt_y[0])
                 print("\n", st_fact_k)
                 print(k)
                 fig, ax = plot_struct_func(l, k, ft_l, ft_k)
-                ax[0].set_ylim(0, 1.5)
+                #ax[0].set_ylim(0, 1.5)
+                try:
+                    lorentz_x = fitfunc(k, *popt_x)
+                    lorentz_y = fitfunc(l, *popt_y)
+                    ax[1].plot(k, lorentz_x, label="Lorentzian fit")
+                    ax[0].plot(l, lorentz_y, label="Lorentzian fit")
+                except:
+                    pass
+                ax[0].set_title(rf"$\xi_x = {xiy:.2f} \quad T = {T:2f} \quad second \xi_x = {xix_2nd}$")
+                ax[1].set_title(rf"$\xi_y = {xix:.2f}\quad T = {T:2f} \quad second \xi_y = {xiy_2nd}$")
+                configure_ax(fig, ax[0])
+                configure_ax(fig, ax[1])
                 plt.show()
                 try:
                     t_ft_l, t_ft_k = average_ft(dir_path)
@@ -182,6 +224,8 @@ def main():
                     print(k)
                     fig, ax = plot_struct_func(l, k, ft_l, ft_k)
                     #ax[0].set_ylim(0, 100)
+                    configure_ax(fig, ax[0])
+                    configure_ax(fig, ax[1])
                     plt.show()
                 except:
                     pass

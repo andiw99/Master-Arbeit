@@ -94,10 +94,23 @@ public:
         for(int cell_nr = 0; cell_nr < nr_of_cells; cell_nr++) {
             extract_cell(lat_q, cell, cell_nr, Lx, Ly, dim_size_x);
             cell_routine(cell, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
-            // add them to the vectors that keep track of everything
-            ft_squared_k.push_back(ft_k_squared_of_this_csv_file);
-            ft_squared_l.push_back(ft_l_squared_of_this_csv_file);
+        }// add them to the vectors that keep track of everything}
+        // average the file
+        for(int p = 0; p < Lx; p++) {
+            // when averaging it is actually swapped? because i think i sum over Ly entries to avg the ft_k
+            ft_k_squared_of_this_csv_file[p] /= (double) nr_of_cells;
         }
+        for(int p = 0; p < Ly; p++) {
+            ft_l_squared_of_this_csv_file[p] /= (double) nr_of_cells;
+        }
+
+        cout << "ft_k_squared of this csv file" << endl;
+        print_vector(ft_k_squared_of_this_csv_file);
+        cout << "ft_l_squared of this csv file" << endl;
+        print_vector(ft_l_squared_of_this_csv_file);
+        ft_squared_k.push_back(ft_k_squared_of_this_csv_file);
+        ft_squared_l.push_back(ft_l_squared_of_this_csv_file);
+
     }
 
     virtual void cell_routine(const vector<double> &cell, vector<double> &ft_k_squared_of_this_csv_file,
@@ -116,14 +129,18 @@ public:
         // I need to average over the csv files and
         // thermal average
         int nr_realizaitons = ft_squared_l.size();
-        for(int p = 0; p < Lx; p++) {
-            for(int realization = 0; realization < nr_realizaitons; realization++) {
+        for(int realization = 0; realization < nr_realizaitons; realization++) {
+            // cout << "ft_squared_k[realization] " << realization << endl;
+            // print_vector(ft_squared_k[realization]);
+            for(int p = 0; p < Lx; p++) {
                 mean_ft_squared_k[p] += ft_squared_k[realization][p];
                 if (p < Ly) {
                     mean_ft_squared_l[p] += ft_squared_l[realization][p];
                 }
             }
         }
+        // cout << "mean_ft_squared_k" << endl;
+        // print_vector(mean_ft_squared_k);
         // averaging
         for(int p = 0; p < Lx; p++) {
             // when averaging it is actually swapped? because i think i sum over Ly entries to avg the ft_k
@@ -132,6 +149,8 @@ public:
                 mean_ft_squared_l[p] /= (double)nr_realizaitons * pow(Lx, 4);
             }
         }
+        cout << "mean_ft_squared_k" << endl;
+        print_vector(mean_ft_squared_k);
         write_to_file();
     }
     void post_routine() override {
@@ -202,17 +221,23 @@ class StructFactHandlerXY : public StructFactHandler {
             in[i][0] = cos(cell[i]);
             in[i][1] = 0;
         }
+        //cout << "cos in array :" << endl;
+        //print_complex_array(in, Lx * Ly);
         fftw_execute(plan);
         // get them values into the vectors
-
+        // cout << "cos out array :" << endl;
+        // print_complex_array(out, Lx * Ly);
         sum_and_add(Lx, Ly, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
         for(int i = 0; i < Lx * Ly; i++) {
             in[i][0] = sin(cell[i]);
             in[i][1] = 0;
         }
+        // cout << "sin in array :" << endl;
+        // print_complex_array(in, Lx * Ly);
         fftw_execute(plan);
         // get them values into the vectors
-
+        // cout << "sin out array :" << endl;
+        // print_complex_array(out, Lx * Ly);
         sum_and_add(Lx, Ly, ft_k_squared_of_this_csv_file, ft_l_squared_of_this_csv_file);
     }
 

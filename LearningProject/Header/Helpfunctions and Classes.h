@@ -103,6 +103,14 @@ void print_array(const T (&arr), size_t L) {
     std::cout << std::endl;
 }
 
+template <typename T>
+void print_complex_array(const T (&arr), size_t L) {
+    for (size_t i = 0; i < L; ++i) {
+        std::cout << arr[i][0] << " + " << arr[i][1] << ", ";
+    }
+    std::cout << std::endl;
+}
+
 template <class value_type, class result_type>
 void calc_corr(vector<vector<value_type>> &f, result_type &C_x, result_type &C_y) {
     // i guess we could also use just normal doubles, would also give some performance
@@ -1515,6 +1523,7 @@ double getMovingFactor(int nr_values, int min_ind, vector<double>& f, double avg
 
     double* recent_f = &f[recent_ind];      // we need it still for the mean delta?
     double mean_abs_delta = meanAbsDifference(recent_f, recent_size);
+    mean_abs_delta = max(1e-7, mean_abs_delta);
 /*    cout << "meanAbsDifference: " << mean_abs_delta << endl;
     // and we need the recent mean
     cout << "val_end - val_start = " << fabs(f_end - f_start) << endl;*/

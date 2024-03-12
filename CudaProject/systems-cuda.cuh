@@ -2121,6 +2121,130 @@ public:
     }
 
     template<class State>
+    void calc_xi_2nd(State& x, double& xix, double& xiy) {
+        Singleton_timer::set_startpoint("Xi calculation FFTs");
+        using dim_t = std::array<int, 2>;
+        dim_t fft_size = {(int)Ly, (int)Lx};
+        // data is x
+        int nr_batches = (int) (dim_size_x / Lx);     // so if I understand correctly the batch size is the number of multiple
+        int batch_size = fft_size[0] * fft_size[1];
+        // ffts running at the same time. so since I want to do a fft for every subsystem, my batch size will
+        // be the number of subsystems?
+
+        // sum vector for alter, this will be the squared ft
+        thrust::device_vector<double> sum(batch_size);
+
+        cufftHandle plan;
+        cufftCreate(&plan);
+        cufftPlanMany(&plan, fft_size.size(), fft_size.data(),
+                      nullptr, 1, 0,
+                      nullptr, 1, 0,
+                      CUFFT_C2C, nr_batches);
+
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+        BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx)); // so cell trafo is the transformed running_chess_it(cell, ind) which is a double again
+
+        // from cell trafo we need to somehow create a pointer to complex<double>
+        // workaraound -> device vector erstellen
+        thrust::device_vector<cufftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+
+        // fill input vector with the real part being cos of theta
+        BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+
+        // execute FFT
+        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
+        cudaDeviceSynchronize();
+
+        //thrust::reduce_by_key(segment_keys, segment_keys + nr_batches * batch_size,
+        //                      output_vector.begin(), thrust::make_discard_iterator(), sum.begin())
+        // reduce by key doesnt work here as easy as expected. also since the number of batches is usally small
+        // for the correlation length calculation, this wont we the problem?
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size,
+                              output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+        }
+
+        // Now everything again for the sin part?
+        input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+
+        // execute fft
+        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD); // fft into output vector
+        cudaDeviceSynchronize();
+
+        // sum up
+        for(int i = 0; i < nr_batches; i++) {
+            thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
+                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+        }
+        Singleton_timer::set_endpoint("Xi calculation FFTs");
+        Singleton_timer::set_startpoint("Xi calculation Evaluation of FFTs");
+        Singleton_timer::set_startpoint("Xi summing and averaging");
+        thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
+        thrust::device_vector<double> ft_squared_k_gpu(Lx);
+        thrust::device_vector<double> ft_squared_l_gpu(Ly);
+
+        auto segment_keys_l_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx));     // segments i am summing are Ly long
+        auto segment_keys_k_sum = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Ly));     // segments j are Ly long
+
+
+        thrust::reduce_by_key(segment_keys_l_sum, segment_keys_l_sum + batch_size,
+                              sum.begin(), thrust::make_discard_iterator(), ft_squared_l_gpu.begin());
+
+        auto rearranged_inds = thrust::make_transform_iterator(thrust::make_counting_iterator<int>(0), rearrange_ft_inds(Lx, Ly));
+        auto rearranged_sum = thrust::make_permutation_iterator(sum.begin(), rearranged_inds);
+
+
+        thrust::reduce_by_key(segment_keys_k_sum, segment_keys_k_sum + batch_size,
+                              rearranged_sum, thrust::make_discard_iterator(), ft_squared_k_gpu.begin());
+
+
+        // now the entries have to be averaged
+        thrust::transform(ft_squared_k_gpu.begin(), ft_squared_k_gpu.end(), ft_squared_k_gpu.begin(), thrustDivideBy((double)pow(Ly, 4)));
+        thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(Lx, 4)));
+
+        auto kx = get_frequencies_fftw_order(Lx);
+        auto ky = get_frequencies_fftw_order(Ly);
+        // cut zero impuls, I think we can always do that and it won't be much of a difference?
+        bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        bool cut_around_peak = true;
+        double* ft_k_fit;       // the memory is allocated by the vector, right? soooo do i need to free the memory?
+        double* ft_l_fit;       // is it okay that the vector is called in the scope of the following if statement? could be problematic
+        // I think now might be the point where we switch back to cpu for now
+
+        thrust::host_vector<double> ft_squared_k(ft_squared_k_gpu);
+        thrust::host_vector<double> ft_squared_l(ft_squared_l_gpu);
+
+        // stuff from stackoverflow
+        double ft_k_zero = ft_squared_k[0];
+        cout << "ft_k_zero = " << ft_k_zero;
+        double ft_l_zero = ft_squared_l[0];
+
+
+        double ft_k_smallest_momentum = ft_squared_k[1];
+        cout << "   ft_k_smallest_momentum = " << ft_k_smallest_momentum;
+        double ft_l_smallest_momentum = ft_squared_l[1];
+
+        xix = (double)Lx / (2 * M_PI) * sqrt(ft_k_zero / ft_k_smallest_momentum - 1) / 10.0;        // divided by ten it is approximately the correlation length we always had...
+        xiy = (double)Ly / (2 * M_PI) * sqrt(ft_l_zero / ft_l_smallest_momentum - 1) / 10.0;
+
+        cout << "   xix = " << xix << endl;
+        cout << "   xiy = " << xiy << endl;
+        cufftDestroy(plan);
+    }
+
+    template<class State>
     void calc_xi_old(State& x, double& xix, double& xiy) {
         using dim_t = std::array<int, 2>;
         dim_t fft_size = {(int)Ly, (int)Lx};

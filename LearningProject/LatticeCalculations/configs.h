@@ -25,7 +25,7 @@ enum class Calc {
 vector<Calc> calcs = {Calc::StructFactXY};
 //vector<Calc> calcs = {Calc::StructFactXY, Calc::QuenchProcess};
 //fs::path root = "../../../Generated content/Trash/New/Overdamped Quenching 2/";
-fs::path root = "../../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/0.4161791450287818/Tc/OBC";
+fs::path root = "../../../Generated content/Silicon/Subsystems/Suite/L_xi/small/every_write/48";
 
 map<string, double> StructFactConfig {
         {"cell_L", 0},

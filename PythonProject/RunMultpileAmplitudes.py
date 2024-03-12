@@ -12,8 +12,10 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -3
+    J_para = -10
+    J_para = -120000
     J_perp = -0.1
+    J_perp = -2000
     #Ly_Lx = 1 / 16
     Ly_Lx = 1 / 32
     p = 2.54
@@ -22,7 +24,7 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-fixed-3/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -41,7 +43,7 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     min_val_nr = 200
-    equil_error = 0.02
+    equil_error = 0.04
     val_write_density = 1 / 1000            # otherwise the files become to large?
     moving_factor = 0.02
     min_equil_error = 0.01

@@ -508,7 +508,7 @@ class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
-                 min_val_nr=2500, value_name="U_L", random_init=0):
+                 min_val_nr=2500, value_name="U_L", random_init=0, second=False):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
         self.nr_Ts = nr_Ts
@@ -548,6 +548,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.check_function = check_cum_valid
         self.file_ending = "cum"
         self.value_name = value_name
+        self.second = second
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -1082,7 +1083,8 @@ class crit_temp_measurement(autonomous_measurement):
                         f"equil_error, {self.equil_error}\n"
                         f"{self.file_ending}_write_density, {self.val_write_density}\n"
                         f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
-                        f"moving_factor, {self.max_moving_factor}")
+                        f"moving_factor, {self.max_moving_factor}\n"
+                        f"corr_second, {int(self.second)}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1095,7 +1097,6 @@ class crit_temp_measurement_corr(crit_temp_measurement):
         super().__init__(*args, **kwargs)
         self.check_function = check_corr_valid
         self.file_ending = "corr"
-
 
     def plot_value_curve(self, T_c, val_intersection, results):
         super().plot_value_curve(T_c, val_intersection, results, value_name=self.value_name, title="L/xi on T",
@@ -1567,7 +1568,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"Jy, {self.J_perp} \n"
                     f"alpha, {self.h} \n"
                     f"eta, {self.eta} \n"
-                    f"nr_saves, 4 \n"
+                    f"p, {self.p} \n"
+                    f"nr_saves, 4 \n"                    
                     f"nr_repeat, 0 \n"
                     f"min_temp, {T} \n"
                     f"max_temp, {T} \n"
@@ -1585,7 +1587,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"equil_cutoff, {self.equil_cutoff}\n"
                     f"{self.file_ending}_write_density, {self.val_write_density}\n"
                     f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
-                    f"moving_factor, {self.max_moving_factor}")
+                    f"moving_factor, {self.max_moving_factor} \n"
+                    f"corr_second, {int(self.second)}")
 
     def write_new_file(self, size, T, ind):
         # We now need to construct the parameterfile with the appropriate temperature and size
@@ -1600,6 +1603,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"Jy, {self.J_perp} \n"
                     f"alpha, {self.h} \n"
                     f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
                     f"nr_saves, 4 \n"
                     f"nr_repeat, 0 \n"
                     f"min_temp, {T} \n"
@@ -1618,7 +1622,8 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     f"equil_cutoff, {self.equil_cutoff}\n"
                     f"{self.file_ending}_write_density, {self.val_write_density}\n"
                     f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
-                    f"moving_factor, {self.max_moving_factor}")
+                    f"moving_factor, {self.max_moving_factor}\n"
+                    f"corr_second, {int(self.second)}")
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
@@ -1802,7 +1807,8 @@ class quench_measurement(autonomous_measurement):
                     f"nr_ft_values, {self.nr_measured_values} \n"           # TODO probably deprecated, have to see later!
                     f"equil_error, {self.equil_error} \n"
                     f"min_cum_nr, 50\n"
-                    f"min_corr_nr, {self.min_nr_corr_values}")
+                    f"min_corr_nr, {self.min_nr_corr_values}\n"
+                    f"corr_second, {int(self.second)}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -2315,7 +2321,8 @@ class amplitude_measurement(autonomous_measurement):
                         f"equil_cutoff, {self.equil_cutoff}\n"
                         f"min_corr_nr, {self.min_corr_nr}\n"
                         f"corr_write_density, {self.corr_write_density}\n"
-                        f"moving_factor, {self.max_moving_factor}")
+                        f"moving_factor, {self.max_moving_factor}\n"
+                        f"corr_second, {int(self.second)}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",

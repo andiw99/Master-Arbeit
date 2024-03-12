@@ -87,6 +87,7 @@ enum Parameter {
     moving_factor,
     min_mag_nr,
     mag_write_density,
+    corr_second,
 };
 
 map<Parameter, string> parameter_names {
@@ -146,7 +147,8 @@ map<Parameter, string> parameter_names {
         {moving_factor, "moving_factor"},
         {mag_write_density, "mag_write_density"},
         {min_mag_nr, "min_mag_nr"},
-        {ft_write_density, "ft_write_density"}
+        {ft_write_density, "ft_write_density"},
+        {corr_second, "corr_second"},
 };
 
 map<string, Parameter> string_to_parameter {
@@ -206,7 +208,8 @@ map<string, Parameter> string_to_parameter {
         {"moving_factor", moving_factor},
         {"mag_write_density", mag_write_density},
         {"min_mag_nr", min_mag_nr},
-        {"ft_write_density", ft_write_density}
+        {"ft_write_density", ft_write_density},
+        {"corr_second", corr_second},
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {
@@ -987,6 +990,7 @@ double get_autocorrtime(double* f, int f_size, double ds) {
     std::vector<double> diff(f_size);       // I mean we can use vectors here again if we want, then we dont have to deal with memory management
     std::transform(f, f + f_size, diff.begin(), [avg_f](double x) { return x - avg_f; });
     double variance_f = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0) / (double)f_size;
+    variance_f = max(variance_f, 1e-5);
     // cout << "variance_f = " << variance_f << endl;
     // okay this is the variance
     // okay we have the simplest one of infinity values so we are basically done
@@ -1184,6 +1188,7 @@ double get_autocorrtime_gpu(double* f, int f_size, double ds) {
     cout << "avg_f = " << avg_f << endl;
     // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
     double variance_f = thrust::transform_reduce(device_f.begin(), device_f.end(), SquaredDifferenceFromMean(avg_f), 0.0, thrust::plus<double>()) / (double)f_size;
+    variance_f = max(variance_f, 1e-5);
     cout << "variance_f = " << variance_f << endl;
     double T = f_size * ds;     // and we integrate from -T/2 to T/2
     thrust::device_vector<double> norm_autocorrelation_function(f_size, 0.0);     // I think we will use the normalized autocorrelation function so that we dont have to modify this thing if we want to calculate the autocorrelation time
@@ -1222,6 +1227,7 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     cout << "avg_f = " << avg_f << endl;
     // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
     double variance_f = thrust::transform_reduce(device_f.begin(), device_f.end(), SquaredDifferenceFromMean(avg_f), 0.0, thrust::plus<double>()) / (double)f_size;
+    variance_f = max(1e-5, variance_f);
     cout << "variance_f = " << variance_f << endl;
 
     // it is just a large 1D FFT

@@ -7,21 +7,22 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
-    h_arr = np.array([10000])
+    h_arr = np.array([3300])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -120000
-    J_perp = -2000
+    J_para = -77500
+    J_perp = -2500
     Ly_Lx = 1/8
-    p = 2.33
+    p = 2.54        # forgott all the time to overgive p so we will use this real quck
+    #p = 2.33
     eta = 1
     dt = 1e-5
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=10000/Jx_Jy=60"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=3300/Jx_Jy=31"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -29,6 +30,9 @@ def main():
     # Tc parameters
     max_size_Tc = 80
     min_size_Tc = 48
+    file_ending = "mag"
+    value_name = "m"
+    process_file_func = process_new_mag_file_to_U_L
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
@@ -36,8 +40,9 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_cum_nr = 50000
+    min_val_nr = 200
     equil_error = 0.04
+    val_write_density = 1 / 1000
     moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.01
@@ -59,7 +64,9 @@ def main():
                                                  curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                                  size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
-                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx, min_val_nr=min_cum_nr)
+                                                 max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx,
+                                                 min_val_nr=min_val_nr, file_ending=file_ending, value_name=value_name,
+                                                 process_file_func=process_file_func, val_write_density=val_write_density)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end

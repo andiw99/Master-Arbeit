@@ -27,7 +27,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Check-OBC/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/2nd/"
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -39,6 +39,7 @@ def main():
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
     min_val_nr = 2000
+    second = True
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
@@ -52,7 +53,7 @@ def main():
     # sample parameters to get a fee
     T_min = 0.8
     T_max = 1.1
-    nr_Ts = 1
+    nr_Ts = 3
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
@@ -72,7 +73,7 @@ def main():
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor, para_nr=para_nr_Tc, min_val_nr=min_val_nr,
                                                  T_min=T_min, T_max=T_max, nr_Ts=nr_Ts,
-                                                 value_name="xix", random_init=0)
+                                                 value_name="xix", random_init=0, second=second)
         T_c, T_c_error = Tc_sim.routine()
         # the good thing is, both of the simulation implement pickup capabilities so
         # I dont need to worry to much that my computer loses connection and stuff (which it will)
