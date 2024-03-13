@@ -978,7 +978,7 @@ public:
             if(!equilibrated) {
                 int nr_m_measurements = m_vec.size() / m_val_vec.size();      // check how often we measured
                 int nr_m_values = m_vec.size();
-                cout << "nr_m_values: " << nr_m_values << endl;
+                // cout << "nr_m_values: " << nr_m_values << endl;
                 // now use the last avg_nr of cum values to calculate a mean m_vec
                 // use transform reduce?
                 // does it work like this? m_vec.end() - avg_nr is the n-th last value in the vector?
@@ -993,8 +993,8 @@ public:
                         // we calculate the Binder cumulant according to the ergodic hyptheses from all the ms we extracted
                         // TODO if you have time you can do this on GPU but it shouldnt be to useful
                         double* m = &m_vec[min_ind];
-                        cout << "min ind " << min_ind << endl;
-                        cout << "nr_values_to_use " << nr_values_to_use << endl;
+                        // cout << "min ind " << min_ind << endl;
+                        // cout << "nr_values_to_use " << nr_values_to_use << endl;
                         double m_L2 = std::transform_reduce(m, m + nr_values_to_use,
                                                             0.0, // initial value for the reduction (sum)
                                                             std::plus<double>(), 
