@@ -976,11 +976,13 @@ public:
             // now we want to see if we have to adjust the write interval
             // we have to make sure that we got 5 fresh cum values
             if(!equilibrated) {
-                int nr_m_values = m_vec.size() / m_val_vec.size();      // check how often we measured
+                int nr_m_measurements = m_vec.size() / m_val_vec.size();      // check how often we measured
+                int nr_m_values = m_vec.size();
+                cout << "nr_m_values: " << nr_m_values << endl;
                 // now use the last avg_nr of cum values to calculate a mean m_vec
                 // use transform reduce?
                 // does it work like this? m_vec.end() - avg_nr is the n-th last value in the vector?
-                if(nr_m_values >= min_m_nr){
+                if(nr_m_measurements >= min_m_nr){
                     int eval_every_n_steps = (int)(eval_factor * write_density) + 1;   // I think this + 1 makes everything nicer? Or does it?
                     if(m_vec.size() % eval_every_n_steps == 0) {
                         // We dont need to calculate the error and stuff everytime we write down a m_vec
@@ -991,6 +993,8 @@ public:
                         // we calculate the Binder cumulant according to the ergodic hyptheses from all the ms we extracted
                         // TODO if you have time you can do this on GPU but it shouldnt be to useful
                         double* m = &m_vec[min_ind];
+                        cout << "min ind " << min_ind << endl;
+                        cout << "nr_values_to_use " << nr_values_to_use << endl;
                         double m_L2 = std::transform_reduce(m, m + nr_values_to_use,
                                                             0.0, // initial value for the reduction (sum)
                                                             std::plus<double>(), 
@@ -1117,8 +1121,8 @@ public:
         return moving_factor;
     }
 
-    double getMovingFactor(int nr_cum_values, long double avg_U_L, int min_ind) {
-        int recent_ind = (int) (nr_cum_values * 0.8);
+    double getMovingFactor(int nr_values, long double avg, int min_ind) {
+        int recent_ind = (int) (nr_values * 0.8);
         // the idea is to check if the differences between the values show a trend to be positive
         // or negative. But I think that comes done to calculating the deviation of the recent
         // average from the total average
@@ -1127,17 +1131,17 @@ public:
         // If we are in a high temperature state, the deviation per step will be relatively larger
         // If should not be dependent on the stepsize
         // first of all compute the avergage absolute difference per step
-        int recent_size = nr_cum_values - recent_ind;
-        double U_L_start = reduce(m_vec.begin() + min_ind, m_vec.begin() + recent_ind) / (double)(recent_ind - min_ind);
-        double U_L_end = avg_U_L;
+        int recent_size = nr_values - recent_ind;
+        double var_start = reduce(m_vec.begin() + min_ind, m_vec.begin() + recent_ind) / (double)(recent_ind - min_ind);
+        double var_end = avg;
 
         double* recent_U_L = &m_vec[recent_ind];      // we need it still for the mean delta?
         double mean_abs_delta_U = meanAbsDifference(recent_U_L, recent_size);
         // and we need the recent mean
-        double moving_factor = fabs(U_L_end - U_L_start) / ((double)recent_size * mean_abs_delta_U);
+        double moving_factor = fabs(var_end - var_start) / ((double)recent_size * mean_abs_delta_U);
 
-        cout << "U_L_start = " << U_L_start << endl;
-        cout << "|U_L_end - U_L_start| = " << avg_U_L - U_L_start << endl;
+        cout << "var_start = " << var_start << endl;
+        cout << "|var_end - var_start| = " << avg - var_start << endl;
         cout << "mean abs delta = " << mean_abs_delta_U << endl;
         return moving_factor;
     }

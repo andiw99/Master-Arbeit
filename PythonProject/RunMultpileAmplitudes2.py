@@ -22,7 +22,7 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=3300/Jx_Jy=31"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=3300/Jx_Jy=31-2/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -40,8 +40,8 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_val_nr = 200
-    equil_error = 0.04
+    min_val_nr = 5000
+    equil_error = 0.005
     val_write_density = 1 / 1000
     moving_factor = 0.02
     min_equil_error = 0.01

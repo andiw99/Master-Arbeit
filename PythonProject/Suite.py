@@ -1123,7 +1123,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                  size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
                  random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file_old, val_write_density=1/100):
+                 process_file_func=process_file_old, val_write_density=1/100, second=False):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
 
@@ -1166,7 +1166,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.check_function = check_cum_valid
         self.file_ending = file_ending
         self.process_file_func = process_file_func
-
+        self.second = second
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -2208,7 +2208,7 @@ class quench_measurement(autonomous_measurement):
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
-                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150):
+                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
@@ -2239,6 +2239,7 @@ class amplitude_measurement(autonomous_measurement):
         self.min_r_sqaured = 0.98           # The r²-value of the linear regression should be fairly high so that we can be sure that the interval that we fit is really linear
 
         self.cur_para_nr = 0                # same method as in Tc?
+        self.second = second
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between

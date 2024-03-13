@@ -27,24 +27,24 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/2nd/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/L_xi/Large systems/"
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
 
     # Tc parameters
-    max_size_Tc = 160
-    min_size_Tc = 120
+    max_size_Tc = 600
+    min_size_Tc = 300
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
-    min_val_nr = 2000
-    second = True
+    min_val_nr = 200
+    second = False
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    equil_error = 0.025
+    equil_error = 0.05
     # We add the moving factor because I think that the point at 1.2 is not equilibrated
     moving_factor = 0.005
     min_equil_error = 0.005

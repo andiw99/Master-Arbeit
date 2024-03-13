@@ -2236,8 +2236,8 @@ public:
         cout << "   ft_k_smallest_momentum = " << ft_k_smallest_momentum;
         double ft_l_smallest_momentum = ft_squared_l[1];
 
-        xix = (double)Lx / (2 * M_PI) * sqrt(ft_k_zero / ft_k_smallest_momentum - 1);
-        xiy = (double)Ly / (2 * M_PI) * sqrt(ft_l_zero / ft_l_smallest_momentum - 1);
+        xix = (double)Lx / (2 * M_PI) * sqrt(ft_k_zero / ft_k_smallest_momentum - 1) / 10.0;        // divided by ten it is approximately the correlation length we always had...
+        xiy = (double)Ly / (2 * M_PI) * sqrt(ft_l_zero / ft_l_smallest_momentum - 1) / 10.0;
 
         cout << "   xix = " << xix << endl;
         cout << "   xiy = " << xiy << endl;

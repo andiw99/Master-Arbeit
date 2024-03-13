@@ -12,10 +12,10 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -10
     J_para = -120000
-    J_perp = -0.1
+    J_para = -10
     J_perp = -2000
+    J_perp = -0.1
     #Ly_Lx = 1 / 16
     Ly_Lx = 1 / 32
     p = 2.54
@@ -50,7 +50,7 @@ def main():
     max_rel_intersection_error = 0.01
 
     # Amplitude parameters
-    amplitude_size = 1024
+    amplitude_size = 2048
     equil_error_amplitude = 0.03
     equil_cutoff = 0.01
     para_nr_ampl = 160
