@@ -3,7 +3,7 @@
 //
 #include "../main.cuh"
 #include "../systems-cuda.cuh"
-#include "../parameters.cuh"
+#include "parameters.cuh"
 
 namespace fs = std::filesystem;
 

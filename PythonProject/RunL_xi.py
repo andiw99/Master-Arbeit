@@ -31,10 +31,11 @@ def main():
 
     Tc_exec_file = "AutoAmplitude.cu"
     quench_exec_file = "AutoQuench.cu"
+    runfile = "run_cuda_gpu_a100_low.sh"
 
     # Tc parameters
-    max_size_Tc = 600
-    min_size_Tc = 300
+    max_size_Tc = 640
+    min_size_Tc = 320
     nr_sizes_Tc = 2
     nr_Ts = 3
     para_nr_Tc = int(input("para nr, please take seriously:"))
@@ -61,14 +62,14 @@ def main():
         # Run Tc Sim:
         eta = np.mean(eta_arr)          # Which eta is the fastest?
         # Tc_sim = efficient_crit_temp_measurement_corr(J_para, J_perp, h, eta, p, dt, filepath,
-        #                                          curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+        #                                          curr_sim_path + "Tc", Tc_exec_file, runfile, nr_GPUS=nr_gpus,
         #                                          size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
         #                                          min_equil_error=min_equil_error,
         #                                          intersection_error=max_rel_intersection_error,
         #                                          max_moving_factor=moving_factor,
         #                                          para_nr=para_nr_Tc, min_val_nr=min_cum_nr, value_name="xix", random_init=1)
         Tc_sim = crit_temp_measurement_corr(J_para, J_perp, h, eta, p, dt, filepath,
-                                                 curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                                 curr_sim_path + "Tc", Tc_exec_file, runfile, nr_GPUS=nr_gpus,
                                                  size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=2, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor, para_nr=para_nr_Tc, min_val_nr=min_val_nr,

@@ -1,8 +1,8 @@
 //
 // Created by weitze73 on 08.06.23.
 //
-#include "main.cuh"
-#include "systems-cuda.cuh"
+#include "../main.cuh"
+#include "../systems-cuda.cuh"
 #include "parameters.cuh"
 
 namespace fs = std::filesystem;

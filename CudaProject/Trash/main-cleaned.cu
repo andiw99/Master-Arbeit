@@ -3,7 +3,7 @@
 //
 #include "../main.cuh"
 #include "../systems-cuda.cuh"
-#include "../parameters.cuh"
+#include "parameters.cuh"
 #include <numeric>
 #include <chrono>
 #include <map>

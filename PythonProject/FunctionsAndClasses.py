@@ -1284,55 +1284,125 @@ def process_file(file_path, threshold, key='t', value='U_L'):
 
 def process_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     print(file_path)
-    df = pd.read_csv(file_path, sep=";")
-    if 0 < threshold < 1:
-        threshold = threshold * len(df[key])
-    total_nr_values = df.shape[0]
-    df = df[int(threshold):]
-    nr_values = df.shape[0]
-    m = np.array(df[value])
-    times = np.array(df[key])
+    file_path = Path(file_path)
+    try:
+        parameters = read_parameters_txt(str(file_path.with_suffix(".txt")))
+        U_L = parameters["U_L"]
+        rel_error = parameters["U_L_error"]
+        moving_factor = parameters["moving_factor"]
+        total_nr_values = 0
+    except:
+        df = pd.read_csv(file_path, sep=";")
+        print("fing couldnt read this stuff")
+        if 0 < threshold < 1:
+            threshold = threshold * len(df[key])
+        total_nr_values = df.shape[0]
+        df = df[int(threshold):]
+        nr_values = df.shape[0]
+        m = np.array(df[value])
+        times = np.array(df[key])
 
-    m_avg = np.mean(m)
-    m2 = np.mean(m ** 2)
-    m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
-    m4 = np.mean(m ** 4)
-    m4_err = np.std(m ** 4) / np.sqrt(len(m))
+        m_avg = np.mean(m)
+        m2 = np.mean(m ** 2)
+        m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
+        m4 = np.mean(m ** 4)
+        m4_err = np.std(m ** 4) / np.sqrt(len(m))
 
-    U_L = m4 / m2 ** 2
+        U_L = m4 / m2 ** 2
 
-    U_L_error = np.sqrt(pow(1 / m2 / m2 * m4_err, 2) + pow(2 * m4 / pow(m2, 3) * m2_err, 2))
+        U_L_error = np.sqrt(pow(1 / m2 / m2 * m4_err, 2) + pow(2 * m4 / pow(m2, 3) * m2_err, 2))
 
-    #f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
-#
-    #ds = times[1] - times[0]
-    ## try:
-    ##     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
-    ##     autocorr_time = paras["autocorrelation_time_" + value]
-    ## except KeyError:
-    #autocorr_time = integrated_autocorr_time(f, ds)
-#
-    #variance = autocorr_time / (nr_values * ds) * f_dist_var
-    #error = np.sqrt(variance)
+        #f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
+    #
+        #ds = times[1] - times[0]
+        ## try:
+        ##     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
+        ##     autocorr_time = paras["autocorrelation_time_" + value]
+        ## except KeyError:
+        #autocorr_time = integrated_autocorr_time(f, ds)
+    #
+        #variance = autocorr_time / (nr_values * ds) * f_dist_var
+        #error = np.sqrt(variance)
 
-    rel_error = U_L_error / U_L
-    # What are we doing with the moving factor? I do not really want
-    # to return it here but if we already read the file...
-    # I guess just return it, it is one of the useful values you want to extract
-    # from a file
+        rel_error = U_L_error / U_L
+        # What are we doing with the moving factor? I do not really want
+        # to return it here but if we already read the file...
+        # I guess just return it, it is one of the useful values you want to extract
+        # from a file
 
-    # Moving factor
-    #try:
-    #    moving_factor = paras["moving_factor_" + value]
-    #except KeyError:
-    #    # We already have a function that calculates it?
-    moving_factor = getMovingFactor(m, m_avg)
+        # Moving factor
+        #try:
+        #    moving_factor = paras["moving_factor_" + value]
+        #except KeyError:
+        #    # We already have a function that calculates it?
+        moving_factor = getMovingFactor(m, m_avg)
 
     return U_L, rel_error, moving_factor, total_nr_values
 
 def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     print("This?", file_path)
+    file_path = Path(file_path)
     # df = pd.read_csv(file_path, sep=";")
+    try:
+        para_path = str(file_path.with_suffix(".txt"))
+        parameters = read_parameters_txt(para_path)
+        print(parameters)
+        U_L = parameters["U_L"]
+        rel_error = parameters["U_L_error"]
+        moving_factor = parameters["moving_factor"]
+        total_nr_values = 0
+    except:
+        print("fing couldnt read this stuff")
+        df = read_large_df(file_path, skiprows=1, sep=";")
+        if 0 < threshold < 1:
+            threshold = threshold * len(df)
+        total_nr_values = len(df)
+        df = df[int(threshold):]
+        nr_values = len(df)
+        m = []
+        for ind, line in enumerate(df):
+            m += line
+        m = np.array(m)
+        #times = np.array(df[key])
+
+        m_avg = np.mean(m)
+        m2 = np.mean(m ** 2)
+        m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
+        m4 = np.mean(m ** 4)
+        m4_err = np.std(m ** 4) / np.sqrt(len(m))
+
+        U_L = m4 / m2 ** 2
+
+        U_L_error = np.sqrt(pow(1 / m2 / m2 * m4_err, 2) + pow(2 * m4 / pow(m2, 3) * m2_err, 2))
+
+        #f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
+    #
+        #ds = times[1] - times[0]
+        ## try:
+        ##     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
+        ##     autocorr_time = paras["autocorrelation_time_" + value]
+        ## except KeyError:
+        #autocorr_time = integrated_autocorr_time(f, ds)
+    #
+        #variance = autocorr_time / (nr_values * ds) * f_dist_var
+        #error = np.sqrt(variance)
+
+        rel_error = U_L_error / U_L
+        # What are we doing with the moving factor? I do not really want
+        # to return it here but if we already read the file...
+        # I guess just return it, it is one of the useful values you want to extract
+        # from a file
+
+        # Moving factor
+        #try:
+        #    moving_factor = paras["moving_factor_" + value]
+        #except KeyError:
+        #    # We already have a function that calculates it?
+        moving_factor = getMovingFactor(m, m_avg)
+
+    return U_L, rel_error, moving_factor, total_nr_values
+
+def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     df = read_large_df(file_path, skiprows=1, sep=";")
     if 0 < threshold < 1:
         threshold = threshold * len(df)

@@ -5,8 +5,7 @@
 #ifndef CUDAPROJECT_SYSTEMS_CUH
 #define CUDAPROJECT_SYSTEMS_CUH
 
-#include "main.cuh"
-// #include "parameters.cuh"
+#include "../main.cuh"
 #include <cmath>
 #include <random>
 #include <functional>
@@ -19,8 +18,6 @@
 #include <filesystem>
 #include <chrono>
 #include <stdio.h>
-#include <hiprand.h>
-
 
 using namespace std;
 
@@ -34,11 +31,7 @@ public:
     double T;
     const double eta;
     double D;
-    // possibility of different sizes in the different directions
-    const size_t dim_size_x;
-    const size_t dim_size_y;
-    thrust::device_vector<hiprandState> curand_states;
-
+    const size_t lat_dim;
     checkpoint_timer timer {{}};           // checkpoint timer with no names, for now only total time
 
     virtual void print_info() {
@@ -47,8 +40,7 @@ public:
         cout << "T = " << T << endl;
         cout << "eta = " << eta << endl;
         cout << "D = " << D << endl;
-        cout << "dim_size_x = " << dim_size_x << endl;
-        cout << "dim_size_y = " << dim_size_y << endl;
+        cout << "lat_dim = " << lat_dim << endl;
         cout << "n = " << n << endl;
     }
 
@@ -69,23 +61,6 @@ public:
             return D * dist(rng);
         }
     };
-    struct hiprand
-    {
-        double mu, sigma, D;
-
-        __host__ __device__
-        hiprand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
-
-        template<class Tuple>
-        __device__
-        float operator()(Tuple tup) const
-        {
-            hiprandState local_state = thrust::get<1>(tup);
-            thrust::get<0>(tup) = hiprand_normal(&local_state);
-            thrust::get<1>(tup) = local_state;
-        }
-    };
-
     struct rand_float
     {
         float mu, sigma, D;
@@ -104,39 +79,15 @@ public:
         }
     };
 
-    struct curand_setup
-    {
-        long seed = 0;
 
-        curand_setup(long seed): seed(seed) {}
-
-        using init_tuple = thrust::tuple<int, hiprandState &>;
-        __device__
-        void operator()(init_tuple t) const{
-            hiprandState s;
-            int id = thrust::get<0>(t);
-            hiprand_init(seed, id, 0, &s);
-            thrust::get<1>(t) = s;
+    struct neighbor : thrust::unary_function<size_t, size_t> {
+        const size_t lattice_dim;
+        neighbor(size_t lat_dim): thrust::unary_function<size_t, size_t>(), lattice_dim(lat_dim){
         }
     };
 
-
-    struct hor_neighbor : thrust::unary_function<size_t, size_t> {
-        const size_t dim_size;
-        hor_neighbor(size_t dimension_size): thrust::unary_function<size_t, size_t>(), dim_size(dimension_size){
-        }
-    };
-
-    struct vert_neighbor : thrust::unary_function<size_t, size_t> {
-        const size_t dim_size_x;
-        const size_t dim_size_y;
-        vert_neighbor(size_t dimension_size_x, size_t dimension_size_y):
-        thrust::unary_function<size_t, size_t>(), dim_size_x(dimension_size_x), dim_size_y(dimension_size_y){
-        }
-    };
-
-    struct left : public hor_neighbor {
-        using hor_neighbor::hor_neighbor;
+    struct left : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // Here we implement logic that return the index of the left neighbor
             // we have to think about that we are actually in 2D and i guess we want to use PBC?
@@ -150,42 +101,38 @@ public:
             // if i is on the left side of the lattice, i % lat_dim = 0
             // j = (i % lat_dim == 0) ? i + lat_dim - 1 : i - 1;
 
-            return (i % dim_size == 0) ? i + dim_size - 1 : i - 1;
+            return (i % lattice_dim == 0) ? i + lattice_dim - 1 : i - 1;
         }
     };
 
-
-    struct right : public hor_neighbor {
-        using hor_neighbor::hor_neighbor;
+    struct right : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i+1, expect when i is on the right side of the lattice
             // if i is on the right side of the lattice, j is i - (d - 1)
             // if i is one the right side of the lattice i % lat_dim = lat_dim - 1
 
-            return (i % dim_size == dim_size - 1) ? i - (dim_size - 1) : i + 1;
+            return (i % lattice_dim == lattice_dim - 1) ? i - (lattice_dim - 1) : i + 1;
         }
     };
 
-    struct up : public vert_neighbor{
-        using vert_neighbor::vert_neighbor;
+    struct up : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i - d, except when i is on the upper bound of the lattice
             // if it is on the upper bound, j will be i + d(d-1)
             // if i is on the upper bound, i will be smaller than d
-
-            // okay for rectangular lattices now both dimensions are relevant
-
-            return (i < dim_size_x) ? i + dim_size_x * (dim_size_y - 1) : i - dim_size_x;
+            return (i < lattice_dim) ? i + lattice_dim * (lattice_dim - 1) : i - lattice_dim;
         }
     };
 
-    struct down : public vert_neighbor {
-        using vert_neighbor::vert_neighbor;
+    struct down : public neighbor {
+        using neighbor::neighbor;
         __host__ __device__ size_t operator()(size_t i) const {
             // j is always i + d, except when i is on the lower bound of the lattice
             // if it is on the lower bound, j will be i - d(d-1)
             // if i is on the lower bound, i will be larger than d * (d-1) - 1 = d*d - d - 1
-            return (i >= dim_size_x * (dim_size_y -1 )) ? i - dim_size_x * (dim_size_y - 1) : i + dim_size_x;
+            return (i >= lattice_dim * (lattice_dim -1 )) ? i - lattice_dim * (lattice_dim - 1) : i + lattice_dim;
         }
     };
 
@@ -211,28 +158,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(dim_size_x)           // for left the dim_size in x-direction is important
+                                left(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
+                                right(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                                up(lat_dim)
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(dim_size_x, dim_size_y)
+                                down(lat_dim)
                         )
                 )
         )));
@@ -241,14 +188,14 @@ public:
     }
 
     template<class Stoch>
-    void calc_diff_thrust(Stoch &theta, double t) {
+    void calc_diff(Stoch &theta, double t) {
         // TODO actually t is never needed here with the current architecture, but i am too lazy to fix that
         // as it will probably improve nothing
         chrono::microseconds mus = chrono::duration_cast<chrono::microseconds >(
                 chrono::system_clock::now().time_since_epoch()
         );
         // TODO are you still using this seed? Why is it not possible to get it to work with the default random
-        // engine just advancing? Maybe just switch to hiprand?
+        // engine just advancing? Maybe just switch to curand?
         long seed = (mus.count() % 10000000) * 1000000000;
         thrust::counting_iterator<size_t> index_sequence_begin(seed);
         // cout << seed << endl;
@@ -263,43 +210,18 @@ public:
         // print_container(theta);
         // cout << endl;
     }
-    template<class Stoch>
-    void calc_diff(Stoch &theta, double t) {
-        auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin(), curand_states.begin()));
-        // TODO does it work with start + n?
-        thrust::for_each(start, start + n, hiprand(D));
-    }
 
-    // depricated constructors, use the one below
-    System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), dim_size_x(lat_dim), dim_size_y(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
+    System(size_t step_nr, const double eta, const double T, const size_t lat_dim) : step_nr(step_nr), lat_dim(lat_dim), n(lat_dim * lat_dim), eta(eta), T(T), D(sqrt(2 * T * eta)) {
         cout << "System constructor is called with eta = " << eta << "  T = " << T << endl;
     }
-    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), dim_size_x((size_t)paras["lat_dim"]), dim_size_y((size_t)paras["lat_dim"]), eta(paras["eta"]), T(paras["T"]),
+    System(map<string, double>& paras) : step_nr((size_t)paras["step_nr"]), lat_dim((size_t)paras["lat_dim"]), eta(paras["eta"]), T(paras["T"]),
                                          n((size_t)paras["lat_dim"] * (size_t)paras["lat_dim"]) {
         D = (sqrt(2 * T * eta));
         cout << "System constructor from Map is called with eta = " << eta << "  T = " << T << endl;
     }
 
-    System(map<Parameter, double>& paras) : step_nr((size_t)paras[Parameter::step_nr]), dim_size_x((size_t)paras[Parameter::dim_size_x]),
-                                            dim_size_y((size_t)paras[Parameter::dim_size_y]), eta(paras[Parameter::eta]), T(paras[Parameter::T]),
-                                            n((size_t)paras[Parameter::dim_size_x] * (size_t)paras[Parameter::dim_size_y]) {
-        D = (sqrt(2 * T * eta));
-        cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
-        curand_states = thrust::device_vector<hiprandState>(n);  // TODO is this okay?
-        // counting iterator counting from 0 to n. Every lattice site needs its own state i think
-        // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
-        auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
-        // now we call hiprand init with sequence numbers from the counting iterator
-        thrust::for_each(sInit, sInit + n, curand_setup(step_nr));
-
-    }
-
-    size_t get_dim_size_x() const{
-        return dim_size_x;
-    }
-
-    size_t get_dim_size_y() const{
-        return dim_size_y;
+    size_t get_lattice_dim() const{
+        return lat_dim;
     }
 
     double get_cur_T() const{
@@ -320,92 +242,10 @@ public:
         }
     };
 
-    template <class T>
-    struct kinetic_energy
-    {
-        __host__ __device__
-        T operator()(const T& x, const T& y) const {
-            return 0.5 * x * y;
-        }
-    };
-
     template<class State>
     double calc_kinetic_energy(State &x) {
         double E_kin = 0.5 * thrust::transform_reduce(x.begin() + n, x.end(), square<double>(), 0.0, thrust::plus<double>());
         return E_kin;
-    }
-
-    template<class State>
-    double calc_f_mm(State &x) {
-        double m2 = thrust::transform_reduce(x.begin(), x.begin() + n, square<double>(), 0.0, thrust::plus<double>()) / (double) n;
-        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
-        double f_mm = (double)n * (m2 / (m * m) - 1);
-        return f_mm;
-    }
-
-
-
-    template<class State, class Functor>
-    double calc_f_me(State &x, Functor functor) {
-        // ah okay damn, the energy depends on the system and the interaction potential
-        // how do i solve this the easiest? do i hand over a functor that knows the potential?
-        // ah damn it gets pretty complicated if I want to do this the right way... because of the neighbors
-        // it will look like in the universal opterations function
-        thrust::device_vector<double> e(n);
-        thrust::device_vector<double> me(n);
-        BOOST_AUTO(start, thrust::make_zip_iterator(thrust::make_tuple(
-                x.begin(),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                left(dim_size_x)           // for left the dim_size in x-direction is important
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                right(dim_size_x)          // for right the dim_size in x-direction is relevant
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
-                        )
-                ),
-                thrust::make_permutation_iterator(
-                        x.begin(),
-                        thrust::make_transform_iterator(
-                                thrust::counting_iterator<size_t>(0),
-                                down(dim_size_x, dim_size_y)
-                        )
-                ),
-                e.begin()
-        )));
-        thrust::for_each(start, start + n, functor);        // potential energy
-        // TODO check if this is correct.
-        thrust::device_vector<double> e_p(n);
-        thrust::transform(x.begin() + n, x.end(), x.begin() + n, e_p.begin(), kinetic_energy<double>());    // kinetic energy
-        thrust::transform(e.begin(), e.end(), e_p.begin(), e.begin(), thrust::plus<double>());               // add both into e
-        thrust::transform(x.begin(), x.begin() + n, e.begin(), me.begin(), thrust::multiplies<double>());
-        double me_avg = thrust::reduce(me.begin(), me.end(), 0.0, thrust::plus<double>()) / (double) n;
-        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
-        double e_avg = thrust::reduce(e.begin(), e.end(), 0.0, thrust::plus<double>()) / (double) n;
-        double f_me = (double)n * (me_avg / (m * e_avg) - 1);
-        return f_me;
-    }
-
-    template<class State>
-    double calc_m(State &x) {
-        double m = thrust::reduce(x.begin(), x.begin() + n, 0.0, thrust::plus<double>()) / (double) n;       // should work?
-        return m;
-    }
-
-    double test() {
-        return 1.0;
     }
 
     size_t get_step_nr() {
@@ -572,10 +412,6 @@ public:
         }
     };
 
-    struct energy_functor {
-
-    };
-
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -592,7 +428,6 @@ public:
     coulomb_interaction(map<string, double>& paras)
             : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), J(paras["J"]) {
     }
-    coulomb_interaction(map<Parameter, double>& paras) : System(paras), alpha(paras[Parameter::alpha]), beta(paras[Parameter::beta]), J(paras[Parameter::J]) {}
 
 };
 
@@ -605,12 +440,8 @@ public:
     }
     coulomb_constant(map<string, double>& paras)
             : coulomb_interaction(paras) {
-    }
 
-    coulomb_constant(map<Parameter, double>& paras)
-            : coulomb_interaction(paras) {
     }
-
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
         // cout << "calc_diff is called" << endl;
@@ -728,17 +559,9 @@ public:
         end_quench_t = t_quench + s_eq_t;
     }
 
-    quench(map<Parameter, double>& paras): System(paras),
-                                        tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]), s_eq_t(paras[Parameter::equil_time]),
-                                        e_eq_t(paras[Parameter::equil_time]), T_start(paras[Parameter::starting_temp]) {
-        t_quench = (get_quench_time());
-        end_quench_t = t_quench + s_eq_t;
-    }
-
     double get_quench_time() {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
-        cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
         return (T_start - T_end) * tau;
     }
 
@@ -799,32 +622,6 @@ public:
         }
     };
 
-    struct potential_energy_functor {
-        const double alpha, beta, Jx, Jy;
-
-        potential_energy_functor(const double alpha,
-                            const double beta, const double Jx, const double Jy) :
-                            alpha(alpha), beta(beta), Jx(Jx), Jy(Jy){ }
-
-        template<class Tup>
-        __host__ __device__ void operator()(Tup tup) {
-            double q = thrust::get<0>( tup );
-            double q_left =     thrust::get<1>(tup);
-            double q_right =    thrust::get<2>(tup);
-            double q_up =       thrust::get<3>(tup);
-            double q_down =     thrust::get<4>(tup);
-
-            // now here the logic for the energy
-            double E_dw = 0.5 * (alpha * pow(q, 4) - beta * pow(q, 2));
-            double E_interaction = Jx * (1.0 / sqrt(1.0 + (q-q_left) * (q-q_left))
-                            + 1.0 / sqrt(1.0 + (q-q_right) * (q-q_right)))
-                            + Jy * (1.0 / sqrt(1.0 + (q-q_up) * (q-q_up))
-                                    + 1.0 / sqrt(1.0 + (q-q_down) * (q-q_down)));
-            thrust::get<5>(tup) = E_dw + E_interaction;
-        }
-    };
-
-
 public:
     template<class State, class Deriv>
     void calc_drift(const State &x, Deriv &dxdt, double t) {
@@ -840,16 +637,6 @@ public:
     anisotropic_coulomb_interaction(map<string, double>& paras)
             : System(paras), alpha(paras["alpha"]), beta(paras["beta"]), Jx(paras["J"]), Jy(paras["Jy"]) {
     }
-    anisotropic_coulomb_interaction(map<Parameter, double>& paras)
-            : System(paras), alpha(paras[Parameter::alpha]), beta(paras[Parameter::beta]), Jx(paras[Parameter::J]), Jy(paras[Parameter::Jy]) {
-    }
-
-    template<class State>
-    double calc_f_me(State &x) {
-        auto functor = potential_energy_functor(alpha, beta, Jx, Jy);
-        return System::calc_f_me(x, functor);
-    }
-
 };
 
 
@@ -865,12 +652,6 @@ public:
             : System(paras), anisotropic_coulomb_interaction(paras) {
         cout << "creating anisotropic_coulomb_constant system" << endl;
     }
-
-    anisotropic_coulomb_constant(map<Parameter, double>& paras)
-            : System(paras), anisotropic_coulomb_interaction(paras) {
-        cout << "creating anisotropic_coulomb_constant system" << endl;
-    }
-
 
     template<class Stoch>
     void calc_diff(Stoch &theta, double t) {
@@ -891,11 +672,6 @@ public:
 
     }
     anisotropic_coulomb_quench(map<string,double>& paras)
-            : anisotropic_coulomb_interaction(paras), quench(paras), System(paras){
-
-    }
-
-    anisotropic_coulomb_quench(map<Parameter,double>& paras)
             : anisotropic_coulomb_interaction(paras), quench(paras), System(paras){
 
     }
@@ -982,6 +758,11 @@ public:
     double get_cur_T() const{
         return System::T;
     }
+
+    size_t get_lattice_dim() const{
+        return lat_dim;
+    }
+
 };
 
 

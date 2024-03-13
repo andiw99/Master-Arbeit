@@ -4,13 +4,13 @@
 //
 // Created by andi on 13.08.23.
 //
-#include "Simulation.cuh"
+#include "../Simulation.cuh"
 
 
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_silicon_anisotrop_subsystems relax_system;
+    typedef XY_Silicon relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
     } else {
@@ -28,23 +28,21 @@ int main(int argc, char* argv[]) {
 
     // Okay so we initialize the observer first haha
     auto* relax_obs =
-            new equilibration_observer<relax_system, state_type>();     //
-    auto* cum_obs = new m_equilibration_observer_adaptive<relax_system, state_type>(paras[min_mag_nr],
-                                                                              paras[mag_write_density],
-                                                                              paras[equil_cutoff]);
+            new relax_observer<relax_system, state_type>(nr_save_values);
 
-    // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
-    //auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
+    auto* runtime_obs =
+            new runtime_observer<relax_system, state_type>();
+
+    auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
 
     // templating..
-    SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<bbk_stepper,
+    RelaxationSimulation simulation = RelaxationSimulation<bbk_stepper,
             state_type,
             algebra, operations,
             relax_system>(paras, simulation_path);
-    simulation.register_observer(cum_obs);
     simulation.register_observer(relax_obs);
-    // simulation.register_observer(ft_obs);
-    // simulation.register_observer(ft_obs);
+    simulation.register_observer(runtime_obs);
+    simulation.register_observer(ner_obs);
     simulation.simulate();
     return 0;
 }

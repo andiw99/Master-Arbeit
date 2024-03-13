@@ -1078,6 +1078,10 @@ public:
                                 sys.set_equilibration(t);
                                 // write cumulant average
                                 append_parameter(filepath, "U_L", U_L);
+                                append_parameter(filepath, "m", avg_m);
+                                append_parameter(filepath, "m2", m_L2);
+                                append_parameter(filepath, "m4", m_L4);
+
                                 // write error
                                 append_parameter(filepath, "U_L_error", rel_stddev_total);
                                 // write autocorrelation time
@@ -1619,6 +1623,7 @@ class corr_equilibration_observer_adaptive: public obsver<system, State>{
     double density = 1.0 / 100.0;            // standard density writes once every 100 steps
     double min_density = 1.0 / 10000.0;
     double error_factor = 10000.0;
+    int observed_direction = 0;             // 0: both, 1: x, 2:y, for the error
     // TODO we have to judge whether this is large or not. The thing is the error is good for low temperature states to
     //  judge whether we are equilibrated but bad for high temperature states since we have large deviations
     // for high temperature states we would usually need a larger number of systems to judge the equilibration
@@ -1668,6 +1673,7 @@ public:
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];
         second = (bool)paras[Parameter::corr_second];
+        observed_direction = (bool)paras[Parameter::observed_direction];
         // the timepoint is only zero if we do not memory initialize
         timepoint = 0.0;
         equilibrated = false;
@@ -1789,7 +1795,14 @@ public:
 
 
                         // I would say if the mean of the two relative standard deviations satisfies the condition we are fine
-                        double rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
+                        double rel_stddev_total;
+                        if(observed_direction == 0) {
+                            rel_stddev_total = 0.5 * (rel_stddev_xix_total + rel_stddev_xiy_total);
+                        } else if(observed_direction == 1) {
+                            rel_stddev_total = rel_stddev_xix_total;
+                        } else if(observed_direction == 2) {
+                            rel_stddev_total = rel_stddev_xiy_total;
+                        }
 
                         if(rel_stddev_total < max_error) {
                             cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;

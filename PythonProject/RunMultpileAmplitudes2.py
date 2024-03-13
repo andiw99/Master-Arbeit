@@ -26,6 +26,7 @@ def main():
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
+    runfile = "run_cuda_gpu_a100_low.sh"
 
     # Tc parameters
     max_size_Tc = 80
@@ -40,9 +41,9 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_val_nr = 5000
+    min_val_nr = 200
     equil_error = 0.005
-    val_write_density = 1 / 1000
+    val_write_density = 1 / 10000
     moving_factor = 0.02
     min_equil_error = 0.01
     max_rel_intersection_error = 0.01
@@ -61,7 +62,7 @@ def main():
 
         # Run Tc Sim:
         Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath,
-                                                 curr_sim_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
+                                                 curr_sim_path + "Tc", Tc_exec_file, runfile, nr_GPUS=nr_gpus,
                                                  size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx,
@@ -72,7 +73,7 @@ def main():
         # require some work on my end
 
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Amplitude",
-                                     amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
+                                     amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
                                      T_min_fraction=T_min_fraction, T_range_fraction=T_range_fraction, nr_Ts=nr_Ts, Ly_Lx=Ly_Lx)
         ampl.run()

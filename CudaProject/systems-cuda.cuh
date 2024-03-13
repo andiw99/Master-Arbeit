@@ -1207,7 +1207,7 @@ public:
                 }*/
 /*                int subsystem_size = (int)(paras[subsystem_Lx] * paras[subsystem_Ly]);
                 int nr_random_numbers = subsystem_size / 10; // every 10th?*/
-                vector<int> random_numbers = generateRandomIntegers(0, n - 1);
+                vector<int> random_numbers = generateRandomIntegers(n / 10, n - 1);
                 for(int flip_ind : random_numbers) {
                     x[flip_ind] *= (-1);
                 }
@@ -1938,6 +1938,18 @@ public:
         return m_vec;
     }
 
+    template<class State>
+    double calc_chi(State& x) {
+        thrust::host_vector<double> m_vec = calc_m_vec(x);
+        double m_L2 = std::transform_reduce(m_vec.begin(), m_vec.end(),
+                                            0.0, // initial value for the reduction (sum)
+                                            std::plus<double>(),
+                                            [](double m_val) -> double { return m_val * m_val; }) /
+                                                    (double)(m_vec.size() * m_vec.size());
+
+        return m_L2;
+    }
+
     struct cos_real_to_complex {
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) const {
@@ -1947,9 +1959,12 @@ public:
     };
 
     struct sin_real_to_complex {
+        sin_real_to_complex(double p): p(p) {}
+        sin_real_to_complex(): p(1.0) {}
+        double p;
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) const {
-            thrust::get<0>(tup).x = sin(thrust::get<1>(tup));
+            thrust::get<0>(tup).x = sin(p * thrust::get<1>(tup));
             thrust::get<0>(tup).y = 0.0;
         }
     };
@@ -2051,7 +2066,7 @@ public:
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
         // cut zero impuls, I think we can always do that and it won't be much of a difference?
-        bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        bool cut_zero_impuls = false;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
         bool cut_around_peak = true;
         double* ft_k_fit;       // the memory is allocated by the vector, right? soooo do i need to free the memory?
         double* ft_l_fit;       // is it okay that the vector is called in the scope of the following if statement? could be problematic
@@ -2156,8 +2171,8 @@ public:
         thrust::device_vector<cufftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
 
         // fill input vector with the real part being cos of theta
-        BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
-        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+        //BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
+/*        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
 
         // execute FFT
         cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
@@ -2172,11 +2187,11 @@ public:
             thrust::transform(output_vector.begin() + i * batch_size,
                               output_vector.begin() + (i + 1) * batch_size,
                               sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
-        }
+        }*/
 
         // Now everything again for the sin part?
-        input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
-        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+        auto input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex(XY_Silicon::p_XY / 2.0));    // fill input with sin
 
         // execute fft
         cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
@@ -2211,8 +2226,10 @@ public:
 
 
         // now the entries have to be averaged
-        thrust::transform(ft_squared_k_gpu.begin(), ft_squared_k_gpu.end(), ft_squared_k_gpu.begin(), thrustDivideBy((double)pow(Ly, 4)));
-        thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(Lx, 4)));
+        thrust::transform(ft_squared_k_gpu.begin(), ft_squared_k_gpu.end(),
+                          ft_squared_k_gpu.begin(), thrustDivideBy((double)pow(Ly, 2) * (double) Lx));
+        thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(),
+                          ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(Lx, 2) * (double) Ly));
 
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
@@ -2234,10 +2251,17 @@ public:
 
         double ft_k_smallest_momentum = ft_squared_k[1];
         cout << "   ft_k_smallest_momentum = " << ft_k_smallest_momentum;
-        double ft_l_smallest_momentum = ft_squared_l[1];
 
-        xix = (double)Lx / (2 * M_PI) * sqrt(ft_k_zero / ft_k_smallest_momentum - 1) / 10.0;        // divided by ten it is approximately the correlation length we always had...
-        xiy = (double)Ly / (2 * M_PI) * sqrt(ft_l_zero / ft_l_smallest_momentum - 1) / 10.0;
+        double ft_l_smallest_momentum = ft_squared_l[1];
+        cout << "   ft_l_smallest_momentum = " << ft_l_smallest_momentum;
+
+        // I guess we need the susceptibility?
+        double chi = calc_chi(x);
+        cout << "   chi = " << chi << endl;
+        xix = 1.0 / (2.0 * sin(M_PI / (double)Lx)) * sqrt(chi / ft_k_smallest_momentum - 1);
+        xiy = 1.0 / (2.0 * sin(M_PI / (double)Ly)) * sqrt(chi / ft_l_smallest_momentum - 1);
+        // xix = (double)Lx / (2 * M_PI) * sqrt(ft_k_zero / ft_k_smallest_momentum - 1) / 10.0;        // divided by ten it is approximately the correlation length we always had...
+        // xiy = (double)Ly / (2 * M_PI) * sqrt(ft_l_zero / ft_l_smallest_momentum - 1) / 10.0;
 
         cout << "   xix = " << xix << endl;
         cout << "   xiy = " << xiy << endl;

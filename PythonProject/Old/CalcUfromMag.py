@@ -1,10 +1,10 @@
 from FunctionsAndClasses import *
 
-path = "../../../Generated content/Silicon/Subsystems/Suite/Exp/h=3300/Jx_Jy=31-2/3300/Tc/48/30843.936465"
+path = "../../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Tc/64/1.750317"
 
-threshold=0.1
+threshold = 0.5
 file_ending = "mag"
 value="m"
 
 
-print(process_temp_folder(path, threshold, file_ending, value, process_file_func=process_new_mag_file_to_U_L))
+print(process_temp_folder(path, threshold, file_ending, value, process_file_func=recalculate_mag_file_to_U_L))

@@ -2,7 +2,7 @@
 // Created by andi on 13.08.23.
 //
 
-#include "Simulation.cuh"
+#include "../Simulation.cuh"
 #include "parameters.cuh"
 
 int main(int argc, char* argv[]) {

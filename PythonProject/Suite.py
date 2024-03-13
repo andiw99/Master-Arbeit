@@ -373,7 +373,7 @@ def get_difference_std(cum_arr):
 
 class autonomous_measurement():
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
-                 host="hemera", user="weitze73", para_nr=100, wait=60):
+                 host="hemera", user="weitze73", runfile="run_cuda.sh", para_nr=100, wait=60):
         # This class is supposed to encapsulate some of the functionality that the following classes share
         # For every simulation I need the basic simulation parameters
         self.J_para = J_para
@@ -403,7 +403,7 @@ class autonomous_measurement():
         self.connection = None
         self.total_runs = 0
         self.para_nr = para_nr                            # every mearsurement has at least one current parameter number
-
+        self.runfile = runfile
 
     def check_completed_jobs(self):
         # now we should check wheter some jobs are completed
@@ -465,7 +465,7 @@ class autonomous_measurement():
             # now... we just submit it?
             # the command is:
             submit_job = f'sbatch --time {self.walltime} --output logs/%j.log --error' \
-                         f' logs/errors/%j.err run_cuda.sh {file} {self.folder} {para_nr}'
+                         f' logs/errors/%j.err {self.runfile} {file} {self.folder} {para_nr}'
             submit_feedback = self.connection.run(submit_job)
             job_id = extract_numbers_before_newline(submit_feedback.stdout)[
                 0]  # extract numbers before newline returns a list
@@ -505,12 +505,13 @@ class autonomous_measurement():
         # we add the currently simulated temperatures to the bookkeeping variable
 
 class crit_temp_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, nr_Ts=5, size_min=48,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile="run_cuda.sh", nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
-                 min_val_nr=2500, value_name="U_L", random_init=0, second=False):
+                 min_val_nr=2500, value_name="U_L", random_init=0, second=False, observed_direction=0):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
+                         Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
         self.nr_Ts = nr_Ts
         self.size_min = size_min
         self.size_max = size_max
@@ -549,6 +550,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.file_ending = "cum"
         self.value_name = value_name
         self.second = second
+        self.observed_direction = observed_direction
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -1084,7 +1086,8 @@ class crit_temp_measurement(autonomous_measurement):
                         f"{self.file_ending}_write_density, {self.val_write_density}\n"
                         f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
                         f"moving_factor, {self.max_moving_factor}\n"
-                        f"corr_second, {int(self.second)}")
+                        f"corr_second, {int(self.second)} \n"
+                        f"observed_direction, {self.observed_direction}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -1119,13 +1122,14 @@ class crit_temp_measurement_corr(crit_temp_measurement):
         return False
 
 class efficient_crit_temp_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, size_min=48,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile="run_cuda.sh", nr_GPUS=6, size_min=48,
                  size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
                  random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
                  process_file_func=process_file_old, val_write_density=1/100, second=False):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
+                         Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
 
         self.value_name = value_name
 
@@ -1727,11 +1731,12 @@ class efficient_crit_temp_measurement_corr(efficient_crit_temp_measurement):
         else:
             return int(L * self.Ly_Lx)
 class quench_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
                  host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty):
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
+                         Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr, runfile=runfile)
         self.size_min = size_min        # The starting size at which we do go higher
         self.size_max = size_max        # maximum size, if xi = size_max / 10 we stop the simulation
         self.nr_sites = nr_sites        # nr of sites for one run
@@ -2206,10 +2211,11 @@ class quench_measurement(autonomous_measurement):
         self.conclude()
 
 class amplitude_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
                  max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False):
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
+                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
@@ -2751,12 +2757,13 @@ class amplitude_measurement(autonomous_measurement):
         return self.para_nr + self.cur_para_nr - 1
 
 class z_measurement(autonomous_measurement):
-    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, test_exec_file, Tc, nr_GPUS=6, size_min=64,
+    def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, test_exec_file, runfile, Tc, nr_GPUS=6, size_min=64,
                           size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
                  variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, cum_density=1/100,
                  test_cum_density=1/2, test_min_cum_nr=2000):
         # call the constructor of the parent classe
-        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx)
+        super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
+                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile)
         # ah maybe you should first write a concept about what this measurment should do
 
         self.Tc = Tc
