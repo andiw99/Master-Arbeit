@@ -1344,9 +1344,9 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     file_path = Path(file_path)
     # df = pd.read_csv(file_path, sep=";")
     try:
-        para_path = str(file_path.with_suffix(".txt"))
+        #para_path = str(file_path.with_suffix(".txt"))
         parameters = read_parameters_txt(para_path)
-        print(parameters)
+        #print(parameters)
         U_L = parameters["U_L"]
         rel_error = parameters["U_L_error"]
         moving_factor = parameters["moving_factor"]

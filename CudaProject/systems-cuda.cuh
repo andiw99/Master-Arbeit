@@ -2066,7 +2066,7 @@ public:
         auto kx = get_frequencies_fftw_order(Lx);
         auto ky = get_frequencies_fftw_order(Ly);
         // cut zero impuls, I think we can always do that and it won't be much of a difference?
-        bool cut_zero_impuls = false;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
+        bool cut_zero_impuls = true;        // TODO don't have this bool here, but maybe as function parameter or smthing like that
         bool cut_around_peak = true;
         double* ft_k_fit;       // the memory is allocated by the vector, right? soooo do i need to free the memory?
         double* ft_l_fit;       // is it okay that the vector is called in the scope of the following if statement? could be problematic

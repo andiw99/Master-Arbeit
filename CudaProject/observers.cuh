@@ -1673,7 +1673,7 @@ public:
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];
         second = (bool)paras[Parameter::corr_second];
-        observed_direction = (bool)paras[Parameter::observed_direction];
+        observed_direction = (int)paras[Parameter::observed_direction];
         // the timepoint is only zero if we do not memory initialize
         timepoint = 0.0;
         equilibrated = false;
@@ -1803,7 +1803,7 @@ public:
                         } else if(observed_direction == 2) {
                             rel_stddev_total = rel_stddev_xiy_total;
                         }
-
+                        cout << "observed direciton is " << observed_direction << " meaning rel_stddev_total = " << rel_stddev_total << endl;
                         if(rel_stddev_total < max_error) {
                             cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                             cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;

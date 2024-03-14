@@ -13,18 +13,18 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -120000
-    J_para = -10
+    J_para = -3
     #J_perp = -2000
     J_perp = -0.1
     #Ly_Lx = 1 / 16
-    Ly_Lx = 1
+    Ly_Lx = 1 / 32
     p = 2.54
     eta = 1.5
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=1/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=32/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -51,16 +51,36 @@ def main():
     max_rel_intersection_error = 0.01
 
     # Amplitude parameters
-    amplitude_size = 512
-    equil_error_amplitude = 0.03
+    amplitude_size = 4048
+    equil_error_amplitude = 0.02
     equil_cutoff = 0.01
-    observed_direction = 2
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
+    observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = 0.005
-    T_range_fraction = 0.0075
-    nr_Ts = 2
+    T_min_fraction = 0.0025
+    T_range_fraction = 0.03
+    nr_Ts = 4
     T_c = 1.7477
+    T_c = 0.903
+
+    amplitude_sizes = [4096, 2048, 1024]
+    T_ranges = [0.01, 0.02, 0.03]
+    nr_Ts_per_range = 4
+    last_T = None
+
+    for size, T_up in zip(amplitude_sizes, T_ranges):
+        h = h_arr[0]
+        if last_T:
+            T_min = T_min_fraction + last_T
+        else:
+            T_min = T_min_fraction
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "/Amplitude",
+                                     amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
+                                     equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
+                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range,
+                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction)
+        ampl.run()
+        last_T = T_up
 
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"

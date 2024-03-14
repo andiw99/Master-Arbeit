@@ -7,15 +7,15 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
-    h_arr = np.array([40000])
+    h_arr = np.array([5500])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    # J_para = -93000
-    # J_perp = -3000
-    J_para = -2000 * 60
-    J_perp = -2000
+    J_para = -93000
+    J_perp = -3000
+    #J_para = -2000 * 60
+    #J_perp = -2000
 
     Ly_Lx = 1/8
     p = 2.54        # forgott all the time to overgive p so we will use this real quck
@@ -25,8 +25,8 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=5500/Jx_Jy=31/"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=40000/Jx_Jy=60-2/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=5500/Jx_Jy=31/"
+    #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=40000/Jx_Jy=60-2/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"

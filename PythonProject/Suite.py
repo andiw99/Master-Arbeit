@@ -2345,7 +2345,8 @@ class amplitude_measurement(autonomous_measurement):
         # temperatures that we have
         # Here we can call the process size folder method
         size_path = f"{self.simulation_path}/{self.size}"
-        T_xix, T_xiy, xix_arr, xiy_arr = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path)
+        T_xix, xix_arr = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xix")
+        T_xiy, xiy_arr = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xiy")
 
         xix_inv = 1 / xix_arr
         xiy_inv = 1 / xiy_arr
