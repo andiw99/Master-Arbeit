@@ -7,13 +7,16 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
-    h_arr = np.array([3300])
+    h_arr = np.array([40000])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -77500
-    J_perp = -2500
+    # J_para = -93000
+    # J_perp = -3000
+    J_para = -2000 * 60
+    J_perp = -2000
+
     Ly_Lx = 1/8
     p = 2.54        # forgott all the time to overgive p so we will use this real quck
     #p = 2.33
@@ -22,15 +25,18 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=3300/Jx_Jy=31/"
+    #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=5500/Jx_Jy=31/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=40000/Jx_Jy=60-2/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     runfile = "run_cuda_gpu_a100_low.sh"
 
     # Tc parameters
-    max_size_Tc = 80
-    min_size_Tc = 48
+    max_size_Tc = 128
+    min_size_Tc = 64
+    #max_size_Tc = 48
+    #min_size_Tc = 80
     file_ending = "mag"
     value_name = "m"
     process_file_func = process_new_mag_file_to_U_L
@@ -41,12 +47,12 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_val_nr = 200
-    equil_error = 0.005
+    min_val_nr = 1000
+    equil_error = 0.01
     val_write_density = 1 / 10000
     moving_factor = 0.02
     min_equil_error = 0.01
-    max_rel_intersection_error = 0.01
+    max_rel_intersection_error = 0.03
 
     # Amplitude parameters
     amplitude_size = 2048

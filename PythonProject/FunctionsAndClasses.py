@@ -1404,21 +1404,26 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
 
 def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     df = read_large_df(file_path, skiprows=1, sep=";")
-    if 0 < threshold < 1:
-        threshold = threshold * len(df)
-    total_nr_values = len(df)
-    df = df[int(threshold):]
+
     nr_values = len(df)
     m = []
     for ind, line in enumerate(df):
         m += line
     m = np.array(m)
+    if 0 < threshold < 1:
+        threshold = int(threshold * len(m))
+    total_nr_values = len(m)
+    print("threshold ", int(threshold))
+    m = m[threshold:]
     #times = np.array(df[key])
 
     m_avg = np.mean(m)
+    print("m = ", m_avg)
     m2 = np.mean(m ** 2)
+    print("m2 = ", m2)
     m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
     m4 = np.mean(m ** 4)
+    print("m4 = ", m4)
     m4_err = np.std(m ** 4) / np.sqrt(len(m))
 
     U_L = m4 / m2 ** 2

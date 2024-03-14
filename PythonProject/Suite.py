@@ -234,9 +234,9 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, va
         return True
     else:
         if (rel_error <= equil_error) and (moving_factor > max_moving_factor):
-            print(f"Moving Factor {moving_factor:.5f} is too large! Otherwise {folderpath} would have been valid")
+            print(f"Moving Factor {moving_factor:.5f} is too large ! Otherwise {folderpath} would have been valid")
         elif (rel_error > equil_error) and (moving_factor <= max_moving_factor):
-            print(f"Equil_error {rel_error:.5f} is too large! Otherwise {folderpath} would have been valid")
+            print(f"Equil_error {rel_error:.5f} is too large for {equil_error}! Otherwise {folderpath} would have been valid")
         if nr_vals < min_cum_nr:
             print("Not enough values, but I hope we will just use that one as base?")
         return False
@@ -1525,7 +1525,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         return errors_overlap
 
     def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
-        return (val_max_T_max / val_max_T_min > 2.95)
+        return (val_max_T_max / val_max_T_min > 2.6)
 
     def check_if_values_to_close(self, val_upper_bound_small_size, val_lower_bound_large_size):
         return (val_upper_bound_small_size < 2.95) and (val_lower_bound_large_size > 1.01)
@@ -2213,7 +2213,7 @@ class quench_measurement(autonomous_measurement):
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
-                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False):
+                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
 
@@ -2246,10 +2246,11 @@ class amplitude_measurement(autonomous_measurement):
 
         self.cur_para_nr = 0                # same method as in Tc?
         self.second = second
+        self.observed_direction = observed_direction
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between
-        Tmax = self.Tc * (1 + self.T_min_fraction + self.T_range_fraction)
+        Tmax = self.Tc * (1 + self.T_range_fraction)
         Tmin = self.Tc * (1 + self.T_min_fraction)
         # I think we can drop Tc itself since it is to close to the critical point
         # and everything that i am trying to calculate here is not accurate and
@@ -2329,7 +2330,8 @@ class amplitude_measurement(autonomous_measurement):
                         f"min_corr_nr, {self.min_corr_nr}\n"
                         f"corr_write_density, {self.corr_write_density}\n"
                         f"moving_factor, {self.max_moving_factor}\n"
-                        f"corr_second, {int(self.second)}")
+                        f"corr_second, {int(self.second)}\n"
+                        f"observed_direction, {int(self.observed_direction)}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -2482,7 +2484,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def plot_divergence(simpath, equil_cutoff=0.1, Tc=None):
+    def plot_divergence(simpath, equil_cutoff=0.1, Tc=None, direction="both"):
         """
         member function that top level mäßig does everythin gon its own with a default behavior
         If different behavior is required we have to build out of the constituents funcitons
@@ -2490,67 +2492,91 @@ class amplitude_measurement(autonomous_measurement):
         :param filepath:
         :return:
         """
-        results_x, results_y = amplitude_measurement.prep_sim_data(equil_cutoff,
-                                                                   simpath)
+        fig, axx = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
+
+        if direction == "xix":
+            results_x = amplitude_measurement.prep_sim_data(equil_cutoff, simpath, "xix")
+            results = [results_x]
+            axes = [axx]
+        elif direction == "xiy":
+            results_y = amplitude_measurement.prep_sim_data(equil_cutoff, simpath, "xiy")
+            results = [results_y]
+            axes = [axx]
+
+        else:
+            results_x = amplitude_measurement.prep_sim_data(equil_cutoff, simpath, "xix")
+            results_y = amplitude_measurement.prep_sim_data(equil_cutoff, simpath, "xiy")
+            results = [results_x, results_y]
+            axy = axx.twinx()
+            axes = [axx, axy]
 
         # first of all we want to plot the inverse stuff
-
-        fig, axx = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
-        axy = axx.twinx()
-
         fit_size = 0
         max_size_len = 0
-        for i, size in enumerate(results_x):
-            # We definitely plot the points
-            T_xix, xix_arr = results_x[size]
-            T_xiy, xiy_arr = results_y[size]
-            amplitude_measurement.plot_inverse_points(fig, axx, axy, T_xix, T_xiy, xix_arr, xiy_arr, marker=markers[i])
-            # Find out which size has the largest number of points and for that we do the fit
-            if len(xix_arr) > max_size_len:
-                max_size_len = len(xix_arr)
-                fit_size = size
+        for j,result in enumerate(results):
+            for i, size in enumerate(result):
+                # We definitely plot the points
+                T_xix, xix_arr = result[size]
+                amplitude_measurement.plot_inverse_points(fig, axes[j], T_xix, xix_arr, marker=markers[i], color=5 * j)
+                # Find out which size has the largest number of points and for that we do the fit
+                if len(xix_arr) > max_size_len:
+                    max_size_len = len(xix_arr)
+                    fit_size = size
 
-        # The thing is one could actually think about performing the fit on
-        # combined measurement points, but that is for another time
-        # one would have to replace smart the small size values for the large size
-        T_xix, T_xiy, reg_x, reg_y = amplitude_measurement.perform_fit_on_size(
-            results_x, results_y, fit_size, Tc)
+            # The thing is one could actually think about performing the fit on
+            # combined measurement points, but that is for another time
+            # one would have to replace smart the small size values for the large size
+            T_xix, reg_x = amplitude_measurement.perform_fit_on_size(
+                result, fit_size, Tc)
 
-        amplitude_measurement.plot_xi_inv_fit(axx, axy, T_xiy, T_xix, reg_x,
-                                              reg_y)
+            amplitude_measurement.plot_xi_inv_fit(axes[j], T_xix, reg_x)
 
-        # Now we still have to configure the inverse plot
-        amplitude_measurement.configure_xi_inv_plot(axx, axy, fig)
+            # Now we still have to configure the inverse plot
+        amplitude_measurement.configure_xi_inv_plot(axes, fig)
         create_directory_if_not_exists(simpath + "/plots")
         plt.savefig(simpath + f"/plots/xiy-inv-toplevel.png",
                     format="png")
         plt.show()
 
-        # Now the same stuff for the not inverse part
-
         fig, axx = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
-        axy = axx.twinx()
-        for i, size in enumerate(results_x):
-            # We definitely plot the points
-            T_xix, xix_arr = results_x[size]
-            T_xiy, xiy_arr = results_y[size]
+        if direction == "xix":
+            axes = [axx]
+        elif direction == "xiy":
+            axes = [axx]
+        else:
+            axy = axx.twinx()
+            axes = [axx, axy]
+        # Now the same stuff for the not inverse part
+        for j,result in enumerate(results):
+            for i, size in enumerate(result):
+                # We definitely plot the points
+                T_xix, xix_arr = result[size]
 
-            amplitude_measurement.plot_xi_points(axx, axy, T_xix, T_xiy,
-                                                 xix_arr, xiy_arr, marker=markers[i], size=size)
-        T_xix, xix_arr = results_x[fit_size]
-        T_xiy, xiy_arr = results_y[fit_size]
+                amplitude_measurement.plot_xi_points(axes[j], T_xix,
+                                                     xix_arr, marker=markers[i], size=size, color=5 * j)
 
-        amplitude_measurement.plot_xi_fit(axx, axy, reg_x, reg_y, T_xix, T_xiy)
+                if len(xix_arr) > max_size_len:
+                    max_size_len = len(xix_arr)
+                    fit_size = size
 
-        amplitude_measurement.configure_xi_plot(axx, axy, fig)
+            # The thing is one could actually think about performing the fit on
+            # combined measurement points, but that is for another time
+            # one would have to replace smart the small size values for the large size
+            T_xix, reg_x = amplitude_measurement.perform_fit_on_size(
+                result, fit_size, Tc)
+            T_xix, xix_arr = result[fit_size]
+
+            amplitude_measurement.plot_xi_fit(axes[j], reg_x, T_xix)
+
+        amplitude_measurement.configure_xi_plot(axes, fig)
 
         plt.savefig(simpath + f"/plots/T-xi-toplevel.png",
                     format="png")
         plt.show()
 
     @staticmethod
-    def plot_inverse_points(fig, axx, axy, T_xix, T_xiy, xix, xiy,
-                            marker="s"):
+    def plot_inverse_points(fig, ax, T, xi,
+                            marker="s", color=0):
         """
         plots inverse correlation length to an already existing plot
         :param fig:
@@ -2562,140 +2588,172 @@ class amplitude_measurement(autonomous_measurement):
         :param xiy:
         :return:
         """
-        xix_inv = 1 / xix
-        xiy_inv = 1 / xiy
-        axx.plot(T_xix, xix_inv, label=rf"$1 / \xi_\parallel$",
+        xix_inv = 1 / xi
+        ax.plot(T, xix_inv, label=rf"$1 / \xi_\parallel$",
                  linestyle="", marker=marker, markerfacecolor="none",
-                 markeredgecolor=colors[0])
-        axy.plot(T_xiy, xiy_inv, label=rf"$1 / \xi_\perp$", linestyle="",
-                 marker=marker, markerfacecolor="none", markeredgecolor=colors[5])
+                 markeredgecolor=colors[color])
+
 
     @staticmethod
-    def configure_xi_plot(axx, axy, fig):
+    def configure_xi_plot(axes, fig, direction=None):
         # For the limits we want to know the largest plotted point, but how do we
         # get that? I just want to get it out of the axes
-        upper_ylim_parallel = get_largest_value_with_linestyle(axx,
-                                                               linestyle='None') * 1.05
-        upper_ylim_perp = get_largest_value_with_linestyle(axy,
-                                                           linestyle='None') * 1.15
-        axx.set_ylim(0, upper_ylim_parallel)
-        axy.set_ylim(0,
-                     upper_ylim_perp * 2)
-        axx.set_xlabel("T")
-        axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
-        axx.set_xlabel(r"$T /$meV")
-        axy.set_ylabel(r"$\xi_\perp / a_\perp$")
-        axx.set_title(r"$\xi$ Divergence")
-        axy.set_title(r"$\xi$ Divergence")
-        config_x = {
-            "labelrotation": 90,
-            "labelhorizontalalignement": "right",
-            "grid": True,
-            "tight_layout": False,
-            "legend": False,
-            "increasefontsize": 0.5,
-        }
-        config_y = {
-            "labelrotation": 90,
-            "labelhorizontalalignement": "right",
-            "grid": False,
-            "legend": False,
-            "increasefontsize": 0.5,
-        }
-        configure_ax(fig, axx, config_x)
-        configure_ax(fig, axy, config_y)
-        lines, labels = axx.get_legend_handles_labels()
-        lines2, labels2 = axy.get_legend_handles_labels()
-        axy.legend(lines + lines2, labels + labels2, loc=0,
-                   fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (
-                           1 + config_x["increasefontsize"])))
+        if len(axes) == 2:
+            axx, axy = axes[0], axes[1]
+            upper_ylim_parallel = get_largest_value_with_linestyle(axx,
+                                                                   linestyle='None') * 1.05
+            upper_ylim_perp = get_largest_value_with_linestyle(axy,
+                                                               linestyle='None') * 1.15
+            axx.set_ylim(0, upper_ylim_parallel)
+            axy.set_ylim(0,
+                         upper_ylim_perp * 2)
+            axx.set_xlabel("T")
+            axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
+            axx.set_xlabel(r"$T /$meV")
+            axy.set_ylabel(r"$\xi_\perp / a_\perp$")
+            axx.set_title(r"$\xi$ Divergence")
+            axy.set_title(r"$\xi$ Divergence")
+            config_x = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": True,
+                "tight_layout": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+            config_y = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+            configure_ax(fig, axx, config_x)
+            configure_ax(fig, axy, config_y)
+            lines, labels = axx.get_legend_handles_labels()
+            lines2, labels2 = axy.get_legend_handles_labels()
+            axy.legend(lines + lines2, labels + labels2, loc=0,
+                       fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (
+                               1 + config_x["increasefontsize"])))
+        else:
+            axx = axes[0]
+            upper_ylim_parallel = get_largest_value_with_linestyle(axx,
+                                                                   linestyle='None') * 1.05
+            axx.set_ylim(0, upper_ylim_parallel)
+            axx.set_xlabel("T")
+            if direction == "xix":
+                axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
+            else:
+                axx.set_ylabel(r"$\xi_\perp / a_\perp$")
+            axx.set_xlabel(r"$T /$meV")
+            axx.set_title(r"$\xi$ Divergence")
+            config_x = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": True,
+                "tight_layout": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+            configure_ax(fig, axx, config_x)
+            lines, labels = axx.get_legend_handles_labels()
+
 
     @staticmethod
-    def plot_xi_fit(axx, axy, reg_x, reg_y, T_xix, T_xiy):
+    def plot_xi_fit(axx, reg_x, T_xix):
         T_x_plot = np.linspace(np.min(T_xix), np.max(T_xix), 200)
-        T_y_plot = np.linspace(np.min(T_xiy), np.max(T_xiy), 200)
         xix_ampl = - 1 / reg_x.intercept
-        xiy_ampl = - 1 / reg_y.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
-        Tc_y = - reg_y.intercept / reg_y.slope
         eps_x = (T_x_plot - Tc_x) / Tc_x
-        eps_y = np.array((T_y_plot - Tc_y) / Tc_y)
-        T_y_plot = T_y_plot[eps_y > 0]
-        eps_y = eps_y[eps_y > 0]
         # before we plot we look at the y limits in the case that we dont plot the critical amplitude
         upper_ylim_parallel = axx.get_ylim()[1]
-        upper_ylim_perp = axy.get_ylim()[1]
         # The function that we need to use is called critical amplitude
         axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
                  label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
                  color=colors[0])
-        axy.plot(T_y_plot, critical_amplitude(eps_y, xiy_ampl),
-                 label=rf"$\xi_\perp^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$",
-                 color=colors[5])
 
     @staticmethod
-    def plot_xi_points(axx, axy, T_xix, T_xiy, xix_arr, xiy_arr, marker="s", size=""):
+    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=0):
         axx.plot(T_xix, xix_arr, label=r"$\xi_\parallel^{" + str(size) + "}$", linestyle="",
                  marker=marker, markerfacecolor="none",
-                 markeredgecolor=colors[0])
-        axy.plot(T_xiy, xiy_arr, label=r"$\xi_\perp^{" + str(size) + "}$", linestyle="",
-                 marker=marker, markerfacecolor="none",
-                 markeredgecolor=colors[5])
+                 markeredgecolor=colors[color])
+
 
     @staticmethod
-    def configure_xi_inv_plot(axx, axy, fig):
-        axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
-        axx.set_xlabel(r"$T /$meV")
-        axy.set_ylabel(r"$(\xi_\perp / a_\perp)^{-1}$")
-        axy.set_xlabel(r"$T /$ meV")
-        # Okay the lower y limit should be zero for both
-        axx.set_ylim(0, axx.get_ylim()[
-            1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
-        axy.set_ylim(0, axy.get_ylim()[1])
-        axx.set_title(r"Inverse Correlation Length $1 / \xi$")
-        axy.set_title(r"Inverse Correlation Length $1 / \xi$")
-        config_x = {
-            "labelrotation": 90,
-            "labelhorizontalalignement": "right",
-            "grid": True,
-            "tight_layout": False,
-            "legend": False,
-            "increasefontsize": 0.5,
-        }
-        config_y = {
-            "labelrotation": 90,
-            "labelhorizontalalignement": "right",
-            "grid": False,
-            "legend": False,
-            "increasefontsize": 0.5,
-        }
-        configure_ax(fig, axx, config_x)
-        configure_ax(fig, axy, config_y)
-        # We need to deal with the leglend ourself I think
-        lines, labels = axx.get_legend_handles_labels()
-        lines2, labels2 = axy.get_legend_handles_labels()
-        axy.legend(lines + lines2, labels + labels2, loc=0, fontsize=int(
-            PLOT_DEFAULT_CONFIG["legendfontsize"] * (
-                    1 + config_x["increasefontsize"])))
+    def configure_xi_inv_plot(axes, fig, direction=None):
+        if len(axes) == 2:
+            axx, axy = axes
+            axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
+            axx.set_xlabel(r"$T /$meV")
+            axy.set_ylabel(r"$(\xi_\perp / a_\perp)^{-1}$")
+            axy.set_xlabel(r"$T /$ meV")
+            # Okay the lower y limit should be zero for both
+            axx.set_ylim(0, axx.get_ylim()[
+                1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
+            axy.set_ylim(0, axy.get_ylim()[1])
+            axx.set_title(r"Inverse Correlation Length $1 / \xi$")
+            axy.set_title(r"Inverse Correlation Length $1 / \xi$")
+            config_x = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": True,
+                "tight_layout": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+            config_y = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+            configure_ax(fig, axx, config_x)
+            configure_ax(fig, axy, config_y)
+            # We need to deal with the leglend ourself I think
+            lines, labels = axx.get_legend_handles_labels()
+            lines2, labels2 = axy.get_legend_handles_labels()
+            axy.legend(lines + lines2, labels + labels2, loc=0, fontsize=int(
+                PLOT_DEFAULT_CONFIG["legendfontsize"] * (
+                        1 + config_x["increasefontsize"])))
+        else:
+            axx = axes[0]
+            if direction == "xix":
+                axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
+            else:
+                axx.set_ylabel(r"$(\xi_\perp / a_\perp)^{-1}$")
+            axx.set_xlabel(r"$T /$meV")
+            # Okay the lower y limit should be zero for both
+            axx.set_ylim(0, axx.get_ylim()[
+                1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
+            axx.set_title(r"Inverse Correlation Length $1 / \xi$")
+            config_x = {
+                "labelrotation": 90,
+                "labelhorizontalalignement": "right",
+                "grid": True,
+                "tight_layout": False,
+                "legend": False,
+                "increasefontsize": 0.5,
+            }
+
+            configure_ax(fig, axx, config_x)
+            # We need to deal with the leglend ourself I think
+            lines, labels = axx.get_legend_handles_labels()
 
     @staticmethod
-    def perform_fit_on_size(results_x, results_y, fit_size, Tc=None):
+    def perform_fit_on_size(results_x, fit_size, Tc=None):
         T_xix, xix_arr = results_x[fit_size]
-        T_xiy, xiy_arr = results_y[fit_size]
         xix_inv = 1 / xix_arr
-        xiy_inv = 1 / xiy_arr
         if not Tc:
             Tc = np.min(T_xix)  # then we guess it to be this
         reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv,
                                                                  Tc, 0.1,
                                                                  min_r_squared=0.9)
-        reg_y, T_include_start_y, T_include_end_y = best_fit_inv(T_xiy, xiy_inv,
-                                                                 Tc, 0.1,
-                                                                 min_r_squared=0.9)
-        return T_xix, T_xiy, reg_x, reg_y
+
+        return T_xix, reg_x
 
     @staticmethod
-    def plot_xi_inv_fit(axx, axy, T_xiy, T_xix, reg_x, reg_y):
+    def plot_xi_inv_fit(axx, T_xix, reg_x):
         """
         does what the name says
         :param axx:
@@ -2706,50 +2764,38 @@ class amplitude_measurement(autonomous_measurement):
         :param reg_y:
         :return:
         """
+
         xix_ampl = - 1 / reg_x.intercept
-        xiy_ampl = - 1 / reg_y.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
-        Tc_y = - reg_y.intercept / reg_y.slope
         # Plot the fit
         axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
                  label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
                  color=colors[0])
-        axy.plot(T_xiy, reg_y.intercept + reg_y.slope * T_xiy,
-                 label=rf"$\xi_\perp^+ = {xiy_ampl:.2f}, T_c = {Tc_y:.3f}$",
-                 color=colors[5])
+
 
     @staticmethod
-    def prep_sim_data(equil_cutoff, simpath):
+    def prep_sim_data(equil_cutoff, simpath, value):
         results_x = {}
-        results_y = {}
         for size_folder in os.listdir(simpath):
             if (size_folder != "plots") & (size_folder[0] != "."):
                 size_folder_path = os.path.join(simpath, size_folder)
                 if os.path.isdir(size_folder_path):
-                    T_xix, T_xiy, xix_arr, xiy_arr = amplitude_measurement.prep_folder_data(
-                        equil_cutoff, size_folder_path)
+                    T_xix, xix_arr = amplitude_measurement.prep_folder_data(equil_cutoff, size_folder_path, value)
                     results_x[int(size_folder)] = (T_xix, xix_arr)
-                    results_y[int(size_folder)] = (T_xiy, xiy_arr)
-        return results_x, results_y
+        return results_x
 
     @staticmethod
-    def prep_folder_data(equil_cutoff, folderpath):
+    def prep_folder_data(equil_cutoff, folderpath, value):
         xix_dic = process_size_folder(folderpath, threshold=equil_cutoff, key="T",
-                                      value="xix",
+                                      value=value,
                                       file_ending="corr")  # the selected temperatures are just all temperatures
-        xiy_dic = process_size_folder(folderpath, threshold=equil_cutoff, key="T",
-                                      value="xiy",
-                                      file_ending="corr")
+
         T_xix = xix_dic["T"]
-        xix_arr = xix_dic["xix"]
-        T_xiy = xiy_dic["T"]
-        xiy_arr = xiy_dic["xiy"]
+        xix_arr = xix_dic[value]
         # They should be sorted and we are actually interested in the inverse correlation lengths
         xix_arr = xix_arr[np.argsort(T_xix)]
-        xiy_arr = xiy_arr[np.argsort(T_xiy)]
         T_xix = T_xix[np.argsort(T_xix)]
-        T_xiy = T_xiy[np.argsort(T_xiy)]
-        return T_xix, T_xiy, xix_arr, xiy_arr
+        return T_xix, xix_arr
 
     def get_para_nr(self):
         # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice

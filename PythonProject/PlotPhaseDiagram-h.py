@@ -23,15 +23,17 @@ def main():
     Tc_XY2 = 20020
     h = [0.01, 0.1, 0.2, 0.4161791450287818, 0.8, 1.7320508075688776, 3, 7.208434242404265]#, 10]
     Tc = [0.704, 0.7714, 0.8318, 0.8951, 1.03, 1.1813, 1.3154, 1.3399] #1.2741]
-    h2 = [10000]
-    Tc2 = [27200]
+    h2 = [2800, 10000]
+    Tc2 = [22750, 27200]
 
     h2 = np.array(h2) /     Tc_XY2
+
     Tc2 = np.array(Tc2) /   Tc_XY2
 
-    Tc_fit = np.array(Tc) #- 0.618
+    Tc_fit = np.array(Tc) / Tc_XY
 
-    h = np.array(h)     / J_para
+    h = np.array(h)     / Tc_XY
+    print(h)
     Tc = np.array(Tc)   / Tc_XY
 
     A, B, C = 0.1, 1, 5
@@ -54,7 +56,7 @@ def main():
     configure_ax(fig, ax, config)
     plt.show()
 
-    Tc_desired = 1.59
+    Tc_desired = 1.232
 
     h_to_use = find_x_star(h, Tc, Tc_desired)
 

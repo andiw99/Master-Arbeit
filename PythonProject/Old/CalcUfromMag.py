@@ -1,8 +1,8 @@
 from FunctionsAndClasses import *
 
-path = "../../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Tc/64/1.750317"
+path = "../../../Generated content/Silicon/Subsystems/Suite/Exp/h=2800/Jx_Jy=60/2800/Tc/80/20021.358570"
 
-threshold = 0.5
+threshold = 0.1
 file_ending = "mag"
 value="m"
 
