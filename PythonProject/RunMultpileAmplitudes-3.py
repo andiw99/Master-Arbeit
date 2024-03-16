@@ -13,23 +13,23 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -120000
-    J_para = -10
+    J_para = -3
     #J_perp = -2000
     J_perp = -0.1
     #Ly_Lx = 1 / 16
-    Ly_Lx = 1 / 8
+    Ly_Lx = 1
     p = 2.54
     eta = 1.5
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-final/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
-    #runfile = "run_cuda_gpu_a100_low.sh"
-    runfile = "run_cuda.sh"
+    runfile = "run_cuda_gpu_a100_low.sh"
+
     # Tc parameters
     max_size_Tc = 192
     min_size_Tc = 64
@@ -52,40 +52,34 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 4048
-    equil_error_amplitude = 0.035
+    equil_error_amplitude = 0.05
     equil_cutoff = 0.01
-    min_corr_nr = 50000
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = 0.0025
+    T_min_fraction = -0.0025
     T_range_fraction = 0.03
     nr_Ts = 4
     T_c = 0.903
-    T_c = 1.7268
+    #T_c = 1.7268
 
-    #amplitude_sizes = [2048, 1024]
-    #amplitude_sizes = [32, 64, 128]
-    amplitude_sizes = [1024, 2048, 4096]
-    T_ranges = [0.03, 0.02, 0.01]
-    nr_Ts_per_range = 4
-    next_T = None
-    min_nr_sites = 2e6
+    amplitude_sizes = [512] #[2048, 1024]
+    #amplitude_sizes = [512, 256, 128]
+    T_ranges = [0.00]#, 0.02, 0.03]
+    nr_Ts_per_range = 2
+    last_T = None
 
-    for i, (size, T_up) in enumerate(zip(amplitude_sizes, T_ranges)):
+    for size, T_up in zip(amplitude_sizes, T_ranges):
         h = h_arr[0]
-
-        try:
-            next_t = T_ranges[i + 1]
-            T_min = next_t + T_min_fraction
-        except:
+        if last_T:
+            T_min = T_min_fraction + last_T
+        else:
             T_min = T_min_fraction
-
-        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + f"{h}/Amplitude",
+        ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + f"/Amplitude",
                                      amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=size,
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
-                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range, min_nr_sites=2e6,
-                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr)
+                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range,
+                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction)
         ampl.run()
         last_T = T_up
 

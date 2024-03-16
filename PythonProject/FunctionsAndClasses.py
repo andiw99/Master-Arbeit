@@ -8,6 +8,8 @@ from matplotlib import pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.colors import BoundaryNorm
 import matplotlib
+matplotlib.rcParams['mathtext.fontset'] = 'stix'
+matplotlib.rcParams['font.family'] = 'STIXGeneral'
 from itertools import product, combinations
 from IPython import embed
 from scipy.interpolate import interp1d
@@ -25,6 +27,8 @@ from pathlib import Path
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
 markers = ["o", "s", ".", "x", "+", "*", "D", "1", "2", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
+blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
+
 
 def get_point_kwargs_color(color):
     return {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": color}
@@ -98,7 +102,7 @@ def read_large_df(filepath, rows=None, skiprows=0, sep=None):
                     df.append(string_to_array(line[:-2]))
     return df
 
-def read_large_df(filepath, rows=None, skiprows=0, sep=None):
+def read_large_df(filepath, rows=None, skiprows=0, sep=None, cut_endline=2):
     df = []
     with open(filepath) as f:
         for i, line in enumerate(f):
@@ -111,7 +115,7 @@ def read_large_df(filepath, rows=None, skiprows=0, sep=None):
                 else:
                     if sep:
                         line = line.split(";")[1]
-                    df.append(string_to_list(line[:-2]))
+                    df.append(string_to_list(line[:-cut_endline]))
     return df
 
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
@@ -169,14 +173,14 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                 if config["subsystem"]:
                     print(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]))
                     max_nr_subsystems_per_row = int(np.ceil(np.sqrt(parameters["nr_subsystems"] * parameters["x_y_factor"]) + 0.5))
-                    max_nr_subsystems_per_col = int(parameters["nr_subsystems"] / max_nr_subsystems_per_row)
+                    max_nr_subsystems_per_col = int(np.ceil(parameters["nr_subsystems"] / max_nr_subsystems_per_row + 0.5))
                     nr_subsystems_per_row = np.minimum(int(config["cell_L"] / subsystem_Lx), max_nr_subsystems_per_row)
 
                     if nr_subsystems_per_row == 0:
                         nr_subsystems_per_row = 1
                         nr_subsystems_per_col = 1
                     else:
-                        nr_subsystems_per_col = np.minimum(int(config["cell_L"] / subsystem_Ly), max_nr_subsystems_per_col)
+                        nr_subsystems_per_col = np.minimum(int(np.ceil(config["cell_L"] / subsystem_Ly + 0.5)), max_nr_subsystems_per_col)
                     print(nr_subsystems_per_col)
                     print(nr_subsystems_per_row)
                     nr_subsystems = nr_subsystems_per_row * nr_subsystems_per_col
@@ -296,7 +300,7 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         if config["subsystem"]:
             print("cell_L = ", cell_L, "  Lx = ", Lx)
             if cell_L < Lx:
-                row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
+                row = chess_board_trafo_rectangular_subsystems(row, subsystem_Lx, Ly)
             else:
                 print("cell_L > Lx")
                 row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
@@ -570,7 +574,7 @@ PLOT_DEFAULT_CONFIG = {
     "nr_x_major_ticks": 5,
     "gridalpha": 0.5,
     "labelrotation": 0,
-    "labelhorizontalalignment": "right",
+    "labelhorizontalalignment": "center",
     "grid": True,
     "tight_layout": True,
     "legend": True,
@@ -649,17 +653,17 @@ def configure_ax(fig, ax, config=None):
         ax.grid(which='major', linestyle='--', alpha=config["gridalpha"])
 
     # title, achsenbeschriftungen, legend
-    get_functions = [ax.get_title, ax.get_xlabel, ax.get_ylabel]        # haha functions in a list, just python things
-    set_functions = [ax.set_title, ax.set_xlabel, ax.set_ylabel]
-    default_texts = [os.path.splitext(os.path.basename(sys.argv[0]))[0], "x", "y"]
+    get_functions = [ax.get_xlabel, ax.get_ylabel]        # haha functions in a list, just python things
+    set_functions = [ax.set_xlabel, ax.set_ylabel]
+    default_texts = ["x", "y"]
     for i, get in enumerate(get_functions):
         if get() == "":
             # If we have empty string as title or stuff
             set_functions[i](default_texts[i])
 
     # rotate the y label
-    ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"], loc="center",
-                  fontsize=config["ylabelsize"])
+    ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"],
+                  fontsize=config["ylabelsize"], ha=config["labelhorizontalalignment"])
     ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
@@ -989,8 +993,8 @@ def cut_data_around_peak(x_values, y_values, threshold_fraction=0.5, min_points_
             return cut_data_around_peak(x_values, y_values, new_threshold, min_points_fraction)
     # I think if we
     # Extract the subset of data around the peak
-    x_cut = x_values[above_threshold_indices]
-    y_cut = y_values[above_threshold_indices]
+    x_cut = np.array(x_values)[above_threshold_indices]
+    y_cut = np.array(y_values)[above_threshold_indices]
 
     # we have to add the offset back again
     y_cut += y_offset
@@ -1244,41 +1248,61 @@ def process_file_old(file_path, threshold, key='t', value='U_L', L=np.infty, cap
     return average_value, error, nr_values
 
 def process_file(file_path, threshold, key='t', value='U_L'):
-    print(file_path)
-    df = pd.read_csv(file_path)
-    if 0 < threshold < 1:
-        threshold = threshold * len(df[key])
-    total_nr_values = df.shape[0]
-    df = df[int(threshold):]
-    nr_values = df.shape[0]
-    f = np.array(df[value])
-    times = np.array(df[key])
+    print("process file", file_path)
+    file_path = Path(file_path)
+    try:
+        para_path = str(file_path.with_suffix(".txt"))
+        parameters = read_parameters_txt(para_path)
+        #print(parameters)
+        f_avg = parameters[value]
+        rel_error = parameters[f"{value}_error"]
+        moving_factor = parameters["moving_factor"]
+        total_nr_values = 0
+    except:
+        para_path = str(file_path.with_suffix(".txt"))
+        print(f"couldnt read {para_path}")
+        df = read_large_df(file_path, skiprows=1, sep="", cut_endline=1)
+        if 0 < threshold < 1:
+            threshold = threshold * len(df)
+        total_nr_values = len(df)
+        df = df[int(threshold):]
+        nr_values = len(df)
+        df = np.array(df)
+        f = np.array(df[:, 1])
+        times = np.array(df[:, 0])
 
-    f_avg = np.mean(f)
-    f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
+        f_avg = np.mean(f)
+        f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
 
-    ds = times[1] - times[0]
-    # try:
-    #     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
-    #     autocorr_time = paras["autocorrelation_time_" + value]
-    # except KeyError:
-    autocorr_time = integrated_autocorr_time(f, ds)
+        ds = np.maximum(times[1] - times[0], 1e-7)
+        # try:
+        #     # TODO this depends on the value, we probably should save this with the name, we currently not do this for U_L
+        #     autocorr_time = paras["autocorrelation_time_" + value]
+        # except KeyError:
+        autocorr_time = integrated_autocorr_time(f, ds)
+        print("autocorr_time ", autocorr_time, "  ds ", ds, " f_dist_var", f_dist_var)
+        variance = autocorr_time / (nr_values * ds) * f_dist_var
+        error = np.sqrt(variance)
 
-    variance = autocorr_time / (nr_values * ds) * f_dist_var
-    error = np.sqrt(variance)
+        rel_error = error / f_avg
+        # What are we doing with the moving factor? I do not really want
+        # to return it here but if we already read the file...
+        # I guess just return it, it is one of the useful values you want to extract
+        # from a file
 
-    rel_error = error / f_avg
-    # What are we doing with the moving factor? I do not really want
-    # to return it here but if we already read the file...
-    # I guess just return it, it is one of the useful values you want to extract
-    # from a file
+        # Moving factor
+        #try:
+        #    moving_factor = paras["moving_factor_" + value]
+        #except KeyError:
+        #    # We already have a function that calculates it?
+        moving_factor = getMovingFactor(f, f_avg)
 
-    # Moving factor
-    #try:
-    #    moving_factor = paras["moving_factor_" + value]
-    #except KeyError:
-    #    # We already have a function that calculates it?
-    moving_factor = getMovingFactor(f, f_avg)
+        parameters[value] = f_avg
+        parameters[f"{value}_error"] = rel_error
+        parameters["moving_factor"] = moving_factor
+
+        # we would aslo have to write them to the same txt file?
+        write_dict_to_file(parameters, para_path)
 
     return f_avg, rel_error, moving_factor, total_nr_values
 
@@ -1344,7 +1368,7 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     file_path = Path(file_path)
     # df = pd.read_csv(file_path, sep=";")
     try:
-        #para_path = str(file_path.with_suffix(".txt"))
+        para_path = str(file_path.with_suffix(".txt"))
         parameters = read_parameters_txt(para_path)
         #print(parameters)
         U_L = parameters["U_L"]
@@ -1352,17 +1376,19 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
         moving_factor = parameters["moving_factor"]
         total_nr_values = 0
     except:
-        print("fing couldnt read this stuff")
+        print(f"couldnt read {para_path}")
         df = read_large_df(file_path, skiprows=1, sep=";")
-        if 0 < threshold < 1:
-            threshold = threshold * len(df)
-        total_nr_values = len(df)
-        df = df[int(threshold):]
-        nr_values = len(df)
         m = []
         for ind, line in enumerate(df):
             m += line
         m = np.array(m)
+
+        if 0 < threshold < 1:
+            threshold = int(threshold * len(m))
+        total_nr_values = len(m)
+        print("threshold ", int(threshold))
+        if threshold:
+            m = m[threshold:]
         #times = np.array(df[key])
 
         m_avg = np.mean(m)
@@ -1413,17 +1439,17 @@ def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     if 0 < threshold < 1:
         threshold = int(threshold * len(m))
     total_nr_values = len(m)
-    print("threshold ", int(threshold))
-    m = m[threshold:]
+    if threshold:
+        m = m[threshold:]
     #times = np.array(df[key])
 
     m_avg = np.mean(m)
-    print("m = ", m_avg)
+    #print("m = ", m_avg)
     m2 = np.mean(m ** 2)
-    print("m2 = ", m2)
+    #print("m2 = ", m2)
     m2_err = np.std(m ** 2) / np.sqrt(len(m))     # std is standard dev of dist
     m4 = np.mean(m ** 4)
-    print("m4 = ", m4)
+    #print("m4 = ", m4)
     m4_err = np.std(m ** 4) / np.sqrt(len(m))
 
     U_L = m4 / m2 ** 2
@@ -1454,6 +1480,7 @@ def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
     #except KeyError:
     #    # We already have a function that calculates it?
     moving_factor = getMovingFactor(m, m_avg)
+    print(f"U_L = {U_L}, error = {rel_error}")
 
     return U_L, rel_error, moving_factor, total_nr_values
 
@@ -1603,6 +1630,10 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
         t_ft_l[t] /= nr_files
     return t_ft_k, t_ft_l
 
+def xi_div(eps, xi0, nu):
+    return xi0 / (np.abs(eps) ** nu)
+
+
 def average_lastline_ft(folderpath, ending=".ft"):
     # like average_ft but it only returns the ft for the latest t
     files = os.listdir(folderpath)
@@ -1630,6 +1661,19 @@ def average_lastline_ft(folderpath, ending=".ft"):
     t_ft_k /= nr_files
     t_ft_l /= nr_files
     return t_ft_k, t_ft_l
+
+def get_avail_tau_dic(root_dir):
+    directory_dict = {}
+    for size_folder in os.listdir(root_dir):
+        size_path = os.path.join(root_dir, size_folder)
+        if os.path.isdir(size_path):
+            for tau_folder in os.listdir(size_path):
+                tau_path = os.path.join(size_path, tau_folder)
+                if os.path.isdir(tau_path):
+                    if float(tau_folder) not in directory_dict:
+                        directory_dict[float(tau_folder)] = []
+                    directory_dict[float(tau_folder)].append(int(size_folder))
+    return directory_dict
 
 def get_frequencies_fftw_order(nr_times):
     K = nr_times // 2
@@ -2038,15 +2082,11 @@ def prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit, peak_cut_thresh
                      min_points_fraction, nr_additional_cuts=0):
     p_k = get_frequencies_fftw_order(len(ft_k_fit))
     if cut_zero_impuls:
-        print("before cut")
-        print(p_k, ft_k_fit)
         p_k, ft_k_fit = cut_around_zero(p_k, ft_k_fit, nr_additional_cuts)
-        print("after cut")
-        print(p_k, ft_k_fit)
     if set_fts_to_zero:
         ft_k_fit -= np.min(ft_k_fit)
     if cut_around_peak:
-        p_k, ft_k_fit = cut_data_around_peak_order(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold,
+        p_k, ft_k_fit = cut_data_around_peak(p_k, ft_k_fit, threshold_fraction=peak_cut_threshold,
                                              min_points_fraction=min_points_fraction)
     return ft_k_fit, p_k
 
@@ -2169,6 +2209,43 @@ def get_2nd_moment_corr_length(ft):
 
     return  L / ( 2 * np.pi) * np.sqrt(ft_zero / ft_smallest_wave - 1)
 
+
+def zoom_plot(ax, new_xlim):
+    # Get the data from the original plot
+    lines = ax.lines
+    labels = [line.get_label() for line in lines]
+    xdata = lines[0].get_xdata()
+    ydata = lines[0].get_ydata()
+
+    # Create a new figure and axis
+    fig, ax_zoomed = plt.subplots()
+
+    # Plot the data in the zoomed-in axis
+    ax_zoomed.plot(xdata, ydata)
+
+    # Set new x-limits
+    ax_zoomed.set_xlim(new_xlim)
+
+    # Set labels
+    ax_zoomed.set_xlabel(ax.get_xlabel())
+    ax_zoomed.set_ylabel(ax.get_ylabel())
+    ax_zoomed.set_title(ax.get_title())
+
+    # Return the new axis
+    return fig, ax_zoomed
+
+def write_dict_to_file(dictionary, filepath):
+    if not filepath.endswith('.txt'):
+        print("Filepath must end with '.txt'")
+        return
+
+    try:
+        with open(filepath, 'w') as file:
+            for key, value in dictionary.items():
+                file.write(f"{key},{value}\n")
+        print("Dictionary has been written to the file successfully.")
+    except IOError as e:
+        print(f"An error occurred while writing to the file: {e}")
 
 def main():
     print("This file is made to import, not to execute")

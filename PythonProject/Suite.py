@@ -1,8 +1,5 @@
 import os
 
-import matplotlib.pyplot as plt
-import numpy as np
-from itertools import product
 import re
 from fabric import Connection
 import time
@@ -177,9 +174,9 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
     if (avg_error < equil_error) and (moving_factor < max_moving_factor):
         return True
     else:
-        if (avg_error > equil_error) and (moving_factor < max_moving_factor):
-            print(f"Avg error {avg_error} too large")
-        elif (avg_error < equil_error) and (moving_factor > max_moving_factor):
+        if (avg_error > equil_error):
+            print(f"Avg error {avg_error} too large for {equil_error}")
+        elif (moving_factor > max_moving_factor):
             print(f"Moving factor {moving_factor} too large")
         return False
 
@@ -229,7 +226,7 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, va
     moving_factor = np.mean(moving_factors)
     nr_vals = np.mean(nr_values)
 
-
+    print(f"rel_error = {rel_error}  vs   equil_error = {equil_error}")
     if (rel_error <= equil_error) and (moving_factor <= max_moving_factor):
         return True
     else:
@@ -508,7 +505,8 @@ class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile="run_cuda.sh", nr_GPUS=6, nr_Ts=5, size_min=48,
                           size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
-                 min_val_nr=2500, value_name="U_L", random_init=0, second=False, observed_direction=0):
+                 min_val_nr=2500, value_name="U_L",  file_ending="cum",
+                 process_file_func=process_file, random_init=0, second=False, observed_direction=0, value_write_density=1/100):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
@@ -540,16 +538,16 @@ class crit_temp_measurement(autonomous_measurement):
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
         self.min_val_nr = min_val_nr
-        self.val_write_density = 1 / 100
-        self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
+        self.val_write_density = value_write_density
         self.equil_cutoff = equil_cutoff
         self.jobs_to_do = None          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
 
         self.cur_para_nr = 0
         self.check_function = check_cum_valid
-        self.file_ending = "cum"
         self.value_name = value_name
         self.second = second
+        self.file_ending = file_ending
+        self.process_file_func = process_file_func
         self.observed_direction = observed_direction
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
@@ -580,9 +578,10 @@ class crit_temp_measurement(autonomous_measurement):
 
         self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sizes, endpoint=True,
                             dtype=np.int32)
-        print(f"Initializing Simulation with T_min = {T_min} and T_max = {T_max}")
+        print(f"Initializing Simulation with T_min = {self.T_min} and T_max = {self.T_max}")
         self.max_time = self.dt * self.max_steps
         self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
+
     def routine(self):
         """
         the outer routine for the T_c calculation
@@ -601,158 +600,23 @@ class crit_temp_measurement(autonomous_measurement):
         # In the new conclude only the simulation with the highest hierarchy is used
         T_arr = np.array(self.all_T_dic[np.max(list(self.all_T_dic.keys()))])
 
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
+        results = self.construct_results(self.simulation_path, self.equil_error, T_arr, self.sizes, value_name=self.value_name, file_ending=self.file_ending,
+                                         process_file_func=self.process_file_func)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
-        intersections, intersections_y = get_first_intersections(results)
+        intersections, intersections_y = get_first_intersections(results, self.value_name)
 
         T_c = np.mean(intersections)
         U_L_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        self.plot_value_curve(T_c, U_L_intersection, results)
-
-        # constructing cum dic
-        cum_dic = {}
-        for size in results:
-            cum_dic[size] = results[size]["U_L"]
-
-        diff_arr, size_arr = calc_diff_at(T_c,
-                                          list(results.values())[0]["T"],
-                                          cum_dic)
-
-        popt, _ = curve_fit(linear_fit, np.log(size_arr),
-                            np.log(diff_arr))
-        nu = 1 / popt[0]
-
-        print("FITTING RESULTS:")
-        print("nu = ", nu)
-
-        fig, ax = plt.subplots(1, 1)
-        L_fit = np.linspace(0, np.max(size_arr) + 0.2 * np.max(size_arr), 101)
-        ax.plot(L_fit, poly(L_fit, 1 / nu, np.exp(popt[1])),
-                label=rf"$\nu = {nu:.2f}$", color=colors[0])
-        ax.plot(size_arr, diff_arr, linestyle="", marker="x", color=colors[0])
-        ax.set_xlabel("L")
-        ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
-        ax.legend()
-        ax.set_title(
-            r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
-        configure_ax(fig, ax)
-        # save_plot(root, "/critical_exponent.pdf", format="pdf")
-        fig.savefig(self.simulation_path + "/critical_exponent_time_avg.png",
-                    format="png", dpi=250, transparent=False)
-        plt.show()
-
-    def plot_value_curve(self, T_c, val_intersection, results, value_name="U_L",
-                       title="Binder Cumulant on T", plotname="cum_time_avg"):
-        fig, ax = plt.subplots(1, 1)
-        if not T_c:
-            T_c = 0
-        y_upper_lim = 0
-        y_lower_lim = np.infty
-        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
-                                 dtype=np.int64)
-        ind = 0
-        T_arr = np.array(list(self.all_T_dic[np.min(list(self.all_T_dic.keys()))]))
-        max_T = np.max(T_arr) * 1.01
-        min_T = np.min(T_arr) * 0.99
-        for i, size in enumerate(sorted(results.keys())):
-            if i in shown_inds:
-                T = np.array(results[size]["T"])
-                val = np.array(results[size][value_name])
-                ax.plot(T, val, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
-                ind += 1
-                if max_T:
-                    y_upper_lim = np.maximum(
-                        np.max(val[(min_T <= T) & (T <= max_T)]), y_upper_lim)
-                    y_lower_lim = np.minimum(
-                        np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
-        y_upper_lim = 20
-        y_span = y_upper_lim - y_lower_lim
-        ax.set_xlabel("T")
-        ax.set_ylabel(rf"${value_name}$")
-        ax.set_title(title)
-        if min_T:
-            ax.set_xlim(min_T, ax.get_xlim()[1])
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        if max_T:
-            ax.set_xlim(ax.get_xlim()[0], max_T)
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, val_intersection,
-                   label=rf"$T_c = {T_c:.4f}$")
-        configure_ax(fig, ax)
-        create_directory_if_not_exists(f"{self.simulation_path}/plots/")
-        fig.savefig(self.simulation_path + f"/plots/{plotname}-{self.size_min}-{self.size_max}-{self.equil_error}.png", format="png",
-                    dpi=300, transparent=False)
-
-        plt.show()
-
-    def conclude_old(self):
-        # This function should plot stuff etc. keep it simple at this point
-        # copied just the cumulanttimeaverage script!
-        # has to be rewritten...
-        results = {}
-        for size_folder in os.listdir(self.simulation_path):
-            if (size_folder[0] != ".") & (size_folder != "plots"):
-                size_folder_path = os.path.join(self.simulation_path, size_folder)
-                if os.path.isdir(size_folder_path):
-                    size_result = process_size_folder(size_folder_path,
-                                                      self.discard_threshold, selected_temperatures=self.T_arr)
-                    results[int(size_folder)] = size_result
-
-        # interpolate and minimize is deprecated, we use the technique we also use in iteration
-        intersections = []
-        intersections_y = []
-        intersections, intersections_y = get_first_intersections(results)
-
-        T_c = np.mean(intersections)
-        U_L_intersection = np.mean(intersections_y)
-        T_c_error = np.ptp(intersections)
-
-        fig, ax = plt.subplots(1, 1)
-
-        y_upper_lim = 0
-        y_lower_lim = np.infty
-        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
-                                 dtype=np.int64)
-        ind = 0
-        max_T = np.max(self.T_arr)
-        min_T = np.min(self.T_arr)
-        for i, size in enumerate(sorted(results.keys())):
-            if i in shown_inds:
-                T = np.array(results[size]["T"])
-                U_L = np.array(results[size]["U_L"])
-                ax.plot(T, U_L, linestyle="-", marker="x", color=colors[ind])
-                ind += 1
-                if max_T:
-                    y_upper_lim = np.maximum(
-                        np.max(U_L[(min_T < T) & (T < max_T)]), y_upper_lim)
-                    y_lower_lim = np.minimum(
-                        np.min(U_L[(min_T < T) & (T < max_T)]), y_lower_lim)
-
-        y_span = y_upper_lim - y_lower_lim
-
-        ax.set_xlabel("T")
-        ax.set_ylabel(r"$U_L$")
-        ax.set_title("Binder Cumulant on T")
-        if min_T:
-            ax.set_xlim(min_T, ax.get_xlim()[1])
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        if max_T:
-            ax.set_xlim(ax.get_xlim()[0], max_T)
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, U_L_intersection,
-                   label=rf"$T_c = {T_c:.4f}$")
-        configure_ax(fig, ax)
-        fig.savefig(self.simulation_path + "/cum_time_avg.png", format="png",
-                    dpi=300, transparent=False)
+        self.plot_value_curve(self.simulation_path, results, crit_point=(T_c, U_L_intersection), equil_error=self.equil_error)
         plt.show()
 
         # constructing cum dic
         cum_dic = {}
         for size in results:
-            cum_dic[size] = results[size]["U_L"]
+            cum_dic[size] = results[size][self.value_name]
 
         diff_arr, size_arr = calc_diff_at(T_c,
                                           list(results.values())[0]["T"],
@@ -789,7 +653,11 @@ class crit_temp_measurement(autonomous_measurement):
         valid_simulations = get_avail_simulations(self.sizes,
                                                   self.T_arr,
                                                   self.simulation_path,
-                                                  self.check_function, check_function_args=(self.equil_error, self.equil_cutoff, self.max_moving_factor)
+                                                  self.check_function, check_function_args=(self.equil_error, self.equil_cutoff,
+                                                                                            self.max_moving_factor,
+                                                                                            self.value_name,
+                                                                                            self.file_ending,
+                                                                                            self.process_file_func)
                                                   )
         # Okay how do we now keep track of the sizes and temps we do not need to run anymore?
         # In the other two cases it was easy because we only had one size or one temperature always?
@@ -807,6 +675,7 @@ class crit_temp_measurement(autonomous_measurement):
             self.cur_para_nr = 0                # reset the parameter number
             self.write_para_files()  # setting up the parameter files for every simulation
             self.cur_para_nr = 0                # reset the parameter number
+            exit()
             self.run_jobs()
         else:
             print("Found valid simulation, evaluating")
@@ -820,8 +689,11 @@ class crit_temp_measurement(autonomous_measurement):
         T_arr = self.all_T_dic[sim_hierarchy_nr]
         # for this one we want to check if it has an intersection
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes)
-
+        print(self.process_file_func)
+        print(T_arr)
+        results = self.construct_results(self.simulation_path, self.equil_error, T_arr, self.sizes, value_name=self.value_name,
+                                         file_ending=self.file_ending, process_file_func=self.process_file_func)
+        print(results)
         val_min_T_min_size = results[np.min(self.sizes)][self.value_name][0]
         val_min_T_max_size = results[np.max(self.sizes)][self.value_name][0]
         val_max_T_min_size = results[np.min(self.sizes)][self.value_name][-1]
@@ -838,7 +710,7 @@ class crit_temp_measurement(autonomous_measurement):
 
             T_c = np.mean(intersections)
 
-            print(f"Found an intersection at T_c = {T_c}")
+            print(f"Found an intersection at T_c / J = {T_c / self.J_para}")
 
             print("intersections: ", intersections)
 
@@ -855,7 +727,8 @@ class crit_temp_measurement(autonomous_measurement):
             else:
                 # We still want to plot the stuff to see where we at
                 val_intersection = np.mean(intersections_y)
-                self.plot_value_curve(T_c, val_intersection, results)
+                self.plot_value_curve(self.simulation_path, results, crit_point=(T_c, val_intersection), equil_error=self.equil_error)
+                plt.show()
                 # If the error is too large we do a child measurement with smaller error
                 self.equil_error = max(self.equil_error/ 2, self.min_equil_error)
                 # We wanted to have our edgecases of within 5 or 20 percent of the interval edges...
@@ -884,7 +757,8 @@ class crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
-            self.plot_value_curve(None, None, results)
+            self.plot_value_curve(self.simulation_path, results)
+            plt.show()
             if val_max_T_min_size > val_max_T_max_size:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
@@ -906,143 +780,9 @@ class crit_temp_measurement(autonomous_measurement):
             self.all_T_dic[sim_hierarchy_nr] = np.concatenate((T_arr, self.T_arr))
 
             return self.iteration()
+
     def intersection_anyway(self, val_min_T_min, val_max_T_min, val_min_T_max, val_max_T_max):
-        return (val_max_T_max / val_max_T_min > 2.95)
-    def evaluate_simulation_old(self):
-        self.all_T_arr = np.concatenate((self.all_T_arr, self.T_arr))   # we do it here, before evaluating
-        all_results = self.construct_results(self.discard_threshold, self.all_T_arr)     # for all results we use the self.all_T_arr? Since we want to reproduce always the measurements that we already did so that we can resume it where we left it of
-        # current_results = self.construct_results(threshold, self.T_arr)
-        # we switch to all results again but we set the min/max limites then also to min and max of all_T
-        # We only enlarge the limits of all_T if we dont have an intersection anywhere
-        # how does results look again precisely?
-        # I have for every size a dictionary with {'T' : [T_min, ..., T_max], 'U_L': [U_L(T_min), ..., U_L(T_max)]}
-        # once we have the U_L values the first thing we should do is check whether we have an intersection
-        # something should be recursively if we need a second or third iteration...
-        # The U_Ls should be the ones that we calculated this run..., so if we calculated a bad interval that does not contain Tc
-        # that we can corr
-        U_L_min_T_min = np.min(all_results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_min = np.min(all_results[np.max(self.sizes)]['U_L'])
-        U_L_min_T_max = np.max(all_results[np.min(self.sizes)]['U_L'])
-        U_L_max_T_max = np.max(all_results[np.max(self.sizes)]['U_L'])
-        # we say we have an intersection if U_L_min_T_min > U_L_max_T_min
-        # and U_L_min_T_max < U_L_max_T_max
-        # This is we have an intersection at all, but we dont know if we have an intersection in the current T_simulation.
-        intersection = (U_L_min_T_min > U_L_max_T_min) & (
-                U_L_min_T_max < U_L_max_T_max)
-        if intersection:
-            # good sign
-            # determine Tc AND its error
-            T_range, U_L_intersection, T_intersection, U_L_interpolated = interpolate_and_minimize(
-                all_results)
-            # I think T_range is the common Ts for the sizes, I think here every size should
-            # definetely have the same temperatures
-            # U_L_intersection is the U_L_value at the intersection
-            # T_intersection is the temperature at the intersection
-            # U_L_interpolated is a list with the numerical interpolated values at the stützstellen with resolution of
-            # 1000, the resolution can be adjusted as a parameter
-            # how do i find the size?
-            # I think we can just assume that it is sorted
-            # we now want to find the intersections of pairs of lines and want to
-            # estimate an error out of this
-            intersections = []
-            #print("T_range")
-            #print(T_range)
-            #for i in range(len(U_L_interpolated)):
-            #    nr_sizes = len(U_L_interpolated)
-            #    U_L_1 = U_L_interpolated[i]
-            #    U_L_2 = U_L_interpolated[(i + 1) % nr_sizes]
-            #
-            #    print("U_L_1 = ", U_L_1)
-            #
-            #    intersection = find_intersection(T_range, U_L_1, U_L_2)
-            #    intersections.append(intersection)
-            # TODO this works only for 3 different sizes
-            intersections, intersections_y = get_first_intersections(all_results)
-            # more is it net?
-            # simple error would be to be just max_intersection - min_intersection?
-            T_c = np.mean(intersections)
-            print(f"Found an intersection at T_c = {T_c}")
-            print("intersections: ", intersections)
-            T_c_error = np.ptp(intersections)
-            print(f"T_c_error = {T_c_error}")
-            # relative error
-            rel_intersec_error = T_c_error / T_c
-            print(f"rel_intersec_error = {rel_intersec_error}")
-            if rel_intersec_error < self.max_rel_intersec_error:
-                # best case, now we are done?
-                # If the T stepsize is to large, lets say larger than 10 % of the critical temperature, we repeat the
-                # simulation anyway
-                T_stepsize = self.T_arr[1] - self.T_arr[0]
-                if T_stepsize > 0.1 * T_c:
-                    # so now again a measurment +- 5% of the critical temperature?
-                    self.T_arr = np.linspace(0.95 * T_c, 1.05 * T_c, self.nr_Ts)
-                    self.equil_error /= 2
-                    return self.iteration()
-                else:
-                    print(f"Determined crit. Temp T_c = {T_c} +- {rel_intersec_error}")
-                    return T_c, T_c_error
-            else:
-                # we check how many iterations we did so that we are not in an endless loop
-                if self.iteration_nr > self.maximum_iterations:
-                    print(f"Doing to many iterations, returning Temp T_c = {T_c} +- {T_c_error}")
-                    return T_c, T_c_error
-                # case that the error is to large, meaning we are moving closer to the critical temperature
-                T_min = max(T_c - 5 * T_c_error, np.min(self.all_T_arr))  # standard smaller interval of 4*T_c_error?
-                T_max = min(T_c + 5 * T_c_error, np.max(self.all_T_arr))
-                if (T_min == np.min(self.T_arr)) & (T_max == np.max(self.T_arr)):
-                    self.repeat = True
-                # what if the new interval is larger than the last one because the errors were so large?
-                # therefore we added max and min. If thats the case we want to reduce the equil error and repeat the
-                # simulation
-                # we need to set some variable so that the check folder structure function does not return that
-                # the simulation is already done
-
-                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
-                print(f"Error was too large: Temp T_c = {T_c} +- {T_c_error} \n"
-                      f"Starting new run with T_min = {T_min}, T_max = {T_max}")
-                # If we are moving closer to the critical point we should decrease the allowed error
-                self.equil_error /= 2  # standard devide by two or is that not enough?
-                return self.iteration()
-        else:
-            # bad sign, we do not seem to have an intersection
-            # the question is now whether we are below or above
-            print("We do not see a intersection")
-            if U_L_min_T_max > U_L_max_T_max:
-                print("The maximum temperature is too low")
-                # this means we are below the critical temperature.
-                # TODO can we somehow approximate how far away we are?
-                # for now we just double the range i would say?
-                T_range = np.ptp(self.all_T_arr)
-                T_min = np.max(self.T_arr) + (self.T_arr[1] - self.T_arr[
-                    0])  # the next T_min is the current maximum plus the current stepsize
-                T_max = np.max(self.T_arr) + T_range
-                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
-                # Okay we updated the temperature array... now we just run everything again?
-            elif U_L_min_T_min < U_L_max_T_min:
-                print("The minimum temperature is too high")
-                T_range = np.ptp(self.all_T_arr)
-                T_min = np.maximum(np.min(self.T_arr) - T_range, 0.0)  # We should not consider negative temperatures
-                T_max = np.min(self.T_arr) - (self.T_arr[1] - self.T_arr[0])
-                self.T_arr = np.linspace(T_min, T_max, self.nr_Ts)
-            return self.iteration()
-
-    def construct_results(self, threshold, selected_temps=None, selected_sizes=None,
-                          value_name="U_L", file_ending="cum"):
-        results = {}
-        for size_folder in os.listdir(self.simulation_path):
-            if size_folder[0] != 0 and size_folder != "plots":
-                size_folder_path = os.path.join(self.simulation_path,
-                                                size_folder)
-                if os.path.isdir(size_folder_path):
-                    if selected_sizes is not None:
-                        size = int(size_folder)
-                        if size not in selected_sizes:
-                            continue
-                    size_result = process_size_folder(size_folder_path,
-                                                          threshold, selected_temperatures=selected_temps,
-                                                          value=value_name, file_ending=file_ending)
-                    results[int(size_folder)] = size_result
-        return results
+        return (val_max_T_max / val_max_T_min > 2.9)
 
     def get_para_nr(self):
         # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice
@@ -1083,6 +823,7 @@ class crit_temp_measurement(autonomous_measurement):
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}\n"
+                        f"equil_cutoff, {self.equil_cutoff}\n"
                         f"{self.file_ending}_write_density, {self.val_write_density}\n"
                         f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
                         f"moving_factor, {self.max_moving_factor}\n"
@@ -1093,7 +834,82 @@ class crit_temp_measurement(autonomous_measurement):
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
+    @staticmethod
+    def construct_results(simulation_path, threshold, selected_temps=None, selected_sizes=None, value_name="U_L", file_ending="cum",
+                          process_file_func=process_file):
+        results = {}
+        for size_folder in os.listdir(simulation_path):
+            if size_folder[0] != 0 and size_folder != "plots":
+                size_folder_path = os.path.join(simulation_path,
+                                                size_folder)
+                if os.path.isdir(size_folder_path):
+                    if selected_sizes is not None:
+                        size = int(size_folder)
+                        if size not in selected_sizes:
+                            continue
+                    size_result = process_size_folder(size_folder_path,
+                                                          threshold, selected_temperatures=selected_temps,
+                                                          value=value_name, file_ending=file_ending,
+                                                      process_file_func=process_file_func)
+                    results[int(size_folder)] = size_result
+        return results
+    @staticmethod
+    def plot_value_curve(simulation_path, results, crit_point=None, value_name="U_L", title="Binder Cumulant on T",
+                         plotname="cum_time_avg", equil_error=None, config=None):
+        fig, ax = plt.subplots(1, 1)
+        y_upper_lim = 0
+        y_lower_lim = np.infty
+        shown_inds = np.linspace(0, len(results), len(results) + 1, endpoint=True,
+                                 dtype=np.int64)
+        ind = 0
+        # The T array should be deduceable from the results that I am feeding
+        # Every size should have the same Ts
+        # results is dict in dict
+        # Before we plot anything we want to know how large J is
+        parapath = find_first_txt_file(simulation_path)
+        parameters = read_parameters_txt(parapath)
+        J_para = np.abs(parameters["J"])
+        sizes = list(results.keys())
+        size_min = np.min(sizes)
+        size_max = np.max(sizes)
+        first_dict = next(iter(results.values()))
+        T_arr = first_dict["T"]
+        max_T = np.max(T_arr) * 1.01 / J_para
+        min_T = np.min(T_arr) * 0.99 / J_para
 
+        for i, size in enumerate(sorted(results.keys())):
+            if i in shown_inds:
+                T = np.array(results[size]["T"]) / J_para
+                val = np.array(results[size][value_name])
+                ax.plot(T, val, marker="s", **get_point_kwargs_color(colors[5 * ind]), label=rf"$L_\parallel = {size}$")
+                ax.plot(T, val, linestyle="-", color=colors[5 * ind], alpha=0.5)
+                ind += 1
+                if max_T:
+                    y_upper_lim = np.maximum(
+                        np.max(val[(min_T <= T) & (T <= max_T)]), y_upper_lim)
+                    y_lower_lim = np.minimum(
+                        np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
+        y_span = y_upper_lim - y_lower_lim
+        ax.set_xlabel("$T~/~J_\parallel$")
+        ax.set_ylabel(rf"${value_name}$")
+        #ax.set_title(title)
+        if min_T:
+            ax.set_xlim(min_T, ax.get_xlim()[1])
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
+        if max_T:
+            ax.set_xlim(ax.get_xlim()[0], max_T)
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
+        if crit_point:
+            T_c = crit_point[0] / J_para
+            val_intersection = crit_point[1]
+            mark_point(ax, T_c, val_intersection,
+                       label=rf"$T_c / J_\parallel = {T_c:.4f}$")
+        configure_ax(fig, ax, config)
+        create_directory_if_not_exists(f"{simulation_path}/plots/")
+        fig.savefig(simulation_path + f"/plots/{plotname}-{size_min}-{size_max}-{equil_error}.png", format="png",
+                    dpi=300, transparent=False)
+
+        return fig, ax
 class crit_temp_measurement_corr(crit_temp_measurement):
     def __init__(self, *args, **kwargs):
         # call the constructor of the parent classe
@@ -1101,13 +917,12 @@ class crit_temp_measurement_corr(crit_temp_measurement):
         self.check_function = check_corr_valid
         self.file_ending = "corr"
 
-    def plot_value_curve(self, T_c, val_intersection, results):
-        super().plot_value_curve(T_c, val_intersection, results, value_name=self.value_name, title="L/xi on T",
-                               plotname="corr_time_avg")
+    def plot_value_curve(self, simulation_path, results, crit_point=None):
+        super().plot_value_curve(self.simulation_path, results, crit_point=crit_point, value_name=self.value_name, title="L/xi on T",
+                                 plotname="corr_time_avg")
 
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
-        results = super().construct_results(threshold, selected_temps, selected_sizes, self.value_name,
-                                            file_ending="corr")
+        results = super().construct_results(selected_temps, selected_sizes, self.value_name, file_ending="corr")
         # And now we somehow need to find out L? The Ls are sadly different in the two directions
         # We make it easy...
         for size in results:
@@ -1126,7 +941,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                  size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
                  random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file_old, val_write_density=1/100, second=False):
+                 process_file_func=process_file, val_write_density=1/100, second=False):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
@@ -1160,7 +975,6 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
         self.min_val_nr = min_val_nr
         self.val_write_density = val_write_density
-        self.discard_threshold = 0.1     # discards 10% of the U_L values when calculating the mean U_L
         self.equil_cutoff = equil_cutoff
         # jobs to do will be a set so we cannot possible do one job accidentally twice
         self.jobs_to_do = set()          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
@@ -1220,7 +1034,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # In the new conclude only the simulation with the smallest error
         T_arr = self.all_T_dic[np.min(list(self.all_T_dic.keys()))]
 
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes,  value_name=self.value_name,
+        results = self.construct_results(self.equil_cutoff, T_arr, self.sizes,  value_name=self.value_name,
                                          file_ending=self.file_ending, process_file_func=self.process_file_func)
 
         # interpolate and minimize is deprecated, we use the technique we also use in iteration
@@ -1230,7 +1044,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         val_intersection = np.mean(intersections_y)
         T_c_error = np.ptp(intersections)
 
-        self.plotValueCurve(T_c, val_intersection, results, value_name=self.value_name,
+        self.plotValueCurve(self.simulation_path, self.equil_error, (T_c, val_intersection), results, value_name=self.value_name,
                        title="Binder Cumulant on T", plotname=f"{self.file_ending}_time_avg")
 
         # constructing cum dic
@@ -1265,24 +1079,35 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     format="png", dpi=250, transparent=False)
         plt.show()
 
-    def plotValueCurve(self, T_c, val_intersection, results, value_name="U_L",
-                       title="Binder Cumulant on T", plotname="cum_time_avg"):
+    def plotValueCurve(self, simulation_path, equil_error, crit_point, results, value_name="U_L",
+                       title="Binder Cumulant on T", plotname="cum_time_avg", config=None):
         fig, ax = plt.subplots(1, 1)
-        if not T_c:
-            T_c = 0
         y_upper_lim = 0
         y_lower_lim = np.infty
-        shown_inds = np.linspace(0, len(self.sizes), len(self.sizes) + 1, endpoint=True,
+        shown_inds = np.linspace(0, len(results), len(results) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
-        T_arr = np.array(list(self.all_T_dic[np.min(list(self.all_T_dic.keys()))]))
-        max_T = np.max(T_arr) * 1.01
-        min_T = np.min(T_arr) * 0.99
+        # The T array should be deduceable from the results that I am feeding
+        # Every size should have the same Ts
+        # results is dict in dict
+        # Before we plot anything we want to know how large J is
+        parapath = find_first_txt_file(simulation_path)
+        parameters = read_parameters_txt(parapath)
+        J_para = np.abs(parameters["J"])
+        sizes = list(results.keys())
+        size_min = np.min(sizes)
+        size_max = np.max(sizes)
+        first_dict = next(iter(results.values()))
+        T_arr = first_dict["T"]
+        max_T = np.max(T_arr) * 1.01 / J_para
+        min_T = np.min(T_arr) * 0.99 / J_para
+
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
-                T = np.array(results[size]["T"])
+                T = np.array(results[size]["T"]) / J_para
                 val = np.array(results[size][value_name])
-                ax.plot(T, val, linestyle="-", marker="x", color=colors[ind], label=rf"$L_x = {size}$")
+                ax.plot(T, val, marker="s", **get_point_kwargs_color(colors[5 * ind]), label=rf"$L_\parallel = {size}$")
+                ax.plot(T, val, linestyle="-", color=colors[5 * ind], alpha=0.5)
                 ind += 1
                 if max_T:
                     y_upper_lim = np.maximum(
@@ -1290,23 +1115,26 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     y_lower_lim = np.minimum(
                         np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
         y_span = y_upper_lim - y_lower_lim
-        ax.set_xlabel("T")
+        ax.set_xlabel("$T~/~J_\parallel$")
         ax.set_ylabel(rf"${value_name}$")
-        ax.set_title(title)
+        #ax.set_title(title)
         if min_T:
             ax.set_xlim(min_T, ax.get_xlim()[1])
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
         if max_T:
             ax.set_xlim(ax.get_xlim()[0], max_T)
-            ax.set_ylim(y_lower_lim - 0.2 * y_span, y_upper_lim + 0.2 * y_span)
-        mark_point(ax, T_c, val_intersection,
-                   label=rf"$T_c = {T_c:.4f}$")
-        configure_ax(fig, ax)
-        create_directory_if_not_exists(f"{self.simulation_path}/plots/")
-        fig.savefig(self.simulation_path + f"/plots/{plotname}-{self.size_min}-{self.size_max}-{self.equil_error}.png", format="png",
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
+        if crit_point:
+            T_c = crit_point[0] / J_para
+            val_intersection = crit_point[1]
+            mark_point(ax, T_c, val_intersection,
+                       label=rf"$T_c / J_\parallel = {T_c:.4f}$")
+        configure_ax(fig, ax, config)
+        create_directory_if_not_exists(f"{simulation_path}/plots/")
+        fig.savefig(simulation_path + f"/plots/{plotname}-{size_min}-{size_max}-{equil_error}.png", format="png",
                     dpi=300, transparent=False)
 
-        plt.show()
+        return fig, ax
     def iteration(self):
         self.iteration_nr += 1
         # Here I want to have something that checks whether there is already a measurement
@@ -1364,7 +1192,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         T_arr = np.array(sorted(list(self.all_T_dic[smallest_error])))
         # for this one we want to check if it has an intersection
         # indeed we also only want the expected sizes. The sizes luckily dont change in one simulation
-        results = self.construct_results(self.discard_threshold, T_arr, self.sizes,  value_name=self.value_name,
+        results = self.construct_results(self.equil_cutoff, T_arr, self.sizes,  value_name=self.value_name,
                                          file_ending=self.file_ending, process_file_func=self.process_file_func)     # If i just implement this for xi and for U_L which makes almost no difference, am I not almost done? it will just use L / xi instead of U
         # Ah another problem is with the error and the validation function, but besides that I think we are basically fine.
         val_min_T_min = np.min(results[np.min(self.sizes)][self.value_name])
@@ -1458,7 +1286,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     return T_c, T_c_error
                 else:
                     val_intersection = np.mean(intersections_y)
-                    self.plotValueCurve(T_c, val_intersection, results, value_name=self.value_name, title="Binder Cumulant on T", plotname="cum_mag_avg")
+                    self.plotValueCurve(self.simulation_path, self.equil_error, (T_c, val_intersection), results, value_name=self.value_name, title="Binder Cumulant on T", plotname="cum_mag_avg")
 
                     T_low = T_interval_low + dT/3
                     T_up = T_interval_low + 2 * dT / 3
@@ -1475,7 +1303,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         else:
             # This means we missed the intersection so we want to restart a simulation with the same error
             print("We do not see a intersection")
-            self.plotValueCurve(None, None, results, self.value_name,
+            self.plotValueCurve(self.simulation_path, self.equil_error, None, results, self.value_name,
                                 title="No Intersection", plotname=f"{self.file_ending}_time_avg")
             if val_min_T_max > val_max_T_max:
                 print("The maximum temperature is too low")
@@ -1675,7 +1503,7 @@ class efficient_crit_temp_measurement_corr(efficient_crit_temp_measurement):
 
 
     def plotValueCurve(self, T_c, val_intersection, results):
-        super().plotValueCurve(T_c, val_intersection, results, value_name=self.value_name, title="L/xi on T",
+        super().plotValueCurve(self.simulation_path, self.equil_error, (T_c, val_intersection), results, value_name=self.value_name, title="L/xi on T",
                                plotname="corr_time_avg")
 
     def construct_results(self, threshold, selected_temps=None, selected_sizes=None):
@@ -1910,7 +1738,29 @@ class quench_measurement(autonomous_measurement):
         # like last time, I think for now I will just paste the avargeFTsOverTime script
         size_x_dic = {}
         size_y_dic = {}
-
+        # Now we want to do some fitting
+        # I have the feeling that it will be faster if i just rewrite it
+        # Okay so we will use from the size_tau_xi_dics for every size
+        # all but the last value. Then we should have a continous tau-xi curve
+        # About the minimum tau, I don't know how to deal with that atm,
+        # we will just set it to 10 or let it be a parameter
+        # We dont need a max tau in this case as the largest tau value is excluded and all other are basically guaranteed to be accurate
+        # xix_scaling = np.array(xix_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+        # xiy_scaling = np.array(xiy_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+        # tau_scaling = np.array(tau_scaling)[
+        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
+        #
+        # # Do the fitting
+        # popt_x, _ = curve_fit(linear_fit, np.log(tau_scaling),
+        #                       np.log(xix_scaling))
+        # popt_y, _ = curve_fit(linear_fit, np.log(tau_scaling),
+        #                       np.log(xiy_scaling))
+        # quench_exp_x = popt_x[0]
+        # quench_ampl_x = popt_x[1]
+        # quench_exp_y = popt_y[0]
+        # quench_ampl_y = popt_y[1]
         # for size in os.listdir(self.simulation_path):
         #     t_xix = {}
         #     t_xiy = {}
@@ -2014,143 +1864,265 @@ class quench_measurement(autonomous_measurement):
 
         # for the plotting of the exponent we only need the value at the end of the quench
         # just plot it for every size and every tau? worry about the fitting later
-        size_tau_xix_dic, size_tau_xiy_dic = self.get_size_quench_results()
+        size_tau_xix_dic, size_tau_xiy_dic = self.get_size_quench_results(self.simulation_path,
+                                                                          self.cut_zero_impuls, self.fitfunc)
 
-        # Now we want to do some fitting
-        # I have the feeling that it will be faster if i just rewrite it
-        # Okay so we will use from the size_tau_xi_dics for every size
-        # all but the last value. Then we should have a continous tau-xi curve
-        # About the minimum tau, I don't know how to deal with that atm,
-        # we will just set it to 10 or let it be a parameter
+        tau_scaling, xix_scaling, reg_x, max_tau_ind_x, min_tau_ind_x = quench_measurement.fit_kzm(
+            size_tau_xix_dic)
 
+        tau_scaling, xiy_scaling, reg_y, max_tau_ind_y, min_tau_ind_y = quench_measurement.fit_kzm(
+            size_tau_xiy_dic)
+
+
+        quench_measurement.plot_kzm_scaling(tau_scaling, size_tau_xix_dic, reg_x, max_tau_ind_x, direction="parallel")
+        plt.savefig(self.simulation_path + f"/plots/tau-xi-parallel.png", format="png")
+        plt.show()
+
+        self.plot_kzm_scaling(tau_scaling, size_tau_xiy_dic, reg_y, max_tau_ind_y, min_tau_ind_y)
+        plt.savefig(self.simulation_path + f"/plots/tau-xi-perp.png", format="png")
+        plt.show()
+
+        self.plot_ratio_after_quench(tau_scaling, xix_scaling, xiy_scaling, min_tau_ind_x)
+        plt.savefig(self.simulation_path + "/plots/xix_xiy.png", format="png")
+        plt.show()
+
+
+    @staticmethod
+    def plot_quench_process(simulation_path, taus, xi_ampl, Tc, direction="parallel", cut_around_peak=True,
+                            cut_zero_impuls=True, peak_cut_threshold=0.2, set_fts_to_zero=False, min_points_fraction=0.2,
+                             fitfunc=lorentz_offset):
+        # what is this going to do, just plotting the quench process and
+        avail_taus = get_avail_tau_dic(simulation_path)
+
+        tau_sizes = []
+        tau_paths = []
+        for tau in taus:
+            try:
+                largest_avail_size = np.max(avail_taus[tau])
+                tau_sizes.append(largest_avail_size)
+                tau_paths.append(f"{simulation_path}/{largest_avail_size}/{tau:.6f}")
+            except KeyError:
+                print(f"tau = {tau} not available")
+
+        # now the stuff with the twofold plot that you made sometime
+        fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 3]})
+        ax_equil = axes[0]
+        ax_quench = axes[1]
+
+        for i, (tau, taupath) in enumerate(zip(taus, tau_paths)):
+            if i == 0:
+                parafile = find_first_txt_file(taupath)
+                parameters = read_parameters_txt(parafile)
+
+            t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process = quench_measurement.get_time_resolved_xi(taupath, cut_around_peak,
+                            cut_zero_impuls, peak_cut_threshold, set_fts_to_zero, min_points_fraction, fitfunc)
+            if direction == "parallel":
+                xi_equil = xix_equil
+                xi_process = xix_process
+            else:
+                xi_equil = xix_equil
+                xi_process = xix_process
+
+            ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=5, marker=markers[2 * i],
+                               color=colors[2 * i], markerfacecolor="none")
+            t_process /= tau
+            ax_quench.plot(t_process, xi_process, linestyle="", markersize=5, marker=markers[2 * i],
+                               color=colors[2 * i], markerfacecolor="none")
+
+       # plot the divergence
+        # get the limits beforehand
+        y_limits = ax_quench.get_ylim()
+        T_start = parameters["starting_temp"]
+        T = T_start - t_process
+        eps = (T - Tc) / Tc
+
+        pos_eps = eps[eps >= 0]
+        neg_eps = eps[eps < 0]
+        U_xi = 1.95     # I think this is the Ising amplitude ratio? negative should be larger
+
+        nu = 1
+        xi_equilibrium_pos = xi_div(pos_eps, xi_ampl, nu)
+        xi_equilibrium_neg = xi_div(neg_eps, xi_ampl * U_xi, nu)
+
+        t_pos_temp = t_process[eps >= 0]
+        t_neg_temp = t_process[eps < 0]
+
+        ax_quench.plot(t_pos_temp, xi_equilibrium_pos, color=colors[0])
+        ax_quench.plot(t_neg_temp, xi_equilibrium_neg, color=colors[0])
+
+        ax_quench.set_ylim(y_limits)
+        ax_equil.set_ylim(y_limits)
+        ax_equil.set_xlim(ax_equil.get_xlim()[0], 0)
+        ax_quench.set_xlim(0, ax_quench.get_xlim()[1])
+        ax_equil.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
+        ax_equil.set_xlabel("t/ns")
+        ax_quench.set_xlabel(
+            r"$t / \tau_Q$")
+
+        quench_config = {
+            "titlesize": 0,
+            "ytickfontsize": 0,
+            "ylabelsize": 0,
+            "y_tickwidth": 0,
+            "y_ticklength": 0
+        }
+        equil_config = {
+            "nr_x_major_ticks": 2
+        }
+        configure_ax(fig, ax_quench, quench_config)
+        configure_ax(fig, ax_equil, equil_config)
+        fig.subplots_adjust(wspace=0.01)
+
+
+        # plt.savefig(simulation_path + f"quench-process-{direciton}.png")
+        # plt.show()
+        return fig, axes
+
+    @staticmethod
+    def get_time_resolved_xi(folderpath, cut_around_peak=True, cut_zero_impuls=True,
+                                             peak_cut_threshold=0.2, set_fts_to_zero=False, min_points_fraction=0.2,
+                             fitfunc=lorentz_offset):
+        # are you going to get clapped because you again didnt divide?
+        ft_k, ft_l = average_ft_unequal_times(folderpath)
+
+        xix = []
+        ts = []
+        xiy = []
+
+        parapath = find_first_txt_file(folderpath)
+        parameters = read_parameters_txt(parapath)
+        Lx = parameters["subsystem_Lx"]
+        Ly = parameters["subsystem_Ly"]
+        tau = parameters["tau"]
+        T_start = parameters["starting_temp"]
+        T_end = parameters["end_temp"]
+        quench_time = (T_start - T_end) * tau
+
+
+        for t in ft_k:
+            ft_k_fit = ft_k[t]
+            ft_k_fit, p_k = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_k_fit,
+                                             peak_cut_threshold, set_fts_to_zero, min_points_fraction)
+
+            popt_x, perr_x = fit_lorentz(p_k, ft_k_fit,
+                                         fitfunc=fitfunc)
+            # print("offset = ", popt_x[1])
+            xi = np.minimum(np.abs(popt_x[0]), Lx)
+            ts.append(t)
+            xix.append(xi)
+        for t in ft_l:
+            ft_l_fit = ft_l[t]
+            ft_l_fit, p_l = prepare_fit_data(cut_around_peak, cut_zero_impuls, ft_l_fit,
+                                             peak_cut_threshold, set_fts_to_zero, min_points_fraction)
+
+            popt_y, perr_y = fit_lorentz(p_l, ft_l_fit,
+                                         fitfunc=fitfunc)
+            xi = np.minimum(np.abs(popt_y[0]), Ly)
+            xiy.append(xi)
+
+        ts = np.array(ts)
+        xix = np.array(xix)
+        xiy = np.array(xiy)
+        t_end = np.max(ts)
+
+        equil_time = t_end - quench_time
+
+        xix_equil = xix[ts <= equil_time]
+        xiy_equil = xiy[ts <= equil_time]
+
+        xix_process = xix[ts > equil_time]
+        xiy_process = xiy[ts > equil_time]
+
+        t_equil = ts[ts <= equil_time] - equil_time
+        t_process = ts[ts > equil_time] - equil_time
+
+        return t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process
+
+    @staticmethod
+    def plot_equilibration_phase(ax, t, xi):
+        ax.plot(t, xi)
+    @staticmethod
+    def plot_process_process(ax, t, xi):
+        # what is this supposed to do, take an ax and plot the quench, just the quench and it shoud just take in
+        # the correlation length and the times?
+        ax.plot(t, xi)
+    @staticmethod
+    def fit_kzm(size_tau_xix_dic):
         tau_scaling = []
         xix_scaling = []
-        xiy_scaling = []
-
-
         for size in sorted(list(size_tau_xix_dic.keys())):
             tau_xix_dic = size_tau_xix_dic[size]
-            tau_xiy_dic = size_tau_xiy_dic[size]
             # from those dictionaries I want to extract the largest tau. Are the taus floats here?
             for tau in np.sort(list(tau_xix_dic.keys()))[:-1]:
                 # By the -1 we exclude hopefully the largest tau
                 tau_scaling.append(tau)
                 xix_scaling.append(tau_xix_dic[tau])
-                xiy_scaling.append(tau_xiy_dic[tau])
-        # We dont need a max tau in this case as the largest tau value is excluded and all other are basically guaranteed to be accurate
-        # xix_scaling = np.array(xix_scaling)[
-        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
-        # xiy_scaling = np.array(xiy_scaling)[
-        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
-        # tau_scaling = np.array(tau_scaling)[
-        #     np.array(tau_scaling) > self.min_tau_scaling_fit]
-#
-        # # Do the fitting
-        # popt_x, _ = curve_fit(linear_fit, np.log(tau_scaling),
-        #                       np.log(xix_scaling))
-        # popt_y, _ = curve_fit(linear_fit, np.log(tau_scaling),
-        #                       np.log(xiy_scaling))
-
-
-        # quench_exp_x = popt_x[0]
-        # quench_ampl_x = popt_x[1]
-        # quench_exp_y = popt_y[0]
-        # quench_ampl_y = popt_y[1]
         tau_scaling = np.array(tau_scaling)
-
         log_tau = np.log(tau_scaling)
         xix_scaling_log = np.log(xix_scaling)
-        xiy_scaling_log = np.log(xiy_scaling)
-
         reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log,
                                                            min_r_squared=0.95, more_points=True,
-                                                           min_points=3, require_end=True) # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
-        reg_y, min_tau_ind_y, max_tau_ind_y = best_lin_reg(log_tau, xiy_scaling_log,
-                                                           min_r_squared=0.95, more_points=True,
-                                                           min_points=3, require_end=True)
-        quench_exp_x =  reg_x.slope
-        quench_ampl_x = np.exp(reg_x.intercept)
-        quench_exp_y = reg_y.slope
-        quench_ampl_y = np.exp(reg_y.intercept)
+                                                           min_points=3,
+                                                           require_end=True)  # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
+        return tau_scaling, xix_scaling, reg_x, max_tau_ind_x, min_tau_ind_x
 
-        # now we have them dictionaries, we can plot the points
-        figx, axx = plt.subplots(1, 1)
-        # set the axes to be logarithmic
-        axx.set_yscale("log")
-        axx.set_xscale("log")
-        axx.set_xlabel(r"$\tau$")
-        axx.set_ylabel(r"$\xi_x$")
-        for i, size in enumerate(size_tau_xix_dic):
+    @staticmethod
+    def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
+                         min_tau_ind, direction="parallel"):
+        quench_exp = reg.slope
+        quench_ampl = np.exp(reg.intercept)
+        # xiy scaling
+        figy, ax = plt.subplots(1, 1)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_xlabel(r"$\tau$")
+        ax.set_ylabel(rf"$\xi_\{direction}$")
+
+
+        for i, size in enumerate(size_tau_xi_dic):
             # Plotting, every size should get its own color and/or symbol?
             # construct the lists to plot
-            tau = list(size_tau_xix_dic[size].keys())
-            xix = list(size_tau_xix_dic[size].values())
+            tau = list(size_tau_xi_dic[size].keys())
+            xi = list(size_tau_xi_dic[size].values())
 
-            axx.plot(tau, xix, marker=markers[i], linestyle="None", label=rf"$L_x = ${size}", color="C0")
-        # Plot the fit
-        prev_y_low = axx.get_ylim()[0]
-        prev_y_up = axx.get_ylim()[1]
-        print("tau array:", tau_scaling[(tau_scaling >= min_tau_ind_x) & (tau_scaling <= max_tau_ind_x)])
-        axx.plot(tau_scaling[min_tau_ind_x:max_tau_ind_x], poly(tau_scaling[min_tau_ind_x:max_tau_ind_x], quench_exp_x, quench_ampl_x),
+            ax.plot(tau, xi, marker=markers[i], linestyle="None", label=rf"$L_\{direction}$ = ${size}", color="C1")
+        prev_y_low = ax.get_ylim()[0]
+        prev_y_up = ax.get_ylim()[1]
+        ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
+                 poly(tau_scaling[min_tau_ind:max_tau_ind], quench_exp, (quench_ampl)),
                  color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_x:.2f}")
-        axx.set_ylim(prev_y_low, prev_y_up)
-        configure_ax(figx, axx)
-        create_directory_if_not_exists(self.simulation_path+ "/plots")
-        plt.savefig(self.simulation_path + "/plots/tau-xix.png", format="png")
-        plt.show()
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp:.2f}")
+        ax.set_ylim(prev_y_low, prev_y_up)
+        configure_ax(figy, ax)
 
-        figy, axy = plt.subplots(1, 1)
-        axy.set_yscale("log")
-        axy.set_xscale("log")
-        axy.set_xlabel(r"$\tau$")
-        axy.set_ylabel(r"$\xi_y$")
-        for i, size in enumerate(size_tau_xiy_dic):
-            # Plotting, every size should get its own color and/or symbol?
-            # construct the lists to plot
-            tau = list(size_tau_xiy_dic[size].keys())
-            xiy = list(size_tau_xiy_dic[size].values())
 
-            axy.plot(tau, xiy, marker=markers[i], linestyle="None", label=rf"$L_y = ${size * self.Ly_Lx}", color="C1")
-        prev_y_low = axy.get_ylim()[0]
-        prev_y_up = axy.get_ylim()[1]
-        axy.plot(tau_scaling[min_tau_ind_y:max_tau_ind_y],
-                 poly(tau_scaling[min_tau_ind_y:max_tau_ind_y], quench_exp_y, (quench_ampl_y)),
-                 color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp_y:.2f}")
-        axy.set_ylim(prev_y_low, prev_y_up)
-        configure_ax(figy, axy)
-        plt.savefig(self.simulation_path + "/plots/tau-xiy.png", format="png")
-        plt.show()
-        
+    @staticmethod
+    def plot_ratio_after_quench(tau_scaling, xix_scaling, xiy_scaling, min_tau_ind_x):
+        # ratio
         fig, ax = plt.subplots(1, 1)
         ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_xlabel(r"$\tau$")
         ax.set_ylabel(r"$\xi_y$")
-
         xix_xiy_ratio = np.array(xix_scaling) / np.array(xiy_scaling)
         ax.plot(tau_scaling, xix_xiy_ratio, color="C0", linestyle="", marker="s", markerfacecolor=None,
                 markeredgecolor="C0", label=r"$\hat{\xi_x} / \hat{\xi_y}$")
-
         xix_xiy = np.mean(xix_xiy_ratio[min_tau_ind_x:])
         xix_xiy_fast = np.mean(xix_xiy_ratio[:min_tau_ind_x])
-
         ax.plot([], [], linestyle="", label=rf"$\langle \xi_x / \xi_y \rangle = {xix_xiy}$")
-        ax.plot([], [], linestyle="", label=r"$\langle \xi_x / \xi_y (\tau < \tau_{min}) \rangle = $" +  f"{xix_xiy_fast}")
-
+        ax.plot([], [], linestyle="",
+                label=r"$\langle \xi_x / \xi_y (\tau < \tau_{min}) \rangle = $" + f"{xix_xiy_fast}")
         configure_ax(fig, ax)
-        plt.savefig(self.simulation_path + "/plots/xix_xiy.png", format="png")
-        plt.show()
 
-    def get_size_quench_results(self):
+    @staticmethod
+    def get_size_quench_results(simulation_path, cut_zero_impuls, fitfunc):
         size_tau_xix_dic = {}
         size_tau_xiy_dic = {}
-        for size in os.listdir(self.simulation_path):
+        for size in os.listdir(simulation_path):
             tau_xix = {}
             tau_xiy = {}
             if (size != "plots") & (size[0] != "."):
-                sizepath = os.path.join(self.simulation_path, size)
+                sizepath = os.path.join(simulation_path, size)
                 if os.path.isdir(sizepath):
                     for tau in os.listdir(sizepath):
                         if (tau != "plots") & (tau[0] != "."):
@@ -2161,12 +2133,12 @@ class quench_measurement(autonomous_measurement):
                                 p_k = get_frequencies_fftw_order(len(ft_k))
                                 p_l = get_frequencies_fftw_order(len(ft_l))
 
-                                if self.cut_zero_impuls:
+                                if cut_zero_impuls:
                                     p_k, ft_k = cut_zero_imp(p_k, ft_k)
                                     p_l, ft_l = cut_zero_imp(p_l, ft_l)
 
-                                popt_x, perr_x = fit_lorentz(p_k, ft_k, fitfunc=self.fitfunc)
-                                popt_y, perr_y = fit_lorentz(p_l, ft_l, fitfunc=self.fitfunc)
+                                popt_x, perr_x = fit_lorentz(p_k, ft_k, fitfunc=fitfunc)
+                                popt_y, perr_y = fit_lorentz(p_l, ft_l, fitfunc=fitfunc)
                                 xix = np.abs(popt_x[
                                                  0])  # Those are the xi values for a certain size and tau at the end of the quench
                                 xiy = np.abs(popt_y[0])
@@ -2213,7 +2185,7 @@ class quench_measurement(autonomous_measurement):
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
-                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0):
+                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0, min_corr_nr=5000):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
 
@@ -2237,7 +2209,7 @@ class amplitude_measurement(autonomous_measurement):
         self.equil_error = equil_error           # standard equilibration error for the xi runs
         self.maximum_iterations = 2         # we first look at the interval [Tc, 1.05Tc] and If this doesnt work we inrease to [Tc, 1.1Tc] and If this doesnt work we abort
         self.iteration_nr = 0
-        self.min_corr_nr = 5000
+        self.min_corr_nr = min_corr_nr
         self.corr_write_density = 1 / 100          # We expect a long simulation with very long correlation times and the fit of xi takes a whole lot of time
         self.equil_cutoff = equil_cutoff             # This is the values that we cut off because we think we are still equilibrating. Since we definitely want the values in equilibration we use a relatively large cutoff here
         self.max_time = 0
@@ -2292,8 +2264,8 @@ class amplitude_measurement(autonomous_measurement):
             self.write_para_files()
             # submit the jobs, should be handlede by the super method
             self.cur_para_nr = 0
-            self.run_jobs()
             # If the array is empty this means that we have all measurements done already and we can call evaluate
+            self.run_jobs()
         # We want to evaluate anyways if we have a valid simulation or if we just ran one
         return self.evaluate()
     def write_para_files(self):
@@ -2358,6 +2330,7 @@ class amplitude_measurement(autonomous_measurement):
                                                                  self.min_r_sqaured)
         # The best fit_inv function returns None if we didnt find a fitting segment
         if (reg_x is None) or (reg_y is None):
+            return
             print("No fitting fit.")
             fig, ax = plt.subplots(1, 1)
             # First plot the data points
@@ -2527,7 +2500,7 @@ class amplitude_measurement(autonomous_measurement):
             # The thing is one could actually think about performing the fit on
             # combined measurement points, but that is for another time
             # one would have to replace smart the small size values for the large size
-            T_xix, reg_x = amplitude_measurement.perform_fit_on_size(
+            T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(
                 result, fit_size, Tc)
 
             amplitude_measurement.plot_xi_inv_fit(axes[j], T_xix, reg_x)
@@ -2563,7 +2536,7 @@ class amplitude_measurement(autonomous_measurement):
             # The thing is one could actually think about performing the fit on
             # combined measurement points, but that is for another time
             # one would have to replace smart the small size values for the large size
-            T_xix, reg_x = amplitude_measurement.perform_fit_on_size(
+            T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(
                 result, fit_size, Tc)
             T_xix, xix_arr = result[fit_size]
 
@@ -2661,7 +2634,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def plot_xi_fit(axx, reg_x, T_xix):
+    def plot_xi_fit(axx, reg_x, T_xix, color=0):
         T_x_plot = np.linspace(np.min(T_xix), np.max(T_xix), 200)
         xix_ampl = - 1 / reg_x.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
@@ -2671,7 +2644,7 @@ class amplitude_measurement(autonomous_measurement):
         # The function that we need to use is called critical amplitude
         axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
                  label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
-                 color=colors[0])
+                 color=colors[color])
 
     @staticmethod
     def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=0):
@@ -2742,15 +2715,23 @@ class amplitude_measurement(autonomous_measurement):
             lines, labels = axx.get_legend_handles_labels()
 
     @staticmethod
-    def perform_fit_on_size(results_x, fit_size, Tc=None):
-        T_xix, xix_arr = results_x[fit_size]
-        xix_inv = 1 / xix_arr
+    def perform_fit_on_sizes(results_x, fit_sizes, Tc=None):
+        if isinstance(fit_sizes, list):
+            T_xix = np.array([])
+            xix_arr = np.array([])
+            for size in fit_sizes:
+                cur_T, cur_xix = results_x[size]
+                T_xix = np.concatenate((T_xix, cur_T))
+                xix_arr = np.concatenate((xix_arr, cur_xix))
+            xix_inv = 1 / xix_arr
+        else:
+            T_xix, xix_arr = results_x[fit_sizes]
+            xix_inv = 1 / xix_arr
         if not Tc:
             Tc = np.min(T_xix)  # then we guess it to be this
         reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv,
                                                                  Tc, 0.1,
                                                                  min_r_squared=0.9)
-
         return T_xix, reg_x
 
     @staticmethod
@@ -3197,28 +3178,36 @@ class z_measurement(autonomous_measurement):
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 6
+    nr_gpus = 20
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -150000
+    J_para = -110000
     #J_para = -9
-    J_perp = -2340
+    J_perp = -3500
     #J_perp = -0.1
-    h = 50000
+    h = 10000
     #h = 0.5
     eta = 1
-    p = 2.33
+    p = 2.5
     dt = 0.00001
     # dt = 0.01
-    max_size_Tc = 80
-    min_size_Tc = 48
-    nr_sizes_Tc = 3
-    nr_Ts = 5
+    max_size_Tc = 128
+    min_size_Tc = 64
+    nr_sizes_Tc = 2
+    nr_Ts = 10
+    cum_error = 0.0015
+    equil_cutoff_Tc = 0.5
+    value_name = "U_L"
+    file_ending = "mag"
+    process_file_func = recalculate_mag_file_to_U_L
+    value_write_density = 0.001
+
+
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=50000/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -3231,10 +3220,14 @@ def main():
     # for the other ones I think we need a new file. Okay we can maybe use the amplitude file, but it observes the correlation length
     # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
     # want to work with the new error
+    runfile = "run_cuda_gpu_a100_low.sh"
 
+    # T- parameters?
     max_rel_intersection_error = 0.02
-    min_cum_nr = 50000
+    min_cum_nr = 5000
     moving_factor = 0.001
+    T_min = 29071.961123
+    T_max = 31494.624550
 
     # Quench parameters
     max_size = 1024
@@ -3256,8 +3249,8 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": False,
-        "efficient Tc": True,
+        "Tc": True,
+        "efficient Tc": False,
         "Quench": False,
         "Amplitude": False,
         "z": False,
@@ -3266,9 +3259,14 @@ def main():
     # I honestly have no idea on how to account h, that is really a problem
     # the Scanned interval
     if measurements["Tc"]:
+        para_nr = int(input("parameter number.."))
         sim = crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
                                     size_min=min_size_Tc, size_max=max_size_Tc, nr_sizes=nr_sizes_Tc, nr_Ts=nr_Ts,
-                                    intersection_error=max_rel_intersection_error)
+                                    intersection_error=max_rel_intersection_error, max_moving_factor=moving_factor,
+                                    min_val_nr=min_cum_nr, equil_error=cum_error, equil_cutoff=equil_cutoff_Tc,
+                                    file_ending=file_ending, value_name=value_name, process_file_func=process_file_func,
+                                    value_write_density=value_write_density, runfile=runfile,
+                                    T_min=T_min, T_max=T_max, para_nr=para_nr)
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,

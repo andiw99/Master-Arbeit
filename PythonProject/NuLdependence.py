@@ -41,7 +41,7 @@ def main():
     for pair in results_pairs:
         size1, size2 = pair
         results_pair = results_pairs[pair]
-        T_c, U_L = get_first_intersections(results_pair)
+        T_c, U_L = get_first_intersections(results_pair, "U_L")
         # I think even if it only returns one value it is still a list
         T_c = T_c[0]
         U_L = U_L[0]
@@ -84,14 +84,14 @@ def main():
 
     fig, ax = plt.subplots(1, 1)
     ax.plot(size_arr_fit, poly(size_arr_fit, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
-    ax.plot(size_arr_fit, diff_fit_arr, linestyle="", marker="x", color=colors[0])
+    ax.plot(size_arr_fit, diff_fit_arr,  marker="s", **get_point_kwargs_color(colors[0]))
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
     ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
     configure_ax(fig, ax)
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
-    fig.savefig(simulation_folder + "/critical_exponent_time_avg.png", format="png", dpi=250, transparent=transparent_plots)
+    fig.savefig(simulation_folder + "/critical_exponent_time_avg.png", format="png", dpi=250)
     plt.show()
 
     # okay we will use the results_dic real quick to calculate the intersection in dependence of L

@@ -7,7 +7,7 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
-    h_arr = np.array([5500])
+    h_arr = np.array([17000])
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -25,7 +25,7 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=5500/Jx_Jy=31/"
+    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=17000/Jx_Jy=31/"
     #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=40000/Jx_Jy=60-2/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -47,11 +47,12 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
-    min_val_nr = 1000
+    min_val_nr = 2000
     equil_error = 0.01
     val_write_density = 1 / 10000
     moving_factor = 0.02
     min_equil_error = 0.01
+    equil_cutoff_Tc = 0.5
     max_rel_intersection_error = 0.03
 
     # Amplitude parameters
@@ -73,7 +74,8 @@ def main():
                                                  min_equil_error=min_equil_error, intersection_error=max_rel_intersection_error,
                                                  max_moving_factor=moving_factor, para_nr=para_nr_Tc, Ly_Lx=Ly_Lx,
                                                  min_val_nr=min_val_nr, file_ending=file_ending, value_name=value_name,
-                                                 process_file_func=process_file_func, val_write_density=val_write_density)
+                                                 process_file_func=process_file_func, val_write_density=val_write_density,
+                                                 equil_cutoff=equil_cutoff_Tc)
         T_c, T_c_error = Tc_sim.routine()
         # We could in principle run the quenches in parallel, but that would
         # require some work on my end
