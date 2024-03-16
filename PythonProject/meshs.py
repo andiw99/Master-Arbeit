@@ -15,7 +15,7 @@ def main():
     # the impulses
     root = "../../Generated content/Final/Amplitude/J_J=30/Lx_Ly=0.25/Amplitude/128/"
     root = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-3/"
-    root = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/0.4161791450287818/Amplitude/256"
+    root = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/4096"
     fig_format = "png"
     dpi = 200
     #root = "../../Generated content/Silicon Test/Anisotrop Antisymmetric Rectangular Subsystems Small2"
@@ -23,7 +23,7 @@ def main():
     plot_root = os.path.join(root, "plots/")
 
     config = {"nr_of_meshs": 2,
-              "cell_L": 512,
+              "cell_L": 1024,
               "cell_nr": 0,
               "chess_trafo": -1,
               "nr_colorbar_ticks": 7,
@@ -40,9 +40,14 @@ def main():
             if filepath:
                 print("reading: ", filepath)
                 para_filepath = os.path.splitext(filepath)[0] + ".txt"
-                fig, axes, name = plot_multiple_times(filepath, config)
-                create_directory_if_not_exists(root + "/plots/")
-                fig.savefig(root + "/plots/" + name + f".{fig_format}", format=fig_format, dpi=dpi)
+                try:
+                    fig, axes, name = plot_multiple_times(filepath, config)
+                    create_directory_if_not_exists(root + "/plots/")
+                    fig.savefig(root + "/plots/" + name + f".{fig_format}", format=fig_format, dpi=dpi)
+                except ValueError as e:
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print(e)
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     else:
         for file in os.listdir(root):
             if file.endswith(".csv"):

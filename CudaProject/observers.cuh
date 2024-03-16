@@ -656,6 +656,7 @@ public:
             // the other observers that dont read the values in actually have a problem with defining the timepoint?
             // problem is that you set the timepoint here to the back of m_vec, but it might be that the .csv
             // file has not written that many states because it somehow didnt finish...
+
             cout << "Pickup, setting timepoint of " << this->get_name()  << " to " << timepoint << endl;
             open_app_stream(path);
         }
@@ -910,6 +911,7 @@ public:
             min_m_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
 
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
+        cout << "initializing m equilibration observer" << endl;
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
         if(paras[Parameter::moving_factor] != 0.0) {
@@ -920,11 +922,13 @@ public:
             min_m_nr = (int)paras[Parameter::min_cum_nr];
         }
         timepoint = paras[Parameter::start_time];
+        dt = paras[Parameter::dt];
         equilibrated = false;
         // we also need to reset m_vec and times, dont we?
         m_vec = vector<double>{};
         times = vector<double>{};
         close_stream();
+
         bool pick_up = (paras[Parameter::random_init]  == -1.0);
         if(!pick_up) {
             filepath = path / (obsver::construct_filename(run_nr) + ".mag");
@@ -936,9 +940,11 @@ public:
             readMagFromFile(path, m_vec, times);
             write_interval = times[1] - times[0];
             write_density = dt / write_interval;    // We should adapt the write interval of the file that we read
+            cout << "picked up write density of " << write_density << "  corresponding to a write interval of " << write_interval;
             // the other observers that dont read the values in actually have a problem with defining the timepoint?
             // problem is that you set the timepoint here to the back of m_vec, but it might be that the .csv
             // file has not written that many states because it somehow didnt finish...
+            timepoint += write_interval;
             cout << "Pickup, setting timepoint of " << this->get_name()  << " to " << timepoint << endl;
             open_app_stream(path);
         }
@@ -946,9 +952,9 @@ public:
 
 
         // I think the starting write interval should be every one hundred steps
-        dt = paras[Parameter::dt];
         dt_half = dt / 2.0;
         write_interval = dt / write_density;
+        cout << "I am sure the write interval is " << write_interval << endl;
     }
 
     string get_name() override {

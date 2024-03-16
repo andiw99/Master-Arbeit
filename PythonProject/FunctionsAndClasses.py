@@ -25,7 +25,7 @@ from pathlib import Path
 # import matplotlib; matplotlib.use("TkAgg")
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
-markers = ["o", "s", ".", "x", "+", "*", "D", "1", "2", "v", "^"]
+markers = ["o", "s", "^", "x", "+", "*", "D", "1", "2", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
 
@@ -300,7 +300,7 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         if config["subsystem"]:
             print("cell_L = ", cell_L, "  Lx = ", Lx)
             if cell_L < Lx:
-                row = chess_board_trafo_rectangular_subsystems(row, subsystem_Lx, Ly)
+                row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
             else:
                 print("cell_L > Lx")
                 row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
@@ -1268,7 +1268,10 @@ def process_file(file_path, threshold, key='t', value='U_L'):
         df = df[int(threshold):]
         nr_values = len(df)
         df = np.array(df)
-        f = np.array(df[:, 1])
+        if value == "xiy":
+            f = np.array(df[:, 2])
+        else:
+            f = np.array(df[:, 1])
         times = np.array(df[:, 0])
 
         f_avg = np.mean(f)
@@ -1929,6 +1932,10 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
     if more_points:
         best_r_squared *=1
     best_reg = None
+
+    if min_points == 0:
+        min_points = len(x)
+
     for starting_pos in range(len(x) - min_points + 1):
         for ending_pos in range(starting_pos + min_points, len(x)+1):
             # We should have at least 4 points i would say.
@@ -1963,7 +1970,7 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
 
     return best_reg, best_starting_pos, best_ending_pos
 
-def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=3):
+def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=6):
     return best_lin_reg(T_arr, xi_inv_arr, min_r_squared, min_points, accept_function=accept_xi_inv_fit,
                         accept_function_args=(Tc_est, tolerance))
 
@@ -2246,6 +2253,21 @@ def write_dict_to_file(dictionary, filepath):
         print("Dictionary has been written to the file successfully.")
     except IOError as e:
         print(f"An error occurred while writing to the file: {e}")
+
+def find_size_folders(directory):
+    integer_folders = []
+    if not os.path.isdir(directory):
+        print("Invalid directory path.")
+        return integer_folders
+
+    for folder in os.listdir(directory):
+        if os.path.isdir(os.path.join(directory, folder)):
+            try:
+                int(folder)  # Try converting folder name to an integer
+                integer_folders.append(folder)
+            except ValueError:
+                continue
+    return sorted(integer_folders, reverse=True)
 
 def main():
     print("This file is made to import, not to execute")

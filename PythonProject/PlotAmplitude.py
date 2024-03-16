@@ -20,25 +20,31 @@ def main():
     axes = [axx, axy]
 
     results = [result_xix, result_xiy]
-
+    directions = ["parallel", "perp"]
+    size_factors = [1, 1 / 8]
+    J_para = 3
 
     for j, result in enumerate(results):
         for i, size in enumerate(result):
             # We definitely plot the points
             T_xix, xix_arr = result[size]
-
+            T_xix /= J_para
+            # I guess we also normalize the results?
+            #result[size] = (result[size][0] / J_para, result[size][1])
             amplitude_measurement.plot_xi_points(axes[j], T_xix,
-                                                 xix_arr, marker=markers[i], size=size, color=5 * j)
+                                                 xix_arr, marker=markers[i], size=int(size * size_factors[j]),
+                                                 color=5 * j, direction=directions[j])
 
 
-
+    print(result_xix)
+    print(result_xiy)
     fit_sizes_x = list(result_xix.keys())
-    T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(result_xix, fit_sizes_x)
-    amplitude_measurement.plot_xi_fit(axes[0], reg_x, T_xix)
+    T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(result_xix, fit_sizes_x, min_points=0)
+    amplitude_measurement.plot_xi_fit(axes[0], reg_x, T_xix, direction="parallel", Tc_label=False)
 
     fit_sizes_y = list(result_xiy.keys())
-    T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y)
-    amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=5)
+    T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y, min_points=0)
+    amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=5, direction="perp", Tc_label=False)
 
     amplitude_measurement.configure_xi_plot(axes, fig)
     plt.show()

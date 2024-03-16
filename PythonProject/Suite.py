@@ -2580,27 +2580,25 @@ class amplitude_measurement(autonomous_measurement):
                                                                linestyle='None') * 1.15
             axx.set_ylim(0, upper_ylim_parallel)
             axy.set_ylim(0,
-                         upper_ylim_perp * 2)
+                         upper_ylim_perp * 1.5)
             axx.set_xlabel("T")
             axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
-            axx.set_xlabel(r"$T /$meV")
+            axx.set_xlabel(r"$T~/~J_\parallel$")
             axy.set_ylabel(r"$\xi_\perp / a_\perp$")
-            axx.set_title(r"$\xi$ Divergence")
-            axy.set_title(r"$\xi$ Divergence")
             config_x = {
                 "labelrotation": 90,
                 "labelhorizontalalignement": "right",
                 "grid": True,
                 "tight_layout": False,
                 "legend": False,
-                "increasefontsize": 0.5,
+                "increasefontsize": 0.75,
             }
             config_y = {
                 "labelrotation": 90,
                 "labelhorizontalalignement": "right",
                 "grid": False,
                 "legend": False,
-                "increasefontsize": 0.5,
+                "increasefontsize": 0.75,
             }
             configure_ax(fig, axx, config_x)
             configure_ax(fig, axy, config_y)
@@ -2620,7 +2618,6 @@ class amplitude_measurement(autonomous_measurement):
             else:
                 axx.set_ylabel(r"$\xi_\perp / a_\perp$")
             axx.set_xlabel(r"$T /$meV")
-            axx.set_title(r"$\xi$ Divergence")
             config_x = {
                 "labelrotation": 90,
                 "labelhorizontalalignement": "right",
@@ -2634,7 +2631,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def plot_xi_fit(axx, reg_x, T_xix, color=0):
+    def plot_xi_fit(axx, reg_x, T_xix, color=0, direction="parallel", Tc_label=True):
         T_x_plot = np.linspace(np.min(T_xix), np.max(T_xix), 200)
         xix_ampl = - 1 / reg_x.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
@@ -2642,13 +2639,19 @@ class amplitude_measurement(autonomous_measurement):
         # before we plot we look at the y limits in the case that we dont plot the critical amplitude
         upper_ylim_parallel = axx.get_ylim()[1]
         # The function that we need to use is called critical amplitude
-        axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
-                 label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
-                 color=colors[color])
+        if Tc_label:
+            axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
+                     color=colors[color])
+        else:
+            axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}$",
+                     color=colors[color])
+
 
     @staticmethod
-    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=0):
-        axx.plot(T_xix, xix_arr, label=r"$\xi_\parallel^{" + str(size) + "}$", linestyle="",
+    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=0, direction="parallel"):
+        axx.plot(T_xix, xix_arr, label=rf"$\xi_\{direction}" + "^{" + str(size) + "}$", linestyle="",
                  marker=marker, markerfacecolor="none",
                  markeredgecolor=colors[color])
 
@@ -2715,7 +2718,7 @@ class amplitude_measurement(autonomous_measurement):
             lines, labels = axx.get_legend_handles_labels()
 
     @staticmethod
-    def perform_fit_on_sizes(results_x, fit_sizes, Tc=None):
+    def perform_fit_on_sizes(results_x, fit_sizes, Tc=None, min_points=0):
         if isinstance(fit_sizes, list):
             T_xix = np.array([])
             xix_arr = np.array([])
@@ -2730,8 +2733,8 @@ class amplitude_measurement(autonomous_measurement):
         if not Tc:
             Tc = np.min(T_xix)  # then we guess it to be this
         reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv,
-                                                                 Tc, 0.1,
-                                                                 min_r_squared=0.9)
+                                                                 Tc, 0.5,
+                                                                 min_r_squared=0.9, min_points=min_points)
         return T_xix, reg_x
 
     @staticmethod
@@ -2758,7 +2761,8 @@ class amplitude_measurement(autonomous_measurement):
     @staticmethod
     def prep_sim_data(equil_cutoff, simpath, value):
         results_x = {}
-        for size_folder in os.listdir(simpath):
+        size_folders = find_size_folders(simpath)
+        for size_folder in size_folders:
             if (size_folder != "plots") & (size_folder[0] != "."):
                 size_folder_path = os.path.join(simpath, size_folder)
                 if os.path.isdir(size_folder_path):

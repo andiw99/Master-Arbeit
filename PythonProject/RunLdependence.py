@@ -45,7 +45,7 @@ def main():
     file_ending = "mag"
     value_name = "U_L"
     val_write_density = 1 / 1000
-    min_mag_nr = 5000
+    min_mag_nr = 2500
     process_file_func = process_new_mag_file_to_U_L
     equil_cutoff = 0.5
     # what L-pairs do we want to check? we always just use a pair for now?

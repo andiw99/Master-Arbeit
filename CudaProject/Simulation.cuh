@@ -98,7 +98,6 @@ public:
         // in the case of random_init < 0, we added the folder and the size? and then removed them again
         if(paras[random_init] == -1.0) {
             cout << "Memory init detected" << endl;
-            sleep(2);
             // If this is the case we want to memory initialize
             // The thing is, do we want to continue to write into the files that we already have or do we
             // write new files? Continueing would actually be nice but could be complicated and time consuming
