@@ -69,8 +69,8 @@ def filter_cut(x, x_cut, dx):
 
 
 def main():
-    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/eta/medium/2"
-    #root = "../../Generated content/Testing Convergence/0.01/"
+    root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
+    root = "../../Generated content/Final/Benchmarks/eta=1/h=50/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
@@ -80,7 +80,7 @@ def main():
     T = 20
     x = []
     dx = 0.15    # we look at a cut of the distribution that is 0.1 thick
-    x2 = np.pi / 2   # the cut is located around x2
+    x2 = np.pi / 3   # the cut is located around x2
     nr_bins = 140
     x2_range = np.linspace(x2 - dx, x2 + dx, 100)
 
@@ -99,7 +99,7 @@ def main():
                     with open(file_path, "rb") as f:
                         nr_rows = sum(1 for _ in f)
                     row = range(nr_rows)
-                    x = read_large_df(file_path, row)
+                    x = read_large_df_array(file_path, row)
                     print(len(x))
                     T = parameters["T"]
                     dt = parameters["dt"]

@@ -52,22 +52,24 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 4048
-    equil_error_amplitude = 0.035
+    equil_error_amplitude = 0.03
     equil_cutoff = 0.01
     min_corr_nr = 50000
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = 0.0025
+    T_min_fraction = -0.0075
     T_range_fraction = 0.03
     nr_Ts = 4
     T_c = 0.903
+    T_c = 0.76
     T_c = 1.7268
 
     #amplitude_sizes = [2048, 1024]
     #amplitude_sizes = [32, 64, 128]
-    amplitude_sizes = [1024, 2048, 4096]
-    T_ranges = [0.03, 0.02, 0.01]
+    #amplitude_sizes = [1024, 2048, 4096]
+    amplitude_sizes = [4096]
+    T_ranges = [0]
     nr_Ts_per_range = 4
     next_T = None
     min_nr_sites = 2e6
@@ -84,11 +86,12 @@ def main():
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + f"{h}/Amplitude",
                                      amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=size,
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
-                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range, min_nr_sites=2e6,
+                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range, min_nr_sites=min_nr_sites,
                                      Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr)
         ampl.run()
         last_T = T_up
 
+    exit()
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
 

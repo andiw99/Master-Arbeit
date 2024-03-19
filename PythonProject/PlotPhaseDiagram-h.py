@@ -14,6 +14,7 @@ def find_x_star(x_values, y_values, y_star):
     x_star = f(y_star)
 
     return x_star
+
 def main():
     # I think it is easiest here just to copy the values, I will only need
     # this 3 times or so
@@ -133,6 +134,7 @@ def main():
 
     # popt, _ = curve_fit(crit_h, Tc_fit[:-1], h[:-1], maxfev=10000)
     TcXY = 1 / (2 * lambertw(31))
+    TcXY100 = 1 / (2 * lambertw(100))
     Tc_fit = np.concatenate((Tc[:-1], Tc3))
     h_fit = np.concatenate((h[:-1], h3))
     popt, _ = curve_fit(crit_h, Tc_fit, h_fit, maxfev=100000, p0=(A, B, C, D))
@@ -153,7 +155,9 @@ def main():
     ax.plot(Tc3, h3, marker='s', **get_point_kwargs_color(colors[5]), label="$j_\parallel =  110 \cdot 10^3$")
     ax.plot(Tc_plot, h_est, label="$h \propto e^{-AT^2 e^{B / T}}$", color="C1")
     ax.plot(TcXY, 0, marker="^", **get_point_kwargs_color("C1"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
-
+    # ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    # point from J/J = 100
+    # ax.plot(0.17, 0.245, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
     #ax.plot(Tc[:-1], h_est2[:-1], label="$h \propto e^{-AT^2 e^{B / T}}$")
     #ax.plot(Tc[:-1], h_est3[:-1], label="$h \propto e^{-AT^2 e^{B / T}}$")
     ax.set_ylabel("$h~/~T$")
@@ -171,6 +175,16 @@ def main():
 
     Tc_desired = 0.232
 
+    h_given = 0.416
+    J_given = 3
+    # I want to have h / T in the range that I can cover which is from 0 to two
+    # so T goes from infinity to 0.2
+    T_given = np.linspace(100 * h_given, h_given / 2, 1000)
+    h_T_given_plot = h_given / T_given      # those are my x values
+    T_given_J_given = T_given / J_given     # those are the y values
+    # so from those i can get the intersection
+    h_T_given_point, T_J_given_point = find_first_intersection(h_T_given_plot, h, T_given_J_given, Tc)
+
     # We want to show the original critical temperature as horizontal lign
     h_to_use = find_x_star(h, Tc, Tc_desired)
 
@@ -185,12 +199,22 @@ def main():
     ax.plot(h3, Tc3, marker='s',
             **get_point_kwargs_color(colors[5]), label="$j_\parallel =  110 \cdot 10^3$")
     #ax.plot(h_est, Tc_plot, color="C1")
-    #mark_point(ax, h_to_use, Tc_desired, label=f"$h/ J_\parallel = {h_to_use:.3f}$")
     #ax.set_xscale("log")
     xlims = ax.get_xlim()
     print(xlims)
     ax.plot(0, TcXY, marker="^", **get_point_kwargs_color("C1"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+
+    ax.plot(0, TcXY100, marker="^", **get_point_kwargs_color("C3"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    # point from J/J = 100
+    ax.plot(0.245, 0.17, marker="s", **get_point_kwargs_color("C3"), label="$J_\parallel / J_\perp = 100$")
+
     ax.set_xlim(xlims)
+    ylims = ax.get_ylim()
+    ax.plot(h_T_given_plot, T_given_J_given)
+    ax.set_ylim(ylims)
+
+    mark_point(ax, h_T_given_point, T_J_given_point, label=f"$T / J_\parallel = {T_J_given_point:.3f}$")
+    # here we plot this given plot thing
 
     ax.set_xlabel("$h~/~T$")
     ax.set_ylabel("$T~/~J_\parallel$")

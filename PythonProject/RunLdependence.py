@@ -24,14 +24,15 @@ def main():
     simulation_path = "../../Generated content/Final/Nu-L/"
 
     Tc_exec_file = "AutoCumulant.cu"
+    runfile = "run_cuda_gpu_a100_low.sh"
 
     # Tc parameters
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.001
-    min_equil_error = 0.0005
+    equil_error = 0.0015
+    min_equil_error = 0.001
     max_rel_intersection_error = 0.005       # is this to small or fine?
-    max_rel_intersection_error = 0.0025
+    max_rel_intersection_error = 0.005
     equil_cutoff = 0.1
     # since we need quantitative exact values, we should know T_c beforehand
     #min_T = 0.94
@@ -47,14 +48,14 @@ def main():
     val_write_density = 1 / 1000
     min_mag_nr = 2500
     process_file_func = process_new_mag_file_to_U_L
-    equil_cutoff = 0.5
+    equil_cutoff = 0.75
     # what L-pairs do we want to check? we always just use a pair for now?
     # We could think about not using Ly / Lx = 1 / 8, then it would be easier
     # to use intermediate values and we could start at 4 or so.
     # With OBC we actually dont need to use powers of 2 to calculate U_L
     # We also dont need to use twice the size for the larger partner, but
     # I feel like this would work better and be mor precise.
-    small_Ls = [8, 12, 16, 20, 24, 28, 32]
+    #small_Ls = [8, 12, 16, 20, 24, 28, 32]
     large_Ls = [24, 28, 32, 36, 40, 44, 48]
 
     # I think this is good? almost every size is reused and we always have twice the size
@@ -93,7 +94,7 @@ def main():
     #print("\n\n\n")
     for (L_small, L_large) in zip(small_Ls_ef, large_Ls_ef):
         Tc_sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath,
-                                                 simulation_path, Tc_exec_file, nr_GPUS=nr_gpus,
+                                                 simulation_path, Tc_exec_file, runfile=runfile, nr_GPUS=nr_gpus,
                                                  size_min=L_small, size_max=L_large, equil_error=equil_error, Ly_Lx=Ly_Lx,
                                                  T_min=min_T, T_max=max_T, min_equil_error=min_equil_error,
                                                  intersection_error=max_rel_intersection_error, para_nr=para_nr,
@@ -108,7 +109,8 @@ def main():
     print("T_c_error", crit_temp_errors)
     print("\n\n\n")
     # plot the L dependence
-    all_Ls = np.concatenate((small_Ls, small_Ls_ef))
+    #all_Ls = np.concatenate((small_Ls, small_Ls_ef))
+    all_Ls = small_Ls_ef
     I = 1300        # moment of inertia
 
     crit_temps = np.array(crit_temps) / np.abs(J_para)

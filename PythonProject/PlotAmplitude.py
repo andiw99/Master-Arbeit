@@ -7,11 +7,11 @@ def main():
 
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Amplitude"
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=32/Amplitude"
-    simpath_xix = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude"
+    simpath_xix = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude"
     result_xix = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xix, "xix")
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=1/0.4161791450287818/Amplitude"
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/Amplitude"
-    simpath_xiy = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude"
+    simpath_xiy = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude"
     result_xiy = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xiy, "xiy")
     print(result_xix)
     print(result_xiy)
@@ -22,7 +22,7 @@ def main():
     results = [result_xix, result_xiy]
     directions = ["parallel", "perp"]
     size_factors = [1, 1 / 8]
-    J_para = 3
+    J_para = 10
 
     for j, result in enumerate(results):
         for i, size in enumerate(result):
@@ -33,22 +33,57 @@ def main():
             #result[size] = (result[size][0] / J_para, result[size][1])
             amplitude_measurement.plot_xi_points(axes[j], T_xix,
                                                  xix_arr, marker=markers[i], size=int(size * size_factors[j]),
-                                                 color=5 * j, direction=directions[j])
+                                                 color=colors[5 * j], direction=directions[j])
 
 
     print(result_xix)
     print(result_xiy)
     fit_sizes_x = list(result_xix.keys())
     T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(result_xix, fit_sizes_x, min_points=0)
+    print("\nT_xix:")
+    print(T_xix)
     amplitude_measurement.plot_xi_fit(axes[0], reg_x, T_xix, direction="parallel", Tc_label=False)
 
     fit_sizes_y = list(result_xiy.keys())
     T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y, min_points=0)
-    amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=5, direction="perp", Tc_label=False)
+    amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=colors[5], direction="perp", Tc_label=False)
 
     amplitude_measurement.configure_xi_plot(axes, fig)
+    create_directory_if_not_exists(simpath_xix + "/plots")
+    fig.savefig(simpath_xix + "/plots/xi-divergence", format="svg")
+    fig.savefig(simpath_xix + "/plots/xi-divergence.png", format="png", dpi=300)
     plt.show()
 
+    # Inverse plot
+    fig, ax = plt.subplots(1, 1, figsize=(6.4 * 1.5, 4.8 * 1.5))
+
+    for j, result in enumerate(results):
+        for i, size in enumerate(result):
+            # We definitely plot the points
+            T_xi, xi_arr = result[size]
+            amplitude_measurement.plot_inverse_points(fig, ax, T_xi, xi_arr, marker=markers[i],
+                                                      color=colors[5 * j], size=int(size * size_factors[j]))
+            # Find out which size has the largest number of points and for that we do the fit
+
+
+        # The thing is one could actually think about performing the fit on
+        # combined measurement points, but that is for another time
+        # one would have to replace smart the small size values for the large size
+
+    Tc_x = amplitude_measurement.plot_xi_inv_fit(ax, T_xix, reg_x, color=colors[0], plot_until_pt=True, Tc_label=False, direction="parallel")
+    Tc_y = amplitude_measurement.plot_xi_inv_fit(ax, T_xiy, reg_y, color=colors[5], plot_until_pt=True, Tc_label=False, direction="perp")
+    xlims = ax.get_xlim()
+    ax.hlines(0, *xlims, linestyles="--")
+    ax.set_xlim(*xlims)
+
+        # Now we still have to configure the inverse plot
+    config = amplitude_measurement.configure_xi_inv_plot([ax], fig)
+    ax.set_ylim(-0.01, ax.get_ylim()[1])
+    configure_ax(fig, ax, config)
+    plt.tight_layout()
+    fig.savefig(simpath_xix + "/plots/xi-inv-divergence", format="svg")
+    fig.savefig(simpath_xix + "/plots/xi-inv-divergence.png", format="png", dpi=300)
+    plt.show()
     def construct_ratios(results_x, results_y):
         T_x = np.array([])
         xix = np.array([])
@@ -91,10 +126,9 @@ def main():
     ax.set_ylabel(r"$\xi_\parallel / \xi_\perp$")
     plt.show()
 
-    exit(0)
-    simpath = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=1/0.4161791450287818/Amplitude"
-
-    amplitude_measurement.plot_divergence(simpath, Tc=1.7477, direction="xiy")
+    exit()
+    simpath = "../../Generated content/Final/Amplitude/J_J=30/final-small-h/Amplitude"
+    amplitude_measurement.plot_divergence(simpath, Tc=None, direction="both")
 
 
 if __name__ == "__main__":

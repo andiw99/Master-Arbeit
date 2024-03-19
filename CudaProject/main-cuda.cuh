@@ -1225,13 +1225,13 @@ double get_autocorrtime_fft(double* f, int f_size, double ds) {
     // create a thrust device vector of f
     thrust::device_vector<double> device_f(f_size);
     thrust::copy(f, f + f_size, device_f.begin());
-    cout << "f_size = " << f_size << endl;
+    // cout << "f_size = " << f_size << endl;
     double avg_f = thrust::reduce(device_f.begin(), device_f.end(), (double)0.0) / (double)(f_size);
-    cout << "avg_f = " << avg_f << endl;
+    // cout << "avg_f = " << avg_f << endl;
     // what is supposed to be the problem here? it should be fine but why is the IDE complaining at transform reduce it didnt before...
     double variance_f = thrust::transform_reduce(device_f.begin(), device_f.end(), SquaredDifferenceFromMean(avg_f), 0.0, thrust::plus<double>()) / (double)f_size;
     variance_f = max(1e-5, variance_f);
-    cout << "variance_f = " << variance_f << endl;
+    // cout << "variance_f = " << variance_f << endl;
 
     // it is just a large 1D FFT
     int fft_size = 2 * f_size + 1;

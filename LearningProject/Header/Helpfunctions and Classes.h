@@ -39,7 +39,16 @@ void write_parameters(ofstream& file, map_like paras) {
     }
 }
 
-
+void print_vector_of_vectors(const std::vector<std::vector<double>>& vec) {
+    // Loop through each row
+    for (const auto& row : vec) {
+        // Loop through each element in the row
+        for (const auto& element : row) {
+            std::cout << element << " ";
+        }
+        std::cout << std::endl; // Move to the next line after printing each row
+    }
+}
 
 int pymod(int a, int b) {
     return ((b + (a % b)) % b);
@@ -1573,4 +1582,38 @@ double findFWHM(const double* y, const std::vector<double>& x, int size) {
     double fwhm = fabs(x2 - x1);
     return fwhm;
 }
+
+void omitHalfTimes(const string& fileName) {
+    ifstream file(fileName);
+    ofstream tempFile("temp.txt");
+
+    if (!file.is_open() || !tempFile.is_open()) {
+        cerr << "Error opening files." << endl;
+        return;
+    }
+
+    string line;
+    bool firstLine = true;
+    int lineCount = 0;
+
+    while (getline(file, line)) {
+        if (firstLine) {
+            tempFile << line << endl; // Write the first line as it is
+            firstLine = false;
+        } else {
+            if (lineCount % 2 == 0) {
+                tempFile << line << endl; // Write lines with even line count
+            }
+        }
+        lineCount++;
+    }
+
+    file.close();
+    tempFile.close();
+
+    // Rename temp file to original file
+    remove(fileName.c_str());
+    rename("temp.txt", fileName.c_str());
+}
+
 #endif //LEARNINGPROJECT_HELPFUNCTIONS_AND_CLASSES_H

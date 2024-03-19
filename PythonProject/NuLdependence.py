@@ -7,18 +7,26 @@ from scipy.optimize import curve_fit
 
 
 def main():
-    simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/L/'
+    #simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/L/'
+    simulation_folder = '../../Generated content/Final/Nu-L/'
     threshold = 0.1
     transparent_plots = False
     linewidth = 1
 
+    config = {
+        "labelhorizontalalignment": "right",
+        "increasefontsize": 0.5
+    }
+
     results = {}
+    process_file_func = process_new_mag_file_to_U_L
+    file_ending = "mag"
 
     for size_folder in os.listdir(simulation_folder):
         if (size_folder[0] != ".") & (size_folder != "plots"):
             size_folder_path = os.path.join(simulation_folder, size_folder)
             if os.path.isdir(size_folder_path):
-                size_result = process_size_folder(size_folder_path, threshold)
+                size_result = process_size_folder(size_folder_path, threshold, process_file_func=process_new_mag_file_to_U_L, file_ending=file_ending)
                 results[int(size_folder)] = size_result
 
     sizes = sorted(list(results.keys()))
@@ -76,9 +84,14 @@ def main():
     diff_fit_arr = np.array(list(dU_dT.values()))
     size_arr_fit = np.array(list(dU_dT.keys()))
 
+    # sorting
+    diff_fit_arr = diff_fit_arr[np.argsort(size_arr_fit)]
+    size_arr_fit = np.sort(size_arr_fit)
+
+
     popt, _ = curve_fit(linear_fit, np.log(size_arr_fit), np.log(diff_fit_arr))
     nu = 1 / popt[0]
-
+    print(size_arr_fit)
     print("FITTING RESULTS:")
     print("nu = ", nu)
 
@@ -88,12 +101,12 @@ def main():
     ax.set_xlabel("L")
     ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
     ax.legend()
-    ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
-    configure_ax(fig, ax)
+    #ax.set_title(r"$\frac{d U_L}{d \varepsilon}$ for different System sizes $L$")
+    configure_ax(fig, ax, config)
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
-    fig.savefig(simulation_folder + "/critical_exponent_time_avg.png", format="png", dpi=250)
+    fig.savefig(simulation_folder + "/critical_exponent_time_avg-all-L.png", format="png", dpi=250)
     plt.show()
-
+    exit()
     # okay we will use the results_dic real quick to calculate the intersection in dependence of L
     # We want to use at least three (for now two) sizes to calculate the critical temperature.
     if len(sizes) > 5:

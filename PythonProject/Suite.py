@@ -238,7 +238,7 @@ def check_cum_valid(folderpath, equil_error, equil_cutoff, max_moving_factor, va
             print("Not enough values, but I hope we will just use that one as base?")
         return False
 
-def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds):
+def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val, ds, file_ending="mag", value_name="U_L"):
     """
     this function checks if a simulation in folderpath has .cum file with
     a variation error that is small than given
@@ -250,7 +250,7 @@ def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val,
     # I dont think we need anything else do do this?
     # first we need to read in every .cum file and average it. We assume that they have
     # the same timepoints aswell as the same number of values?
-    cum, times = get_folder_average(folderpath)
+    cum, times = get_folder_average(folderpath, file_ending=file_ending, value=value_name)
     # I am still not sure if we should do the thing with the nr of points per stddev value
     # you know what I think we should do it, if would be like linearly approximating every part of the curve
     # if the curve would vary very smoothly, the variation error that we want should approach zero
@@ -325,7 +325,7 @@ def get_mean_dif_var(cum,num_per_var_val):
     squared_dif_var_mean = np.mean(np.array(dif_var_arr) ** 2)    # this way large variances are punished harder
     return dif_var_mean, squared_dif_var_mean
 
-def get_folder_average(folderpath, file_ending="cum", value="U_L"):
+def get_folder_average(folderpath, file_ending="mag", value="U_L"):
     """
     This is supposed to look at a file that has observables like corr length and average them if we have multiple files
     this one only works for same times
@@ -334,22 +334,44 @@ def get_folder_average(folderpath, file_ending="cum", value="U_L"):
     :param value: name of the value in the file
     :return: averaged value array, should it maybe also return the time?
     """
-    cum_files = glob(f"{folderpath}/*.{file_ending}")
-    cum = np.array([])
+    value_files = glob(f"{folderpath}/*.{file_ending}")
     times = np.array([])
-    for i, cum_path in enumerate(cum_files):
-        df = pd.read_csv(cum_path, delimiter=",", index_col=False)
-        this_cum = np.array(df[value])
-        # I think I dont need the times, I just want to calculate the difference variation
-        if i == 0:
-            cum = this_cum
-            times = df['t']
-        else:
-            cum += this_cum
-    # averaging
-    cum = cum / len(cum_files)
-    times = np.array(times)
-    return cum, times
+    if file_ending == "cum":
+        cum = np.array([])
+        for i, file_path in enumerate(value_files):
+            df = pd.read_csv(file_path, delimiter=",", index_col=False)
+            this_cum = np.array(df[value])
+            # I think I dont need the times, I just want to calculate the difference variation
+            if i == 0:
+                cum = this_cum
+                times = df['t']
+            else:
+                cum += this_cum
+        # averaging
+        cum = cum / len(value_files)
+        times = np.array(times)
+        return cum, times
+    else:
+        all_m = []
+        cum = []
+        for i, file_path in enumerate(value_files):
+            df, t = read_large_df_with_times(file_path, skiprows=1, sep=";")
+            # this df is a list of lists, we dont have the times at all
+            # I think I dont need the times, I just want to calculate the difference variation
+            if i == 0:
+                for m_t in df:
+                    all_m.append(m_t)
+            else:
+                for j, m_t in enumerate(df):
+                    all_m[i] += m_t
+        for m_t in all_m:
+            m2 = np.mean(m_t ** 2)
+            m4 = np.mean(m_t ** 4)
+            U_L = m4 / m2 ** 2
+            cum.append(U_L)
+        # averaging
+        times = np.array(t)
+        return cum, times
 
 def get_difference_std(cum_arr):
     """
@@ -994,7 +1016,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
               f"h={self.h}")
         # TODO this is still all a bit fishy but...
         T_max = T_min + self.h
-        T_max = 2 * T_min
+        T_max = 1.5 * T_min
         # or just 10 %?
 
 
@@ -1287,7 +1309,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 else:
                     val_intersection = np.mean(intersections_y)
                     self.plotValueCurve(self.simulation_path, self.equil_error, (T_c, val_intersection), results, value_name=self.value_name, title="Binder Cumulant on T", plotname="cum_mag_avg")
-
+                    plt.show()
                     T_low = T_interval_low + dT/3
                     T_up = T_interval_low + 2 * dT / 3
                     new_Ts = np.linspace(T_low, T_up, 2)
@@ -1305,6 +1327,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
             print("We do not see a intersection")
             self.plotValueCurve(self.simulation_path, self.equil_error, None, results, self.value_name,
                                 title="No Intersection", plotname=f"{self.file_ending}_time_avg")
+            plt.show()
             if val_min_T_max > val_max_T_max:
                 print("The maximum temperature is too low")
                 # this means we are below the critical temperature.
@@ -1344,7 +1367,16 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                     val_upper_bound_small_size * (1 + self.equil_error) >
                     val_upper_bound_large_size * (1 - self.equil_error)):
                 # this means the error bars overlap and we redo the corresponding jobs with half the error
+                if (val_lower_bound_small_size * (1 - self.equil_error) <
+                val_lower_bound_large_size * (1 + self.equil_error)):
+                    print(val_lower_bound_small_size,  "-", self.equil_error * val_lower_bound_small_size, "  <  ",
+                          val_lower_bound_large_size,  "+" , val_lower_bound_large_size * self.equil_error)
+                if (val_upper_bound_small_size * (1 + self.equil_error) >
+                    val_upper_bound_large_size * (1 - self.equil_error)):
+                    print(val_upper_bound_small_size, "+", self.equil_error * val_upper_bound_small_size, "  >  ",
+                          val_upper_bound_large_size, "-", val_upper_bound_large_size * self.equil_error)
                 self.equil_error = max(self.equil_error / 2, self.min_equil_error)
+                print(f"Errors overlapped, reducing the equil error to {self.equil_error}")
                 for size in self.sizes:
                     self.jobs_to_do.add((size, lower_T_bound))
                     self.jobs_to_do.add((size, upper_T_bound))
@@ -1582,13 +1614,13 @@ class quench_measurement(autonomous_measurement):
         self.tau_list = []                 # empty list to keep track of the taus that we used
         self.size = size_min            # current size, starts at size_min
         self.equil_error = 0.05        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
-        self.para_nr = 100
         self.min_nr_corr_values = 500
 
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
         self.nr_measured_values = 300   # standard number of measured values during the quench
         self.min_tau_scaling_fit = 10   # this is whack, it should automatically find the best regression
+        self.second = False
 
     def setup(self):
         # We decide the start and end temperature
@@ -1874,11 +1906,12 @@ class quench_measurement(autonomous_measurement):
             size_tau_xiy_dic)
 
 
-        quench_measurement.plot_kzm_scaling(tau_scaling, size_tau_xix_dic, reg_x, max_tau_ind_x, direction="parallel")
+        quench_measurement.plot_kzm_scaling(tau_scaling, size_tau_xix_dic, reg_x, max_tau_ind_x, min_tau_ind_x,
+                                            direction="parallel")
         plt.savefig(self.simulation_path + f"/plots/tau-xi-parallel.png", format="png")
         plt.show()
 
-        self.plot_kzm_scaling(tau_scaling, size_tau_xiy_dic, reg_y, max_tau_ind_y, min_tau_ind_y)
+        self.plot_kzm_scaling(tau_scaling, size_tau_xiy_dic, reg_y, max_tau_ind_y, min_tau_ind_y, direction="perp")
         plt.savefig(self.simulation_path + f"/plots/tau-xi-perp.png", format="png")
         plt.show()
 
@@ -1890,7 +1923,7 @@ class quench_measurement(autonomous_measurement):
     @staticmethod
     def plot_quench_process(simulation_path, taus, xi_ampl, Tc, direction="parallel", cut_around_peak=True,
                             cut_zero_impuls=True, peak_cut_threshold=0.2, set_fts_to_zero=False, min_points_fraction=0.2,
-                             fitfunc=lorentz_offset):
+                             fitfunc=lorentz_offset, visible_points=70, cut_from_equil=0):
         # what is this going to do, just plotting the quench process and
         avail_taus = get_avail_tau_dic(simulation_path)
 
@@ -1905,7 +1938,7 @@ class quench_measurement(autonomous_measurement):
                 print(f"tau = {tau} not available")
 
         # now the stuff with the twofold plot that you made sometime
-        fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 3]})
+        fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 5]})
         ax_equil = axes[0]
         ax_quench = axes[1]
 
@@ -1913,21 +1946,31 @@ class quench_measurement(autonomous_measurement):
             if i == 0:
                 parafile = find_first_txt_file(taupath)
                 parameters = read_parameters_txt(parafile)
-
             t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process = quench_measurement.get_time_resolved_xi(taupath, cut_around_peak,
                             cut_zero_impuls, peak_cut_threshold, set_fts_to_zero, min_points_fraction, fitfunc)
             if direction == "parallel":
                 xi_equil = xix_equil
                 xi_process = xix_process
             else:
-                xi_equil = xix_equil
-                xi_process = xix_process
+                xi_equil = xiy_equil
+                xi_process = xiy_process
 
-            ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=5, marker=markers[2 * i],
+            # usually the equilibration phase was way to long, so we cut the boring part?
+            if cut_from_equil:
+                t_equil, xi_equil = t_equil[:-int(cut_from_equil * len(t_equil))], xi_equil[:-int(cut_from_equil * len(t_equil)):]
+                # t has to be set to zero again
+                t_equil -= np.max(t_equil)
+
+            fold_nr = max(len(t_equil) // (visible_points // 5), 1)
+            t_equil, xi_equil = fold(t_equil, xi_equil, fold_nr)
+            ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=7, marker=markers[i],
                                color=colors[2 * i], markerfacecolor="none")
             t_process /= tau
-            ax_quench.plot(t_process, xi_process, linestyle="", markersize=5, marker=markers[2 * i],
-                               color=colors[2 * i], markerfacecolor="none")
+            # we gonna do some folding to only have like 100 points visualized
+            fold_nr = max(len(t_process) // visible_points, 1)
+            t_process, xi_process = fold(t_process, xi_process, fold_nr)
+            ax_quench.plot(t_process, xi_process, linestyle="", markersize=7, marker=markers[i],
+                               color=colors[2 * i], markerfacecolor="none", label=rf"$\tau={tau:.2f}$")
 
        # plot the divergence
         # get the limits beforehand
@@ -1964,10 +2007,15 @@ class quench_measurement(autonomous_measurement):
             "ytickfontsize": 0,
             "ylabelsize": 0,
             "y_tickwidth": 0,
-            "y_ticklength": 0
+            "y_ticklength": 0,
+            "increasefontsize": 0.75,
         }
         equil_config = {
-            "nr_x_major_ticks": 2
+            "nr_x_major_ticks": 2,
+            "nr_x_minor_ticks": 3,
+            "labelrotation": 90,
+            "increasefontsize": 0.75,
+            "legend": False,
         }
         configure_ax(fig, ax_quench, quench_config)
         configure_ax(fig, ax_equil, equil_config)
@@ -2062,17 +2110,17 @@ class quench_measurement(autonomous_measurement):
         xix_scaling_log = np.log(xix_scaling)
         reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log,
                                                            min_r_squared=0.95, more_points=True,
-                                                           min_points=3,
+                                                           min_points=4,
                                                            require_end=True)  # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
         return tau_scaling, xix_scaling, reg_x, max_tau_ind_x, min_tau_ind_x
 
     @staticmethod
     def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
-                         min_tau_ind, direction="parallel"):
+                         min_tau_ind, direction="parallel", color="C0"):
         quench_exp = reg.slope
         quench_ampl = np.exp(reg.intercept)
         # xiy scaling
-        figy, ax = plt.subplots(1, 1)
+        figy, ax = plt.subplots(1, 1, figsize=(10, 7))
         ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_xlabel(r"$\tau$")
@@ -2085,7 +2133,7 @@ class quench_measurement(autonomous_measurement):
             tau = list(size_tau_xi_dic[size].keys())
             xi = list(size_tau_xi_dic[size].values())
 
-            ax.plot(tau, xi, marker=markers[i], linestyle="None", label=rf"$L_\{direction}$ = ${size}", color="C1")
+            ax.plot(tau, xi, marker=markers[i], markersize=8, **get_point_kwargs_color(color, markeredgewidth=2), label=rf"$L_\{direction} = {size}$")
         prev_y_low = ax.get_ylim()[0]
         prev_y_up = ax.get_ylim()[1]
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
@@ -2093,7 +2141,12 @@ class quench_measurement(autonomous_measurement):
                  color="black", alpha=0.5, linestyle="dashed",
                  label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp:.2f}")
         ax.set_ylim(prev_y_low, prev_y_up)
-        configure_ax(figy, ax)
+
+        config = {
+            "increasefontsize": 0.75
+        }
+
+        configure_ax(figy, ax, config)
 
 
     @staticmethod
@@ -2118,7 +2171,8 @@ class quench_measurement(autonomous_measurement):
     def get_size_quench_results(simulation_path, cut_zero_impuls, fitfunc):
         size_tau_xix_dic = {}
         size_tau_xiy_dic = {}
-        for size in os.listdir(simulation_path):
+        sizes = find_size_folders(simulation_path)
+        for size in sizes:
             tau_xix = {}
             tau_xiy = {}
             if (size != "plots") & (size[0] != "."):
@@ -2491,7 +2545,7 @@ class amplitude_measurement(autonomous_measurement):
             for i, size in enumerate(result):
                 # We definitely plot the points
                 T_xix, xix_arr = result[size]
-                amplitude_measurement.plot_inverse_points(fig, axes[j], T_xix, xix_arr, marker=markers[i], color=5 * j)
+                amplitude_measurement.plot_inverse_points(fig, axes[j], T_xix, xix_arr, marker=markers[i], color=colors[5 * j])
                 # Find out which size has the largest number of points and for that we do the fit
                 if len(xix_arr) > max_size_len:
                     max_size_len = len(xix_arr)
@@ -2550,7 +2604,7 @@ class amplitude_measurement(autonomous_measurement):
 
     @staticmethod
     def plot_inverse_points(fig, ax, T, xi,
-                            marker="s", color=0):
+                            marker="s", color=colors[0], size="", direction="parallel"):
         """
         plots inverse correlation length to an already existing plot
         :param fig:
@@ -2563,9 +2617,9 @@ class amplitude_measurement(autonomous_measurement):
         :return:
         """
         xix_inv = 1 / xi
-        ax.plot(T, xix_inv, label=rf"$1 / \xi_\parallel$",
+        ax.plot(T, xix_inv, label=rf"$ 1 / \xi_\{direction}" + "^{" + str(size) + "}$",
                  linestyle="", marker=marker, markerfacecolor="none",
-                 markeredgecolor=colors[color])
+                 markeredgecolor=color)
 
 
     @staticmethod
@@ -2631,7 +2685,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def plot_xi_fit(axx, reg_x, T_xix, color=0, direction="parallel", Tc_label=True):
+    def plot_xi_fit(axx, reg_x, T_xix, color=colors[0], direction="parallel", Tc_label=True):
         T_x_plot = np.linspace(np.min(T_xix), np.max(T_xix), 200)
         xix_ampl = - 1 / reg_x.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
@@ -2641,23 +2695,23 @@ class amplitude_measurement(autonomous_measurement):
         # The function that we need to use is called critical amplitude
         if Tc_label:
             axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
-                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
-                     color=colors[color])
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.3f}, T_c = {Tc_x:.3f}$",
+                     color=color)
         else:
             axx.plot(T_x_plot, critical_amplitude(eps_x, xix_ampl),
-                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}$",
-                     color=colors[color])
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.3f}$",
+                     color=color)
 
 
     @staticmethod
-    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=0, direction="parallel"):
+    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=colors[0], direction="parallel"):
         axx.plot(T_xix, xix_arr, label=rf"$\xi_\{direction}" + "^{" + str(size) + "}$", linestyle="",
                  marker=marker, markerfacecolor="none",
-                 markeredgecolor=colors[color])
+                 markeredgecolor=color)
 
 
     @staticmethod
-    def configure_xi_inv_plot(axes, fig, direction=None):
+    def configure_xi_inv_plot(axes, fig, direction="delta"):
         if len(axes) == 2:
             axx, axy = axes
             axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
@@ -2668,8 +2722,8 @@ class amplitude_measurement(autonomous_measurement):
             axx.set_ylim(0, axx.get_ylim()[
                 1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
             axy.set_ylim(0, axy.get_ylim()[1])
-            axx.set_title(r"Inverse Correlation Length $1 / \xi$")
-            axy.set_title(r"Inverse Correlation Length $1 / \xi$")
+            #axx.set_title(r"Inverse Correlation Length $1 / \xi$")
+            #axy.set_title(r"Inverse Correlation Length $1 / \xi$")
             config_x = {
                 "labelrotation": 90,
                 "labelhorizontalalignement": "right",
@@ -2693,29 +2747,27 @@ class amplitude_measurement(autonomous_measurement):
             axy.legend(lines + lines2, labels + labels2, loc=0, fontsize=int(
                 PLOT_DEFAULT_CONFIG["legendfontsize"] * (
                         1 + config_x["increasefontsize"])))
+            return config_x, config_y
         else:
             axx = axes[0]
-            if direction == "xix":
-                axx.set_ylabel(r"$(\xi_\parallel / a_\parallel)^{-1}$")
-            else:
-                axx.set_ylabel(r"$(\xi_\perp / a_\perp)^{-1}$")
-            axx.set_xlabel(r"$T /$meV")
+            axx.set_ylabel(rf"$(\xi_\{direction} ~/~ a_\{direction})^{-1}$")
+            axx.set_xlabel(r"$T~/~ J_\parallel$")
             # Okay the lower y limit should be zero for both
             axx.set_ylim(0, axx.get_ylim()[
-                1] * 4 / 3)  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
-            axx.set_title(r"Inverse Correlation Length $1 / \xi$")
+                1])  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
+            #axx.set_title(r"Inverse Correlation Length $1 / \xi$")
             config_x = {
                 "labelrotation": 90,
                 "labelhorizontalalignement": "right",
                 "grid": True,
                 "tight_layout": False,
-                "legend": False,
-                "increasefontsize": 0.5,
+                "increasefontsize": 0.75,
             }
 
             configure_ax(fig, axx, config_x)
             # We need to deal with the leglend ourself I think
-            lines, labels = axx.get_legend_handles_labels()
+            #lines, labels = axx.get_legend_handles_labels()
+            return config_x
 
     @staticmethod
     def perform_fit_on_sizes(results_x, fit_sizes, Tc=None, min_points=0):
@@ -2738,7 +2790,7 @@ class amplitude_measurement(autonomous_measurement):
         return T_xix, reg_x
 
     @staticmethod
-    def plot_xi_inv_fit(axx, T_xix, reg_x):
+    def plot_xi_inv_fit(axx, T_xix, reg_x, direction="parallel", color=colors[0], plot_until_pt=False, Tc_label=True):
         """
         does what the name says
         :param axx:
@@ -2753,9 +2805,17 @@ class amplitude_measurement(autonomous_measurement):
         xix_ampl = - 1 / reg_x.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
         # Plot the fit
-        axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
-                 label=rf"$\xi_\parallel^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
-                 color=colors[0])
+        if plot_until_pt:
+            T_xix = np.concatenate(([Tc_x], T_xix))
+        if Tc_label:
+            axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
+                     color=color)
+        else:
+            axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}$",
+                     color=color)
+        return Tc_x
 
 
     @staticmethod
@@ -2790,12 +2850,13 @@ class amplitude_measurement(autonomous_measurement):
 
 class z_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, test_exec_file, runfile, Tc, nr_GPUS=6, size_min=64,
-                          size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
-                 variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, cum_density=1/100,
-                 test_cum_density=1/2, test_min_cum_nr=2000):
+                 size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
+                 variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, val_write_density=1/100,
+                 test_val_write_density=1 / 20, test_min_val_nr=2000, para_nr=200, max_moving_factor=0.005, value_name="U_L", file_ending="cum",
+                 process_file_func=process_file):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
-                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile)
+                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile, para_nr=para_nr)
         # ah maybe you should first write a concept about what this measurment should do
 
         self.Tc = Tc
@@ -2818,19 +2879,22 @@ class z_measurement(autonomous_measurement):
         self.min_nr_systems = min_nr_systems        # same system like for quench, the U_L values that we use should be averaged out of at least 100 systems and if 100 systmes contain less than min nr of sites then so many systems that we reach teh min nr of sites
         self.nr_points_diff_variance = 20           # this is the number of consecutive datapoints from which we will calculate the differences and then their standard deviation to judge how strongly the data is variation
         # We could actually also think about just averaging all U_L values, this should already give a good measure
-        self.cum_density = cum_density                  # the standard density will write 1 cum value in 100 steps
-        self.test_cum_density = test_cum_density        # the test cum density will be much larger since we want to see if we are equilibrated as fast as possible
+        self.val_density = val_write_density                  # the standard density will write 1 cum value in 100 steps
+        self.test_cum_density = test_val_write_density        # the test cum density will be much larger since we want to see if we are equilibrated as fast as possible
         # Okay now we basically do the same stuff as the last 3 times
         self.sizes = np.array([])                   # this is the array for sizes that we have to simulate
         self.valid_sizes = []                         # this is the list to keep track of the sizes that we simulated
         self.cur_para_nr = 0                        # since we need multiple paramter files we need the current parameter variable
         self.cur_run_nr = 0                         # we will use this one in the run_jobs logic to know at which submit we are and which parameter number we have to return
         self.para_nr_run_dic = {}                   # this is the dictionary that will know which run number has which parameter number
-        self.para_nr = 200                          # again different parameter number for different kind of simulation
         self.base_fold = fold                       # for plotting we fold 10 points to one for better visibility
 
-        self.test_min_cum_nr = test_min_cum_nr      # the minimum nr of cumulant values we calculate for the testrun
+        self.test_min_cum_nr = test_min_val_nr      # the minimum nr of cumulant values we calculate for the testrun
         self.test_equil_cutoff = equil_cutoff       # the values we cut off when running the test run
+
+        self.check_function = check_cum_variation_valid
+        self.value_name = value_name
+        self.file_ending = file_ending
 
 
     def setup(self):
@@ -2859,6 +2923,7 @@ class z_measurement(autonomous_measurement):
                 # If else we need to perform the simulation
                 # so we need to write parameters
                 self.cur_para_nr = 0
+                self.para_nr_run_dic[0] = self.para_nr
                 self.write_test_paras()
                 # If we did this we reset the cur para nr?
                 self.cur_para_nr = 0
@@ -2880,11 +2945,11 @@ class z_measurement(autonomous_measurement):
         # so now we do the same thing as in z_extraction suite, we let the computer search the valid measurements
         valid_simulations = get_avail_simulations(self.sizes, [self.Tc],
                                                   self.simulation_path,
-                                                  check_cum_variation_valid,
+                                                  self.check_function,
                                                   check_function_args=(
                                                   self.variation_error_rate,
                                                   self.nr_points_diff_variance,
-                                                  self.dt / self.cum_density))
+                                                  self.dt / self.val_density))
         # every valid simulation does not have to be repeated
         for valid_simulation in valid_simulations:
             # brutal but effective i guess
@@ -2915,11 +2980,11 @@ class z_measurement(autonomous_measurement):
         # what we have to write is the plotting and fitting...
         valid_simulations = get_avail_simulations(list(self.sizes) + self.valid_sizes, [self.Tc],
                                                   self.simulation_path,
-                                                  check_cum_variation_valid,
+                                                  self.check_function,
                                                   check_function_args=(
                                                   self.variation_error_rate,
                                                   self.nr_points_diff_variance,
-                                                  self.dt / self.cum_density))
+                                                  self.dt / self.val_density))
         if len(valid_simulations) == self.nr_sizes:
             # this means the simulation was valid and we can do the rescaling
             print("Simulation successful, evaluating")
@@ -3044,7 +3109,7 @@ class z_measurement(autonomous_measurement):
                     # I guess we use the same tactic as in the ccumovertime script since I think there is no simpler
                     # method to extract both the time and the values
                     # we can use get folder avage here
-                    cum, times = get_folder_average(temp_path)
+                    cum, times = get_folder_average(temp_path, file_ending=self.file_ending, value=self.value_name)
                     size_cum_dic[size] = cum
                     size_times_dic[size] = times
         return size_cum_dic, size_times_dic
@@ -3116,9 +3181,9 @@ class z_measurement(autonomous_measurement):
                         f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
                         f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
                         f"equil_error, {self.equil_error}\n"
-                        f"min_cum_nr, {self.test_min_cum_nr}\n"
-                        f"cum_write_density, {self.test_cum_density}\n"
-                        f"equil_cutoff, {self.test_equil_cutoff}")
+                        f"equil_cutoff, {self.test_equil_cutoff}\n"
+                        f"{self.file_ending}_write_density, {self.test_cum_density}\n"
+                        f"min_{self.file_ending}_nr, {self.test_min_cum_nr}\n")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -3136,7 +3201,7 @@ class z_measurement(autonomous_measurement):
             # the endtime can now be guessed using the test equilibration time and the z guess
             endtime = (size / self.test_size) ** self.z_guess * self.test_equil_time
             # depending on the endtime we also need a density of cumulant values.
-            nr_cum_values = endtime / self.dt * self.cum_density            # endtime / dt is the number of steps, times the density is the number of cum values
+            nr_cum_values = endtime / self.dt * self.val_density            # endtime / dt is the number of steps, times the density is the number of cum values
             with open(self.filepath + "/parameters/para_set_" + f"{self.get_write_para_nr()}" + '.txt', 'w') as f:
                 f.write(self.simulation_path)
                 f.write(f"\nend_time, {endtime} \n"
@@ -3158,7 +3223,7 @@ class z_measurement(autonomous_measurement):
                         f"nr_subsystem_sizes, 0  \n"
                         f"nr_subsystems, {nr_subsystems} \n"
                         f"x_y_factor, {self.Ly_Lx} \n"
-                        f"nr_cum_values, {nr_cum_values} \n"
+                        f"nr_{self.file_ending}_values, {nr_cum_values} \n"
                         f"nr_corr_values, 0 \n"
                         f"nr_ft_values, 0 \n"
                         f"equil_error, {self.equil_error}")
@@ -3186,11 +3251,11 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -110000
+    J_para = -130000
     #J_para = -9
-    J_perp = -3500
+    J_perp = -1300
     #J_perp = -0.1
-    h = 10000
+    h = 5200
     #h = 0.5
     eta = 1
     p = 2.5
@@ -3211,7 +3276,7 @@ def main():
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -3244,8 +3309,8 @@ def main():
     equil_cutoff = 0.01
 
     # z parameters
-    size_min = 64
-    size_max = 256
+    size_min_z = 64
+    size_max_z = 256
     nr_sizes = 3
     z_min_nr_sites = 1e6
     z_min_nr_systems = 500
@@ -3253,8 +3318,8 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": True,
-        "efficient Tc": False,
+        "Tc": False,
+        "efficient Tc": True,
         "Quench": False,
         "Amplitude": False,
         "z": False,
@@ -3273,10 +3338,15 @@ def main():
                                     T_min=T_min, T_max=T_max, para_nr=para_nr)
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
-        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file, nr_GPUS=nr_gpus,
-                                              size_min=min_size_Tc, size_max=max_size_Tc,
-                                              intersection_error=max_rel_intersection_error, random_init=random_init,
-                                              max_moving_factor=moving_factor, min_val_nr=min_cum_nr)
+        para_nr = int(input("parameter number.."))
+        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file,
+                                                runfile, nr_GPUS=nr_gpus,
+                                                size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
+                                                min_equil_error=cum_error, intersection_error=max_rel_intersection_error,
+                                                max_moving_factor=moving_factor, para_nr=para_nr, random_init=random_init,
+                                                min_val_nr=min_cum_nr, file_ending=file_ending, value_name=value_name,
+                                                process_file_func=process_file_func, val_write_density=value_write_density,
+                                                equil_cutoff=equil_cutoff_Tc)
         T_c, T_c_error = sim.routine()
     else:
         T_c = float(input("Enter critical temperature:"))
@@ -3291,7 +3361,7 @@ def main():
         ampl.run()
     if measurements["z"]:
         z_measure = z_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "z",
-                                        z_exec_file, z_test_exec_file, T_c, nr_GPUS=nr_gpus, size_min=64, size_max=256,
+                                        z_exec_file, z_test_exec_file, T_c, nr_GPUS=nr_gpus, size_min_z=size_min_z, size_max_z=size_max_z,
                                         nr_sizes=nr_sizes, min_nr_sites=z_min_nr_sites, min_nr_systems=z_min_nr_systems,
                                      equil_error=z_equil_error)
         z_measure.run()

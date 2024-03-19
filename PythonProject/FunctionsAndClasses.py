@@ -25,13 +25,13 @@ from pathlib import Path
 # import matplotlib; matplotlib.use("TkAgg")
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
-markers = ["o", "s", "^", "x", "+", "*", "D", "1", "2", "v", "^"]
+markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
 
 
-def get_point_kwargs_color(color):
-    return {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": color}
+def get_point_kwargs_color(color, markeredgewidth=1):
+    return {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": color, "markeredgewidth": markeredgewidth}
 
 def read_csv(filepath, nrows=None):
     df = pd.read_csv(filepath, header=None, index_col=None)
@@ -86,7 +86,7 @@ def corr_scaling_left(T, Tc, nu, xi0):
     eps = (Tc - T) / Tc         # so negative temps are above Tc
     return xi0 / (eps ** nu)
 
-def read_large_df(filepath, rows=None, skiprows=0, sep=None):
+def read_large_df_array(filepath, rows=None, skiprows=0, sep=None):
     df = []
     with open(filepath) as f:
         for i, line in enumerate(f):
@@ -117,6 +117,23 @@ def read_large_df(filepath, rows=None, skiprows=0, sep=None, cut_endline=2):
                         line = line.split(";")[1]
                     df.append(string_to_list(line[:-cut_endline]))
     return df
+
+def read_large_df_with_times(filepath, rows=None, skiprows=0, sep=";", cut_endline=2):
+    df = []
+    times = []
+    with open(filepath) as f:
+        for i, line in enumerate(f):
+            if i >= skiprows:
+                if rows:
+                    if i in rows:
+                        t, line = line.split(sep)
+                        df.append(string_to_list(line[:-2]))
+                        times.append(float(t))
+                else:
+                    t, line = line.split(sep)
+                    df.append(string_to_list(line[:-cut_endline]))
+                    times.append(float(t))
+    return df, times
 
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
 
@@ -1386,6 +1403,8 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
             m += line
         m = np.array(m)
 
+        parameters["equil_error"] = threshold
+
         if 0 < threshold < 1:
             threshold = int(threshold * len(m))
         total_nr_values = len(m)
@@ -1428,6 +1447,14 @@ def process_new_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
         #except KeyError:
         #    # We already have a function that calculates it?
         moving_factor = getMovingFactor(m, m_avg)
+
+        parameters["m"] = m_avg
+        parameters["U_L"] = U_L
+        parameters[f"U_L_error"] = rel_error
+        parameters["moving_factor"] = moving_factor
+
+        # we would aslo have to write them to the same txt file?
+        write_dict_to_file(parameters, para_path)
 
     return U_L, rel_error, moving_factor, total_nr_values
 
@@ -1974,28 +2001,28 @@ def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_poin
     return best_lin_reg(T_arr, xi_inv_arr, min_r_squared, min_points, accept_function=accept_xi_inv_fit,
                         accept_function_args=(Tc_est, tolerance))
 
-def fold(t, U_L, fold=3):
-    t = np.array(t)
-    U_L = np.array(U_L)
-    t_fold = []
-    U_L_fold = []
-    nr_points = len(t)
+def fold(x, y, fold=3):
+    x = np.array(x)
+    y = np.array(y)
+    x_fold = []
+    y_fold = []
+    nr_points = len(x)
     fold = int(fold)
     nr_folded_points = nr_points // fold
     for point_nr in range(nr_folded_points):
-        t_avg = 0
-        U_L_avg = 0
+        x_avg = 0
+        y_avg = 0
         for nr_in_fold in range(fold):
             ind = point_nr * fold + nr_in_fold
-            t_avg += t[ind]
-            U_L_avg += U_L[ind]
-        t_avg /= fold
-        U_L_avg /= fold
+            x_avg += x[ind]
+            y_avg += y[ind]
+        x_avg /= fold
+        y_avg /= fold
 
-        t_fold.append(t_avg)
-        U_L_fold.append(U_L_avg)
+        x_fold.append(x_avg)
+        y_fold.append(y_avg)
 
-    return np.array(t_fold), np.array(U_L_fold)
+    return np.array(x_fold), np.array(y_fold)
 
 def equilibrium_angle_equation(theta, J_para, J_perp, h, p):
     zero = p * np.sin(theta * p) + 4 * np.sin(4 * theta) * (J_para + J_perp) / h
