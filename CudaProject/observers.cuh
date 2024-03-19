@@ -2420,7 +2420,7 @@ class quench_combined_corr_observer: public obsver<system, State>{
     double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
     fs::path filepath;              // path this observer writes to
     fs::path filepath_ft;              // path this observer writes to
-    double max_moving_factor = 0.01;
+    double max_moving_factor = 0.02;
     int equil_counter = 0;      // This variable will count how many timepoints we already wrote down during equilibration
     int equil_nr = 100;          // nr ob observations during equilibration
     ofstream ft_file;
@@ -2435,7 +2435,10 @@ public:
         max_error = paras[Parameter::equil_error];
         equil_cutoff = paras[Parameter::equil_cutoff];
         min_corr_nr = (int)paras[Parameter::min_corr_nr];
-        max_moving_factor = paras[Parameter::moving_factor];
+        if (paras[Parameter::moving_factor]) {
+            max_moving_factor = paras[Parameter::moving_factor];
+        }
+
         if (paras[Parameter::corr_write_density]) {
             density = paras[Parameter::corr_write_density];
         }
@@ -2577,9 +2580,7 @@ public:
                         } else if(observed_direction == 2) {
                             rel_stddev_total = rel_stddev_xiy_total;
                         }
-                        cout << "observed direciton is " << observed_direction << " meaning rel_stddev_total = " << rel_stddev_total << endl;
                         if(rel_stddev_total < max_error) {
-                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
                             cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
                             cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
 
@@ -2588,10 +2589,11 @@ public:
                             double moving_factor_xiy = getMovingFactor(nr_xi_values, min_ind, xiy, avg_xiy);
                             // lets just take the maximum...
                             double moving_factor = max(moving_factor_xix, moving_factor_xiy);
-                            cout << "MOVING FACTOR = " << moving_factor << endl;
 
                             if(moving_factor < max_moving_factor) {
                                 // we set the system to be equilibrated
+                                cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+
                                 sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
 
                                 append_parameter(filepath, "xix", avg_xix);
@@ -2608,11 +2610,14 @@ public:
                                 append_parameter(filepath, "moving_factor_xiy", moving_factor);
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
-                                sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
                                 // the writ interval will now be the one that we destined for the quench, we just change it once here
                                 write_interval = quench_t / (double)nr_values;
                             }
+                            cout << "MOVING FACTOR = " << moving_factor << " > " << max_moving_factor  << endl;
                         }
+                        cout << "observed direciton is " << observed_direction << " meaning rel_stddev_total = " << rel_stddev_total;
+                        cout << " > " << max_error << endl;
+
                         if(!equilibrated) {
                             cout << "equil_counter = " << equil_counter << endl;
                             if(equil_counter >= 2 * equil_nr) {
