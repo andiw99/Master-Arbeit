@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef XY_silicon_anisotrop_subsystems_obc relax_system;
+    typedef XY_silicon_anisotrop_subsystems relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
     } else {
@@ -28,21 +28,18 @@ int main(int argc, char* argv[]) {
 
     // Okay so we initialize the observer first haha
     auto* relax_obs =
-            new relax_observer<relax_system, state_type>(nr_save_values);
-    // auto* ner_obs = new NER_observer<relax_system, state_type>(paras[nr_ner_values]);
-    // auto* cum_obs = new cum_equilibration_observer<relax_system, state_type>(paras[nr_cum_values]);
-    // auto* corr_obs = new corr_observer<relax_system, state_type>(paras[nr_corr_values]);
-    // auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
+            new relax_observer<relax_system, state_type>(paras[nr_saves]);     // we dont need the equilibration observer here, just the usual one that just observes once or twice
+    auto* m_obs = new m_observer<relax_system, state_type>(paras[nr_mag_values]); // I think we just need the normal cum observer here,
+    // As long as we dont have a density ft_observer that does not need the quench methods we dont need an ft observer at all
+    //auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 
     // templating..
     SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<bbk_stepper,
             state_type,
             algebra, operations,
             relax_system>(paras, simulation_path);
+    simulation.register_observer(m_obs);
     simulation.register_observer(relax_obs);
-    // simulation.register_observer(ner_obs);
-    // simulation.register_observer(cum_obs);
-    // simulation.register_observer(corr_obs);
     // simulation.register_observer(ft_obs);
     simulation.simulate();
     return 0;

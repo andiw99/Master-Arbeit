@@ -438,7 +438,7 @@ public:
         dt = paras[Parameter::dt];
 
         close_stream();
-        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".cum"));
+        open_stream(folderpath / (obsver::construct_filename(run_nr) + ".mag"));
         cout << this->get_name() << " init called" << endl;
         ofile << "t,m_vec" << endl;
 
@@ -463,6 +463,7 @@ public:
                 ofile << m_val << ",";
             }
             ofile << endl;
+            timepoint += write_interval;
         }
     }
 
