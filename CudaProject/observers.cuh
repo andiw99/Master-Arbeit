@@ -2608,6 +2608,7 @@ public:
                                 append_parameter(filepath, "moving_factor_xiy", moving_factor);
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
+                                sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
                                 // the writ interval will now be the one that we destined for the quench, we just change it once here
                                 write_interval = quench_t / (double)nr_values;
                             }
