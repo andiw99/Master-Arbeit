@@ -41,7 +41,7 @@ def check_completed_status(number, input_string):
                 return True  # 'COMPLETED' found
     return False  # 'COMPLETED' not found
 
-def check_directory_structure(sizes, temperatures, directory_path):
+def check_directory_structure(sizes, temperatures, directory_path, file_name=".mag"):
     # Check if the directory exists
     found_simulations = []
     if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
@@ -66,7 +66,7 @@ def check_directory_structure(sizes, temperatures, directory_path):
                 return False
 
             # Check if there is at least one "*.cum" file in the temperature folder
-            cum_files = [f for f in os.listdir(temp_path) if f.endswith('.cum')]
+            cum_files = [f for f in os.listdir(temp_path) if f.endswith(file_name)]
             if not cum_files:
                 print("No cumulant files available")
                 return False
@@ -2918,7 +2918,7 @@ class z_measurement(autonomous_measurement):
             # now we check if the simulation is available
             # I dont think that we have to implement a checkfunction since it doesnt really matter if the variation of the differences is small since we only want to guess
             # the time
-            test_measurement_available = check_directory_structure([self.test_size], [self.Tc], self.simulation_path)
+            test_measurement_available = check_directory_structure([self.test_size], [self.Tc], self.simulation_path, self.file_ending)
             if not test_measurement_available:
                 # If else we need to perform the simulation
                 # so we need to write parameters
@@ -3141,9 +3141,12 @@ class z_measurement(autonomous_measurement):
         temp_folder_path = f"{self.simulation_path}/{self.test_size:.0f}/{self.Tc:6f}"
         for file in os.listdir(temp_folder_path):
             file_path = os.path.join(temp_folder_path, file)
-            if file_path.endswith(".cum"):
+            if file_path.endswith(f".{self.file_ending}"):
                 # then we have the correct file
-                df = pd.read_csv(file_path)
+                if self.file_ending == "mag":
+                    df = pd.read_csv(file_path, sep=";")
+                else:
+                    df = pd.read_csv(file_path)
                 # how do we get the last line here?
                 return df.iloc[-1][0]  # or something like this?
 
@@ -3199,7 +3202,7 @@ class z_measurement(autonomous_measurement):
             # to construct the para set we need to know how many subsystems we should initialize
             nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
             # the endtime can now be guessed using the test equilibration time and the z guess
-            endtime = (size / self.test_size) ** self.z_guess * self.test_equil_time
+            endtime = (size / self.test_size) ** self.z_guess * (self.test_equil_time / 4)
             # depending on the endtime we also need a density of cumulant values.
             nr_cum_values = endtime / self.dt * self.val_density            # endtime / dt is the number of steps, times the density is the number of cum values
             with open(self.filepath + "/parameters/para_set_" + f"{self.get_write_para_nr()}" + '.txt', 'w') as f:

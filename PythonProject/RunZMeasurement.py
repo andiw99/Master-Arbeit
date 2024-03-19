@@ -26,7 +26,7 @@ def main():
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulant.cu"
 
-    runfile_z = "run_cuda.sh"
+    runfile_z =  "run_cuda_casus_low.sh"
 
     # z parameters
     para_nr_z = int(input("parameter number ..."))
@@ -46,7 +46,8 @@ def main():
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
     test_min_val_nr = 200
-    val_write_density = 1 / 100
+    val_nr_z = 1000
+    val_write_density = 1 / 10000
     val_write_density_test = 1 / 10000
     moving_factor = 0.02
     min_equil_error = 0.01

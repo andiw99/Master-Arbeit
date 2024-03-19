@@ -13,7 +13,7 @@ def main():
     #h_arr = np.array([1.7320508075688776])
     h_arr = np.array([10])
     h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
-    h_arr = [2500, 10000, 20000]
+    h_arr = [10000, 20000]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -31,7 +31,7 @@ def main():
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
-    runfile_Tc = "run_cuda_gpu_a100_low.sh"
+    runfile_Tc = "run_cuda_casus_low.sh"
     runfile_quench = "run_cuda_gpu_a100_low.sh"
 
     # Tc parameters

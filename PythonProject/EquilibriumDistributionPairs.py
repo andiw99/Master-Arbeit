@@ -41,7 +41,7 @@ def start_ani(event, ax, bars, x, x_cut, dx, nr_bins=100):
         for line in x:
             [b.remove() for b in bars]
             line_filter = filter_cut(line[2:], x_cut, dx)
-            count, bins, bars = ax.hist(line_filter, nr_bins, density=True, color="C0")
+            count, bins, bars = ax.hist(line_filter, nr_bins, density=True, color=colors[5])
             plt.draw()
             ax.set_title(f"t = {line[0]}")
             plt.pause(0.1)
@@ -70,7 +70,7 @@ def filter_cut(x, x_cut, dx):
 
 def main():
     root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
-    root = "../../Generated content/Final/Benchmarks/eta=1/h=50/2"
+    root = "../../Generated content/Final/Benchmarks/1e-4/eta=1/h=2000/low-T/longer/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
@@ -139,14 +139,22 @@ def main():
         Z_single = np.trapz(W_x_single, x_range)
         W_x /= Z
         W_x_single /= Z_single
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1, figsize=(10, 10 * 4.8/6.4))
         x_start = filter_cut(x[0][2:], x2, dx)
-        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}")
-        ax.plot(x_range, W_x, label=f"T = {T:.2f} \n$x_2 = ${x2:.2f}")
+        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}", color=colors[5])
+        ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0])
         #ax.plot(x_range, W_x_single, label=f"single particle dist")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
-        ax.set_ylim(0, 1.5 * np.max(W_x))
-        configure_ax(fig, ax)
+        ax.set_ylim(1e-7, 1.2 * np.max(W_x))
+        ax.set_xlim(np.min(x_range), np.max(x_range))
+        ax.set_ylabel(r"$p(\vartheta_1)$")
+        ax.set_xlabel(r"$\vartheta_1$")
+        #ax.set_yscale("log")
+        config = {
+            "increasefontsize": 0.75,
+            "labelhorizontalalignment": "right",
+        }
+        configure_ax(fig, ax, config)
         animation = partial(start_ani, ax=ax, bars=bars, x=x, x_cut=x2, dx=dx, nr_bins=nr_bins)
         fig.canvas.mpl_connect("button_press_event", animation)
         plt.show()

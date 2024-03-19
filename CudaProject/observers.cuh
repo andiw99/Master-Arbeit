@@ -2492,7 +2492,7 @@ public:
     }
 
     string get_name() override {
-        return "corr equilibration observer";
+        return "combined observer";
     }
 
     void operator()(system &sys, const State &x , double t ) override {

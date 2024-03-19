@@ -663,7 +663,10 @@ def configure_ax(fig, ax, config=None):
         ax.ticklabel_format(axis="x", style="sci")
 
     if ax.get_xscale() != "log":
-        remove_origin_ticks(ax)
+        try:
+            remove_origin_ticks(ax)
+        except IndexError:
+            pass
 
     # Füge Gitterlinien hinzu
     if config["grid"]:
