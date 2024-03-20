@@ -101,13 +101,14 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 def main():
     root = "../../Generated content/BBK/MSD/BBK/0.025"
+    #root = "../../Generated content/Final/Benchmarks/HO/T=20/eta=2/300"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
 
     a = 0
     b = 5
-    T = 20
-    eta = 1.5
-    alpha = 20
+    T = 200
+    eta = 399.5
+    alpha = 200
 
     fig, ax = plt.subplots(1, 1)
     t, sigma = theo_sigma_xx(eta, alpha, T, a, b, 200)
@@ -115,7 +116,7 @@ def main():
     ax.plot(t, sigma)
     # ax.plot(t_msd, msd)
     configure_ax(fig, ax)
-
+    plt.show()
     filepaths = list_directory_names(root)
     print(filepaths)
     for fpath in filepaths:

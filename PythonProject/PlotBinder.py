@@ -2,18 +2,21 @@ from Suite import crit_temp_measurement
 import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
-    equil_cutoff = 0.5
-    process_file_func = process_new_mag_file_to_U_L
-    simulation_path = "../../Generated content/Final/CriticalTemperature/h=5000Tc"
+    equil_cutoff = 0.1
+    process_file_func = recalculate_mag_file_to_U_L
+    simulation_path = "../../Generated content/Final/Nu-L-old"
 
 
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,
                           selected_sizes=None, value_name="U_L", file_ending="mag",
                           process_file_func=process_file_func)
 
-    T_cs, val_intersections = get_first_intersections(results, "U_L")
-    T_c = T_cs[0]
-    val_intersection = val_intersections[0]
+    try:
+        T_cs, val_intersections = get_first_intersections(results, "U_L")
+        T_c = T_cs[0]
+        val_intersection = val_intersections[0]
+    except:
+        pass
     crit_point= None
 
     config = {"labelhorizontalalignment": "right",

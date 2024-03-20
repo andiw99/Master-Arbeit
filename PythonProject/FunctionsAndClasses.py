@@ -25,6 +25,7 @@ from pathlib import Path
 # import matplotlib; matplotlib.use("TkAgg")
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
+colors += colors + colors + colors + colors
 markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
@@ -1699,7 +1700,7 @@ def get_avail_tau_dic(root_dir):
     directory_dict = {}
     for size_folder in os.listdir(root_dir):
         size_path = os.path.join(root_dir, size_folder)
-        if os.path.isdir(size_path):
+        if os.path.isdir(size_path) and size_folder[0] != ".":
             for tau_folder in os.listdir(size_path):
                 tau_path = os.path.join(size_path, tau_folder)
                 if os.path.isdir(tau_path):

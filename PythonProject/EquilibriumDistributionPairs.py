@@ -70,7 +70,7 @@ def filter_cut(x, x_cut, dx):
 
 def main():
     root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
-    root = "../../Generated content/Final/Benchmarks/1e-4/eta=1/h=2000/low-T/longer/2"
+    root = "../../Generated content/Final/Benchmarks/1e-4/eta=10/medium-high-T/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x

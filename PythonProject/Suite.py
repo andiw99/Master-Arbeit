@@ -268,6 +268,8 @@ def check_cum_variation_valid(folderpath, variation_error_rate, num_per_var_val,
     if (dif_var_mean_rate < variation_error_rate) and (squared_dif_var_mean_rate < variation_error_rate ** 2):
         return True
     else:
+        print(f"variation of {folderpath} to large, dif_var_mean_rate is {dif_var_mean_rate} vs {variation_error_rate}")
+        print(f" and squared_dif_var_mean_rate {squared_dif_var_mean_rate} vs {variation_error_rate ** 2}")
         return False
 
 def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
@@ -307,7 +309,7 @@ def check_exists(folderpath, file_ending=".cum"):
     return bool(files)
 
 def get_mean_dif_var(cum,num_per_var_val):
-    nr_intervals = len(cum) // num_per_var_val + (len(cum) % num_per_var_val != 0)
+    nr_intervals = len(cum) // num_per_var_val# + (len(cum) % num_per_var_val != 0)
     # we change the behavior, strong flucutations at the beginning are averaged out for the large sizes in the long run
     # num_per_var_val = len(cum) // nr_intervals
     dif_var_arr = []
@@ -363,10 +365,10 @@ def get_folder_average(folderpath, file_ending="mag", value="U_L"):
                     all_m.append(m_t)
             else:
                 for j, m_t in enumerate(df):
-                    all_m[i] += m_t
+                    all_m[j] += m_t
         for m_t in all_m:
-            m2 = np.mean(m_t ** 2)
-            m4 = np.mean(m_t ** 4)
+            m2 = np.mean(np.array(m_t) ** 2)
+            m4 = np.mean(np.array(m_t) ** 4)
             U_L = m4 / m2 ** 2
             cum.append(U_L)
         # averaging
@@ -525,10 +527,11 @@ class autonomous_measurement():
 
 class crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile="run_cuda.sh", nr_GPUS=6, nr_Ts=5, size_min=48,
-                          size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
+                 size_max=80, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.004, min_equil_error=0.001,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
-                 min_val_nr=2500, value_name="U_L",  file_ending="cum",
-                 process_file_func=process_file, random_init=0, second=False, observed_direction=0, value_write_density=1/100):
+                 min_val_nr=2500, value_name="U_L", file_ending="cum",
+                 process_file_func=process_file, random_init=0, second=False, observed_direction=0,
+                 val_write_density=1 / 100, sizes=None):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
@@ -560,7 +563,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.iteration_nr = 0
         self.repeat = False             # variable that is set to true if we have to repeat a simulation
         self.min_val_nr = min_val_nr
-        self.val_write_density = value_write_density
+        self.val_write_density = val_write_density
         self.equil_cutoff = equil_cutoff
         self.jobs_to_do = None          # Bookkeeping parameter to know whether I already did some jobs / specific size / temp pairs or not
 
@@ -571,6 +574,8 @@ class crit_temp_measurement(autonomous_measurement):
         self.file_ending = file_ending
         self.process_file_func = process_file_func
         self.observed_direction = observed_direction
+
+        self.sizes = sizes
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -598,8 +603,9 @@ class crit_temp_measurement(autonomous_measurement):
         # the T_array has to be added to the hierarchy
         self.all_T_dic[0] = self.T_arr  # This first array is on level 0
 
-        self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sizes, endpoint=True,
-                            dtype=np.int32)
+        if not self.sizes:
+            self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sizes, endpoint=True,
+                                dtype=np.int32)
         print(f"Initializing Simulation with T_min = {self.T_min} and T_max = {self.T_max}")
         self.max_time = self.dt * self.max_steps
         self.total_runs = self.nr_sizes * self.nr_Ts  # every temp size combo will be a seperate simulation
@@ -697,7 +703,6 @@ class crit_temp_measurement(autonomous_measurement):
             self.cur_para_nr = 0                # reset the parameter number
             self.write_para_files()  # setting up the parameter files for every simulation
             self.cur_para_nr = 0                # reset the parameter number
-            exit()
             self.run_jobs()
         else:
             print("Found valid simulation, evaluating")
@@ -960,7 +965,7 @@ class crit_temp_measurement_corr(crit_temp_measurement):
 
 class efficient_crit_temp_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile="run_cuda.sh", nr_GPUS=6, size_min=48,
-                 size_max=80, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
+                 size_max=80, max_steps=1e9, nr_sites=1e6, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
                  random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
                  process_file_func=process_file, val_write_density=1/100, second=False):
@@ -2850,10 +2855,10 @@ class amplitude_measurement(autonomous_measurement):
 
 class z_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, test_exec_file, runfile, Tc, nr_GPUS=6, size_min=64,
-                 size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=5e5, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
+                 size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=1e6, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
                  variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, val_write_density=1/100,
                  test_val_write_density=1 / 20, test_min_val_nr=2000, para_nr=200, max_moving_factor=0.005, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file):
+                 process_file_func=process_file, test_size=None):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile, para_nr=para_nr)
@@ -2871,7 +2876,10 @@ class z_measurement(autonomous_measurement):
         # What else do we need?
         self.variation_error_rate = variation_error_rate      # this will be the error of the standard deviation of the differences of the U_L values
         self.z_guess = z_guess                      # this is the guess for z that we will need to estimate how long the runs for the larger sizes should run
-        self.test_size = size_min / 2               # the test size to see how long the simulations should run will be half of the minimum size
+        if not test_size:
+            self.test_size = size_min // 2               # the test size to see how long the simulations should run will be half of the minimum size
+        else:
+            self.test_size = test_size
         # for this run we also need the equil error
         self.test_equil_time = 0                          # this is the equilibration time of the test system which will later be used to guess the simulation times for the other sizes
 
@@ -2936,6 +2944,14 @@ class z_measurement(autonomous_measurement):
                 # as soon as the rn jobs is done we can extract the test_equil_time
             # if this is available, we read the parameters? or some other file and extract the last time. Sadly I dont write the quilibration time to a file so we just read the .cum file?
             # We need the filepath
+            # plot the test measurement
+            size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size])
+            test_cum = size_cum_dic[self.test_size]
+            test_times = size_times_dic[self.test_size]
+            fig,ax = plt.subplots(1, 1)
+            ax.plot(test_times, test_cum)
+            plt.show()
+
             self.test_equil_time = self.get_last_time()
         # Now we have an equil time
         # This means we already have a test_equil_time
@@ -2967,6 +2983,8 @@ class z_measurement(autonomous_measurement):
             # I guess now is the time to construct the 'para_nr_run_dic' ?
             self.para_nr_run_dic = {}       # but first we reset it
             self.total_runs = 0
+            self.cur_run_nr = 0
+
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
             self.run_jobs()
@@ -3000,88 +3018,22 @@ class z_measurement(autonomous_measurement):
             # Okay we have the values, now we need to do the remapping
             # we need a list of z's that we want to check, just user input parameter? Nah I think we can do it like this. We will just start at 1 and go to three or something like this?
             # It wont be outside this right? Afterwards we can for every size pair get a new z interval
-            z_list = np.linspace(1, 3, 201)
             # we want to run sorted through the keys
             self.valid_sizes = sorted(self.valid_sizes)
             # It is the same thing to map the small sizes on the large sizes and vice versa, right?
             fig, ax = plt.subplots(1, 1)
-            for i, size in enumerate(self.valid_sizes):
-                # We prbably want a 'base fold' for the smallest size
-                cum = size_cum_dic[size]
-                times = size_times_dic[size]
-
-                t_fold, cum_fold = fold(times, cum, fold=self.base_fold)
-                # plot the points
-                ax.plot(t_fold, cum_fold, linestyle='', marker="x",
-                        markersize=5,
-                        color=f"C{i}", label=f"$L_x$={size},  T = {self.Tc}")
-                # the new interploation works with np.interp
-                # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
-                # what even happens when you try to use less values haha?
-                # we could just use base_fold * len(t_fold) to get the same number of values we had before but folded?
-                # The thing is for the error calculation we need the same interval for both sizes, I guess here it doesnt matter to much
-                t_inter_plot = np.linspace(np.min(t_fold), np.max(t_fold), self.base_fold * len(t_fold))
-                cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
-
-                ax.plot(t_inter_plot, cum_inter_plot, f"C{i}")
-                # okay so much for the plotting, now the refitting
-                # if there is a larger size we want to map this size onto it
-                if i < len(self.valid_sizes) - 1:
-                    next_size = self.valid_sizes[i + 1]
-                    # cumulant and time values of the next size:
-                    cum_next = size_cum_dic[next_size]
-                    times_next = size_times_dic[next_size]
-                    # the folding shall be calculated based on the z that we use? so that t_fold and t_fold_next have
-                    # approximately the same number of points in the shared interval
-                    b = next_size / size            # next size is the larger size so b > 0
-                    # values to keep track wich z is the best
-                    best_z = 0
-                    best_msd = np.infty
-                    best_t_compare_arr = []
-                    best_cum_compare_arr = []
-                    # we need to try out every z
-                    for z in z_list:
-                        # first we resacle the time of the small size?
-                        times_next_rescaled = times_next / (b ** z)
-                        # now we can look vor the shared interval by times_next and times_rescaled
-                        t_lower_limit = np.maximum(np.min(times_next_rescaled), np.min(times_next))      # the lower limit is the greater minimum of the times
-                        t_upper_limit = np.minimum(np.max(times_next_rescaled), np.max(times_next))
-
-                        # between those bounds we need an array with dense t values to compare the two cum curves
-                        # the number of values should be... i dont know how large, just large enough? The arrays we will use
-                        # to calculate the interpolation will use folded values, so just len(times_next) or something like this?
-                        t_compare_arr = np.linspace(t_lower_limit, t_upper_limit, len(times_next))
-                        # now we need the interpolations, but we want to use the interpolation of folded values, so we fold?
-                        # so now the folding of the previous will stay the same, but the folding of the next will change
-                        # if we for example rescale by a factor of 4, the folding should be 4 times as large?
-                        t_next_rescaled_fold, cum_next_fold = fold(times_next_rescaled, cum_next, b**z * self.base_fold)              # one with just the interpolation of the next curve without rescaling (Constant and independent of z)
-                        # oh maaaaaaan you did it wrong you wanted to rescale the larger size because it has more values which can be folded to get fewer fluctuations
-                        cum_next_compare_arr = np.interp(t_compare_arr, t_next_rescaled_fold, cum_next_fold)
-                        cum_compare_arr = np.interp(t_compare_arr, t_fold, cum_fold)
-                        # Okay from them we can now calculate an error?
-                        err_arr = cum_next_compare_arr - cum_compare_arr
-                        msd = np.mean(err_arr ** 2)
-                        if msd < best_msd:
-                            best_z = z
-                            best_msd = msd
-                            best_t_compare_arr = t_compare_arr
-                            best_cum_compare_arr = cum_next_compare_arr
-                # If we did this we want to plot it
-                    ax.plot(best_t_compare_arr,
-                            best_cum_compare_arr,
-                            linestyle="-", label=f"$L_x$={next_size},"
-                                                 f"  T = {self.Tc}  rescaled z = {best_z:.3f}", color=f"C{i+1}")
-            ax.set_ylabel(r"$U_L$")
-            ax.set_xlabel("t")
-            ax.set_xlim(0, ax.get_xlim()[1] / 4)
-            configure_ax(fig, ax)
-            ax.set_title("z extraction")
-            plt.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
+            self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold)
+            fig.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
+            plt.show()
+            fig, ax = plt.subplots(1, 1)
+            self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold, xlim=1)
+            fig.savefig(self.simulation_path + f"/cum-over-time-scan-whole.png", format="png")
             plt.show()
             return
         else:
             # else means we need some logic to see which measurement has to be repeated
-            print("Error of ... to large, repeating")
+            invalid_sims = np.setdiff1d(self.sizes, self.valid_sizes)
+            print(f"Error of {invalid_sims} to large, repeating")
             # So we need to know which simulations we have to repeat
             # we just remove the valid simulations from the self.sizes and run the iteration again
             for valid_sim in valid_simulations:
@@ -3097,10 +3049,95 @@ class z_measurement(autonomous_measurement):
             # now just rerun=?
             return self.iteration()
 
-    def get_results_time_resolved(self):
+    @staticmethod
+    def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5):
+        z_list = np.linspace(1, 3, 201)
+        sizes = list(size_cum_dic.keys())
+        for i, size in enumerate(sizes):
+            # We prbably want a 'base fold' for the smallest size
+            cum = size_cum_dic[size]
+            times = size_times_dic[size]
+
+            t_fold, cum_fold = fold(times, cum, fold=fold_nr)
+            # plot the points
+            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i]), marker=markers[i],
+                    markersize=5, label=f"$L_x$={size}")
+            # the new interploation works with np.interp
+            # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
+            # what even happens when you try to use less values haha?
+            # we could just use base_fold * len(t_fold) to get the same number of values we had before but folded?
+            # The thing is for the error calculation we need the same interval for both sizes, I guess here it doesnt matter to much
+            t_inter_plot = np.linspace(np.min(t_fold), np.max(t_fold), fold_nr * len(t_fold))
+            cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
+
+            #ax.plot(t_inter_plot, cum_inter_plot, color=colors[2 * i], alpha=0.5)
+            # okay so much for the plotting, now the refitting
+            # if there is a larger size we want to map this size onto it
+            if i < len(sizes) - 1:
+                next_size = sizes[i + 1]
+                # cumulant and time values of the next size:
+                cum_next = size_cum_dic[next_size]
+                times_next = size_times_dic[next_size]
+                # the folding shall be calculated based on the z that we use? so that t_fold and t_fold_next have
+                # approximately the same number of points in the shared interval
+                b = next_size / size  # next size is the larger size so b > 0
+                # values to keep track wich z is the best
+                best_z = 0
+                best_msd = np.infty
+                best_t_compare_arr = []
+                best_cum_compare_arr = []
+                # we need to try out every z
+                for z in z_list:
+                    # first we resacle the time of the small size?
+                    times_next_rescaled = times_next / (b ** z)
+                    # now we can look vor the shared interval by times_next and times_rescaled
+                    t_lower_limit = np.maximum(np.min(times_next_rescaled), np.min(
+                        times_next))  # the lower limit is the greater minimum of the times
+                    t_upper_limit = np.minimum(np.max(times_next_rescaled), np.max(times_next))
+
+                    # between those bounds we need an array with dense t values to compare the two cum curves
+                    # the number of values should be... i dont know how large, just large enough? The arrays we will use
+                    # to calculate the interpolation will use folded values, so just len(times_next) or something like this?
+                    t_compare_arr = np.linspace(t_lower_limit, t_upper_limit, len(times_next))
+                    # now we need the interpolations, but we want to use the interpolation of folded values, so we fold?
+                    # so now the folding of the previous will stay the same, but the folding of the next will change
+                    # if we for example rescale by a factor of 4, the folding should be 4 times as large?
+                    t_next_rescaled_fold, cum_next_fold = fold(times_next_rescaled, cum_next,
+                                                               b ** z * fold_nr)  # one with just the interpolation of the next curve without rescaling (Constant and independent of z)
+                    # oh maaaaaaan you did it wrong you wanted to rescale the larger size because it has more values which can be folded to get fewer fluctuations
+                    cum_next_compare_arr = np.interp(t_compare_arr, t_next_rescaled_fold, cum_next_fold)
+                    cum_compare_arr = np.interp(t_compare_arr, t_fold, cum_fold)
+                    # Okay from them we can now calculate an error?
+                    err_arr = cum_next_compare_arr - cum_compare_arr
+                    msd = np.mean(err_arr ** 2)
+                    if msd < best_msd:
+                        best_z = z
+                        best_msd = msd
+                        best_t_compare_arr = t_compare_arr
+                        best_cum_compare_arr = cum_next_compare_arr
+                # If we did this we want to plot it
+                ax.plot(best_t_compare_arr,
+                        best_cum_compare_arr,
+                        linestyle="-", label=f"$L_x$={next_size},"
+                                             f" rescaled z = {best_z:.3f}", color=colors[2 * (i)])
+        ax.set_ylabel(r"$U_L$")
+        ax.set_xlabel("t")
+        ax.set_xlim(0, ax.get_xlim()[1] * xlim)
+
+        config = {
+            "increasfontsize": 0.75,
+            "labelhorizontalalignment": "right",
+        }
+
+        configure_ax(fig, ax)
+        #ax.set_title("z extraction")
+
+    def get_results_time_resolved(self, sizes=None):
         size_cum_dic = {}
         size_times_dic = {}
-        for size in self.valid_sizes:
+        if not sizes:
+            sizes = self.valid_sizes
+        for size in sizes:
             size_path = os.path.join(self.simulation_path, str(size))
             if os.path.isdir(size_path):
                 temp_path = os.path.join(size_path, f"{self.Tc:.6f}")  # we only want to look at the current used critical temperature
@@ -3118,8 +3155,8 @@ class z_measurement(autonomous_measurement):
         # sooo for every size we need to determine how many jobs we need to submit
         for i, size in enumerate(self.sizes):
             nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))   # nr of subsystems per job
-            min_jobs = int(
-                self.min_nr_sites / self.nr_sites)  # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
+            min_jobs = max(int(
+                self.min_nr_sites / self.nr_sites), 1)  # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
             if nr_subsystems >= self.min_nr_systems / min_jobs:
                 # if the number of systems per job * the minimumb number of jobs given by the minimum number of system sites
                 # divided by the nr of sites per job is larger than the required amount of systems, wo only do the
@@ -3202,7 +3239,7 @@ class z_measurement(autonomous_measurement):
             # to construct the para set we need to know how many subsystems we should initialize
             nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
             # the endtime can now be guessed using the test equilibration time and the z guess
-            endtime = (size / self.test_size) ** self.z_guess * (self.test_equil_time / 4)
+            endtime = (size / self.test_size) ** self.z_guess * (self.test_equil_time)
             # depending on the endtime we also need a density of cumulant values.
             nr_cum_values = endtime / self.dt * self.val_density            # endtime / dt is the number of steps, times the density is the number of cum values
             with open(self.filepath + "/parameters/para_set_" + f"{self.get_write_para_nr()}" + '.txt', 'w') as f:
@@ -3254,32 +3291,33 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -130000
-    #J_para = -9
-    J_perp = -1300
-    #J_perp = -0.1
-    h = 5200
+    #J_para = -130000
+    J_para = -3.11
+    #J_perp = -1300
+    J_perp = -0.1
+    h =  0.2827272727272727
     #h = 0.5
     eta = 1
     p = 2.5
     dt = 0.00001
-    # dt = 0.01
+    dt = 0.01
     max_size_Tc = 128
     min_size_Tc = 64
     nr_sizes_Tc = 2
     nr_Ts = 10
     cum_error = 0.0015
-    equil_cutoff_Tc = 0.5
+    equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
     process_file_func = recalculate_mag_file_to_U_L
-    value_write_density = 0.001
+    value_write_density = 0.01
+    nr_sites = 1e6
 
 
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=31-old/"
 
     Tc_exec_file = "AutoCumulant.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -3296,10 +3334,14 @@ def main():
 
     # T- parameters?
     max_rel_intersection_error = 0.02
-    min_cum_nr = 5000
+    min_cum_nr = 500
     moving_factor = 0.001
-    T_min = 29071.961123
-    T_max = 31494.624550
+    # T_min = 29071.961123
+    # T_max = 31494.624550
+    T_min = None
+    T_max = None
+    T_min = 0.83601154
+    T_max = 0.8701344599999999
 
     # Quench parameters
     max_size = 1024
@@ -3308,7 +3350,7 @@ def main():
 
     # Amplitude parameters
     amplitude_size = 1024
-    equil_error = 0.05
+    equil_error_ampl = 0.05
     equil_cutoff = 0.01
 
     # z parameters
@@ -3337,19 +3379,19 @@ def main():
                                     intersection_error=max_rel_intersection_error, max_moving_factor=moving_factor,
                                     min_val_nr=min_cum_nr, equil_error=cum_error, equil_cutoff=equil_cutoff_Tc,
                                     file_ending=file_ending, value_name=value_name, process_file_func=process_file_func,
-                                    value_write_density=value_write_density, runfile=runfile,
+                                    val_write_density=value_write_density, runfile=runfile,
                                     T_min=T_min, T_max=T_max, para_nr=para_nr)
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
         para_nr = int(input("parameter number.."))
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file,
-                                                runfile, nr_GPUS=nr_gpus,
-                                                size_min=min_size_Tc, size_max=max_size_Tc, equil_error=equil_error,
+                                                runfile, nr_GPUS=nr_gpus, T_min=T_min, T_max=T_max,
+                                                size_min=min_size_Tc, size_max=max_size_Tc, equil_error=cum_error,
                                                 min_equil_error=cum_error, intersection_error=max_rel_intersection_error,
                                                 max_moving_factor=moving_factor, para_nr=para_nr, random_init=random_init,
                                                 min_val_nr=min_cum_nr, file_ending=file_ending, value_name=value_name,
                                                 process_file_func=process_file_func, val_write_density=value_write_density,
-                                                equil_cutoff=equil_cutoff_Tc)
+                                                equil_cutoff=equil_cutoff_Tc, nr_sites=nr_sites)
         T_c, T_c_error = sim.routine()
     else:
         T_c = float(input("Enter critical temperature:"))
@@ -3360,7 +3402,7 @@ def main():
     if measurements["Amplitude"]:
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Amplitude",
                                      amplitude_exec_file, T_c, nr_GPUS=nr_gpus, size=amplitude_size,
-                                     equil_error=equil_error, equil_cutoff=equil_cutoff)
+                                     equil_error=equil_error_ampl, equil_cutoff=equil_cutoff)
         ampl.run()
     if measurements["z"]:
         z_measure = z_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "z",

@@ -149,7 +149,7 @@ public:
             path += ".csv";
             open_app_stream(path);  // with plus since we have the filename stem here?
             write_interval = (paras[end_time] - paras[start_time]) / (double)nr_values;
-            timepoint = paras[Parameter::start_time] + write_interval;      // We dont want to write the starting position again
+            timepoint = paras[Parameter::start_time]; // + write_interval;      // We dont want to write the starting position again
             cout << "pickup, setting the next write to " << timepoint << endl;
         } else {
             open_stream(folderpath / (filename + ".csv"));

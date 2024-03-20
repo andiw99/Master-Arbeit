@@ -7,35 +7,43 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
+    h_arr = [0.4161791450287818]
     h_arr = [5200] #, 1000, 10000, 20000]
+    h_arr = [1]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -130000
-    J_perp = -1300
+    J_para = -10
+    J_perp = -0.1
+    # J_para = -130000
+    # J_perp = -1300
+
     p = 2.5
     eta_arr = [1]
     #eta_arr = [0.01, 0.05]
-    dt = 1e-5
+    #dt = 1e-5
+    dt = 1e-4
+    dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement/"
+    simulation_path = "../../Generated content/Final/z-measurement-old-paras/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulant.cu"
-
-    runfile_z =  "run_cuda_casus_low.sh"
+    runfile_z = "run_cuda_gpu_a100_low.sh"
+    #runfile_z =  "run_cuda_casus_low.sh"
 
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 64
     size_max_z = 256
+    z_test_size = 32
     nr_sizes = 3
     z_min_nr_sites = 1e6
     z_min_nr_systems = 500
-    z_equil_error = 0.002
+    z_equil_error = 0.004
 
     # mag stuff
     file_ending = "mag"
@@ -45,16 +53,18 @@ def main():
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
     # any previous measurements, not only the the ones the coincide with the current one
+    # test_min_val_nr = 1000
+    # val_write_density = 1 / 1000
+    # val_write_density_test = 1 / 1000
     test_min_val_nr = 200
-    val_nr_z = 1000
-    val_write_density = 1 / 10000
-    val_write_density_test = 1 / 10000
-    moving_factor = 0.02
-    min_equil_error = 0.01
-    equil_cutoff_Tc = 0.5
-    max_rel_intersection_error = 0.03
+    val_write_density = 1 / 100
+    val_write_density_test = 1 / 100
 
+
+    variation_error_rate = 0.02
+    nr_sites = 4e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
+    T_c = 0.1975 * 10
 
     for h in h_arr:
         print(h)
@@ -65,7 +75,8 @@ def main():
                                       nr_sizes=nr_sizes, min_nr_sites=z_min_nr_sites, min_nr_systems=z_min_nr_systems,
                                       equil_error=z_equil_error, para_nr=para_nr_z, test_min_val_nr=test_min_val_nr,
                                       val_write_density=val_write_density, test_val_write_density=val_write_density_test,
-                                      file_ending=file_ending, value_name=value_name)
+                                      file_ending=file_ending, value_name=value_name, variation_error_rate=variation_error_rate,
+                                      nr_sites=nr_sites, test_size=z_test_size)
             z_measure.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

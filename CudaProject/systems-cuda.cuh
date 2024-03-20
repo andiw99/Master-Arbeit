@@ -1242,6 +1242,9 @@ public:
                                   x.begin() + n,
                                   rand_normal_values(p_ampl, 0, 1));
 
+            } else {
+                cout << "I am a bit confused, are the impulses not initalized to be zero?" << endl;
+                thrust::fill(x.begin() + n, x.end(), 0.0);
             }
         }
     };
@@ -2692,6 +2695,109 @@ public:
     }
     string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench_center_obc";
+    }
+};
+
+struct quadratic_trapped_lattice : public System {
+
+public:
+    const double alpha;
+    const double J;
+    // systemsize should probably be a template argument?
+    // In contrast to the brownian system we need one more parameter for the timescale of the cooling down
+    // the current temperature
+    string rng = "RNG";
+    string theta_filling = "Filling of theta";
+    string functor_point = "Functor Calc";
+    checkpoint_timer timer {};
+    // parameters of the potential and of the Interaction
+    struct harmonic_trap_functor {
+        // I think also the potential and interaction parameters have to be set in the functor
+        // I mean i could template everything and this would probably also give a bit of potential but is it really
+        // worth it?
+        // why would you not use templates in c++ instead of parameters, only when the parameter is not clear at
+        // runtime, am i right? since lattice size, potential parameters, etc. don't change during runtime we
+        // could just template everything
+        const double alpha, J, eta;
+
+        harmonic_trap_functor(const double eta, const double alpha,
+                              const double J) : alpha(alpha), J(J), eta(eta) { }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            double q = thrust::get<0>( tup );
+            double p = thrust::get<1>( tup );
+            thrust::get<2>( tup ) = p;
+            double q_left = thrust::get<4>(tup);
+            double q_right = thrust::get<5>(tup);
+            double q_up = thrust::get<6>(tup);
+            double q_down = thrust::get<7>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<3>( tup ) = (-eta) * p                                                                                  // Friction
+                                    - alpha * (2 * q)                                                        // double well potential
+                                    + interaction;       // Interaction
+        }
+    };
+
+    struct linear_force {
+        const double J, alpha;
+
+        linear_force(const double J, const double alpha) :
+                J(J), alpha(alpha) {
+        }
+
+        template<class Tup>
+        __host__ __device__ void operator()(Tup tup) {
+            // Okay I think we have to think about where to % 2pi the system and I think i would like
+            // to do it here since I can then easier switch between the models and do not have to adjust the stepper
+            double q = thrust::get<0>( tup );
+            double q_left = thrust::get<2>(tup);
+            double q_right = thrust::get<3>(tup);
+            double q_up = thrust::get<4>(tup);
+            double q_down = thrust::get<5>(tup);
+            double interaction = J * ((q - q_left) + (q - q_right) + (q - q_up) + (q - q_down));
+
+            thrust::get<1>( tup ) =  -alpha * (2 * q)  // linear force
+                                     + interaction;       // Interaction
+        }
+    };
+
+    template<class State, class Deriv>
+    void calc_drift(const State &x, Deriv &dxdt, double t) {
+        timer.set_startpoint(functor_point);
+
+        harmonic_trap_functor functor = harmonic_trap_functor(System::eta, alpha, J);
+
+        System::derivative_calculation(x, dxdt, t, functor);
+        timer.set_endpoint(functor_point);
+    }
+
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        linear_force functor = linear_force(J, alpha);
+        System::force_calculation(x, dxdt, t, functor);
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        timer.set_startpoint(rng);
+        System::calc_diff(theta, t);
+        timer.set_endpoint(rng);
+    }
+
+public:
+    quadratic_trapped_lattice(const double T, const double eta, const double alpha, const double J, const size_t lat_dim, const int init_step=0)
+            : System(init_step, eta, T, lat_dim), alpha(alpha), J(J) {
+        cout << "Lattice quadratic Trap System is constructed" << endl;
+    }
+
+    quadratic_trapped_lattice(map<Parameter, double> paras): System(paras), alpha(paras[Parameter::alpha]), J(paras[Parameter::J]) {
+        cout << "Lattice quadratic Trap System from parameter map is constructed" << endl;
+    }
+
+    double get_cur_T() const{
+        return System::T;
     }
 };
 
