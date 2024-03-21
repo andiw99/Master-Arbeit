@@ -31,7 +31,7 @@ def main():
     simulation_path = "../../Generated content/Final/z-measurement-old-paras-obc-denser/"
 
     z_exec_file = "AutoZ.cu"
-    z_test_exec_file = "AutoCumulant.cu"
+    z_test_exec_file = "AutoCumulantOBC.cu"
     runfile_z = "run_cuda_gpu_a100_low.sh"
     #runfile_z =  "run_cuda_casus_low.sh"
 
