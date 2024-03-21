@@ -35,6 +35,10 @@ int main(int argc, char* argv[]) {
     // auto* ft_obs = new ft_observer<relax_system, state_type>(paras[nr_ft_values]);
 
     // templating..
+/*    SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<euler_mayurama_stepper,
+            state_type,
+            algebra, operations,
+            relax_system>(paras, simulation_path);*/
     SubsystemRelaxationSimulation simulation = SubsystemRelaxationSimulation<bbk_stepper,
             state_type,
             algebra, operations,

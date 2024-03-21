@@ -3216,6 +3216,7 @@ class z_measurement(autonomous_measurement):
 
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
+            exit()
             self.run_jobs()
             self.cur_run_nr = 0
             #... we dont know whether the simulations are valid atm so we dont add them to valid_sizes?
@@ -3232,6 +3233,9 @@ class z_measurement(autonomous_measurement):
                                                   self.variation_error_rate,
                                                   self.nr_points_diff_variance,
                                                   self.dt / self.val_density))
+        for valid_simulation in valid_simulations:
+            self.valid_sizes.append(valid_simulation[0])
+        self.valid_sizes = list(set(self.valid_sizes))
         if len(valid_simulations) == self.nr_sizes:
             # this means the simulation was valid and we can do the rescaling
             print("Simulation successful, evaluating")
@@ -3242,13 +3246,13 @@ class z_measurement(autonomous_measurement):
             # and another that maps it to the time
             # We shouldnt have different temperatures in this case, but what if we do because we adjusted the critical temperature?
             # We write something that takes a simulation folder and iterates through every simulation for like the 100th time,
+            self.valid_sizes = sorted(self.valid_sizes)
             # shouldnt you somehow encapsulate this? F it for now, this could be complicated
             size_cum_dic, size_times_dic = self.get_results_time_resolved()
             # Okay we have the values, now we need to do the remapping
             # we need a list of z's that we want to check, just user input parameter? Nah I think we can do it like this. We will just start at 1 and go to three or something like this?
             # It wont be outside this right? Afterwards we can for every size pair get a new z interval
             # we want to run sorted through the keys
-            self.valid_sizes = sorted(self.valid_sizes)
             # It is the same thing to map the small sizes on the large sizes and vice versa, right?
             fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
             self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold)

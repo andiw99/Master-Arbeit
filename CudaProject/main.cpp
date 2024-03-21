@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]) {
     path filepath;
-    typedef quadratic_trapped_lattice relax_system;
+    typedef XY_silicon_anisotrop_subsystems_obc relax_system;
     if (argc == 2) {
         filepath = "parameters/para_set_" + (string)argv[1] + ".txt" ;
     } else {
@@ -40,6 +40,10 @@ int main(int argc, char* argv[]) {
             algebra, operations,
             relax_system>(paras, simulation_path);
     simulation.register_observer(relax_obs);
+    // simulation.register_observer(ner_obs);
+    // simulation.register_observer(cum_obs);
+    // simulation.register_observer(corr_obs);
+    // simulation.register_observer(ft_obs);
     simulation.simulate();
     return 0;
 }

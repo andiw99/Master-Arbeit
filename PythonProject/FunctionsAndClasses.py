@@ -581,6 +581,7 @@ PLOT_DEFAULT_CONFIG = {
     "legendfontsize": 11,
     "increasefontsize": 0.0,
     "legendlocation": "best",
+    "legendtitle": "",
     "ticklength": 6,
     "tickwidth": 2,
     "x_ticklength": 6,
@@ -692,7 +693,8 @@ def configure_ax(fig, ax, config=None):
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
     if config["legend"]:
-        ax.legend(fontsize=config["legendfontsize"], loc=config["legendlocation"])
+        ax.legend(title=config["legendtitle"], fontsize=config["legendfontsize"], loc=config["legendlocation"],
+                  title_fontsize=config["legendfontsize"], alignment="left")
     if config["tight_layout"]:
         plt.tight_layout()
 

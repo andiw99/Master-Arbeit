@@ -6,6 +6,7 @@ from functools import partial
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator
 from scipy.integrate import dblquad
+from matplotlib.ticker import MultipleLocator
 
 def boltzmann_dist(x, p, beta, potential):
     return np.exp(- beta * ((p ** 2) / 2 + potential(x, p)))
@@ -41,7 +42,7 @@ def start_ani(event, ax, bars, x, x_cut, dx, nr_bins=100):
         for line in x:
             [b.remove() for b in bars]
             line_filter = filter_cut(line[2:], x_cut, dx)
-            count, bins, bars = ax.hist(line_filter, nr_bins, density=True, color=colors[5])
+            count, bins, bars = ax.hist(line_filter, nr_bins, density=True, color=colors[1])
             plt.draw()
             ax.set_title(f"t = {line[0]}")
             plt.pause(0.1)
@@ -70,7 +71,7 @@ def filter_cut(x, x_cut, dx):
 
 def main():
     root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
-    root = "../../Generated content/Final/Benchmarks/1e-4/eta=10/medium-high-T/2"
+    root = "../../Generated content/Final/Benchmarks/1e-2/eta=1/h=100-J=40/high-T/shorter/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
@@ -141,20 +142,24 @@ def main():
         W_x_single /= Z_single
         fig, ax = plt.subplots(1, 1, figsize=(10, 10 * 4.8/6.4))
         x_start = filter_cut(x[0][2:], x2, dx)
-        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}", color=colors[5])
-        ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0])
+        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"dt = {dt}", color=colors[1])
+        ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0], linewidth=3)
         #ax.plot(x_range, W_x_single, label=f"single particle dist")
         ax.set_title(f"t = {x[0][0]}, dt = {dt}")
         ax.set_ylim(1e-7, 1.2 * np.max(W_x))
         ax.set_xlim(np.min(x_range), np.max(x_range))
         ax.set_ylabel(r"$p(\vartheta_1)$")
         ax.set_xlabel(r"$\vartheta_1$")
+
         #ax.set_yscale("log")
         config = {
             "increasefontsize": 0.75,
             "labelhorizontalalignment": "right",
         }
         configure_ax(fig, ax, config)
+        ax.xaxis.set_major_locator(MultipleLocator(base=np.pi / 8))
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+        ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
         animation = partial(start_ani, ax=ax, bars=bars, x=x, x_cut=x2, dx=dx, nr_bins=nr_bins)
         fig.canvas.mpl_connect("button_press_event", animation)
         plt.show()

@@ -85,6 +85,7 @@ public:
             obs->operator()(sys, x, t); // Observing before anything happens
             Singleton_timer::set_endpoint(obs->get_name());
         }
+        cout << "Starting to step?" << endl;
         while (t < end_time){
 /*            if (t > 0.95 * end_time) {
                 for(int i = 0; i <= 1000; i++) {
@@ -121,17 +122,13 @@ template<
         class time_type = value_type
 >
 class euler_mayurama_stepper : public stepper<state_type, algebra, operations, System, value_type, time_type> {
-    string system_name = "System";
-    string applying_name = "Applying Euler";
-    string rng = "RNG during Euler";
-    string functor = "Functor during Euler";
-    checkpoint_timer timer{};
 public:
     typedef System Sys;
-    using stepper<state_type, algebra, operations, System, value_type, time_type>::dxdt;
-    using stepper<state_type, algebra, operations, System, value_type, time_type>::theta;
-    using stepper<state_type, algebra, operations, System, value_type, time_type>::N;
-    using stepper<state_type, algebra, operations, System, value_type, time_type>::stepper;
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    using stepper::dxdt;
+    using stepper::theta;
+    using stepper::N;
+    using stepper::stepper;
     // observer* Observer;
     // the stepper needs a do_step method
     // I think our do step method needs an additional parameter for theta? Maybe not, we will see
@@ -139,7 +136,7 @@ public:
     // i think later the system is called to perform the operation on the state types
 
 
-    void do_step(Sys& sys, state_type& x, time_type dt, time_type t) {
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type& t) override {
         // okay we don't need this for_each3 stuff, we only need to apply x_(n+1) = x_n + k_1 dt + theta sqrt(dt)
         // first we need to calculate the derivative with the system and save it to temporary class things
         // i don't even think that we need dxdt as parameter
@@ -148,14 +145,14 @@ public:
         // No i would say we also calculate the stochastic part
         // so we give the system the state and istruct it later to save its calculations in dxdt and theta so that we
         // can later iterate over the lattice and apply the operation, meaning the update
-        timer.set_startpoint(system_name);
-        timer.set_startpoint(functor);
+        // timer.set_startpoint(system_name);
+        // timer.set_startpoint(functor);
         sys.calc_drift(x, dxdt, t);
-        timer.set_endpoint(functor);
-        timer.set_startpoint(rng);
+        //timer.set_endpoint(functor);
+        //timer.set_startpoint(rng);
         sys.calc_diff(theta, t);
-        timer.set_endpoint(rng);
-        timer.set_endpoint(system_name);
+        // timer.set_endpoint(rng);
+        // timer.set_endpoint(system_name);
         // this should set the correct values for dxdt and theta so that they can be applied in apply_em
         // can we print them here?
 
@@ -166,7 +163,7 @@ public:
         // for the update we need to define a type of a function, but i don't really understand the syntax
         // okay so the plan is to have a new name for the templated struct apply_em that is a member of operations
         // so that we can later more clearly instantiate the struct apply_em with the correct template
-        timer.set_startpoint(applying_name);
+        // timer.set_startpoint(applying_name);
         typedef typename operations::template apply_em<time_type> apply_em;
         // this is the operation that i want to apply on every lattice site
         // cout << endl << endl;
@@ -178,7 +175,7 @@ public:
         sys.map_state(x);
         // cout << "After application" << endl;
         // cout << endl;
-        timer.set_endpoint(applying_name);
+        // timer.set_endpoint(applying_name);
         // and that should already be it?
         // Observe? How much time does this take?
         // so i also want to write down the temperature of the step, but i don't want to give it to the observer
@@ -186,15 +183,17 @@ public:
         // we could give the system to the observer, this would be possible, so that we can use sys.getT in a
         // special observer for the systems with temperature
         // Observer->operator()(sys, x, t);
+        t += dt;
     }
 
     // i am currently not sure what parameters we additionally need, we don't have temporary x values like for the
     // runge kutta scheme, at least the system size should be a parameter i guess
     // I don't really get how this stuff is instantiated here
-    euler_mayurama_stepper(size_t N) : stepper<state_type, algebra, operations, System, value_type, time_type>(N) //, Observer(Obs)
+    euler_mayurama_stepper(size_t N) : stepper(N) //, Observer(Obs)
     {
+        cout << "initializing euler mayurama stepper" << endl;
     }
-
+    euler_mayurama_stepper(map<Parameter, double> paras): euler_mayurama_stepper(2*(int)paras[total_size]){}
 /*    euler_mayurama_stepper(size_t N) : N(N) {
         Observer = new observer();
     }*/
@@ -204,7 +203,7 @@ public:
     // so we skip this for now
 
     void print_stepper_info() override {
-        stepper<state_type, algebra, operations, System, value_type, time_type>::print_stepper_info();
+        stepper::print_stepper_info();
     }
 };
 
@@ -464,14 +463,19 @@ public:
 
     euler_combined() {} // TODO default constructor, could be inherited but...
 
-    euler_combined(size_t N, int K, double tol, int switch_count = 10000, double reduction_factor=1.5) : euler_mayurama_stepper(N),
+    euler_combined(size_t N, int K, double tol, int switch_count = 1, double reduction_factor=1.5) : euler_mayurama_stepper(N),
                                                                                                          dx_drift_dt(N), x_drift(N), reduction_factor(reduction_factor),
                                                                                                          k(K), tol(tol), prev_accepted_k(K), switch_count(switch_count), first_k(K)
     {
         cout << "creating euler combined stepper" << endl;
     }
 
-    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[Parameter::tol]){}
+    euler_combined(map<Parameter, double> paras): euler_combined(2*(int)paras[total_size], paras[K], paras[Parameter::tol]){
+        cout << "Initializing euler_combined stepper from paras" << endl;
+        cout << "N =" << N << endl;
+        switch_count = 0;
+        switch_counter = 1;
+    }
 
     int get_k() {
         return k;
@@ -494,6 +498,63 @@ public:
 private:
     state_type x_drift, dx_drift_dt;
 };
+
+/*template<
+        class state_type,
+        class algebra,
+        class operations,
+        class System,
+        class value_type = double,
+        class time_type = value_type
+>
+class euler_stepper : public euler_mayurama_stepper<state_type, algebra, operations, System, value_type, time_type>{
+    typedef typename operations::template apply_drift<time_type> apply_drift;
+    typedef typename operations::template sum<value_type> sum;
+    typedef typename operations::template apply_diff<time_type> apply_diff;
+    typedef euler_mayurama_stepper<state_type, algebra, operations, System, value_type, time_type> euler_mayurama_stepper;
+    typedef stepper<state_type, algebra, operations, System, value_type, time_type> stepper;
+    using stepper::dxdt;
+    state_type F = dxdt;
+    using stepper::theta;
+    using stepper::N;       // this is 2 * n so the size of a normal vector
+    using stepper::stepper;
+    using euler_mayurama_stepper::theta;
+    using euler_mayurama_stepper::N;
+    using euler_mayurama_stepper::dxdt;
+*//*    using do_euler_step = euler_mayurama_stepper<state_type, algebra, operations,
+            value_type, time_type>::do_step;*//*
+public:
+    typedef System Sys;
+
+    void print_stepper_info() override {
+        euler_mayurama_stepper::print_stepper_info();
+    }
+
+    void do_step(Sys& sys, state_type& x, time_type dt, time_type &t) override {
+        euler_mayurama_stepper::do_step(sys, x, dt, t);
+        t += dt;
+    }
+
+*//*
+    template<class Sys>
+    void step_until(time_type end_time, Sys& sys, state_type& x, time_type dt_max, time_type &t) {
+        while (t < end_time){
+            do_step(sys, x, dt_max, t);
+        }
+    }
+*//*
+
+
+    euler_stepper(size_t N) : euler_mayurama_stepper(N)
+    {
+    }
+    euler_stepper(map<Parameter, double> paras): euler_stepper(2*(int)paras[total_size]){
+        cout << "initializing euler stepper from paras" << endl;
+    }
+
+private:
+    state_type x_drift, dx_drift_dt;
+};*/
 
 template<
         class state_type,
