@@ -1082,6 +1082,7 @@ class crit_temp_measurement(autonomous_measurement):
             value = value[(T_min <= T) & (T <= T_max)]
             T = T[(T_min <= T) & (T <= T_max)]
 
+            print("size before difference: ", size)
             diff = central_difference(value, T)
 
             sizes.append(size)
@@ -3216,9 +3217,9 @@ class z_measurement(autonomous_measurement):
 
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
-            exit()
             self.run_jobs()
             self.cur_run_nr = 0
+            self.cur_para_nr = 0        # I dont get anymore what system you thought out here
             #... we dont know whether the simulations are valid atm so we dont add them to valid_sizes?
         return self.evaluate()
 

@@ -2464,6 +2464,7 @@ public:
             ft_file.open(filepath_ft);
             // We only want to do this if we are creating a new file?
             ofile << "t,xix,xiy" << endl;
+            ft_file << "t;ft_k;ft_l" << endl;
         } else {
             // If we have the memory initialization we also want to load the correlation length values into cache
             // I thinkt we should do that before we decide to open this file also as output stream

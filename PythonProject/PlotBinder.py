@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
     process_file_func = recalculate_mag_file_to_U_L
-    simulation_path = "../../Generated content/Final/Nu-L-old-selected"
+    simulation_path = "../../Generated content/Final/Nu-L-old"
 
     selected_sizes = [128, 16, 48, 72]
     selected_sizes = None
@@ -26,8 +26,8 @@ def main():
     fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=crit_point, value_name="U_L", title="Binder Cumulant on T",
                                            plotname="cum_time_avg", equil_error=None, config=config)
     plt.show()
-
-    fig, ax = crit_temp_measurement.fit_and_plot_nu(simulation_path, results, crit_point=None, T_range=None, value_name="U_L")
+    T_range = (0.836012, 0.870134)
+    fig, ax = crit_temp_measurement.fit_and_plot_nu(simulation_path, results, crit_point=None, T_range=T_range, value_name="U_L")
     create_directory_if_not_exists(f"{simulation_path}/plots/")
     fig.savefig(simulation_path + f"/plots/nu.png", format="png",
                 dpi=300, transparent=False)

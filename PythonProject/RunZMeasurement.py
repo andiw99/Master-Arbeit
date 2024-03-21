@@ -37,10 +37,10 @@ def main():
 
     # z parameters
     para_nr_z = int(input("parameter number ..."))
-    size_min_z = 32
+    size_min_z = 64
     size_max_z = 256
     z_test_size = 32
-    nr_sizes = 4
+    nr_sizes = 3
     z_min_nr_sites = 1e6
     z_min_nr_systems = 2000
     z_equil_error = 0.004
@@ -62,7 +62,7 @@ def main():
     val_write_density_test = 1 / 100
 
 
-    variation_error_rate = 5.5
+    variation_error_rate = 0.003
     nr_sites = 2e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1975 * 10

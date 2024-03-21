@@ -14,32 +14,41 @@ def main():
     h_arr = np.array([10])
     h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
     h_arr = [5200] #, 1000, 10000, 20000]
+    h_arr = [1]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -130000
-    J_perp = -1300
+    # J_para = -130000
+    # J_perp = -1300
+    J_para = -10
+    J_perp = -0.1
+
     p = 2.5
     eta_arr = [1, 10]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
+    dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Quenches/"
+    simulation_path = "../../Generated content/Final/Quenches-old/"
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
 
     # Quench parameters
-    max_size = 8200
+    max_size = 2100
     min_nr_sites = 1e6
-    max_nr_quench_steps = 2e6
-    max_tau = 17000
+    max_nr_quench_steps = 1e6
+    nr_sites = 2e6
+    max_tau = 10000
+    min_nr_systems = 20
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 
-    T_c = 21351     # maybe this T_c is to low?
+    #T_c = 21351     # maybe this T_c is to low?
+    T_c = 0.1975 * 10
+
 
     for h in h_arr:
         print(h)
@@ -48,7 +57,7 @@ def main():
             quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + f"Damping/Quench/{eta}",
                                         quench_exec_file, runfile_quench, T_c, nr_GPUS=nr_gpus, size_max=max_size,
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
-                                        para_nr=para_nr_quench, tau_max=max_tau)
+                                        para_nr=para_nr_quench, tau_max=max_tau, nr_sites=nr_sites)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

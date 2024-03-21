@@ -40,8 +40,8 @@ def main():
     #max_T = 0.96
 
     min_T = 0.98 * (0.853073)
-    max_T = 1.04 * (0.853073)
-    nr_Ts = 7
+    max_T = 1.02 * (0.853073)
+    nr_Ts = 5
 
     # we should start at another parameter file nr because yeah
     para_nr = 230
@@ -57,7 +57,7 @@ def main():
     Ls = [16, 24, 32, 40, 48, 56, 64, 72, 96, 128]
     Ls = [56, 84, 96, 112, 128]
 
-    Ls = [8, 16, 32]
+    Ls = [84, 112]
     Ly_Lx = 1 / 2
 
     crit_temps = []

@@ -2341,6 +2341,8 @@ def central_difference(y, x):
     """
     if len(y) % 2 == 0:
         print("EVEN NUMBERS NOT IMPLEMENTED")
+        print("y ", y)
+        print("x ", x)
         pass
     else:
         n = len(y) // 2     # ''accuracy''
