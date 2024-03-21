@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 
 def main():
     #simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/L/'
-    simulation_folder = '../../Generated content/Final/Nu-L/'
+    simulation_folder = '../../Generated content/Final/Nu-L-old/'
     threshold = 0.1
     transparent_plots = False
     linewidth = 1

@@ -1,4 +1,5 @@
 import csv
+import math
 import os
 import sys
 
@@ -29,7 +30,7 @@ colors += colors + colors + colors + colors
 markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
-
+standard_figsize = (10, 4.8 / 6.4 * 10)
 
 def get_point_kwargs_color(color, markeredgewidth=1):
     return {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": color, "markeredgewidth": markeredgewidth}
@@ -593,6 +594,7 @@ PLOT_DEFAULT_CONFIG = {
     "gridalpha": 0.5,
     "labelrotation": 0,
     "labelhorizontalalignment": "center",
+    "labelverticalalignment": "center",
     "grid": True,
     "tight_layout": True,
     "legend": True,
@@ -684,7 +686,8 @@ def configure_ax(fig, ax, config=None):
 
     # rotate the y label
     ax.set_ylabel(ax.get_ylabel(), rotation=config["labelrotation"],
-                  fontsize=config["ylabelsize"], ha=config["labelhorizontalalignment"])
+                  fontsize=config["ylabelsize"], ha=config["labelhorizontalalignment"],
+                  va=config["labelverticalalignment"])
     ax.set_xlabel(ax.get_xlabel(), fontsize=config["xlabelsize"])
     ax.set_title(ax.get_title(), fontsize=config["titlesize"])
     #legend
@@ -2299,6 +2302,66 @@ def find_size_folders(directory):
             except ValueError:
                 continue
     return sorted(integer_folders, reverse=True)
+
+def central_difference_wrong(y, x):
+    """
+    Calculate the central difference of order n.
+
+    Parameters:
+    y (function): The function to differentiate.
+    x (np.array): The x values of the function.
+    n (int): The order of the derivative.
+
+    Returns:
+    np.array: The central difference of order n.
+    """
+    n = len(y) // 2
+    h = x[1] - x[0]  # step size
+    diff = np.zeros_like(y)
+
+    for i in range(n, len(x) - n):
+        for j in range(1, n+1):
+            diff[i] += ((-1)**j / (2**j)) * (y[i+j] - y[i-j])
+        diff[i] /= h**n
+    return diff
+
+def central_difference(y, x):
+    """
+    Calculate the central difference of order n.
+
+    Parameters:
+    y (function): The function to differentiate.
+    x (np.array): The x values of the function.
+    n (int): The order of the derivative.
+
+    Returns:
+    np.array: The central difference of order n.
+    """
+    if len(y) % 2 == 0:
+        print("EVEN NUMBERS NOT IMPLEMENTED")
+        pass
+    else:
+        n = len(y) // 2     # ''accuracy''
+        h = x[1] - x[0]  # step size
+
+        coeff = np.zeros(len(y))
+        values = np.zeros(len(y))
+
+        for i in np.arange(-n, n + 1):
+            ind = i + n
+            if i == 0:
+                coeff[ind] = 0
+            else:
+                coeff[ind] = central_difference_coefficients(2 * n, i)
+            values[ind] = y[ind]
+        summe = np.sum(coeff * values)
+        diff = summe / h
+        return diff
+
+def central_difference_coefficients(n, p):
+    num = (-1.0) ** (p + 1) * (math.factorial(n) ** 2)
+    dom = p * math.factorial((n - p)) * math.factorial(n + p)
+    return num / dom
 
 def main():
     print("This file is made to import, not to execute")

@@ -8,11 +8,11 @@ def main():
     # temperature and I want to vary the h
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
-    nr_gpus = 6
+    nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -10
+    J_para = -3.11
     J_perp = -0.1
     h = 0.2827272727272727
     eta = 1
@@ -24,13 +24,14 @@ def main():
     simulation_path = "../../Generated content/Final/Nu-L-old/"
 
     Tc_exec_file = "AutoCumulant.cu"
-    runfile = "run_cuda_gpu_a100_low.sh"
-
+    #runfile = "run_cuda_gpu_a100_low.sh"
+    runfile = "run_cuda_casus_low.sh"
+    runfile = "run_cuda.sh"
     # Tc parameters
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.0015
-    min_equil_error = 0.001
+    equil_error = 0.001
+    min_equil_error = 0.0008
     max_rel_intersection_error = 0.005       # is this to small or fine?
     max_rel_intersection_error = 0.005
     equil_cutoff = 0.1
@@ -39,22 +40,24 @@ def main():
     #max_T = 0.96
 
     min_T = 0.98 * (0.853073)
-    max_T = 1.02 * (0.853073)
-    nr_Ts = 5
+    max_T = 1.04 * (0.853073)
+    nr_Ts = 7
 
     # we should start at another parameter file nr because yeah
     para_nr = 230
     file_ending = "mag"
     value_name = "U_L"
-    val_write_density = 1 / 1000
+    val_write_density = 1 / 100
     min_mag_nr = 500
     process_file_func = process_new_mag_file_to_U_L
     equil_cutoff = 0.5
 
 
 
-    Ls = [16, 32, 64, 128]
+    Ls = [16, 24, 32, 40, 48, 56, 64, 72, 96, 128]
+    Ls = [56, 84, 96, 112, 128]
 
+    Ls = [8, 16, 32]
     Ly_Lx = 1 / 2
 
     crit_temps = []

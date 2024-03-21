@@ -576,6 +576,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.observed_direction = observed_direction
 
         self.sizes = sizes
+        self.jobs_done = set()
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -694,9 +695,15 @@ class crit_temp_measurement(autonomous_measurement):
         # track of
         print("valid simulations:", valid_simulations)
         self.jobs_to_do = list(product(self.sizes, self.T_arr))
+        avail_simulations = get_avail_jobs(self.jobs_to_do,
+                                                  self.simulation_path,
+                                                  check_exists, check_function_args=[self.file_ending]        # what do we do with the file ending here
+                                                  )
 
         for valid_sim in valid_simulations:
             self.jobs_to_do.remove(valid_sim)       # should work? Or should we check whether the temperatue is close enough to the requested value? I think this is already done in the get avail sim function
+        for avail_sim in avail_simulations:
+            self.jobs_done.add(avail_sim)      # I think we dont even need the error here, if those done jobs are relevant again they by definition have had a larger error, otherwise they would have been picked up by valid simulations and would not be in jobs to do
 
         if self.jobs_to_do or self.repeat:
             self.repeat = False                 # we set repeat to false again
@@ -704,6 +711,7 @@ class crit_temp_measurement(autonomous_measurement):
             self.write_para_files()  # setting up the parameter files for every simulation
             self.cur_para_nr = 0                # reset the parameter number
             self.run_jobs()
+            self.jobs_done.update(self.jobs_to_do) # add the jobs we just did to the done jobs
         else:
             print("Found valid simulation, evaluating")
         # after running the jobs, we need to
@@ -816,7 +824,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.cur_para_nr += 1
         return self.para_nr + self.cur_para_nr - 1
 
-    def write_para_files(self):
+    def write_para_files_old(self):
         # you ..., you know that you have to construct the parameter file at hemera?
         # and you need to do rsync after the jobs are finished!
         print("Writing the parameter files...")
@@ -861,12 +869,126 @@ class crit_temp_measurement(autonomous_measurement):
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+    def write_advance_file(self, size, T, ind, mode=-1, done_path=None):
+        # we need to find the name of the file...
+        if not done_path:
+            folder_path = self.simulation_path + f"/{size}/{T:.6f}"
+            csv_path = find_first_csv_file(folder_path)
+            name = pathlib.Path(csv_path).stem
+            filepath = f"{folder_path}/{name}"
+        else:
+            filepath = done_path
+        nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
+        with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
+            f.write(filepath)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
+                    f"nr_saves, 4 \n"                    
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, {mode} \n"     # important, this has to be -1
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {size} \n"
+                    f"subsystem_max_Lx, {size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"
+                    f"nr_ft_values, 0 \n"
+                    f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
+                    f"{self.file_ending}_write_density, {self.val_write_density}\n"
+                    f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
+                    f"moving_factor, {self.max_moving_factor} \n"
+                    f"corr_second, {int(self.second)}")
+
+    def write_new_file(self, size, T, ind):
+        # We now need to construct the parameterfile with the appropriate temperature and size
+        # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
+        # to construct the para set we need to know how many subsystems we should initialize
+        nr_subsystems = int(self.nr_sites / (size ** 2 * self.Ly_Lx))
+        with open(self.filepath + "/parameters/para_set_" + str(self.para_nr + ind) + '.txt', 'w') as f:
+            f.write(self.simulation_path)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
+                    f"nr_saves, 4 \n"
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, {self.random_init} \n"
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {size} \n"
+                    f"subsystem_max_Lx, {size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"
+                    f"nr_ft_values, 0 \n"
+                    f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
+                    f"{self.file_ending}_write_density, {self.val_write_density}\n"
+                    f"min_{self.file_ending}_nr, {self.min_val_nr}\n"
+                    f"moving_factor, {self.max_moving_factor}\n"
+                    f"corr_second, {int(self.second)} \n"
+                    f"observed_direction, {self.observed_direction}")
+    def write_para_files(self):
+        # you ..., you know that you have to construct the parameter file at hemera?
+        # and you need to do rsync after the jobs are finished!
+        print("Writing the parameter files...")
+        self.total_runs = len(self.jobs_to_do)
+        for i, (size, T) in enumerate(self.jobs_to_do):
+            if (size, T) in self.jobs_done:
+                # we already have this job with a too large error
+                self.write_advance_file(size, T, i, -1)
+            elif self.jobs_done:
+                # If jobs done is not empty this means we alread have a measurment
+                # with the same parameters but at a different temperature
+                best_done_T = 0
+                min_T_diff = np.infty
+                for ind, (done_size, done_temp) in enumerate(self.jobs_done):
+                    # the size has to coincide
+                    if done_size == size:
+                        temp_diff = np.abs(T - done_temp)
+                        if temp_diff < min_T_diff:
+                            best_done_T = done_temp
+                            min_T_diff = temp_diff
+                if best_done_T:
+                    done_folder_path = self.simulation_path + f"/{size}/{best_done_T:.6f}"
+                    done_csv_path = find_first_csv_file(done_folder_path)
+                    name = pathlib.Path(done_csv_path).stem
+                    done_path = f"{done_folder_path}/{name}"
+
+                    self.write_advance_file(size, T, i, -2, done_path)
+                else:
+                    self.write_new_file(size, T, i)
+            else:
+                self.write_new_file(size, T, i)
+        # we need to copy the files to hemera
+        rsync_command = ["rsync", "-auv", "--rsh", "ssh",
+                         f"{self.filepath}/parameters/",
+                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+        subprocess.run(rsync_command, cwd=pathlib.Path.home())
     @staticmethod
     def construct_results(simulation_path, threshold, selected_temps=None, selected_sizes=None, value_name="U_L", file_ending="cum",
                           process_file_func=process_file):
         results = {}
-        for size_folder in os.listdir(simulation_path):
-            if size_folder[0] != 0 and size_folder != "plots":
+        sizes = find_size_folders(simulation_path)
+        for size_folder in sizes:
+            if size_folder[0] != "." and size_folder != "plots":
                 size_folder_path = os.path.join(simulation_path,
                                                 size_folder)
                 if os.path.isdir(size_folder_path):
@@ -937,6 +1059,113 @@ class crit_temp_measurement(autonomous_measurement):
                     dpi=300, transparent=False)
 
         return fig, ax
+
+    @staticmethod
+    def fit_and_plot_nu(simulation_path, results, crit_point=None, T_range=None, value_name="U_L"):
+        # Okay so this just takes all values and calculates the central difference? not all the values, just the values between
+        # T_range
+        if T_range:
+            T_min = min(T_range)
+            T_max = max(T_range)
+        else:
+            T_min = 0
+            T_max = np.infty
+
+        sizes = []
+        derivatives = []
+
+        for size in results:
+            T = results[size]["T"]
+            value = results[size][value_name]
+
+            # Borders
+            value = value[(T_min <= T) & (T <= T_max)]
+            T = T[(T_min <= T) & (T <= T_max)]
+
+            diff = central_difference(value, T)
+
+            sizes.append(size)
+            derivatives.append(diff)
+        # sorting?
+        sizes = np.array(sizes)
+        derivatives = np.array(derivatives)
+        derivatives = derivatives[np.argsort(sizes)]
+        sizes = np.sort(sizes)
+
+        # fitting
+        popt, _ = curve_fit(linear_fit, np.log(sizes), np.log(derivatives))
+        nu = 1 / popt[0]
+        print(sizes)
+        print("FITTING RESULTS:")
+        print("nu = ", nu)
+
+        fig, ax = plt.subplots(1, 1)
+
+        ax.set_xlabel("L")
+        ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
+        ax.legend()
+
+        ax.plot(sizes, derivatives, marker="s", **get_point_kwargs_color(colors[0]))
+        ax.plot(sizes, poly(sizes, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
+
+        config = {
+            "labelhorizontalalignment": "right",
+            "increasefontsize": 0.5
+        }
+        configure_ax(fig, ax, config)
+        return fig, ax
+
+    @staticmethod
+    def plot_Tc_L_dependence(results, value_name = "U_L", J_para=1):
+        # okay so we will read every size in simulation path
+        # and determine the intersection of pairs with L_1 and L_2 = 2L_1, if this size is available. If not we choose
+        # the larger (or smaller size to highlight finite size effects?)
+        sizes = np.sort(np.array(list(results.keys())))
+        max_size = np.max(sizes)
+
+        T_cs = []
+        T_c_errors = []
+        small_sizes = []
+
+        for L1 in sizes:
+            L2 = int(2 * L1)
+            if L2 <= max_size:
+                T1, val1 = results[L1]["T"], results[L1][value_name]
+                try:
+                    T2, val2 = results[L2]["T"], results[L2][value_name]
+                except KeyError:
+                    print(f"partner of L1 = {L1}, L2 = {L2} not available")
+                    L2 = np.min(sizes[sizes > L2])
+                    print(f"using L2 = {L2} instead")
+                    T2, val2 = results[L2]["T"], results[L2][value_name]
+
+                T_c, val = find_first_intersection(T1, T2, val1, val2)
+                T_cs.append(T_c)
+                T_c_errors.append(0.5 * (T1[1] - T1[0]))
+                small_sizes.append(L1)
+
+        T_cs = np.array(T_cs) / J_para
+        T_c_errors = np.array(T_c_errors) / J_para
+        fig, ax = plt.subplots(1, 1)
+        ax.errorbar(small_sizes, T_cs, yerr=T_c_errors, **get_point_kwargs_color(colors[0]),
+                    marker="s", ecolor="black", elinewidth=1,  capsize=2,)
+        low_lim = ax.get_xlim()[0]
+        high_lim = ax.get_xlim()[1]
+        ax.hlines(T_cs[-1] * 0.9999, low_lim, high_lim, linestyles="dashed", color="C0",
+                  label=f"$T_c = {(T_cs[-1] * 0.999):.4f}$")
+        ax.set_xlim(low_lim, high_lim)
+        ax.set_xlabel(r"$L_1$")
+        ax.set_ylabel(r"$T_c~/~J_\parallel$")
+        config = {
+            "labelrotation": 90,
+            "increasefontsize": 0.3
+        }
+        configure_ax(fig, ax, config)
+
+        return fig, ax
+
+
+
 class crit_temp_measurement_corr(crit_temp_measurement):
     def __init__(self, *args, **kwargs):
         # call the constructor of the parent classe
@@ -3021,13 +3250,21 @@ class z_measurement(autonomous_measurement):
             # we want to run sorted through the keys
             self.valid_sizes = sorted(self.valid_sizes)
             # It is the same thing to map the small sizes on the large sizes and vice versa, right?
-            fig, ax = plt.subplots(1, 1)
+            fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
             self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold)
             fig.savefig(self.simulation_path + f"/cum-over-time-scan.png", format="png")
             plt.show()
-            fig, ax = plt.subplots(1, 1)
+            fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
             self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold, xlim=1)
             fig.savefig(self.simulation_path + f"/cum-over-time-scan-whole.png", format="png")
+            plt.show()
+            fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+            self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold // 2, xlim=0.25)
+            fig.savefig(self.simulation_path + f"/cum-over-time-scan-0.25.png", format="png")
+            plt.show()
+            fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+            self.fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=self.base_fold, xlim=0.25)
+            fig.savefig(self.simulation_path + f"/cum-over-time-scan-0.25-more-fold.png", format="png")
             plt.show()
             return
         else:
@@ -3122,10 +3359,11 @@ class z_measurement(autonomous_measurement):
                                              f" rescaled z = {best_z:.3f}", color=colors[2 * (i)])
         ax.set_ylabel(r"$U_L$")
         ax.set_xlabel("t")
+        #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
         config = {
-            "increasfontsize": 0.75,
+            "increasefontsize": 0.75,
             "labelhorizontalalignment": "right",
         }
 

@@ -20,7 +20,7 @@ def main():
     # J_perp = -1300
 
     p = 2.5
-    eta_arr = [1]
+    eta_arr = [2]
     #eta_arr = [0.01, 0.05]
     #dt = 1e-5
     dt = 1e-4
@@ -28,7 +28,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-old-paras/"
+    simulation_path = "../../Generated content/Final/z-measurement-old-paras-obc/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulant.cu"
@@ -38,12 +38,13 @@ def main():
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 64
-    size_max_z = 256
+    size_max_z = 512
     z_test_size = 32
-    nr_sizes = 3
+    nr_sizes = 4
     z_min_nr_sites = 1e6
     z_min_nr_systems = 500
     z_equil_error = 0.004
+    fold=100
 
     # mag stuff
     file_ending = "mag"
@@ -57,11 +58,11 @@ def main():
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
     test_min_val_nr = 200
-    val_write_density = 1 / 100
-    val_write_density_test = 1 / 100
+    val_write_density = 1 / 200
+    val_write_density_test = 1 / 200
 
 
-    variation_error_rate = 0.02
+    variation_error_rate = 0.05
     nr_sites = 4e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1975 * 10
@@ -76,7 +77,7 @@ def main():
                                       equil_error=z_equil_error, para_nr=para_nr_z, test_min_val_nr=test_min_val_nr,
                                       val_write_density=val_write_density, test_val_write_density=val_write_density_test,
                                       file_ending=file_ending, value_name=value_name, variation_error_rate=variation_error_rate,
-                                      nr_sites=nr_sites, test_size=z_test_size)
+                                      nr_sites=nr_sites, test_size=z_test_size, fold=fold)
             z_measure.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

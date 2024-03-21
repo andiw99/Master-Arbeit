@@ -70,17 +70,26 @@ def plot_theo_msd(df, parameters, savepath):
     times = np.array(times)
     msd_avg = np.array(msd_avg)
     dt = parameters["dt"]
+
     fig, axes = plt.subplots(1, 1)
-    axes.plot(times, msd_avg, label=f" {n} Oscialltors")
-    axes.plot(t, msd_theo, linestyle="dashed", label="Theoretical MSD")
+    axes.plot(t, msd_theo, label="analytic", color=colors[5])
+    axes.plot(times, msd_avg, label=f" {n} oscialltors", linestyle="dotted", color=colors[0])
     axes.set_xlabel("t")
-    axes.set_ylabel("MSD(t)")
+    axes.set_ylabel(r"$\left\langle x^2(t)\right \rangle$")
     axes.set_ylim((0.9 * np.min(msd_avg), 1.1 * np.max(msd_avg)))
     axes.set_xlim((a, b))
-    axes.set_title(f"Uncoupled harmonic oscillators in T={T} \n dt = {dt}")
+    #axes.set_title(f"Uncoupled harmonic oscillators in T={T} \n dt = {dt}")
     axes.legend()
     name = str(dt + T)
-    configure_ax(fig, axes)
+
+    config = {
+        "increasefontsize": 0.75,
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "labelrotation": 90,
+    }
+
+    configure_ax(fig, axes, config)
     create_directory_if_not_exists(savepath)
     plt.savefig(os.path.join(savepath, name), format="png")
     plt.show()
@@ -101,7 +110,7 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 
 def main():
     root = "../../Generated content/BBK/MSD/BBK/0.025"
-    #root = "../../Generated content/Final/Benchmarks/HO/T=20/eta=2/300"
+    root = "../../Generated content/Final/Benchmarks/HO/T=20/eta=2/300"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
 
     a = 0
