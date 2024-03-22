@@ -2434,7 +2434,10 @@ public:
     void init(fs::path path, map<Parameter, double>& paras, const system &sys) override {
         int run_nr = (int)paras[Parameter::run_nr];
         max_error = paras[Parameter::equil_error];
-        equil_cutoff = paras[Parameter::equil_cutoff];
+        if (paras[Parameter::equil_cutoff]) {
+            equil_cutoff = paras[Parameter::equil_cutoff];
+        }
+        cout << "setting equil_cutoff to " <<  equil_cutoff << endl;
         min_corr_nr = (int)paras[Parameter::min_corr_nr];
         if (paras[Parameter::moving_factor]) {
             max_moving_factor = paras[Parameter::moving_factor];
@@ -2585,7 +2588,7 @@ public:
                         if(rel_stddev_total < max_error) {
                             cout << "xix = " << avg_xix << " +- " << rel_stddev_xix_total * avg_xix << endl;
                             cout << "xiy = " << avg_xiy << " +- " << rel_stddev_xiy_total * avg_xiy << endl;
-
+                            cout << "min ind for moving factor " << min_ind << endl;
                             // we also implement the moving factor here
                             double moving_factor_xix = getMovingFactor(nr_xi_values, min_ind, xix, avg_xix);
                             double moving_factor_xiy = getMovingFactor(nr_xi_values, min_ind, xiy, avg_xiy);

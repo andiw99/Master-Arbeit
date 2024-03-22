@@ -20,7 +20,7 @@ def main():
     # J_perp = -1300
 
     p = 2.5
-    eta_arr = [2]
+    eta_arr = [1]
     #eta_arr = [0.01, 0.05]
     #dt = 1e-5
     dt = 1e-4
@@ -28,7 +28,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-old-paras-obc-denser/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
@@ -37,12 +37,12 @@ def main():
 
     # z parameters
     para_nr_z = int(input("parameter number ..."))
-    size_min_z = 64
-    size_max_z = 256
-    z_test_size = 32
+    size_min_z = 48
+    size_max_z = 96
+    z_test_size = 24
     nr_sizes = 3
-    z_min_nr_sites = 1e6
-    z_min_nr_systems = 2000
+    z_min_nr_sites = 10e6
+    z_min_nr_systems = 100000
     z_equil_error = 0.004
     fold=40
 
@@ -57,13 +57,13 @@ def main():
     # test_min_val_nr = 1000
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
-    test_min_val_nr = 400
-    val_write_density = 1 / 100
-    val_write_density_test = 1 / 100
+    test_min_val_nr = 100
+    val_write_density = 1 / 50
+    val_write_density_test = 1 / 50
+    Ly_Lx = 1 / 12
 
-
-    variation_error_rate = 0.003
-    nr_sites = 2e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
+    variation_error_rate = 0.01
+    nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1975 * 10
 
@@ -77,7 +77,7 @@ def main():
                                       equil_error=z_equil_error, para_nr=para_nr_z, test_min_val_nr=test_min_val_nr,
                                       val_write_density=val_write_density, test_val_write_density=val_write_density_test,
                                       file_ending=file_ending, value_name=value_name, variation_error_rate=variation_error_rate,
-                                      nr_sites=nr_sites, test_size=z_test_size, fold=fold)
+                                      nr_sites=nr_sites, test_size=z_test_size, fold=fold, Ly_Lx=Ly_Lx)
             z_measure.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

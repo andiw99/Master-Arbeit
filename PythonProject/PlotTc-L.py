@@ -23,6 +23,7 @@ def main():
     create_directory_if_not_exists(simulation_path + "/plots/")
     fig.savefig(simulation_path + "/plots/Tc_L.png", dpi=400)
     fig.savefig(simulation_path + "/plots/Tc_L-200-dpi.png", dpi=200)
+    fig.savefig(simulation_path + "/plots/Tc_L.svg", format="svg")
     plt.show()
 
 if __name__ == "__main__":

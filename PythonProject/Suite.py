@@ -297,6 +297,10 @@ def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
     if (total_nr_sites >= min_nr_sites) and (total_nr_systems >= min_nr_systems):
         return True
     else:
+        if (total_nr_sites < min_nr_sites):
+            print(f"to few sites {total_nr_sites} vs {min_nr_sites}")
+        else:
+            print(f"to few systems {total_nr_systems} vs {min_nr_systems}")
         return False
 
 def check_exists(folderpath, file_ending=".cum"):
@@ -1159,13 +1163,12 @@ class crit_temp_measurement(autonomous_measurement):
         ax.set_ylabel(r"$T_c~/~J_\parallel$")
         config = {
             "labelrotation": 90,
+            "labelhorizontalalignment": "right",
             "increasefontsize": 0.3
         }
         configure_ax(fig, ax, config)
 
         return fig, ax
-
-
 
 class crit_temp_measurement_corr(crit_temp_measurement):
     def __init__(self, *args, **kwargs):
@@ -1829,7 +1832,7 @@ class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty):
+                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty, min_nr_corr_values = 500):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr, runfile=runfile)
         self.size_min = size_min        # The starting size at which we do go higher
@@ -1849,7 +1852,7 @@ class quench_measurement(autonomous_measurement):
         self.tau_list = []                 # empty list to keep track of the taus that we used
         self.size = size_min            # current size, starts at size_min
         self.equil_error = 0.05        # the equilibration error, so the error of U_L for which we assume that we are approximately equilibrated, doesnt need to be as small as for the T_c measurement
-        self.min_nr_corr_values = 500
+        self.min_nr_corr_values = min_nr_corr_values
 
         self.cut_zero_impuls = True     # will probably always be true since we are quenching
         self.fitfunc = lorentz_offset      # We usually use this atm?
@@ -1917,11 +1920,11 @@ class quench_measurement(autonomous_measurement):
 
     def iteration(self):
         # Check directory structure again
-        sims_available = get_avail_simulations([self.size], [self.tau()], self.simulation_path,
+        sims_valid = get_avail_simulations([self.size], [self.tau()], self.simulation_path,
                                               check_quench_valid,
                                               check_function_args=(self.min_nr_systems, self.min_nr_sites))      # the check directory structure takes lists in
         # one of the first things we do in the iteration is writing the parameter file
-        if not sims_available:
+        if not sims_valid:
             # If no simulation is available, we have to run the simulation
             self.write_para_file()
             # then we just run the jobs
@@ -1980,22 +1983,43 @@ class quench_measurement(autonomous_measurement):
             self.tau_list.append(self.tau())    # and add it to the bookkeeping list
             return self.iteration()
 
+
+    def get_done_sites_systems(self):
+        folderpath = f"{self.simulation_path}/{self.size}/{self.tau():.6f}"
+        total_nr_sites = 0
+        total_nr_systems = 0
+        if os.path.isdir(folderpath):
+            files = os.listdir(folderpath)
+            for file in files:
+                if file.endswith(".csv"):
+                    para_file = folderpath + f"/{pathlib.Path(file).stem}.txt"
+                    paras = read_parameters_txt(para_file)
+                    nr_sites = paras["total_size"]
+                    nr_systems = paras["nr_subsystems"]
+                    total_nr_sites += nr_sites
+                    total_nr_systems += nr_systems
+        return total_nr_sites, total_nr_systems
+
     def run_jobs(self):
         # this method is responsible for running the jobs for one tau, one system size before moving to the next tau
         # first we need to find out how many jobs this will be
         # it doenst matter if this part of the code is optimized so just naive:
         # find out whether min_nr_systems or min_nr_sites is limiting:
+        done_nr_sites, done_nr_systems = self.get_done_sites_systems()
+        sites_to_do = self.min_nr_sites - done_nr_sites
+        systems_to_do = self.min_nr_systems - done_nr_systems
         sys_per_job = int(np.ceil(self.nr_sites / (self.size ** 2 * self.Ly_Lx)))
-        min_jobs = int(self.min_nr_sites / self.nr_sites)            # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
-        if sys_per_job >= self.min_nr_systems / min_jobs:
+        min_jobs = max(int(sites_to_do / self.nr_sites), 1)  # the minimum number of jobs is the minimum_nr of total sites divided by the number of sites per job
+        if sys_per_job >= systems_to_do / min_jobs:
             # if the number of systems per job * the minimumb number of jobs given by the minimum number of system sites
             # divided by the nr of sites per job is larger than the required amount of systems, wo only do the
             # minimum number of jobs
             nr_jobs = min_jobs
         else:
             # else we do as many jobs as we need to exceed the min_nr_systems
-            nr_jobs = int(np.ceil(self.min_nr_systems / sys_per_job))
+            nr_jobs = int(np.ceil(systems_to_do / sys_per_job))
         self.total_runs = nr_jobs
+        print("GOING TO RUN ", self.total_runs, " JOBS")
         # now we do basically the same stuff as last time, only that we onyl submit the same job
         super().run_jobs()
 
@@ -2140,7 +2164,7 @@ class quench_measurement(autonomous_measurement):
         tau_scaling, xiy_scaling, reg_y, max_tau_ind_y, min_tau_ind_y = quench_measurement.fit_kzm(
             size_tau_xiy_dic)
 
-
+        create_directory_if_not_exists(self.simulation_path + "/plots/")
         quench_measurement.plot_kzm_scaling(tau_scaling, size_tau_xix_dic, reg_x, max_tau_ind_x, min_tau_ind_x,
                                             direction="parallel")
         plt.savefig(self.simulation_path + f"/plots/tau-xi-parallel.png", format="png")
@@ -2209,6 +2233,8 @@ class quench_measurement(autonomous_measurement):
 
        # plot the divergence
         # get the limits beforehand
+        ax_equil.set_yscale("log")
+        ax_quench.set_yscale("log")
         y_limits = ax_quench.get_ylim()
         T_start = parameters["starting_temp"]
         T = T_start - t_process
@@ -3137,7 +3163,9 @@ class z_measurement(autonomous_measurement):
 
     def setup(self):
         # This function does the setup again, I mean we dont have to many but
-        self.sizes = 2 ** np.linspace(np.log2(self.size_min), np.log2(self.size_max), self.nr_sizes, dtype=np.int64)
+        # you only wanted to allow powers of two, why again?
+        # self.sizes = 2 ** np.linspace(np.log2(self.size_min), np.log2(self.size_max), self.nr_sizes, dtype=np.int64)
+        self.sizes = np.linspace(self.size_min, self.size_max, self.nr_sizes, dtype=np.int64)
         # what else do we need to do?
         # for what did I need total runs again? Just for submitting jobs in this run right?
         # how many jobs do we have to submit to get the minimum of nr_sites? For the testrun it might be okay to
@@ -3178,8 +3206,10 @@ class z_measurement(autonomous_measurement):
             size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size])
             test_cum = size_cum_dic[self.test_size]
             test_times = size_times_dic[self.test_size]
-            fig,ax = plt.subplots(1, 1)
-            ax.plot(test_times, test_cum)
+            fig, ax = plt.subplots(1, 1)
+            ax.set_title(os.path.split(os.path.split(os.path.split(self.simulation_path)[0])[0])[1])
+            ax.plot(test_times, test_cum,  label=f"L = {self.test_size}")
+            ax.legend()
             plt.show()
 
             self.test_equil_time = self.get_last_time()
@@ -3535,34 +3565,35 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -130000
-    J_para = -3.11
+    J_para = -1
     #J_perp = -1300
-    J_perp = -0.1
-    h =  0.2827272727272727
+    J_perp = -1
+    h =  1
     #h = 0.5
     eta = 1
     p = 2.5
     dt = 0.00001
     dt = 0.01
-    max_size_Tc = 128
-    min_size_Tc = 64
+    max_size_Tc = 64
+    min_size_Tc = 32
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0015
+    cum_error = 0.0016
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
     process_file_func = recalculate_mag_file_to_U_L
     value_write_density = 0.01
     nr_sites = 1e6
+    Ly_Lx = 1
 
 
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=31-old/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=1-old-obc/"
 
-    Tc_exec_file = "AutoCumulant.cu"
+    Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
@@ -3583,8 +3614,8 @@ def main():
     # T_max = 31494.624550
     T_min = None
     T_max = None
-    T_min = 0.83601154
-    T_max = 0.8701344599999999
+    #T_min = 0.83601154
+    #T_max = 0.8701344599999999
 
     # Quench parameters
     max_size = 1024
@@ -3628,7 +3659,7 @@ def main():
     elif measurements["efficient Tc"]:
         para_nr = int(input("parameter number.."))
         sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc", Tc_exec_file,
-                                                runfile, nr_GPUS=nr_gpus, T_min=T_min, T_max=T_max,
+                                                runfile, nr_GPUS=nr_gpus, T_min=T_min, T_max=T_max, Ly_Lx=Ly_Lx,
                                                 size_min=min_size_Tc, size_max=max_size_Tc, equil_error=cum_error,
                                                 min_equil_error=cum_error, intersection_error=max_rel_intersection_error,
                                                 max_moving_factor=moving_factor, para_nr=para_nr, random_init=random_init,

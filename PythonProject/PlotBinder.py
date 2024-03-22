@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
     process_file_func = recalculate_mag_file_to_U_L
-    simulation_path = "../../Generated content/Final/Nu-L-old"
+    simulation_path = "../../Generated content/Final/Nu-L-old-selected"
 
     selected_sizes = [128, 16, 48, 72]
     selected_sizes = None

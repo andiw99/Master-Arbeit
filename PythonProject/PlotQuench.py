@@ -2,18 +2,19 @@ from Suite import quench_measurement
 import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
-    simpath = "../../Generated content/Silicon/Subsystems/Suite/h/1.7320508075688776/Quench/"
     #simpath = "../../Generated content/Silicon/Subsystems/Suite/h/0.4161791450287818/Quench-eta/0.01"
-    simpath = "../../Generated content/Final/Quenches/5200/Damping/Quench/1"
+    simpath = "../../Generated content/Silicon/Subsystems/Suite/h/1.7320508075688776/Quench/"
+    simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/10"
 
     taus = [0.000002, 0.000488]
+    taus = [4096, 1024, 32]
+    # h = 0.4
+    xi_ampl = 4.2
+    xi_ampl_perp = 0.2
+    Tc = 1.975
     xi_ampl = 1.2                   # h = 1.7
     xi_ampl_perp = 0.2
     Tc = 1.2
-    # h = 0.4
-    xi_ampl = 0
-    xi_ampl_perp = 0
-    Tc = 0.9
 
     cut_from_equil = 0.2
     cut_zero_impuls = True

@@ -27,6 +27,7 @@ from pathlib import Path
 
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
 colors += colors + colors + colors + colors
+colors += colors + colors + colors + colors
 markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
