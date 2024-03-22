@@ -331,7 +331,28 @@ def get_mean_dif_var(cum,num_per_var_val):
     squared_dif_var_mean = np.mean(np.array(dif_var_arr) ** 2)    # this way large variances are punished harder
     return dif_var_mean, squared_dif_var_mean
 
-def get_folder_average(folderpath, file_ending="mag", value="U_L"):
+def process_folder_avg_fast(value_files):
+    all_m = []
+    cum = []
+    for i, file_path in enumerate(value_files):
+        df, t = read_large_df_with_times(file_path, skiprows=1, sep=";")
+        # this df is a list of lists, we dont have the times at all
+        # I think I dont need the times, I just want to calculate the difference variation
+        if i == 0:
+            for m_t in df:
+                all_m.append(m_t)
+        else:
+            for j, m_t in enumerate(df):
+                all_m[j] += m_t
+    for m_t in all_m:
+        m2 = np.mean(np.array(m_t) ** 2)
+        m4 = np.mean(np.array(m_t) ** 4)
+        U_L = m4 / m2 ** 2
+        cum.append(U_L)
+    times = np.array(t)
+    return cum, times
+
+def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folder_avg_func=process_folder_avg_fast):
     """
     This is supposed to look at a file that has observables like corr length and average them if we have multiple files
     this one only works for same times
@@ -358,26 +379,37 @@ def get_folder_average(folderpath, file_ending="mag", value="U_L"):
         times = np.array(times)
         return cum, times
     else:
-        all_m = []
-        cum = []
+        cum, times = process_folder_avg_func(value_files)
+        # averaging
+        times = np.array(times)
+        return cum, times
+
+
+def process_folder_avg_memory_sparing(value_files):
+    cum = []
+    # para_path = find_first_txt_file(folderpath)
+    # parameters = read_parameters_txt(para_path)
+    # nr_values = parameters["nr_mag_values"]
+    times = []
+    more_lines = True
+    t_nr = 0
+    while more_lines:
+        m_arr = []
         for i, file_path in enumerate(value_files):
-            df, t = read_large_df_with_times(file_path, skiprows=1, sep=";")
-            # this df is a list of lists, we dont have the times at all
-            # I think I dont need the times, I just want to calculate the difference variation
-            if i == 0:
-                for m_t in df:
-                    all_m.append(m_t)
-            else:
-                for j, m_t in enumerate(df):
-                    all_m[j] += m_t
-        for m_t in all_m:
-            m2 = np.mean(np.array(m_t) ** 2)
-            m4 = np.mean(np.array(m_t) ** 4)
+            m, t = read_line_large_df_with_times(file_path, t_nr, skiprows=1, sep=";", cut_endline=1)
+            m_arr += m
+        if not m_arr:
+            more_lines = False
+        else:
+            t_nr += 1
+            m2 = np.mean(np.array(m_arr) ** 2)
+            m4 = np.mean(np.array(m_arr) ** 4)
             U_L = m4 / m2 ** 2
             cum.append(U_L)
-        # averaging
-        times = np.array(t)
-        return cum, times
+            times.append(t)
+    times = np.array(times)
+    return cum, times
+
 
 def get_difference_std(cum_arr):
     """
@@ -1939,7 +1971,7 @@ class quench_measurement(autonomous_measurement):
         # we now the current measurement path
         cur_path = os.path.join(self.simulation_path, str(self.size), f"{self.tau():.6f}")
         # we need the fourier transforms of this measurement and we need to fit xi
-        ft_k, ft_l = average_lastline_ft(cur_path)
+        ft_k, ft_l = average_lastlines_ft(cur_path)
         p_k = get_frequencies_fftw_order(len(ft_k))
         p_l = get_frequencies_fftw_order(len(ft_l))
 
@@ -2378,8 +2410,13 @@ class quench_measurement(autonomous_measurement):
     @staticmethod
     def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
                          min_tau_ind, direction="parallel", color="C0"):
-        quench_exp = reg.slope
-        quench_ampl = np.exp(reg.intercept)
+        try:
+            quench_exp = reg.slope
+            quench_ampl = np.exp(reg.intercept)
+        except:
+            quench_exp = 0
+            quench_ampl = 0
+
         # xiy scaling
         figy, ax = plt.subplots(1, 1, figsize=(10, 7))
         ax.set_yscale("log")
@@ -2429,7 +2466,7 @@ class quench_measurement(autonomous_measurement):
         configure_ax(fig, ax)
 
     @staticmethod
-    def get_size_quench_results(simulation_path, cut_zero_impuls, fitfunc):
+    def get_size_quench_results(simulation_path, cut_zero_impuls, fitfunc, additional_ft_points=2):
         size_tau_xix_dic = {}
         size_tau_xiy_dic = {}
         sizes = find_size_folders(simulation_path)
@@ -2444,7 +2481,7 @@ class quench_measurement(autonomous_measurement):
                             taupath = os.path.join(sizepath, tau)
                             if os.path.isdir(taupath):
 
-                                ft_k, ft_l = average_lastline_ft(taupath)
+                                ft_k, ft_l = average_lastlines_ft(taupath, nr_add_lines=additional_ft_points)
                                 p_k = get_frequencies_fftw_order(len(ft_k))
                                 p_l = get_frequencies_fftw_order(len(ft_l))
 
@@ -3247,6 +3284,7 @@ class z_measurement(autonomous_measurement):
 
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
+            # exit()
             self.run_jobs()
             self.cur_run_nr = 0
             self.cur_para_nr = 0        # I dont get anymore what system you thought out here
@@ -3574,11 +3612,11 @@ def main():
     p = 2.5
     dt = 0.00001
     dt = 0.01
-    max_size_Tc = 64
-    min_size_Tc = 32
+    max_size_Tc = 128
+    min_size_Tc = 64
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0016
+    cum_error = 0.0012
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"

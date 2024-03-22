@@ -20,7 +20,7 @@ def main():
     # J_perp = -1300
 
     p = 2.5
-    eta_arr = [1]
+    eta_arr = [0.2]
     #eta_arr = [0.01, 0.05]
     #dt = 1e-5
     dt = 1e-4
@@ -28,7 +28,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/eta=0.2/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
@@ -38,11 +38,11 @@ def main():
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 48
-    size_max_z = 96
+    size_max_z = 120
     z_test_size = 24
-    nr_sizes = 3
+    nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 100000
+    z_min_nr_systems = 25000
     z_equil_error = 0.004
     fold=40
 
@@ -58,8 +58,8 @@ def main():
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
     test_min_val_nr = 100
-    val_write_density = 1 / 50
-    val_write_density_test = 1 / 50
+    val_write_density = 1 / 20
+    val_write_density_test = 1 / 20
     Ly_Lx = 1 / 12
 
     variation_error_rate = 0.01

@@ -11,32 +11,32 @@ def main():
     J_para = -10
     #J_perp = -1300
     J_perp = -0.1
-    h = 2
+    h = 1
     #h = 0.5
     eta = 1
     p = 2.5
     dt = 0.00001
     dt = 0.01
-    max_size_Tc = 48
-    min_size_Tc = 96
+    max_size_Tc = 64
+    min_size_Tc = 256
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0015
+    cum_error = 0.0012
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
     process_file_func = recalculate_mag_file_to_U_L
     value_write_density = 0.01
-    nr_sites = 2e6
+    nr_sites = 4e6
     Ly_Lx = 1 / 8
 
 
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-h-2/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/"
 
-    Tc_exec_file = "AutoCumulant.cu"
+    Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?

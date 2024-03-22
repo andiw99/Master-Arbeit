@@ -128,6 +128,11 @@ public:
         // open the file to write the info to, in this case it will be just run_nr.csv
         timepoint = 0.0;
         // I think we will add the run number to the paras of the run
+        if(boost::asio::ip::host_name() == "andi-B550") {
+            cout << "CHANGING RANDOM TO NORMAL RANDOM" << endl;
+            paras[Parameter::curand_random] = 0;
+        }
+
         int run_nr = (int)paras[Parameter::run_nr];
         bool pick_up = (paras[Parameter::random_init] == -1.0);     // if pickup is true, we have to do things a bit differently
         fs::path folderpath;

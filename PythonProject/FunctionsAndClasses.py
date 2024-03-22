@@ -138,6 +138,15 @@ def read_large_df_with_times(filepath, rows=None, skiprows=0, sep=";", cut_endli
                     times.append(float(t))
     return df, times
 
+def read_line_large_df_with_times(filepath, line_nr, rows=None, skiprows=0, sep=";", cut_endline=2):
+    with open(filepath) as f:
+        for i, line in enumerate(f):
+            if i == skiprows + line_nr:
+                t, line = line.split(sep)
+                line = string_to_list(line[:-2][:-cut_endline])
+                return line, float(t)
+    return [], None
+
 def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cell_nr": 1, "chess_trafo": 1, "nr_colorbar_ticks": 5}):
 
     para_filepath = os.path.splitext(filepath)[0] + ".txt"
@@ -320,7 +329,12 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
         if config["subsystem"]:
             print("cell_L = ", cell_L, "  Lx = ", Lx)
             if cell_L < Lx:
-                row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
+                # sometimes it is cell_L, sometimes it is subsystem_Lx
+                # I think we always want the smaller one?
+                if cell_L > subsystem_Lx:
+                    row = chess_board_trafo_rectangular_subsystems(row, subsystem_Lx, Ly)
+                else:
+                    row = chess_board_trafo_rectangular_subsystems(row, cell_L, Ly)
             else:
                 print("cell_L > Lx")
                 row = chess_board_trafo_rectangular_subsystems(row, Lx, Ly)
@@ -1674,7 +1688,7 @@ def xi_div(eps, xi0, nu):
     return xi0 / (np.abs(eps) ** nu)
 
 
-def average_lastline_ft(folderpath, ending=".ft"):
+def average_lastlines_ft(folderpath, ending=".ft", nr_add_lines=10):
     # like average_ft but it only returns the ft for the latest t
     files = os.listdir(folderpath)
     t_ft_k = np.array([])
@@ -1695,21 +1709,27 @@ def average_lastline_ft(folderpath, ending=".ft"):
                 t_ft_k += string_to_array(df["ft_k"].iloc[-1])
                 t_ft_l += string_to_array(df["ft_l"].iloc[-1])
             first_file = False
+
+            for i in np.arange(0, nr_add_lines):
+                t_ft_k += string_to_array(df["ft_k"].iloc[-(1 + nr_add_lines - i)])
+                t_ft_l += string_to_array(df["ft_l"].iloc[-(1 + nr_add_lines - i)])
+
             nr_files += 1
     # average
     #print(f"averaged {nr_files} files")
-    t_ft_k /= nr_files
-    t_ft_l /= nr_files
+    t_ft_k /= nr_files * (nr_add_lines + 1)
+    t_ft_l /= nr_files * (nr_add_lines + 1)
     return t_ft_k, t_ft_l
 
 def get_avail_tau_dic(root_dir):
     directory_dict = {}
-    for size_folder in os.listdir(root_dir):
+    sizes = find_size_folders(root_dir)
+    for size_folder in sizes:
         size_path = os.path.join(root_dir, size_folder)
         if os.path.isdir(size_path) and size_folder[0] != ".":
             for tau_folder in os.listdir(size_path):
                 tau_path = os.path.join(size_path, tau_folder)
-                if os.path.isdir(tau_path):
+                if os.path.isdir(tau_path) and tau_folder != "plots":
                     if float(tau_folder) not in directory_dict:
                         directory_dict[float(tau_folder)] = []
                     directory_dict[float(tau_folder)].append(int(size_folder))
@@ -1839,6 +1859,34 @@ def plot_struct_func(px, py, fx, fy, error_x=None, error_y=None):
     axx.legend()
     axy.legend()
     return fig, axes
+
+def derivative_F_BJ_Ising(BJ):
+    num = 1 / np.tanh(2 * BJ) * (1 / np.sinh(2 * BJ))
+    dom = np.sqrt((1 / np.sinh(2 * BJ)) ** 2 + 1)
+    return num / dom
+def T_c_Ising(T, J1, J2):
+    return np.sinh(2 * np.abs(J1) / T) * np.sinh(2 * np.abs(J2) / T) - 1
+
+def T_c_Ising_eff(BJ1, BJ2):
+    return np.sinh(2 * np.abs(BJ1)) * np.sinh(2 * np.abs(BJ2)) - 1
+
+def T_c_Ising_eff_ratio(BJ, f):
+    return np.sinh(2 * np.abs(BJ * f)) * np.sinh(2 * np.abs(BJ)) - 1
+
+def T_c_est_Ising_eff_ratio(f):
+    BJ2 = fsolve(T_c_Ising_eff_ratio, 1 / f, args=(f), maxfev=10000)
+    return BJ2
+
+def T_c_eff_ratio(BJ, f):
+    return np.sinh(2 * np.abs(BJ * f)) * np.sinh(2 * np.abs(BJ)) - 1
+
+def T_c_est_Ising_eff_ratio(f):
+    BJ2 = fsolve(T_c_Ising_eff_ratio, 1 / f, args=(f), maxfev=10000)
+    return BJ2
+
+def T_c_est_Ising_eff(BJ):
+    BJ2 = fsolve(T_c_Ising_eff, 1 / BJ, args=(BJ), maxfev=10000)
+    return BJ2
 
 def T_c_XY(T, J_large, J_small):
     return 2 * T / J_large * np.log(2 * T / J_small) - 1
@@ -2367,6 +2415,16 @@ def central_difference_coefficients(n, p):
     num = (-1.0) ** (p + 1) * (math.factorial(n) ** 2)
     dom = p * math.factorial((n - p)) * math.factorial(n + p)
     return num / dom
+
+
+def calculate_angle_from_slopes(slope1, slope2):
+    # Calculate angle between lines using arctan
+    angle_radians = math.atan(abs((slope2 - slope1) / (1 + slope1 * slope2)))
+
+    # Convert angle to degrees
+    angle_degrees = math.degrees(angle_radians)
+
+    return angle_degrees
 
 def main():
     print("This file is made to import, not to execute")

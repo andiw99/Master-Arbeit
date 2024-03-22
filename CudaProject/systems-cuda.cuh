@@ -166,7 +166,6 @@ public:
         }
     };
 
-
     struct right : public hor_neighbor {
         using hor_neighbor::hor_neighbor;
         // TODO ist this fine if it is virtual?
@@ -1612,28 +1611,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(Lx)           // for left the dim_size in x-direction is important
+                                System_OBC::left(Lx)           // for left the dim_size in x-direction is important
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(Lx)          // for right the dim_size in x-direction is relevant
+                                System_OBC::right(Lx)          // for right the dim_size in x-direction is relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
+                                System_OBC::up(dim_size_x, dim_size_y)      // for up and down both dimension sizes are relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(dim_size_x, dim_size_y)
+                                System_OBC::down(dim_size_x, dim_size_y)
                         )
                 )
         )));
@@ -1650,28 +1649,28 @@ public:
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                left(Lx)           // for left the dim_size in x-direction is important
+                                System_OBC::left(Lx)           // for left the dim_size in x-direction is important
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                right(Lx)          // for right the dim_size in x-direction is relevant
+                                System_OBC::right(Lx)          // for right the dim_size in x-direction is relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                up(dim_size_x, Ly)      // for up and down both dimension sizes are relevant
+                                System_OBC::up(dim_size_x, Ly)      // for up and down both dimension sizes are relevant
                         )
                 ),
                 thrust::make_permutation_iterator(
                         x.begin(),
                         thrust::make_transform_iterator(
                                 thrust::counting_iterator<size_t>(0),
-                                down(dim_size_x, Ly)
+                                System_OBC::down(dim_size_x, Ly)
                         )
                 )
         )));

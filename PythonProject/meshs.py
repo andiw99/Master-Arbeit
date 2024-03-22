@@ -16,6 +16,7 @@ def main():
     root = "../../Generated content/Final/Amplitude/J_J=30/Lx_Ly=0.25/Amplitude/128/"
     root = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-3/"
     root = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/4096"
+    root = "../../Generated content/Final/Quenches-old-OBC2/1/Damping/Quench/1"
     fig_format = "png"
     dpi = 200
     #root = "../../Generated content/Silicon Test/Anisotrop Antisymmetric Rectangular Subsystems Small2"
@@ -23,12 +24,12 @@ def main():
     plot_root = os.path.join(root, "plots/")
 
     config = {"nr_of_meshs": 2,
-              "cell_L": 1024,
+              "cell_L": 512,
               "cell_nr": 0,
               "chess_trafo": -1,
               "nr_colorbar_ticks": 7,
               "angle": 3,       # 2 is -np.pi / 2 to np.pi / 2 , 3 is with mean of the system
-              "subsystem": 1,
+              "subsystem": 0,
               "colormap": 'viridis'} # 'PiYG', 'viridis'
 
     folders = list_folders_and_subfolders(root)
