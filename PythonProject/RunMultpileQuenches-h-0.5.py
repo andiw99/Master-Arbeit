@@ -14,7 +14,7 @@ def main():
     h_arr = np.array([10])
     h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
     h_arr = [5200] #, 1000, 10000, 20000]
-    h_arr = [1]
+    h_arr = [0.5]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -25,7 +25,7 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [0.1]
+    eta_arr = [1]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01
@@ -38,17 +38,17 @@ def main():
     runfile_quench = "run_cuda.sh"
 
     # Quench parameters
-    max_size = 10000
+    max_size = 5000
     min_nr_sites = 4e6
-    max_nr_quench_steps = 1e7
+    max_nr_quench_steps = 1e6
     nr_sites = 4e6
-    max_tau = 20000
+    max_tau = 5000
     min_nr_systems = 5
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 
     #T_c = 21351     # maybe this T_c is to low?
-    T_c = 0.1975 * 10
+    T_c = 0.1731 * 10
     #T_c = 1.15
     min_nr_corr_values = 100
 

@@ -25,7 +25,7 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [0.1]
+    eta_arr = [0.5]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01
@@ -40,9 +40,9 @@ def main():
     # Quench parameters
     max_size = 10000
     min_nr_sites = 4e6
-    max_nr_quench_steps = 1e7
+    max_nr_quench_steps = 1e6
     nr_sites = 4e6
-    max_tau = 20000
+    max_tau = 10000
     min_nr_systems = 5
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))

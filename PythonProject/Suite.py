@@ -3562,7 +3562,7 @@ class z_measurement(autonomous_measurement):
                         f"alpha, {self.h} \n"
                         f"eta, {self.eta} \n"
                         f"p, {self.p} \n"                        
-                        f"nr_saves, 2 \n"       # standard number of saves is 2... will this be changed anytime?
+                        f"nr_saves, 1 \n"       # standard number of saves is 2... will this be changed anytime?
                         f"nr_repeat, 0 \n"
                         f"min_temp, {self.Tc} \n"
                         f"max_temp, {self.Tc} \n"

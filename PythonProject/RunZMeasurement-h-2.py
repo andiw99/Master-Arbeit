@@ -2,33 +2,18 @@ from Suite import *
 import numpy as np
 
 def main():
-    # I want to do multiple Quenches of which I do not necissarily know the critical
-    # temperature and I want to vary the h
-    # If we choose our old values still, the h should go up to 30 which would be
-    # the relation of J_parallel and h in the real system
-    #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
-    h_arr = [0.4161791450287818]
-    h_arr = [5200] #, 1000, 10000, 20000]
-    h_arr = [1]
+    h_arr = [2]
     nr_gpus = 10
-    # we somehow need the relevant parameters
-    # The model defining parameters are J_perp J_para h eta
-    # the simulation defining parameters are dt
+
     J_para = -10
     J_perp = -0.1
-    # J_para = -130000
-    # J_perp = -1300
-
     p = 2.5
-    eta_arr = [0.5]
-    #eta_arr = [0.01, 0.05]
-    #dt = 1e-5
-    dt = 1e-4
+    eta_arr = [1]
     dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/eta=0.5/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/h=2/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
@@ -65,7 +50,7 @@ def main():
     variation_error_rate = 0.01
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
-    T_c = 0.197 * 10
+    T_c = 0.2327 * 10
 
     for h in h_arr:
         print(h)

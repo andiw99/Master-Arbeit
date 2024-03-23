@@ -11,17 +11,17 @@ def main():
     J_para = -10
     #J_perp = -1300
     J_perp = -0.1
-    h = 1
+    h = 0.5
     #h = 0.5
     eta = 1
     p = 2.5
     dt = 0.00001
     dt = 0.01
     max_size_Tc = 64
-    min_size_Tc = 256
+    min_size_Tc = 128
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0012
+    cum_error = 0.0014
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -34,7 +34,7 @@ def main():
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-0.5/"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -50,7 +50,7 @@ def main():
     runfile = "run_cuda_gpu_a100_low.sh"
 
     # T- parameters?
-    max_rel_intersection_error = 0.02
+    max_rel_intersection_error = 0.006
     min_cum_nr = 500
     moving_factor = 0.001
     # T_min = 29071.961123
