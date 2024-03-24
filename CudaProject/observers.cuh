@@ -101,6 +101,8 @@ public:
         }
         return to_string(run_nr) + "-" + get_current_time().substr(0, 4) + "-" + job_id_str + "-" + boost::asio::ip::host_name();
     }
+
+
 };
 
 template <class system, class State>
@@ -2076,8 +2078,6 @@ public:
 
 template <class system, class State>
 class corr_equilibration_observer_adaptive: public obsver<system, State>{
-
-
     // This observer will be a mixture of the cum equilibration observer and the new density observer
     // It will calculate xi with a fixed density during equilibration phase and then the specified number
     // of xi's during the quench.
@@ -2301,27 +2301,36 @@ public:
                                 // we set the system to be equilibrated
                                 sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
 
-                                append_parameter(filepath, "xix", avg_xix);
-                                // write error
-                                append_parameter(filepath, "xix_error", rel_stddev_xix_total);
-                                // write autocorrelation time
-                                append_parameter(filepath, "autocorrelation_time_xix", autocorr_time_x);
-                                // Also write the moving factor
-                                append_parameter(filepath, "moving_factor_xix", moving_factor);
-                                // and the same stuff in the y direction
-                                append_parameter(filepath, "xiy", avg_xiy);
-                                append_parameter(filepath, "xiy_error", rel_stddev_xiy_total);
-                                append_parameter(filepath, "autocorrelation_time_xiy", autocorr_time_y);
-                                append_parameter(filepath, "moving_factor_xiy", moving_factor);
                                 // once we did this, we dont want to do that a second time?
                                 equilibrated = true;
                                 // the writ interval will now be the one that we destined for the quench, we just change it once here
                                 write_interval = quench_t / (double)nr_values;
                             }
+                        } else {
+                            int minutes_remaining = get_remaining_minutes();
+                            if(minutes_remaining < 15) {
+                                // if less than 15 minutes are remaining until the jobs cancelled, we equilibrate
+                                // so that the states get written and stuff
+                                sys.set_equilibration(t);           // For relaxation simulations this means that the simulation ends
+                                equilibrated = true;
+                            }
                         }
                         if(!equilibrated) {
                             double autocorr_time = 0.5 * (autocorr_time_x + autocorr_time_y);
                             adapt_write_interval(nr_xi_values, autocorr_time);
+                        } else {
+                            append_parameter(filepath, "xix", avg_xix);
+                            // write error
+                            append_parameter(filepath, "xix_error", rel_stddev_xix_total);
+                            // write autocorrelation time
+                            append_parameter(filepath, "autocorrelation_time_xix", autocorr_time_x);
+                            // Also write the moving factor
+                            append_parameter(filepath, "moving_factor_xix", moving_factor);
+                            // and the same stuff in the y direction
+                            append_parameter(filepath, "xiy", avg_xiy);
+                            append_parameter(filepath, "xiy_error", rel_stddev_xiy_total);
+                            append_parameter(filepath, "autocorrelation_time_xiy", autocorr_time_y);
+                            append_parameter(filepath, "moving_factor_xiy", moving_factor);
                         }
                     }
                 }

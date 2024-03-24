@@ -370,6 +370,41 @@ void chess_trafo_rectangular(container<value_type, std::allocator<value_type>>& 
     }
 }*/
 
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+int timeStringToMinutes(const std::string& timeString) {
+    std::istringstream iss(timeString);
+    int hours, minutes, seconds;
+    char colon;
+    iss >> hours >> colon >> minutes >> colon >> seconds;
+    return hours * 60 + minutes;
+}
+
+int get_remaining_minutes() {
+    string job_id_str;
+    if (const char* job_id = std::getenv("SLURM_JOB_ID")){
+        job_id_str = string(job_id);
+        string command = "squeue -h -j " + job_id_str  + " -O TimeLeft";
+        string timeleft = exec(command.c_str());
+        int minutes_left = timeStringToMinutes(timeleft);
+        return minutes_left;
+    } else {
+        return 1000;
+    }
+
+}
+
 template <class container>
 void chess_trafo_rectangular(container& vec, size_t dim_size_x) {
     int dim_size_y = vec.size() / 2 / dim_size_x;       // TODO important, this only works for the simulation!

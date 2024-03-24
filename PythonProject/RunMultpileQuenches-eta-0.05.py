@@ -2,30 +2,14 @@ from Suite import *
 import numpy as np
 
 def main():
-    # I want to do multiple Quenches of which I do not necissarily know the critical
-    # temperature and I want to vary the h
-    # If we choose our old values still, the h should go up to 30 which would be
-    # the relation of J_parallel and h in the real system
-    #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
-    h_arr = np.array([0.4161791450287818])
-    #h_arr = [7.208434242404265]
-    #h_arr = [0.2, 3]
-    #h_arr = np.array([1.7320508075688776])
-    h_arr = np.array([10])
-    h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
-    h_arr = [5200] #, 1000, 10000, 20000]
     h_arr = [1]
     nr_gpus = 10
-    # we somehow need the relevant parameters
-    # The model defining parameters are J_perp J_para h eta
-    # the simulation defining parameters are dt
-    # J_para = -130000
-    # J_perp = -1300
+
     J_para = -10
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [0.1]
+    eta_arr = [0.05]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01
@@ -35,7 +19,7 @@ def main():
     simulation_path = "../../Generated content/Final/Quenches-old/"
 
     quench_exec_file = "AutoQuench.cu"
-    runfile_quench = "run_cuda.sh"
+    runfile_quench = "run_cuda_gpu_a100_low.sh"
 
     # Quench parameters
     max_size = 10000

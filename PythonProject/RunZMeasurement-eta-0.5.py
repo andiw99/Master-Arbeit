@@ -2,27 +2,21 @@ from Suite import *
 import numpy as np
 
 def main():
-
-    h_arr = [0.5]
+    h_arr = [1]
     nr_gpus = 10
-    # we somehow need the relevant parameters
-    # The model defining parameters are J_perp J_para h eta
-    # the simulation defining parameters are dt
+
     J_para = -10
     J_perp = -0.1
-    # J_para = -130000
-    # J_perp = -1300
+
 
     p = 2.5
-    eta_arr = [1]
-    #eta_arr = [0.01, 0.05]
-    #dt = 1e-5
-    dt = 1e-4
+    eta_arr = [0.5]
+
     dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/eta=0.5/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
@@ -43,7 +37,14 @@ def main():
     # mag stuff
     file_ending = "mag"
     value_name = "m"
-
+    process_file_func = process_new_mag_file_to_U_L
+    # We use relatively large equilibration errors since for the quenches we only need a
+    # rough estimate of the transition temperature
+    # for future use we could extend the pickup of the Tc measurement to work with
+    # any previous measurements, not only the the ones the coincide with the current one
+    # test_min_val_nr = 1000
+    # val_write_density = 1 / 1000
+    # val_write_density_test = 1 / 1000
     test_min_val_nr = 100
     val_write_density = 1 / 16
     val_write_density_test = 1 / 16
@@ -52,7 +53,8 @@ def main():
     variation_error_rate = 0.01
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
-    T_c = 0.1731 * 10
+    T_c = 0.197 * 10
+
 
     for h in h_arr:
         print(h)

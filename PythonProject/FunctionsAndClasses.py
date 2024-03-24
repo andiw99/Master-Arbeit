@@ -121,11 +121,13 @@ def read_large_df(filepath, rows=None, skiprows=0, sep=None, cut_endline=2):
                     df.append(string_to_list(line[:-cut_endline]))
     return df
 
-def read_large_df_with_times(filepath, rows=None, skiprows=0, sep=";", cut_endline=2):
+def read_large_df_with_times(filepath, rows=None, skiprows=0, sep=";", cut_endline=2, max_row=-1):
     df = []
     times = []
     with open(filepath) as f:
         for i, line in enumerate(f):
+            if i == max_row:
+                break
             if i >= skiprows:
                 if rows:
                     if i in rows:
@@ -1665,17 +1667,27 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
     t_ft_k = {}
     t_ft_l= {}
     nr_files = 0
+    para_file = find_first_txt_file(folderpath)
+    parameters = read_parameters_txt(para_file)
+    T_start = parameters["starting_temp"]
+    T_end = parameters["end_temp"]
+    tau = parameters["tau"]
+    quench_time = (T_start - T_end) * tau
     for file in (files):
         if file.endswith(ending):
             filepath = os.path.join(folderpath, file)
             df = pd.read_csv(filepath, sep=";")
-            for j, t in enumerate(df['t']):
+            times = df['t']
+            end_time = np.max(times)
+            equil_time = end_time - quench_time
+            for j, t in enumerate(times):
+                shift_t = t - equil_time
                 try:
-                    t_ft_k[t] += string_to_array(df["ft_k"][j])
-                    t_ft_l[t] += string_to_array(df["ft_l"][j])
+                    t_ft_k[shift_t] += string_to_array(df["ft_k"][j])
+                    t_ft_l[shift_t] += string_to_array(df["ft_l"][j])
                 except KeyError:
-                    t_ft_k[t] = string_to_array(df["ft_k"][j])
-                    t_ft_l[t] = string_to_array(df["ft_l"][j])
+                    t_ft_k[shift_t] = string_to_array(df["ft_k"][j])
+                    t_ft_l[shift_t] = string_to_array(df["ft_l"][j])
             nr_files += 1
     # average
     print(f"averaged {nr_files} files")
@@ -1697,6 +1709,7 @@ def average_lastlines_ft(folderpath, ending=".ft", nr_add_lines=10):
     nr_files = 0
     for file in (files):
         if file.endswith(ending):
+            print(file)
             filepath = os.path.join(folderpath, file)
             df = pd.read_csv(filepath, sep=";")
             #print(filepath, "firstfile = ", first_file)
@@ -1764,7 +1777,7 @@ def lorentz_offset(x, xi, a, b):
     return b + a * 2 * xi / (1 + (xi ** 2) * (x ** 2))
 def fit_lorentz(p, ft, fitfunc=MF_lorentz, errors=None):
     try:
-        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors)
+        popt, pcov = curve_fit(fitfunc, p, ft, sigma=errors, maxfev=10000)
         perr = np.sqrt(np.diag(pcov))
 
     except RuntimeError:
@@ -1955,7 +1968,7 @@ def p_approximation(p_guess, theta_equil, J_para, J_perp, h):
     p_minus = - (1/2) * p  -  np.sqrt((p/2) ** 2 - q)
     return p_plus, p_minus
 
-def accept_xi_inv_fit(reg, Tc_est, tolerance):
+def accept_xi_inv_fit(reg, xmin, xmax, Tc_est, tolerance):
     xi_ampl = 1 / reg.slope
     Tc = - reg.intercept * xi_ampl
 
@@ -2006,6 +2019,11 @@ def best_fit_inv_old(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_
 
     return best_reg, best_starting_pos, best_ending_pos
 
+
+def min_x_accept_function(reg, starting_tau, ending_tau, min_tau):
+    #print("starting_tau = ", starting_tau, " vs min tau = ", min_tau)
+    return starting_tau >= min_tau
+
 def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
                  accept_function_args=None, more_points=True, require_end=False):
     x = np.array(x)
@@ -2033,7 +2051,7 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
             reg = linregress(x_fit, y_fit)
 
             if accept_function:
-                accepted = accept_function(reg, *accept_function_args)
+                accepted = accept_function(reg, x[starting_pos], x[ending_pos-1], *accept_function_args)
             else:
                 accepted = True
             # We only accept the outcome if we get the expected result (haha)
@@ -2052,6 +2070,9 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
                 best_ending_pos = ending_pos
                 best_r_squared = quality_value
                 best_reg = reg
+            #else:
+                # if not accepted:
+                #     print("starting_pos = ", starting_pos, "ending_pos = ", ending_pos, "not accepted")
 
     return best_reg, best_starting_pos, best_ending_pos
 

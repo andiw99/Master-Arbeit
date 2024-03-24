@@ -352,7 +352,49 @@ def process_folder_avg_fast(value_files):
     times = np.array(t)
     return cum, times
 
-def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folder_avg_func=process_folder_avg_fast):
+def process_folder_avg_balanced(value_files):
+    cum = []
+    times = []
+
+    folderpath = os.path.split(value_files[0])[0]
+    para_path = find_first_txt_file(folderpath)
+    parameters = read_parameters_txt(para_path)
+    max_nr_m_values = 2e8   # maximum number of m values that can be processed in one batch
+
+    try:
+        nr_m_values = parameters["nr_mag_values"]
+        subsystems_per_file = parameters["nr_subsystems"]
+        total_nr_mag_values = nr_m_values * subsystems_per_file * len(value_files)
+        nr_splits = int(math.ceil(total_nr_mag_values / max_nr_m_values))      # number of splits we have to spilt the run into because otherwise ram is to full
+        t_vals_per_split = int(nr_m_values / nr_splits)
+
+        for split in range(nr_splits):
+            all_m = []
+            for i, file_path in enumerate(value_files):
+                df, t = read_large_df_with_times(file_path, skiprows=1 + split * t_vals_per_split,
+                                                 sep=";", max_row=(split+1) * t_vals_per_split + 1)
+                # this df is a list of lists, we dont have the times at all
+                # I think I dont need the times, I just want to calculate the difference variation
+                if i == 0:
+                    for m_t in df:
+                        all_m.append(m_t)
+                else:
+                    for j, m_t in enumerate(df):
+                        all_m[j] += m_t
+            # if all m is so large we need to do the calculations and reset it
+            for m_t in all_m:
+                m2 = np.mean(np.array(m_t) ** 2)
+                m4 = np.mean(np.array(m_t) ** 4)
+                U_L = m4 / m2 ** 2
+                cum.append(U_L)
+            times += t
+        times = np.array(times)
+        return cum, times
+    except KeyError:
+        return process_folder_avg_fast(value_files)
+
+
+def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folder_avg_func=process_folder_avg_balanced):
     """
     This is supposed to look at a file that has observables like corr length and average them if we have multiple files
     this one only works for same times
@@ -384,7 +426,6 @@ def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folde
         times = np.array(times)
         return cum, times
 
-
 def process_folder_avg_memory_sparing(value_files):
     cum = []
     # para_path = find_first_txt_file(folderpath)
@@ -409,7 +450,6 @@ def process_folder_avg_memory_sparing(value_files):
             times.append(t)
     times = np.array(times)
     return cum, times
-
 
 def get_difference_std(cum_arr):
     """
@@ -2366,16 +2406,16 @@ class quench_measurement(autonomous_measurement):
         xiy = np.array(xiy)
         t_end = np.max(ts)
 
-        equil_time = t_end - quench_time
+        #equil_time = t_end - quench_time
 
-        xix_equil = xix[ts <= equil_time]
-        xiy_equil = xiy[ts <= equil_time]
+        xix_equil = xix[ts <= 0]
+        xiy_equil = xiy[ts <= 0]
 
-        xix_process = xix[ts > equil_time]
-        xiy_process = xiy[ts > equil_time]
+        xix_process = xix[ts > 0]
+        xiy_process = xiy[ts > 0]
 
-        t_equil = ts[ts <= equil_time] - equil_time
-        t_process = ts[ts > equil_time] - equil_time
+        t_equil = ts[ts <= 0]
+        t_process = ts[ts > 0]
 
         return t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process
 
@@ -2388,7 +2428,7 @@ class quench_measurement(autonomous_measurement):
         # the correlation length and the times?
         ax.plot(t, xi)
     @staticmethod
-    def fit_kzm(size_tau_xix_dic):
+    def fit_kzm(size_tau_xix_dic, min_tau=0, more_points=True):
         tau_scaling = []
         xix_scaling = []
         for size in sorted(list(size_tau_xix_dic.keys())):
@@ -2402,9 +2442,11 @@ class quench_measurement(autonomous_measurement):
         log_tau = np.log(tau_scaling)
         xix_scaling_log = np.log(xix_scaling)
         reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log,
-                                                           min_r_squared=0.95, more_points=True,
+                                                           min_r_squared=0.5, more_points=more_points,
                                                            min_points=4,
-                                                           require_end=True)  # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
+                                                           require_end=True,
+                                                           accept_function=min_x_accept_function,
+                                                           accept_function_args=(np.log(min_tau),))  # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
         return tau_scaling, xix_scaling, reg_x, max_tau_ind_x, min_tau_ind_x
 
     @staticmethod
@@ -2480,7 +2522,7 @@ class quench_measurement(autonomous_measurement):
                         if (tau != "plots") & (tau[0] != "."):
                             taupath = os.path.join(sizepath, tau)
                             if os.path.isdir(taupath):
-
+                                print(taupath)
                                 ft_k, ft_l = average_lastlines_ft(taupath, nr_add_lines=additional_ft_points)
                                 p_k = get_frequencies_fftw_order(len(ft_k))
                                 p_l = get_frequencies_fftw_order(len(ft_l))
@@ -2494,7 +2536,17 @@ class quench_measurement(autonomous_measurement):
                                 xix = np.abs(popt_x[
                                                  0])  # Those are the xi values for a certain size and tau at the end of the quench
                                 xiy = np.abs(popt_y[0])
-
+                                # I would say if xix or xiy is zero we want to plot the fourier trafo?
+                                if xix == 0:
+                                    fig, ax = plt.subplots(1, 1)
+                                    ax.plot(p_k, ft_k, label="xix", marker="s", **get_point_kwargs_color(colors[0]))
+                                    configure_ax(fig, ax)
+                                    plt.show()
+                                if xiy == 0:
+                                    fig, ax = plt.subplots(1, 1)
+                                    ax.plot(p_l, ft_l, label="xiy", marker="s", **get_point_kwargs_color(colors[4]))
+                                    configure_ax(fig, ax)
+                                    plt.show()
                                 # We add them to the tau_xi dictionaries
                                 tau_xix[float(tau)] = xix
                                 tau_xiy[float(tau)] = xiy
@@ -2571,6 +2623,8 @@ class amplitude_measurement(autonomous_measurement):
         self.cur_para_nr = 0                # same method as in Tc?
         self.second = second
         self.observed_direction = observed_direction
+
+        self.Ts_done = set()
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between
@@ -2600,7 +2654,13 @@ class amplitude_measurement(autonomous_measurement):
         valid_simulations = get_avail_simulations([self.size], self.T_arr, self.simulation_path, check_corr_valid,
                                                   check_function_args=(self.equil_error, self.equil_cutoff),        # TODO add moving factor
                                                   temp_tolerance=0.002)
+
+        # to be honest I dont think we need the fancy get_avail_simulations function, we just uste check_esxits
+        size_folder = f"{self.simulation_path}/{self.size}"
+        avail_simulations = check_exists(size_folder, file_ending="corr")
         # For every valid simulation we do not have to do this simulation in the following
+        for temp_folder in avail_simulations:
+            self.Ts_done.add(float(temp_folder))
         for valid_simulation in valid_simulations:
             valid_temp = valid_simulation[1]        # valid simulations is tuple of (size, temp), we only need the temp here
             Ts = list(self.T_arr)                   # change to list as we then can easier use remove
@@ -2626,41 +2686,106 @@ class amplitude_measurement(autonomous_measurement):
         for i, T in enumerate(self.T_arr):
             # We now need to construct the parameterfile with the appropriate temperature
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
-            with open(self.filepath + "/parameters/para_set_" + str(self.get_para_nr()) + '.txt', 'w') as f:
-                f.write(self.simulation_path)
-                f.write(f"\nend_time, {self.max_time} \n"
-                        f"dt, {self.dt} \n"
-                        f"J, {self.J_para} \n"
-                        f"Jy, {self.J_perp} \n"
-                        f"alpha, {self.h} \n"
-                        f"eta, {self.eta} \n"
-                        f"p, {self.p} \n"                        
-                        f"nr_saves, 4 \n"           # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
-                        f"nr_repeat, 0 \n"
-                        f"min_temp, {T} \n"
-                        f"max_temp, {T} \n"
-                        f"nr_runs, 0.0 \n"
-                        f"random_init, 1.0 \n"      # for the amplitude we want to initialize randomly
-                        f"curand_random, 1 \n"
-                        f"subsystem_min_Lx, {self.size} \n"
-                        f"subsystem_max_Lx, {self.size} \n"
-                        f"nr_subsystem_sizes, 0  \n"
-                        f"nr_subsystems, {nr_subsystems} \n"    # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
-                        f"x_y_factor, {self.Ly_Lx} \n"
-                        f"nr_corr_values, 0 \n"     # We need a new corr observer that just observes with density and doesnt switch after quench     
-                        f"nr_ft_values, 0 \n"       # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
-                        f"equil_error, {self.equil_error}\n"
-                        f"equil_cutoff, {self.equil_cutoff}\n"
-                        f"min_corr_nr, {self.min_corr_nr}\n"
-                        f"corr_write_density, {self.corr_write_density}\n"
-                        f"moving_factor, {self.max_moving_factor}\n"
-                        f"corr_second, {int(self.second)}\n"
-                        f"observed_direction, {int(self.observed_direction)}")
+            if not self.Ts_done:
+                # only if we really don't have any done simulations we will write a new file
+                self.write_new_file(T, nr_subsystems)
+            else:
+                if T in self.Ts_done:
+                    # If we already have done this, we will write an advance file with random_init = -1
+                    self.write_advance_file(T, nr_subsystems, -1)       # nothing else to do?
+                else:
+                    # This means there is a job but not with the same temperature, so we find the closest temperature
+                    best_done_T = 0
+                    min_T_diff = np.infty
+                    for ind, (done_temp) in enumerate(self.Ts_done):
+                        # the size has to coincide
+                        temp_diff = np.abs(T - done_temp)
+                        if temp_diff < min_T_diff:
+                            best_done_T = done_temp
+                            min_T_diff = temp_diff
+                    done_folder_path = self.simulation_path + f"/{self.size}/{best_done_T:.6f}"
+                    done_csv_path = find_first_csv_file(done_folder_path)
+                    name = pathlib.Path(done_csv_path).stem
+                    done_path = f"{done_folder_path}/{name}"
+                    self.write_advance_file(T, i, -2, done_path)
+
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
                          "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
+
+    def write_new_file(self, T, nr_subsystems):
+        with open(self.filepath + "/parameters/para_set_" + str(self.get_para_nr()) + '.txt', 'w') as f:
+            f.write(self.simulation_path)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
+                    f"nr_saves, 4 \n"  # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, 1.0 \n"  # for the amplitude we want to initialize randomly
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {self.size} \n"
+                    f"subsystem_max_Lx, {self.size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"  # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"  # We need a new corr observer that just observes with density and doesnt switch after quench     
+                    f"nr_ft_values, 0 \n"  # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
+                    f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
+                    f"min_corr_nr, {self.min_corr_nr}\n"
+                    f"corr_write_density, {self.corr_write_density}\n"
+                    f"moving_factor, {self.max_moving_factor}\n"
+                    f"corr_second, {int(self.second)}\n"
+                    f"observed_direction, {int(self.observed_direction)}")
+
+    def write_advance_file(self, T, nr_subsystems, mode=-1, done_path=None):
+        if not done_path:
+            folder_path = self.simulation_path + f"/{self.size}/{T:.6f}"
+            csv_path = find_first_csv_file(folder_path)
+            name = pathlib.Path(csv_path).stem
+            filepath = f"{folder_path}/{name}"
+        else:
+            filepath = done_path
+        with open(self.filepath + "/parameters/para_set_" + str(self.get_para_nr()) + '.txt', 'w') as f:
+            f.write(filepath)
+            f.write(f"\nend_time, {self.max_time} \n"
+                    f"dt, {self.dt} \n"
+                    f"J, {self.J_para} \n"
+                    f"Jy, {self.J_perp} \n"
+                    f"alpha, {self.h} \n"
+                    f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
+                    f"nr_saves, 4 \n"  # We dont know how long the simulation will go so we could either use a density observer or weeeee just dont care
+                    f"nr_repeat, 0 \n"
+                    f"min_temp, {T} \n"
+                    f"max_temp, {T} \n"
+                    f"nr_runs, 0.0 \n"
+                    f"random_init, {mode} \n"  # for the amplitude we want to initialize randomly
+                    f"curand_random, 1 \n"
+                    f"subsystem_min_Lx, {self.size} \n"
+                    f"subsystem_max_Lx, {self.size} \n"
+                    f"nr_subsystem_sizes, 0  \n"
+                    f"nr_subsystems, {nr_subsystems} \n"  # The number of subsystems will be one, we use large systems that will run long to eliminate the statistical deivations
+                    f"x_y_factor, {self.Ly_Lx} \n"
+                    f"nr_corr_values, 0 \n"  # We need a new corr observer that just observes with density and doesnt switch after quench     
+                    f"nr_ft_values, 0 \n"  # Ah we still wanted to check whether the values of the ft and fit and python or direct fit in c++ are the same, but they should be fairly similar
+                    f"equil_error, {self.equil_error}\n"
+                    f"equil_cutoff, {self.equil_cutoff}\n"
+                    f"min_corr_nr, {self.min_corr_nr}\n"
+                    f"corr_write_density, {self.corr_write_density}\n"
+                    f"moving_factor, {self.max_moving_factor}\n"
+                    f"corr_second, {int(self.second)}\n"
+                    f"observed_direction, {int(self.observed_direction)}")
+
 
     def evaluate(self):
         # Okay the evaluation logic, will be done after lunch, you will just extract the xi, fitting and see if its okay
@@ -3284,7 +3409,6 @@ class z_measurement(autonomous_measurement):
 
             self.construct_para_nr_run_dic()    # this function also has to determine the total nr of jobs
             # now we run the jobs... I guess?
-            # exit()
             self.run_jobs()
             self.cur_run_nr = 0
             self.cur_para_nr = 0        # I dont get anymore what system you thought out here
@@ -3368,6 +3492,11 @@ class z_measurement(autonomous_measurement):
             cum = size_cum_dic[size]
             times = size_times_dic[size]
 
+            print("cum:")
+            print(cum)
+            print("times:")
+            print(times)
+
             t_fold, cum_fold = fold(times, cum, fold=fold_nr)
             # plot the points
             ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i]), marker=markers[i],
@@ -3378,7 +3507,7 @@ class z_measurement(autonomous_measurement):
             # we could just use base_fold * len(t_fold) to get the same number of values we had before but folded?
             # The thing is for the error calculation we need the same interval for both sizes, I guess here it doesnt matter to much
             t_inter_plot = np.linspace(np.min(t_fold), np.max(t_fold), fold_nr * len(t_fold))
-            cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
+            #cum_inter_plot = np.interp(t_inter_plot, t_fold, cum_fold)
 
             #ax.plot(t_inter_plot, cum_inter_plot, color=colors[2 * i], alpha=0.5)
             # okay so much for the plotting, now the refitting

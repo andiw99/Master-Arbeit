@@ -50,7 +50,7 @@ def main():
     variation_error_rate = 0.01
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
-    T_c = 0.2327 * 10
+    T_c = 0.230 * 10
 
     for h in h_arr:
         print(h)

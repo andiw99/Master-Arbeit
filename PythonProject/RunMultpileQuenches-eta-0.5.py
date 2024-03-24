@@ -43,7 +43,7 @@ def main():
     max_nr_quench_steps = 1e6
     nr_sites = 4e6
     max_tau = 10000
-    min_nr_systems = 5
+    min_nr_systems = 10
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 

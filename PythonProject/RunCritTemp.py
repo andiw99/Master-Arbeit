@@ -16,8 +16,8 @@ def main():
     eta = 1
     p = 2.5
     dt = 0.01
-    max_size_Tc = 48
-    min_size_Tc = 96
+    max_size_Tc = 96
+    min_size_Tc = 192
     nr_sizes_Tc = 2
     nr_Ts = 10
     cum_error = 0.0015
@@ -33,9 +33,9 @@ def main():
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-h-2/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-2/"
 
-    Tc_exec_file = "AutoCumulant.cu"
+    Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?

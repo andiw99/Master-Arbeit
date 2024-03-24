@@ -4,6 +4,7 @@ from FunctionsAndClasses import *
 def main():
     #simpath = "../../Generated content/Silicon/Subsystems/Suite/h/0.4161791450287818/Quench-eta/0.01"
     simpath = "../../Generated content/Silicon/Subsystems/Suite/h/1.7320508075688776/Quench/"
+    #simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1"
     simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/1"
 
     taus = [0.000002, 0.000488]
@@ -16,6 +17,7 @@ def main():
     xi_ampl_perp = 0.2
     Tc = 1.2
     additional_ft_points = 50
+    min_tau = 50
 
     cut_from_equil = 0.2
     cut_zero_impuls = True
@@ -36,10 +38,10 @@ def main():
                                                                                     fitfunc=fitfunc,
                                                                                     additional_ft_points=additional_ft_points)
     tau_scaling, xix_scaling, reg_x, max_tau_ind_x, min_tau_ind_x = quench_measurement.fit_kzm(
-        size_tau_xix_dic)
+        size_tau_xix_dic, min_tau=min_tau)
 
     tau_scaling, xiy_scaling, reg_y, max_tau_ind_y, min_tau_ind_y = quench_measurement.fit_kzm(
-        size_tau_xiy_dic)
+        size_tau_xiy_dic, min_tau=min_tau)
 
     quench_measurement.plot_kzm_scaling(tau_scaling, size_tau_xix_dic, reg_x, max_tau_ind_x, min_tau_ind_x, direction="parallel")
     plt.savefig(simpath + f"/plots/tau-xi-parallel.png", format="png")
