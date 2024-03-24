@@ -97,7 +97,7 @@ public:
         // folder where we are supposed to write
         // in the case of random_init < 0, we added the folder and the size? and then removed them again
         if(paras[random_init] == -1.0) {
-            cout << "Memory init detected" << endl;
+            cout << "Memory init -1 detected" << endl;
             // If this is the case we want to memory initialize
             // The thing is, do we want to continue to write into the files that we already have or do we
             // write new files? Continueing would actually be nice but could be complicated and time consuming
@@ -120,6 +120,8 @@ public:
                 x[i] = pre_lattice[i];
             }
         } else if(paras[random_init] == -2.0) {
+            cout << "Memory init -2 detected" << endl;
+
             // This case should read a certain file and write it to another
             fs::path input_file_path = simulation_path.parent_path();
             input_file_path += ".csv";

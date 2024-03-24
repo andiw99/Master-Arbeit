@@ -470,7 +470,7 @@ def get_difference_std(cum_arr):
 
 class autonomous_measurement():
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, nr_GPUS=6, Ly_Lx = 1/8,
-                 host="hemera", user="weitze73", runfile="run_cuda.sh", para_nr=100, wait=60):
+                 host="hemera", user="weitze73", runfile="run_cuda.sh", para_nr=100, wait=60, walltime="16:00:00"):
         # This class is supposed to encapsulate some of the functionality that the following classes share
         # For every simulation I need the basic simulation parameters
         self.J_para = J_para
@@ -487,7 +487,7 @@ class autonomous_measurement():
         # also some parameters for the cluster
         self.host = host                            # adress of the cluster
         self.user = user                            # user on the cluster
-        self.walltime = "16:00:00"
+        self.walltime = walltime
         self.file = exec_file
         self.folder = "simulations"
         self.wait = 30
@@ -2589,9 +2589,10 @@ class quench_measurement(autonomous_measurement):
 class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
-                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0, min_corr_nr=5000):
+                 max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0,
+                 min_corr_nr=5000, walltime="16:00:00"):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
-                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
+                         nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile, walltime=walltime)
 
         self.nr_Ts = nr_Ts                      # nr of temperatures used to fit
         self.T_range_fraction = T_range_fraction    # This is the fraction of Tc that is used to determine the interval of Ts in [Tc, (1+T_range_raction) * Tc]
@@ -2657,7 +2658,10 @@ class amplitude_measurement(autonomous_measurement):
 
         # to be honest I dont think we need the fancy get_avail_simulations function, we just uste check_esxits
         size_folder = f"{self.simulation_path}/{self.size}"
-        avail_simulations = check_exists(size_folder, file_ending="corr")
+        if os.path.exists(size_folder):
+            avail_simulations = [f for f in os.listdir(size_folder) if (f != "plots" and f[0] != ".")]
+        else:
+            avail_simulations = []
         # For every valid simulation we do not have to do this simulation in the following
         for temp_folder in avail_simulations:
             self.Ts_done.add(float(temp_folder))
@@ -2682,7 +2686,7 @@ class amplitude_measurement(autonomous_measurement):
         return self.evaluate()
     def write_para_files(self):
         print("Writing the parameter files...")
-        nr_subsystems = np.ceil(self.min_nr_sites / (self.size ** 2 * self.Ly_Lx))
+        nr_subsystems = max(np.ceil(self.min_nr_sites / (self.size ** 2 * self.Ly_Lx)), 1)
         for i, T in enumerate(self.T_arr):
             # We now need to construct the parameterfile with the appropriate temperature
             # Is it okay if we construct all files in the beginning and deal with the threading of the gpus later?
@@ -2707,7 +2711,7 @@ class amplitude_measurement(autonomous_measurement):
                     done_csv_path = find_first_csv_file(done_folder_path)
                     name = pathlib.Path(done_csv_path).stem
                     done_path = f"{done_folder_path}/{name}"
-                    self.write_advance_file(T, i, -2, done_path)
+                    self.write_advance_file(T, nr_subsystems, -2, done_path)
 
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",

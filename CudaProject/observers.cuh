@@ -2308,6 +2308,7 @@ public:
                             }
                         } else {
                             int minutes_remaining = get_remaining_minutes();
+                            cout << "minutes remaining " << minutes_remaining << endl;
                             if(minutes_remaining < 15) {
                                 // if less than 15 minutes are remaining until the jobs cancelled, we equilibrate
                                 // so that the states get written and stuff
