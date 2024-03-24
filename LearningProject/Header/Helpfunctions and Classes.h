@@ -382,19 +382,38 @@ std::string exec(const char* cmd) {
     }
     return result;
 }
-
-int timeStringToMinutes(const std::string& timeString) {
-    std::istringstream iss(timeString);
-    int hours = 0, minutes, seconds;
-    char colon;
-
-    if (timeString.find(':') != std::string::npos) {
-        // String contains ':' indicating hours part
-        iss >> hours >> colon;
+int timeStringToMinutes(const std::string& timeStr) {
+    std::vector<int> timeParts;
+    std::stringstream ss(timeStr);
+    std::string part;
+    while (std::getline(ss, part, ':')) {
+        timeParts.push_back(std::stoi(part));
     }
 
-    iss >> minutes >> colon >> seconds;
-    return hours * 60 + minutes;
+    int days = 0, hours = 0, minutes = 0, seconds = 0;
+    switch (timeParts.size()) {
+        case 4:  // Format is d:hh:mm:ss
+            days = timeParts[0];
+            hours = timeParts[1];
+            minutes = timeParts[2];
+            seconds = timeParts[3];
+            break;
+        case 3:  // Format is hh:mm:ss
+            hours = timeParts[0];
+            minutes = timeParts[1];
+            seconds = timeParts[2];
+            break;
+        case 2:  // Format is mm:ss
+            minutes = timeParts[0];
+            seconds = timeParts[1];
+            break;
+        default:
+            std::cout << "Invalid time format!" << std::endl;
+            return -1;
+    }
+
+    int totalMinutes = days * 24 * 60 + hours * 60 + minutes + seconds / 60;
+    return totalMinutes;
 }
 
 int get_remaining_minutes() {

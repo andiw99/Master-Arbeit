@@ -56,7 +56,7 @@ def main():
     amplitude_size = 4048
     equil_error_amplitude = 0.02
     equil_cutoff = 0.01
-    min_corr_nr = 50000
+    min_corr_nr = 50
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     walltime="00:20:00"

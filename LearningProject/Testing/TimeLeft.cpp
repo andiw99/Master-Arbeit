@@ -22,6 +22,9 @@ int main() {
     string teststring = exec("echo test");
     cout << "printing teststring: " << teststring;
 
+    cout << timeStringToMinutes("12:00") << endl;
+    cout << timeStringToMinutes("1:12:00") << endl;
+
     cout << get_remaining_minutes() << endl;
 
     return 0;
