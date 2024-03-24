@@ -385,9 +385,15 @@ std::string exec(const char* cmd) {
 
 int timeStringToMinutes(const std::string& timeString) {
     std::istringstream iss(timeString);
-    int hours, minutes, seconds;
+    int hours = 0, minutes, seconds;
     char colon;
-    iss >> hours >> colon >> minutes >> colon >> seconds;
+
+    if (timeString.find(':') != std::string::npos) {
+        // String contains ':' indicating hours part
+        iss >> hours >> colon;
+    }
+
+    iss >> minutes >> colon >> seconds;
     return hours * 60 + minutes;
 }
 
