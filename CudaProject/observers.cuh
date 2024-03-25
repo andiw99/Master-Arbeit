@@ -156,6 +156,7 @@ public:
             path += ".csv";
             open_app_stream(path);  // with plus since we have the filename stem here?
             write_interval = (paras[end_time] - paras[start_time]) / (double)nr_values;
+            cout << "standard observer write_interval " << write_interval;
             timepoint = paras[Parameter::start_time]; // + write_interval;      // We dont want to write the starting position again
             cout << "pickup, setting the next write to " << timepoint << endl;
         } else {
@@ -187,6 +188,7 @@ public:
         }
         // Zeilenumbruch
         ofile << "\n";
+        cout << "wrote file" << endl;
     }
     string get_name() override {
         return "standard observer";
@@ -275,7 +277,7 @@ public:
         // and just check every step if the system is equilibrated. This means we do not even need a write interval
         // But we need to tell the observer somehow if it is the first iteration
         startpoint = true;      // always needs to be set true if we run a second system
-        cout << "equilibration obs init is called, write_interval is  " << endl;
+        // cout << "equilibration obs init is called, write_interval is  " << endl;
         standard_observer::init(folderpath, paras, sys);
     }
 
@@ -2176,7 +2178,7 @@ public:
             filepath = path;
             cout << "Reading correlation lengths from file" << endl;
             readXiFromFile(path, xix, xiy, times);
-            timepoint = times.back();
+            timepoint = paras[Parameter::start_time];
             cout << "successful!" << endl;
             // we should adapt the write interval from the file that we read
             write_interval = times[1] - times[0];
@@ -2191,14 +2193,17 @@ public:
         dt_half = dt / 2.0;
         quench_t = sys.get_quench_time();
         write_interval = (1.0 / density) * dt;
+        cout << "write interval of corr equilibration observer adaptive is " << write_interval << endl;
+        cout << "and the next timepoint is " << timepoint << endl;
     }
 
     string get_name() override {
-        return "corr equilibration observer";
+        return "corr equilibration observer adaptive";
     }
 
     void operator()(system &sys, const State &x , double t ) override {
         if(t > timepoint - dt_half) {
+            cout << "t > timepoint.... " << t << " > " << timepoint << endl;
             double xix_val, xiy_val;
             Singleton_timer::set_startpoint("Xi Calculation");
             if(second) {

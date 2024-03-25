@@ -22,7 +22,10 @@ def main():
     results = [result_xix, result_xiy]
     directions = ["parallel", "perp"]
     size_factors = [1, 1 / 8]
-    J_para = 10
+    J_para = 3
+    T_min = 0.574
+    T_min_perp = 0.574
+    #T_min = None
 
     for j, result in enumerate(results):
         for i, size in enumerate(result):
@@ -39,13 +42,13 @@ def main():
     print(result_xix)
     print(result_xiy)
     fit_sizes_x = list(result_xix.keys())
-    T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(result_xix, fit_sizes_x, min_points=0)
+    T_xix, reg_x = amplitude_measurement.perform_fit_on_sizes(result_xix, fit_sizes_x, min_points=0, T_min=T_min)
     print("\nT_xix:")
     print(T_xix)
     amplitude_measurement.plot_xi_fit(axes[0], reg_x, T_xix, direction="parallel", Tc_label=False)
 
     fit_sizes_y = list(result_xiy.keys())
-    T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y, min_points=0)
+    T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y, min_points=0, T_min=T_min_perp)
     amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=colors[5], direction="perp", Tc_label=False)
 
     amplitude_measurement.configure_xi_plot(axes, fig)

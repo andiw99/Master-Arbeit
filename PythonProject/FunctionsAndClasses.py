@@ -2076,9 +2076,9 @@ def best_lin_reg(x, y, min_r_squared, min_points=4, accept_function=None,
 
     return best_reg, best_starting_pos, best_ending_pos
 
-def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=6):
+def best_fit_inv(T_arr, xi_inv_arr, Tc_est, tolerance, min_r_squared=0, min_points=6, more_points=False):
     return best_lin_reg(T_arr, xi_inv_arr, min_r_squared, min_points, accept_function=accept_xi_inv_fit,
-                        accept_function_args=(Tc_est, tolerance))
+                        accept_function_args=(Tc_est, tolerance), more_points=more_points)
 
 def fold(x, y, fold=3):
     x = np.array(x)
@@ -2187,6 +2187,21 @@ def get_largest_value_with_linestyle(ax, linestyle):
             max_y_value = max(y_data)
 
             if largest_value is None or max_y_value > largest_value:
+                largest_value = max_y_value
+
+    return largest_value
+
+def get_smallest_value_with_linestyle(ax, linestyle):
+    largest_value = None
+
+    for line in ax.lines:
+        line_linestyle = line.get_linestyle()
+        if line_linestyle == linestyle:
+            x_data = line.get_xdata()
+            y_data = line.get_ydata()
+            max_y_value = min(y_data)
+
+            if largest_value is None or max_y_value < largest_value:
                 largest_value = max_y_value
 
     return largest_value

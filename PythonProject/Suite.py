@@ -167,8 +167,8 @@ def check_corr_valid(folderpath, equil_error, equil_cutoff, max_moving_factor=0.
     # How do we check in the observer again? is not written actually...
     # We need the relative errors here
     moving_factor = np.mean(moving_factors_x + moving_factors_y)
-    xix_rel_error = xix_error / xix_avg
-    xiy_rel_error = xiy_error / xiy_avg
+    xix_rel_error = xix_error
+    xiy_rel_error = xiy_error
     avg_error = 1/ 2 * (xix_rel_error + xiy_rel_error)
 
     if (avg_error < equil_error) and (moving_factor < max_moving_factor):
@@ -3059,8 +3059,10 @@ class amplitude_measurement(autonomous_measurement):
                                                                    linestyle='None') * 1.05
             upper_ylim_perp = get_largest_value_with_linestyle(axy,
                                                                linestyle='None') * 1.15
+            lower_ylim_perp = get_smallest_value_with_linestyle(axy,
+                                                               linestyle='None') * 0.5
             axx.set_ylim(0, upper_ylim_parallel)
-            axy.set_ylim(0,
+            axy.set_ylim(lower_ylim_perp,
                          upper_ylim_perp * 1.5)
             axx.set_xlabel("T")
             axx.set_ylabel(r"$\xi_\parallel / a_\parallel$")
@@ -3197,7 +3199,7 @@ class amplitude_measurement(autonomous_measurement):
             return config_x
 
     @staticmethod
-    def perform_fit_on_sizes(results_x, fit_sizes, Tc=None, min_points=0):
+    def perform_fit_on_sizes(results_x, fit_sizes, Tc=None, min_points=0, T_min=None, T_max=None):
         if isinstance(fit_sizes, list):
             T_xix = np.array([])
             xix_arr = np.array([])
@@ -3211,9 +3213,19 @@ class amplitude_measurement(autonomous_measurement):
             xix_inv = 1 / xix_arr
         if not Tc:
             Tc = np.min(T_xix)  # then we guess it to be this
+
+        if not T_min:
+            T_min = np.min(T_xix)
+        if not T_max:
+            T_max = np.max(T_xix)
+        xix_inv = xix_inv[(T_xix <= T_max) & (T_xix >= T_min)]
+        T_xix = T_xix[(T_xix <= T_max) & (T_xix >= T_min)]
         reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv,
                                                                  Tc, 0.5,
-                                                                 min_r_squared=0.9, min_points=min_points)
+                                                                 min_r_squared=0.5, min_points=min_points,
+                                                                 more_points=False)
+        print("includes:")
+        print(T_include_start_x, T_include_end_x)
         return T_xix, reg_x
 
     @staticmethod
@@ -3495,11 +3507,6 @@ class z_measurement(autonomous_measurement):
             # We prbably want a 'base fold' for the smallest size
             cum = size_cum_dic[size]
             times = size_times_dic[size]
-
-            print("cum:")
-            print(cum)
-            print("times:")
-            print(times)
 
             t_fold, cum_fold = fold(times, cum, fold=fold_nr)
             # plot the points

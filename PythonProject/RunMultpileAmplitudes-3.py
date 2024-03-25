@@ -13,7 +13,7 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -120000
-    J_para = -3
+    J_para = -10
     #J_perp = -2000
     J_perp = -0.1
     #Ly_Lx = 1 / 16
@@ -25,7 +25,7 @@ def main():
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/"
-    simulation_path = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude/"
+    simulation_path = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -34,7 +34,7 @@ def main():
 
 
     # Amplitude parameters
-    equil_error_amplitude = 0.02
+    equil_error_amplitude = 0.035
     equil_cutoff = 0.01
     min_corr_nr = 50000
 
@@ -42,14 +42,13 @@ def main():
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
     T_min_fraction = -0.0075
-    T_c = 0.903
-    #T_c = 1.7268
+    T_c = 1.7268
 
     amplitude_sizes = [4096] #[2048, 1024]
     #amplitude_sizes = [512, 256, 128]
-    T_ranges = [0.00]#, 0.02, 0.03]
+    T_ranges = [0.0]#, 0.02, 0.03]
     nr_Ts_per_range = 4
-    min_nr_sites = 4e6
+    min_nr_sites = 2e6
 
 
     for i, (size, T_up) in enumerate(zip(amplitude_sizes, T_ranges)):

@@ -2,18 +2,21 @@ from Suite import *
 import numpy as np
 
 def main():
-    h_arr = [2]
+    h_arr = [1]
     nr_gpus = 10
 
     J_para = -10
     J_perp = -0.1
+
+
     p = 2.5
-    eta_arr = [1]
+    eta_arr = [0.1]
+
     dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/h=2/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/eta=0.1/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
@@ -23,8 +26,8 @@ def main():
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 48
-    size_max_z = 144
-    z_test_size = 24
+    size_max_z = 160
+    z_test_size = 320
     nr_sizes = 4
     z_min_nr_sites = 10e6
     z_min_nr_systems = 25000
@@ -42,15 +45,16 @@ def main():
     # test_min_val_nr = 1000
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
-    test_min_val_nr = 100
+    test_min_val_nr = 200
     val_write_density = 1 / 16
     val_write_density_test = 1 / 16
     Ly_Lx = 1 / 12
 
-    variation_error_rate = 0.001
+    variation_error_rate = 0.01
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
-    T_c = 0.229 * 10
+    T_c = 0.197 * 10
+
 
     for h in h_arr:
         print(h)

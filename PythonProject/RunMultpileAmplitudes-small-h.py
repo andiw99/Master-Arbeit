@@ -8,8 +8,6 @@ def main():
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
     h_arr = np.array([0.1])
-    h_arr = np.array([0.4161791450287818])
-
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -26,59 +24,36 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude/"
+    #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/"
+    simulation_path = "../../Generated content/Final/Amplitude/J_J=30/final-small-h/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
-    #runfile = "run_cuda_gpu_a100_low.sh"
+    runfile = "run_cuda_gpu_a100_low.sh"
     runfile = "run_cuda.sh"
-    # Tc parameters
-    max_size_Tc = 192
-    min_size_Tc = 64
-    file_ending = "mag"
-    value_name = "m"
-    process_file_func = process_new_mag_file_to_U_L
-    nr_sizes_Tc = 2
-    nr_Ts = 3
-    para_nr_Tc = int(input("para nr, please take seriously:"))
-    # We use relatively large equilibration errors since for the quenches we only need a
-    # rough estimate of the transition temperature
-    # for future use we could extend the pickup of the Tc measurement to work with
-    # any previous measurements, not only the the ones the coincide with the current one
-    min_val_nr = 2000
-    equil_error = 0.04
-    val_write_density = 1 / 1000            # otherwise the files become to large?
-    moving_factor = 0.02
-    min_equil_error = 0.01
-    max_rel_intersection_error = 0.01
+
 
     # Amplitude parameters
-    amplitude_size = 4048
-    equil_error_amplitude = 0.04
+    equil_error_amplitude = 0.03
     equil_cutoff = 0.01
     min_corr_nr = 50000
+
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
     T_min_fraction = -0.0175
-    T_range_fraction = 0.03
-    nr_Ts = 1
-    T_c = 1.7268
     T_c = 0.76
-    T_c = 0.903
 
-    #amplitude_sizes = [2048, 1024]
-    #amplitude_sizes = [32, 64, 128]
-    #amplitude_sizes = [1024, 2048, 4096]
-    amplitude_sizes = [4096]
-    T_ranges = [-0.0125]
+
+    amplitude_sizes = [4096] #[2048, 1024]
+    #amplitude_sizes = [512, 256, 128]
+    T_ranges = [-0.0125]#, 0.02, 0.03]
     nr_Ts_per_range = 3
-    next_T = None
-    min_nr_sites = 4e6
+    min_nr_sites = 2e6
+
 
     for i, (size, T_up) in enumerate(zip(amplitude_sizes, T_ranges)):
         h = h_arr[0]
-
         try:
             next_t = T_ranges[i + 1]
             T_min = next_t + T_min_fraction
@@ -88,11 +63,11 @@ def main():
         ampl = amplitude_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path,
                                      amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=size,
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
-                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range, min_nr_sites=min_nr_sites,
+                                     T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range,
+                                     min_nr_sites=min_nr_sites,
                                      Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr)
         ampl.run()
         last_T = T_up
-
     exit()
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
