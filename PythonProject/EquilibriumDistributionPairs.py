@@ -71,7 +71,8 @@ def filter_cut(x, x_cut, dx):
 
 def main():
     root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
-    root = "../../Generated content/Final/Benchmarks/2e-2/eta=1/h=100-J=40/T=50/longer/2"
+    #root = "../../Generated content/Final/Benchmarks/2e-2/eta=1/h=100-J=40/T=50/longer/2"
+    root = "../../Generated content/Final/Benchmarks/1e-5/Final/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
     potential = cos_potential_x
@@ -142,7 +143,7 @@ def main():
         W_x_single /= Z_single
         fig, ax = plt.subplots(1, 1, figsize=(10, 10 * 4.8/6.4))
         x_start = filter_cut(x[0][2:], x2, dx)
-        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"d$t = {dt}$", color=colors[1])
+        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"d$\sigma= {dt}$", color=colors[1])
         #ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0], linewidth=3)
         ax.plot(x_range, W_x, label=r"$p(\vartheta_1) \propto $exp$({-\beta H(\vartheta_1, \vartheta_2)})$" + "\n" + rf"$\vartheta_2 = ${x2:.2f}",
                 color=colors[4], linewidth=3)
