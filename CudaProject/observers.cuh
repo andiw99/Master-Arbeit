@@ -2182,7 +2182,7 @@ public:
             cout << "successful!" << endl;
             // we should adapt the write interval from the file that we read
             write_interval = times[times.size() - 1] - times[times.size() - 2];
-            density = dt / write_interval;
+            density = max(dt / write_interval, min_density);
             open_app_stream(filepath);
         }
         cout << this->get_name() << " init called" << endl;

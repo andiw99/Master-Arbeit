@@ -25,7 +25,7 @@ def main():
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/"
-    simulation_path = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude2/"
+    simulation_path = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
