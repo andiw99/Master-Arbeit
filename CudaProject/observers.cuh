@@ -2181,7 +2181,7 @@ public:
             timepoint = paras[Parameter::start_time];
             cout << "successful!" << endl;
             // we should adapt the write interval from the file that we read
-            write_interval = times[1] - times[0];
+            write_interval = times[times.size() - 1] - times[times.size() - 2];
             density = dt / write_interval;
             open_app_stream(filepath);
         }

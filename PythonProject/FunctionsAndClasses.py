@@ -31,6 +31,7 @@ colors += colors + colors + colors + colors
 markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 blue_point_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0]}
 blue_square_kwargs = {"linestyle": "None", "markerfacecolor": "none", "markeredgecolor": colors[0], "marker": "s"}
+errorbar_kwargs = {"color": "black", "elinewidth":1,  "capsize": 2}
 standard_figsize = (10, 4.8 / 6.4 * 10)
 
 def get_point_kwargs_color(color, markeredgewidth=1):
@@ -56,6 +57,11 @@ def read_last_line(path):
 
     return last_line[:-2]   # strip last comma
 
+def write_lists_to_file(x, y, filename, header):
+    with open(filename, 'w') as file:
+        file.write(header)
+        for x_val, y_val in zip(x, y):
+            file.write(f'{x_val},{y_val}\n')
 def string_to_array(input_string):
     # Split the input string by commas and convert each element to a float
     # input_string = input_string.strip()
@@ -1540,12 +1546,13 @@ def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
 
     return U_L, rel_error, moving_factor, total_nr_values
 
-def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum', selected_temperatures=None, process_file_func=process_file):
+def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum',
+                        selected_temperatures=None, process_file_func=process_file):
     """
     Process all files in a size folder and return a dictionary with temperature and average values.
     """
     eps = 1e-4
-    result = {key: [], value: []}
+    result = {key: [], value: [], "error": []}
     for temp_folder in os.listdir(size_folder):
         if (temp_folder != "plots") & (temp_folder[0] != "."):
             if selected_temperatures is not None:
@@ -1564,8 +1571,10 @@ def process_size_folder(size_folder, threshold, key='T', value='U_L', file_endin
                 if val_avg:
                     result[key].append(float(temp_folder))
                     result[value].append(val_avg)
+                    result["error"].append(error)
 
     result[value] = np.array(result[value])[np.argsort(result[key])]
+    result["error"] = np.array(result["error"])[np.argsort(result[key])]
     result[key] = np.sort(result[key])
     # TODO if i need the error i can return it here but not for now
     return result

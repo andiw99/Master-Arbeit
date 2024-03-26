@@ -7,10 +7,9 @@ def main():
     J_para = 3
     T_min = 0.252
     T_min_perp = 0.252
-    T_min = 0.1715
-    T_min_perp = 0.1715
     T_min = 0.298
     T_min_perp = 0.298
+
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Amplitude"
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=32/Amplitude"
     simpath_xix = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude"
@@ -39,7 +38,7 @@ def main():
             #result[size] = (result[size][0] / J_para, result[size][1])
             amplitude_measurement.plot_xi_points(axes[j], T_xix,
                                                  xix_arr, marker=markers[i], size=int(size * size_factors[j]),
-                                                 color=colors[5 * j], direction=directions[j], yerr = None)
+                                                 color=colors[5 * j], direction=directions[j], yerr = xix_err)
 
 
     print(result_xix)

@@ -331,9 +331,11 @@ def get_mean_dif_var(cum,num_per_var_val):
     squared_dif_var_mean = np.mean(np.array(dif_var_arr) ** 2)    # this way large variances are punished harder
     return dif_var_mean, squared_dif_var_mean
 
-def process_folder_avg_fast(value_files):
+def process_folder_avg_fast(folderpath, file_ending):
     all_m = []
     cum = []
+    value_files = glob(f"{folderpath}/*.{file_ending}")
+
     for i, file_path in enumerate(value_files):
         df, t = read_large_df_with_times(file_path, skiprows=1, sep=";")
         # this df is a list of lists, we dont have the times at all
@@ -352,11 +354,11 @@ def process_folder_avg_fast(value_files):
     times = np.array(t)
     return cum, times
 
-def process_folder_avg_balanced(value_files):
+def process_folder_avg_balanced(folderpath, file_ending):
     cum = []
     times = []
+    value_files = glob(f"{folderpath}/*.{file_ending}")
 
-    folderpath = os.path.split(value_files[0])[0]
     para_path = find_first_txt_file(folderpath)
     parameters = read_parameters_txt(para_path)
     max_nr_m_values = 2e8   # maximum number of m values that can be processed in one batch
@@ -389,10 +391,27 @@ def process_folder_avg_balanced(value_files):
                 cum.append(U_L)
             times += t
         times = np.array(times)
-        return cum, times
     except KeyError:
-        return process_folder_avg_fast(value_files)
+        cum, times = process_folder_avg_fast(folderpath, file_ending)
 
+    average_path = f"{folderpath}/this.cum_avg"
+    header ="t,U_L\n"
+    print("trying to write")
+    write_lists_to_file(times, cum, filename=average_path, header=header)
+
+    return cum, times
+
+def read_folder_avg(folderpath, file_ending):
+    # this one just wants to read already calculated files
+    averaged_files = glob(f"{folderpath}/*.cum_avg")
+    if averaged_files:
+        file_path = averaged_files[0]
+        df = pd.read_csv(file_path, delimiter=",", index_col=False)
+        cum = np.array(df["U_L"])
+        times = df['t']
+    else:
+        cum, times = process_folder_avg_balanced(folderpath, file_ending)
+    return cum, times
 
 def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folder_avg_func=process_folder_avg_balanced):
     """
@@ -421,7 +440,7 @@ def get_folder_average(folderpath, file_ending="mag", value="U_L", process_folde
         times = np.array(times)
         return cum, times
     else:
-        cum, times = process_folder_avg_func(value_files)
+        cum, times = process_folder_avg_func(folderpath, file_ending)
         # averaging
         times = np.array(times)
         return cum, times
@@ -1229,13 +1248,14 @@ class crit_temp_measurement(autonomous_measurement):
         low_lim = ax.get_xlim()[0]
         high_lim = ax.get_xlim()[1]
         ax.hlines(T_cs[-1] * 0.9999, low_lim, high_lim, linestyles="dashed", color="C0",
-                  label=f"$T_c = {(T_cs[-1] * 0.999):.4f}$")
+                  label=f"$T_c / J_\parallel = {(T_cs[-1] * 0.999):.4f}$")
         ax.set_xlim(low_lim, high_lim)
         ax.set_xlabel(r"$L_1$")
         ax.set_ylabel(r"$T_c~/~J_\parallel$")
         config = {
             "labelrotation": 90,
-            "labelhorizontalalignment": "right",
+            "labelhorizontalalignment": "center",
+            "labelverticalalignment": "bottom",
             "increasefontsize": 0.3
         }
         configure_ax(fig, ax, config)
@@ -2798,8 +2818,8 @@ class amplitude_measurement(autonomous_measurement):
         # temperatures that we have
         # Here we can call the process size folder method
         size_path = f"{self.simulation_path}/{self.size}"
-        T_xix, xix_arr = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xix")
-        T_xiy, xiy_arr = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xiy")
+        T_xix, xix_arr, error_xix = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xix")
+        T_xiy, xiy_arr, error_xiy = amplitude_measurement.prep_folder_data(self.equil_cutoff, size_path, "xiy")
 
         xix_inv = 1 / xix_arr
         xiy_inv = 1 / xiy_arr
@@ -3044,9 +3064,16 @@ class amplitude_measurement(autonomous_measurement):
         :return:
         """
         xix_inv = 1 / xi
-        ax.plot(T, xix_inv, label=rf"$ 1 / \xi_\{direction}" + "^{" + str(size) + "}$",
-                 linestyle="", marker=marker, markerfacecolor="none",
-                 markeredgecolor=color)
+        if direction == "parallel":
+            label=rf"$L_\parallel = {size}$"
+        else:
+            label=""
+        ax.plot(T, xix_inv, label=label,
+                linestyle="", marker=marker, markerfacecolor="none",
+                markeredgecolor=color, markersize=10, markeredgewidth=2)
+        #ax.plot(T, xix_inv, label=rf"$ 1 / \xi_\{direction}" + "^{" + str(size) + "}$",
+        #         linestyle="", marker=marker, markerfacecolor="none",
+        #         markeredgecolor=color,  markersize=10, markeredgewidth=2)
 
 
     @staticmethod
@@ -3070,7 +3097,8 @@ class amplitude_measurement(autonomous_measurement):
             axy.set_ylabel(r"$\xi_\perp / a_\perp$")
             config_x = {
                 "labelrotation": 90,
-                "labelhorizontalalignement": "right",
+                "labelhorizontalalignment": "center",
+                "labelverticalalignment": "bottom",
                 "grid": True,
                 "tight_layout": False,
                 "legend": False,
@@ -3078,7 +3106,8 @@ class amplitude_measurement(autonomous_measurement):
             }
             config_y = {
                 "labelrotation": 90,
-                "labelhorizontalalignement": "right",
+                "labelhorizontalalignment": "center",
+                "labelverticalalignment": "top",
                 "grid": False,
                 "legend": False,
                 "increasefontsize": 0.75,
@@ -3133,10 +3162,14 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=colors[0], direction="parallel"):
-        axx.plot(T_xix, xix_arr, label=rf"$\xi_\{direction}" + "^{" + str(size) + "}$", linestyle="",
+    def plot_xi_points(axx, T_xix, xix_arr, marker="s", size="", color=colors[0], direction="parallel", yerr=None):
+        if direction == "parallel":
+            label=rf"$L_\parallel = {size}$"
+        else:
+            label=""
+        axx.errorbar(T_xix, xix_arr, yerr=yerr, label=label, linestyle="",
                  marker=marker, markerfacecolor="none",
-                 markeredgecolor=color)
+                 markeredgecolor=color,  markersize=10, markeredgewidth=2, **errorbar_kwargs)
 
 
     @staticmethod
@@ -3186,10 +3219,11 @@ class amplitude_measurement(autonomous_measurement):
                 1])  # the x values  are smaller so they should look smaller, increasing the upper bound by one third?
             #axx.set_title(r"Inverse Correlation Length $1 / \xi$")
             config_x = {
+                "labelhorizontalalignment": "center",
+                "labelverticalalignment": "bottom",
                 "labelrotation": 90,
-                "labelhorizontalalignement": "right",
                 "grid": True,
-                "tight_layout": False,
+                "tight_layout": True,
                 "increasefontsize": 0.75,
             }
 
@@ -3204,7 +3238,7 @@ class amplitude_measurement(autonomous_measurement):
             T_xix = np.array([])
             xix_arr = np.array([])
             for size in fit_sizes:
-                cur_T, cur_xix = results_x[size]
+                cur_T, cur_xix, cur_err = results_x[size]
                 T_xix = np.concatenate((T_xix, cur_T))
                 xix_arr = np.concatenate((xix_arr, cur_xix))
             xix_inv = 1 / xix_arr
@@ -3222,7 +3256,7 @@ class amplitude_measurement(autonomous_measurement):
         T_xix = T_xix[(T_xix <= T_max) & (T_xix >= T_min)]
         reg_x, T_include_start_x, T_include_end_x = best_fit_inv(T_xix, xix_inv,
                                                                  Tc, 0.5,
-                                                                 min_r_squared=0.5, min_points=min_points,
+                                                                 min_r_squared=0.1, min_points=min_points,
                                                                  more_points=False)
         print("includes:")
         print(T_include_start_x, T_include_end_x)
@@ -3248,25 +3282,38 @@ class amplitude_measurement(autonomous_measurement):
             T_xix = np.concatenate(([Tc_x], T_xix))
         if Tc_label:
             axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
-                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}, T_c = {Tc_x:.3f}$",
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.3f}, T_c = {Tc_x:.3f}$",
                      color=color)
         else:
             axx.plot(T_xix, reg_x.intercept + reg_x.slope * T_xix,
-                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.2f}$",
+                     label=rf"$\xi_\{direction}^+ = {xix_ampl:.3f}$",
                      color=color)
         return Tc_x
 
 
     @staticmethod
-    def prep_sim_data(equil_cutoff, simpath, value):
+    def prep_sim_data(equil_cutoff, simpath, value, T_min=0):
         results_x = {}
         size_folders = find_size_folders(simpath)
         for size_folder in size_folders:
             if (size_folder != "plots") & (size_folder[0] != "."):
                 size_folder_path = os.path.join(simpath, size_folder)
+                parapath = find_first_txt_file(size_folder_path)
+                parameters = read_parameters_txt(parapath)
+                J_para = parameters["J"]
+                T_min = T_min * np.abs(J_para)
                 if os.path.isdir(size_folder_path):
-                    T_xix, xix_arr = amplitude_measurement.prep_folder_data(equil_cutoff, size_folder_path, value)
-                    results_x[int(size_folder)] = (T_xix, xix_arr)
+                    T_xix, xix_arr, xix_err = amplitude_measurement.prep_folder_data(equil_cutoff, size_folder_path, value)
+                    # cut minimum T
+                    xix_arr = xix_arr[T_xix > T_min]
+                    xix_err = xix_err[T_xix > T_min]
+                    T_xix = T_xix[T_xix > T_min]
+
+                    # i guess we use errors that are not relative?
+                    xix_err = xix_arr * xix_err
+
+                    results_x[int(size_folder)] = (T_xix, xix_arr, xix_err)
+                T_min /= np.abs(J_para)
         return results_x
 
     @staticmethod
@@ -3277,10 +3324,12 @@ class amplitude_measurement(autonomous_measurement):
 
         T_xix = xix_dic["T"]
         xix_arr = xix_dic[value]
+        xix_err = xix_dic["error"]
         # They should be sorted and we are actually interested in the inverse correlation lengths
         xix_arr = xix_arr[np.argsort(T_xix)]
+        xix_err = xix_err[np.argsort(T_xix)]
         T_xix = T_xix[np.argsort(T_xix)]
-        return T_xix, xix_arr
+        return T_xix, xix_arr, xix_err
 
     def get_para_nr(self):
         # this tactic inreases the parameter number everytime get_para_nr is called so that we do not submit any job twice
@@ -3381,7 +3430,7 @@ class z_measurement(autonomous_measurement):
             # if this is available, we read the parameters? or some other file and extract the last time. Sadly I dont write the quilibration time to a file so we just read the .cum file?
             # We need the filepath
             # plot the test measurement
-            size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size])
+            size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size], self.simulation_path, Tc=self.Tc)
             test_cum = size_cum_dic[self.test_size]
             test_times = size_times_dic[self.test_size]
             fig, ax = plt.subplots(1, 1)
@@ -3457,7 +3506,7 @@ class z_measurement(autonomous_measurement):
             # We write something that takes a simulation folder and iterates through every simulation for like the 100th time,
             self.valid_sizes = sorted(self.valid_sizes)
             # shouldnt you somehow encapsulate this? F it for now, this could be complicated
-            size_cum_dic, size_times_dic = self.get_results_time_resolved()
+            size_cum_dic, size_times_dic = self.get_results_time_resolved(self.valid_sizes, self.simulation_path, Tc=self.Tc)
             # Okay we have the values, now we need to do the remapping
             # we need a list of z's that we want to check, just user input parameter? Nah I think we can do it like this. We will just start at 1 and go to three or something like this?
             # It wont be outside this right? Afterwards we can for every size pair get a new z interval
@@ -3510,8 +3559,8 @@ class z_measurement(autonomous_measurement):
 
             t_fold, cum_fold = fold(times, cum, fold=fold_nr)
             # plot the points
-            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i]), marker=markers[i],
-                    markersize=5, label=f"$L_x$={size}")
+            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i], markeredgewidth=1.5), marker=markers[i],
+                    markersize=8, label=f"$L_\parallel$={size}", alpha=0.5)
             # the new interploation works with np.interp
             # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
             # what even happens when you try to use less values haha?
@@ -3566,12 +3615,13 @@ class z_measurement(autonomous_measurement):
                         best_t_compare_arr = t_compare_arr
                         best_cum_compare_arr = cum_next_compare_arr
                 # If we did this we want to plot it
-                ax.plot(best_t_compare_arr,
-                        best_cum_compare_arr,
-                        linestyle="-", label=f"$L_x$={next_size},"
-                                             f" rescaled z = {best_z:.3f}", color=colors[2 * (i)])
+
+                ax.plot(best_t_compare_arr[1:],
+                        best_cum_compare_arr[1:],
+                        linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
+                                             f"\tz = {best_z:.3f}", color=colors[2 * (i)], linewidth=2)
         ax.set_ylabel(r"$U_L$")
-        ax.set_xlabel("t")
+        ax.set_xlabel("t / I")
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
@@ -3580,24 +3630,30 @@ class z_measurement(autonomous_measurement):
             "labelhorizontalalignment": "right",
         }
 
-        configure_ax(fig, ax)
+        configure_ax(fig, ax, config)
         #ax.set_title("z extraction")
 
-    def get_results_time_resolved(self, sizes=None):
+    @staticmethod
+    def get_results_time_resolved(sizes, simulation_path, Tc=None, file_ending="mag", value_name="U_L",
+                                  process_folder_avg_func=process_folder_avg_balanced):
         size_cum_dic = {}
         size_times_dic = {}
-        if not sizes:
-            sizes = self.valid_sizes
         for size in sizes:
-            size_path = os.path.join(self.simulation_path, str(size))
+            size_path = os.path.join(simulation_path, str(size))
             if os.path.isdir(size_path):
-                temp_path = os.path.join(size_path, f"{self.Tc:.6f}")  # we only want to look at the current used critical temperature
+                if not Tc:
+                    for temppath in os.listdir(size_path):
+                        if temppath != "plots" and temppath[0] != ".":
+                            Tc = float(temppath)
+                            break
+                temp_path = os.path.join(size_path, f"{Tc:.6f}")  # we only want to look at the current used critical temperature
                 if os.path.isdir(temp_path):
                     # okay so here we extract the cumulant for the a certain size temp combination
                     # I guess we use the same tactic as in the ccumovertime script since I think there is no simpler
                     # method to extract both the time and the values
                     # we can use get folder avage here
-                    cum, times = get_folder_average(temp_path, file_ending=self.file_ending, value=self.value_name)
+                    cum, times = get_folder_average(temp_path, file_ending=file_ending, value=value_name,
+                                                    process_folder_avg_func=process_folder_avg_func)
                     size_cum_dic[size] = cum
                     size_times_dic[size] = times
         return size_cum_dic, size_times_dic

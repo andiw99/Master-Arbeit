@@ -5,7 +5,7 @@ def main():
     #simpath = "../../Generated content/Silicon/Subsystems/Suite/h/0.4161791450287818/Quench-eta/0.01"
     simpath = "../../Generated content/Silicon/Subsystems/Suite/h/1.7320508075688776/Quench/"
     #simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1"
-    simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1"
+    simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.05"
 
     taus = [0.000002, 0.000488]
     taus = [4096, 1024, 32]

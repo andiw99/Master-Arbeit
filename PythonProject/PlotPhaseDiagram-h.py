@@ -111,6 +111,8 @@ def main():
     h3 = [930, 5500, 17000]
     Tc3 = [21500, 24695, 28800]
 
+    Tc100 = np.array([1.731, 1.972, 2.315])
+    h100 = np.array([0.5, 1, 2])
     h2 = np.array(h2)
     Tc2 = np.array(Tc2, dtype=np.float64)
     h3 = np.array(h3)
@@ -146,15 +148,32 @@ def main():
     print("correct popt?")
     print(popt)
 
+    h_given = 0.416
+    J_given = 3
 
+    # h_given = 0.283
+    # J_given = 3.11
+
+    h_given = 1
+    J_given = 10
+    T_given = np.linspace(100 * h_given, h_given / 2, 1000)
+    h_T_given_plot = h_given / T_given      # those are my x values
+    T_given_J_given = T_given / J_given     # those are the y values
 
     fig, ax = plt.subplots(1, 1)
 
     ax.plot([], [], marker='s', **get_point_kwargs_color("black"), label="critical points")
-    ax.plot(Tc[:-1], h[:-1] , marker='s', **blue_point_kwargs, label="$j_\parallel = 3.1$")
-    ax.plot(Tc3, h3, marker='s', **get_point_kwargs_color(colors[5]), label="$j_\parallel =  110 \cdot 10^3$")
-    ax.plot(Tc_plot, h_est, label="$h \propto e^{-AT^2 e^{B / T}}$", color="C1")
-    ax.plot(TcXY, 0, marker="^", **get_point_kwargs_color("C1"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    ax.plot(Tc[:-1], h[:-1] , marker='s', **blue_point_kwargs, markeredgewidth=1, markersize=7, label="$j_\parallel = 3.1$")
+    ax.plot(Tc3, h3, marker='s', **get_point_kwargs_color(colors[5], markeredgewidth=1), markersize=7, label="$j_\parallel =  110 \cdot 10^3$")
+    ax.plot(Tc_plot, h_est, label="$h \propto e^{-AT^2 e^{B / T}}$", color=colors[2])
+    ax.plot(TcXY, 0, marker="^", **get_point_kwargs_color(colors[0], markeredgewidth=1), markersize=7,)
+    ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7,)
+    ax.plot([], [], marker="^", **get_point_kwargs_color("black"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    ax.plot(Tc100 / 10, h100 / Tc100, marker="s", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7, label="$J_\parallel / J_\perp = 100$")
+    xlims = ax.get_xlim()
+    ax.plot(T_given_J_given, h_T_given_plot, color="C3", alpha=0.5)
+    ax.set_xlim(xlims)
+
     # ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
     # point from J/J = 100
     # ax.plot(0.17, 0.245, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
@@ -166,7 +185,9 @@ def main():
     config = {
         "labelrotation": 90,
         "increasefontsize": 0.3,
-        "labelhorizontalalignment": "right"
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        #"labelhorizontalalignment": "right"
     }
 
     configure_ax(fig, ax, config)
@@ -175,13 +196,10 @@ def main():
 
     Tc_desired = 0.232
 
-    h_given = 0.416
-    J_given = 3
+
     # I want to have h / T in the range that I can cover which is from 0 to two
     # so T goes from infinity to 0.2
-    T_given = np.linspace(100 * h_given, h_given / 2, 1000)
-    h_T_given_plot = h_given / T_given      # those are my x values
-    T_given_J_given = T_given / J_given     # those are the y values
+
     # so from those i can get the intersection
     h_T_given_point, T_J_given_point = find_first_intersection(h_T_given_plot, h, T_given_J_given, Tc)
 
@@ -202,18 +220,20 @@ def main():
     #ax.set_xscale("log")
     xlims = ax.get_xlim()
     print(xlims)
-    ax.plot(0, TcXY, marker="^", **get_point_kwargs_color("C1"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    ax.plot(0, TcXY, marker="^", **get_point_kwargs_color(colors[0]))
 
-    ax.plot(0, TcXY100, marker="^", **get_point_kwargs_color("C3"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
+    ax.plot(0, TcXY100, marker="^", **get_point_kwargs_color("C1"))
+    ax.plot([], [], marker="^", **get_point_kwargs_color("black"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
     # point from J/J = 100
-    ax.plot(0.245, 0.17, marker="s", **get_point_kwargs_color("C3"), label="$J_\parallel / J_\perp = 100$")
+    ax.plot(0.245, 0.17, marker="s", **get_point_kwargs_color("C1"))
+    ax.plot(h100 / Tc100, Tc100 / 10, marker="s", **get_point_kwargs_color("C1"), label="$J_\parallel / J_\perp = 100$")
 
     ax.set_xlim(xlims)
     ylims = ax.get_ylim()
-    ax.plot(h_T_given_plot, T_given_J_given)
+    ax.plot(h_T_given_plot, T_given_J_given,  color="C3", alpha=0.5)
     ax.set_ylim(ylims)
 
-    mark_point(ax, h_T_given_point, T_J_given_point, label=f"$T / J_\parallel = {T_J_given_point:.3f}$")
+    #mark_point(ax, h_T_given_point, T_J_given_point, label=f"$T / J_\parallel = {T_J_given_point:.3f}$")
     # here we plot this given plot thing
 
     ax.set_xlabel("$h~/~T$")
@@ -222,6 +242,8 @@ def main():
     config = {
         "labelrotation": 90,
         "increasefontsize": 0.3,
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
         "legendlocation": "lower right"
     }
 

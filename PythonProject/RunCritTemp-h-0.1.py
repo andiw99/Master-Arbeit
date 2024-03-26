@@ -11,7 +11,7 @@ def main():
     J_para = -10
     #J_perp = -1300
     J_perp = -0.1
-    h = 5
+    h = 0.2
     #h = 0.5
     eta = 1
     p = 2.5
@@ -33,7 +33,7 @@ def main():
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-5/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-0.2/"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -51,7 +51,7 @@ def main():
 
     # T- parameters?
     max_rel_intersection_error = 0.01
-    min_cum_nr = 500
+    min_cum_nr = 5000
     moving_factor = 0.001
     T_min = None
     T_max = None

@@ -3,7 +3,7 @@ import numpy as np
 
 def main():
 
-    h_arr = [1]
+    h_arr = [0.5]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -26,17 +26,17 @@ def main():
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
-    #runfile_z = "run_cuda_gpu_a100_low.sh"
+    runfile_z = "run_cuda_gpu_a100_low.sh"
     #runfile_z =  "run_cuda_casus_low.sh"
-    runfile_z = "run_cuda.sh"
+
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 48
-    size_max_z = 144
+    size_max_z = 120
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 40000
+    z_min_nr_systems = 25000
     z_equil_error = 0.004
     fold=40
 
@@ -45,15 +45,15 @@ def main():
     value_name = "m"
 
     test_min_val_nr = 100
-    val_write_density = 1 / 10
-    val_write_density_test = 1 / 10
-    Ly_Lx = 1 / 8
+    val_write_density = 1 / 12
+    val_write_density_test = 1 / 12
+    Ly_Lx = 1 / 12
 
-    variation_error_rate = 0.005
+    variation_error_rate = 0.01
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1731 * 10
-    T_c = 1.97
+    T_c = 1.975
 
     for h in h_arr:
         print(h)
