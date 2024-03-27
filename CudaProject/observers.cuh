@@ -2648,8 +2648,8 @@ public:
                             if(equil_counter >= 2 * equil_nr) {
                                 adapt_write_interval();
                                 equil_counter = equil_nr;
-                            } */
-                        }
+                            }
+                        }*/
                     }
                 }
             }

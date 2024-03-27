@@ -39,6 +39,7 @@ def main():
 
     # Quench parameters
     max_size = 5000
+    min_size = 128
     min_nr_sites = 4e6
     max_nr_quench_steps = 5e6
     nr_sites = 4e6
@@ -61,7 +62,7 @@ def main():
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
                                         para_nr=para_nr_quench, tau_max=max_tau, nr_sites=nr_sites,
                                         min_nr_systems=min_nr_systems, min_nr_corr_values=min_nr_corr_values,
-                                        Ly_Lx=Ly_Lx)
+                                        Ly_Lx=Ly_Lx, size_min=min_size)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so
