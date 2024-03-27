@@ -2643,12 +2643,12 @@ public:
                         cout << "observed direciton is " << observed_direction << " meaning rel_stddev_total = " << rel_stddev_total;
                         cout << " > " << max_error << endl;
 
-                        if(!equilibrated) {
+/*                        if(!equilibrated) {
                             cout << "equil_counter = " << equil_counter << endl;
                             if(equil_counter >= 2 * equil_nr) {
                                 adapt_write_interval();
                                 equil_counter = equil_nr;
-                            }
+                            } */
                         }
                     }
                 }

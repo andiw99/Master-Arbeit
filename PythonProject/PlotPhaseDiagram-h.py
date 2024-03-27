@@ -111,8 +111,8 @@ def main():
     h3 = [930, 5500, 17000]
     Tc3 = [21500, 24695, 28800]
 
-    Tc100 = np.array([1.731, 1.972, 2.315])
-    h100 = np.array([0.5, 1, 2])
+    Tc100 = np.array([1.731, 1.972, 2.315, 2.95])
+    h100 = np.array([0.5, 1, 2, 5])
     h2 = np.array(h2)
     Tc2 = np.array(Tc2, dtype=np.float64)
     h3 = np.array(h3)

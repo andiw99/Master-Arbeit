@@ -4,20 +4,20 @@ from FunctionsAndClasses import *
 def main():
 
     equil_cutoff = 0.1
-    J_para = 3
+    J_para = 10
     T_min = 0.252
     T_min_perp = 0.252
-    T_min = 0.1715
-    T_min_perp = 0.1715
     T_min = 0.298
     T_min_perp = 0.298
+    T_min = 0.1715
+    T_min_perp = 0.1715
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Amplitude"
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=32/Amplitude"
-    simpath_xix = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude"
+    simpath_xix = "../../Generated content/Final/Amplitude/J_J=60/final-h-1/Amplitude"
     result_xix = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xix, "xix", T_min=T_min)
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=1/0.4161791450287818/Amplitude"
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/Amplitude"
-    simpath_xiy = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude"
+    simpath_xiy = "../../Generated content/Final/Amplitude/J_J=60/final-h-1/Amplitude"
     result_xiy = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xiy, "xiy", T_min=T_min_perp)
     print(result_xix)
     print(result_xiy)

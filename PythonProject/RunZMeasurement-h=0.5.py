@@ -27,12 +27,12 @@ def main():
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
     runfile_z = "run_cuda_gpu_a100_low.sh"
-    #runfile_z =  "run_cuda_casus_low.sh"
+    runfile_z =  "run_cuda_casus_low.sh"
 
     # z parameters
     para_nr_z = int(input("parameter number ..."))
     size_min_z = 48
-    size_max_z = 120
+    size_max_z = 144
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
@@ -47,13 +47,13 @@ def main():
     test_min_val_nr = 100
     val_write_density = 1 / 12
     val_write_density_test = 1 / 12
-    Ly_Lx = 1 / 12
+    Ly_Lx = 1 / 8
 
-    variation_error_rate = 0.01
+    variation_error_rate = 0.007
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1731 * 10
-    T_c = 1.975
+    T_c = 1.731
 
     for h in h_arr:
         print(h)

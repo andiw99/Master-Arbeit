@@ -20,7 +20,7 @@ def main():
     min_size_Tc = 128
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0015
+    cum_error = 0.0012
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -33,7 +33,7 @@ def main():
     random_init = 0.0
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-5/"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-5-2/"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -50,8 +50,8 @@ def main():
     runfile = "run_cuda.sh"
 
     # T- parameters?
-    max_rel_intersection_error = 0.01
-    min_cum_nr = 500
+    max_rel_intersection_error = 0.005
+    min_cum_nr = 5000
     moving_factor = 0.001
     T_min = None
     T_max = None

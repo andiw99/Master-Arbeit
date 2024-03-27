@@ -2448,7 +2448,7 @@ class quench_measurement(autonomous_measurement):
         # the correlation length and the times?
         ax.plot(t, xi)
     @staticmethod
-    def fit_kzm(size_tau_xix_dic, min_tau=0, more_points=True):
+    def fit_kzm(size_tau_xix_dic, min_tau=0, more_points=True, min_points=4):
         tau_scaling = []
         xix_scaling = []
         for size in sorted(list(size_tau_xix_dic.keys())):
@@ -2463,7 +2463,7 @@ class quench_measurement(autonomous_measurement):
         xix_scaling_log = np.log(xix_scaling)
         reg_x, min_tau_ind_x, max_tau_ind_x = best_lin_reg(log_tau, xix_scaling_log,
                                                            min_r_squared=0.5, more_points=more_points,
-                                                           min_points=4,
+                                                           min_points=min_points,
                                                            require_end=True,
                                                            accept_function=min_x_accept_function,
                                                            accept_function_args=(np.log(min_tau),))  # I mean it would be sad if we spend the most time on the last datapoint and werent to use it?
@@ -2483,17 +2483,22 @@ class quench_measurement(autonomous_measurement):
         figy, ax = plt.subplots(1, 1, figsize=(10, 7))
         ax.set_yscale("log")
         ax.set_xscale("log")
-        ax.set_xlabel(r"$\tau$")
-        ax.set_ylabel(rf"$\xi_\{direction}$")
+        ax.set_xlabel(r"$\tau / I$")
+        ax.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
 
+        sizes = sorted(list(size_tau_xi_dic.keys()))
 
-        for i, size in enumerate(size_tau_xi_dic):
+        for i, size in enumerate(sizes):
             # Plotting, every size should get its own color and/or symbol?
             # construct the lists to plot
             tau = list(size_tau_xi_dic[size].keys())
             xi = list(size_tau_xi_dic[size].values())
 
-            ax.plot(tau, xi, marker=markers[i], markersize=8, **get_point_kwargs_color(color, markeredgewidth=2), label=rf"$L_\{direction} = {size}$")
+            if direction == "perp":
+                size //= 8
+            print(size)
+            ax.plot(tau, xi, marker=markers[i], markersize=8,
+                    **get_point_kwargs_color(color, markeredgewidth=2), label=rf"$L_\{direction} = {size}$")
         prev_y_low = ax.get_ylim()[0]
         prev_y_up = ax.get_ylim()[1]
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
@@ -2503,7 +2508,9 @@ class quench_measurement(autonomous_measurement):
         ax.set_ylim(prev_y_low, prev_y_up)
 
         config = {
-            "increasefontsize": 0.75
+            "increasefontsize": 0.75,
+            "labelverticalalignment": "bottom",
+            "labelrotation": 90
         }
 
         configure_ax(figy, ax, config)

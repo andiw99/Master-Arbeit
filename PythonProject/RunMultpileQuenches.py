@@ -25,7 +25,7 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [0.1]
+    eta_arr = [1]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01

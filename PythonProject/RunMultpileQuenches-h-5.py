@@ -14,7 +14,7 @@ def main():
     h_arr = np.array([10])
     h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
     h_arr = [5200] #, 1000, 10000, 20000]
-    h_arr = [0.5]
+    h_arr = [5]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -40,15 +40,15 @@ def main():
     # Quench parameters
     max_size = 5000
     min_nr_sites = 4e6
-    max_nr_quench_steps = 1e6
+    max_nr_quench_steps = 5e6
     nr_sites = 4e6
-    max_tau = 5000
-    min_nr_systems = 10
+    max_tau = 10000
+    min_nr_systems = 5
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 
     #T_c = 21351     # maybe this T_c is to low?
-    T_c = 0.1731 * 10
+    T_c = 0.3010 * 10
     #T_c = 1.15
     min_nr_corr_values = 100
 

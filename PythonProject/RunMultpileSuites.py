@@ -62,7 +62,7 @@ def main():
     para_nr = int(input("parameter number.."))
     for h in h_arr:
         curr_sim_path = simulation_path + f"{h}/"
-        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, simulation_path + "Tc",
+        sim = efficient_crit_temp_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + "Tc",
                                               Tc_exec_file,
                                               runfile, nr_GPUS=nr_gpus, T_min=T_min, T_max=T_max, Ly_Lx=Ly_Lx,
                                               size_min=min_size_Tc, size_max=max_size_Tc, equil_error=cum_error,

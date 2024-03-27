@@ -7,25 +7,25 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
-    h_arr = np.array([0.1])
+    h_arr = [1]
     nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -120000
-    J_para = -3
+    J_para = -10
     #J_perp = -2000
     J_perp = -0.1
     #Ly_Lx = 1 / 16
     Ly_Lx = 1 / 8
-    p = 2.54
-    eta = 1.5
+    p = 2.5
+    eta = 1
     dt = 0.01
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/"
-    simulation_path = "../../Generated content/Final/Amplitude/J_J=30/final-small-h/Amplitude/"
+    simulation_path = "../../Generated content/Final/Amplitude/J_J=60/final-h-1/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
@@ -34,21 +34,21 @@ def main():
 
 
     # Amplitude parameters
-    equil_error_amplitude = 0.03
+    equil_error_amplitude = 0.035
     equil_cutoff = 0.01
     min_corr_nr = 50000
+    walltime = "24:00:00"
 
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = -0.0075
-    T_c = 0.76
-
+    T_min_fraction = 0.0075
+    T_c = 1.975
 
     amplitude_sizes = [4096] #[2048, 1024]
     #amplitude_sizes = [512, 256, 128]
-    T_ranges = [-0.005]#, 0.02, 0.03]
-    nr_Ts_per_range = 2
+    T_ranges = [0.02]#, 0.02, 0.03]
+    nr_Ts_per_range = 6
     min_nr_sites = 2e6
 
 
@@ -65,7 +65,8 @@ def main():
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
                                      T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range,
                                      min_nr_sites=min_nr_sites,
-                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr)
+                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr,
+                                     walltime=walltime)
         ampl.run()
         last_T = T_up
     exit()

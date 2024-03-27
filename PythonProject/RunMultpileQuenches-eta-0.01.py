@@ -9,7 +9,7 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [0.05]
+    eta_arr = [0.01]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01
@@ -20,6 +20,7 @@ def main():
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda_gpu_a100_low.sh"
+    runfile_quench = "run_cuda.sh"
 
     # Quench parameters
     max_size = 10000
@@ -27,7 +28,7 @@ def main():
     max_nr_quench_steps = 1e7
     nr_sites = 4e6
     max_tau = 10000
-    min_nr_systems = 15
+    min_nr_systems = 5
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 

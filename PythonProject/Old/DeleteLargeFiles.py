@@ -45,7 +45,7 @@ def delete_mag_files(directory_path, threshold_size_mb):
             print(f"Keeping {csv_files[0]} (Total Size of Kept Files: {total_size_mb:.2f} MB)")
 
 def main():
-    directory_path = "../../../Generated content/Final/z-measurement-small/h=2"
+    directory_path = "../../../Generated content/Final/z-measurement-small/1/z"
     threshold_size_mb = 100
 
     if not os.path.isdir(directory_path):
