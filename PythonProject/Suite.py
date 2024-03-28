@@ -3830,6 +3830,9 @@ class z_measurement(autonomous_measurement):
         self.cur_run_nr += 1
         # we just increment the cur run nur and then use the dictionary that we constructed somewhere else
         return self.para_nr_run_dic[self.cur_run_nr - 1]
+
+z_fit_and_plot = z_measurement.fit_and_plot
+z_get_results_time_resolved = z_measurement.get_results_time_resolved
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
