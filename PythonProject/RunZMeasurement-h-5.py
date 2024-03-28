@@ -13,13 +13,13 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/h=5/"
+    simulation_path = "../../Generated content/Final/z-measurement-small/h=5-2/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
-    runfile_z = "run_cuda_gpu_a100_low.sh"
     #runfile_z =  "run_cuda_casus_low.sh"
     runfile_z = "run_cuda.sh"
+    runfile_z = "run_cuda_gpu_a100_low.sh"
 
 
     # z parameters
@@ -44,9 +44,9 @@ def main():
     # test_min_val_nr = 1000
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
-    test_min_val_nr = 100
-    val_write_density = 1 / 16
-    val_write_density_test = 1 / 16
+    test_min_val_nr = 1000
+    val_write_density = 1 / 20
+    val_write_density_test = 1 / 20
     Ly_Lx = 1 / 8
 
     variation_error_rate = 0.001

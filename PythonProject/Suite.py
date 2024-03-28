@@ -2274,9 +2274,29 @@ class quench_measurement(autonomous_measurement):
     @staticmethod
     def plot_quench_process(simulation_path, taus, xi_ampl, Tc, direction="parallel", cut_around_peak=True,
                             cut_zero_impuls=True, peak_cut_threshold=0.2, set_fts_to_zero=False, min_points_fraction=0.2,
-                             fitfunc=lorentz_offset, visible_points=70, cut_from_equil=0):
+                             fitfunc=lorentz_offset, visible_points=70, cut_from_equil=0, yscale="log"):
         # what is this going to do, just plotting the quench process and
         avail_taus = get_avail_tau_dic(simulation_path)
+        equilibrium_path = f"{simulation_path}/Amplitude"
+
+        results_xix = None
+        results_xiy = None
+        T_equilibirum, xi_equilibrium = [], []
+        T_equilibirum_y, xiy_equilibrium = [], []
+        if os.path.isdir(equilibrium_path):
+            print("found equilibrium values")
+            if direction == "parallel":
+                value_name = "xix"
+            else:
+                value_name = "xiy"
+            results_xix = amplitude_measurement.prep_sim_data(0.02, equilibrium_path, value_name)
+
+            for size in results_xix:
+                Tx, xix, err = results_xix[size]
+                T_equilibirum += list(Tx)
+                xi_equilibrium += list(xix)
+
+
 
         tau_sizes = []
         tau_paths = []
@@ -2307,26 +2327,27 @@ class quench_measurement(autonomous_measurement):
                 xi_process = xiy_process
 
             # usually the equilibration phase was way to long, so we cut the boring part?
-            if cut_from_equil:
-                t_equil, xi_equil = t_equil[:-int(cut_from_equil * len(t_equil))], xi_equil[:-int(cut_from_equil * len(t_equil)):]
-                # t has to be set to zero again
-                t_equil -= np.max(t_equil)
+            if tau < 8000:
+                if cut_from_equil:
+                    t_equil, xi_equil = t_equil[:-int(cut_from_equil * len(t_equil))], xi_equil[:-int(cut_from_equil * len(t_equil)):]
+                    # t has to be set to zero again
+                    t_equil -= np.max(t_equil)
 
             fold_nr = max(len(t_equil) // (visible_points // 5), 1)
             t_equil, xi_equil = fold(t_equil, xi_equil, fold_nr)
-            ax_equil.plot(t_equil, xi_equil, linestyle="", markersize=7, marker=markers[i],
+            ax_equil.plot(t_equil-1, xi_equil, linestyle="", markersize=7, marker=markers[i],
                                color=colors[2 * i], markerfacecolor="none")
             t_process /= tau
             # we gonna do some folding to only have like 100 points visualized
             fold_nr = max(len(t_process) // visible_points, 1)
             t_process, xi_process = fold(t_process, xi_process, fold_nr)
-            ax_quench.plot(t_process, xi_process, linestyle="", markersize=7, marker=markers[i],
-                               color=colors[2 * i], markerfacecolor="none", label=rf"$\tau={tau:.2f}$")
+            ax_quench.plot(t_process - 1, xi_process, linestyle="", markersize=7, marker=markers[i],
+                               color=colors[2 * i], markerfacecolor="none", label=rf"$\tau_Q / I = {int(tau)}$")
 
        # plot the divergence
         # get the limits beforehand
-        ax_equil.set_yscale("log")
-        ax_quench.set_yscale("log")
+        ax_equil.set_yscale(yscale)
+        ax_quench.set_yscale(yscale)
         y_limits = ax_quench.get_ylim()
         T_start = parameters["starting_temp"]
         T = T_start - t_process
@@ -2334,26 +2355,33 @@ class quench_measurement(autonomous_measurement):
 
         pos_eps = eps[eps >= 0]
         neg_eps = eps[eps < 0]
-        U_xi = 1.95     # I think this is the Ising amplitude ratio? negative should be larger
-
-        nu = 1
-        xi_equilibrium_pos = xi_div(pos_eps, xi_ampl, nu)
-        xi_equilibrium_neg = xi_div(neg_eps, xi_ampl * U_xi, nu)
-
-        t_pos_temp = t_process[eps >= 0]
-        t_neg_temp = t_process[eps < 0]
-
-        ax_quench.plot(t_pos_temp, xi_equilibrium_pos, color=colors[0])
-        ax_quench.plot(t_neg_temp, xi_equilibrium_neg, color=colors[0])
+        #U_xi = 1.95     # I think this is the Ising amplitude ratio? negative should be larger
+#
+        #nu = 1
+        #xi_equilibrium_pos = xi_div(pos_eps, xi_ampl, nu)
+        #xi_equilibrium_neg = xi_div(neg_eps, xi_ampl * U_xi, nu)
+#
+        #t_pos_temp = t_process[eps >= 0]
+        #t_neg_temp = t_process[eps < 0]
+#
+        #ax_quench.plot(t_pos_temp, xi_equilibrium_pos, color=colors[0])
+        #ax_quench.plot(t_neg_temp, xi_equilibrium_neg, color=colors[0])
 
         ax_quench.set_ylim(y_limits)
         ax_equil.set_ylim(y_limits)
-        ax_equil.set_xlim(ax_equil.get_xlim()[0], 0)
-        ax_quench.set_xlim(0, ax_quench.get_xlim()[1])
+        ax_equil.set_xlim(ax_equil.get_xlim()[0], -1)
+        ax_quench.set_xlim(-1, ax_quench.get_xlim()[1])
         ax_equil.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
-        ax_equil.set_xlabel("t/ns")
         ax_quench.set_xlabel(
             r"$t / \tau_Q$")
+
+        # plot the equilibrium values
+        if xi_equilibrium:
+            xi_equilibrium = np.array(xi_equilibrium)[np.argsort(T_equilibirum)]
+            T_equilibirum= np.sort(T_equilibirum)
+            t_equilibrium = T_start - T_equilibirum
+            ax_quench.plot(t_equilibrium, xi_equilibrium, label="equilibrium values")
+        # What is the tau of this T ?
 
         quench_config = {
             "titlesize": 0,
@@ -2364,15 +2392,17 @@ class quench_measurement(autonomous_measurement):
             "increasefontsize": 0.75,
         }
         equil_config = {
-            "nr_x_major_ticks": 2,
-            "nr_x_minor_ticks": 3,
+            "nr_x_major_ticks": 1,
+            "nr_x_minor_ticks": 5,
             "labelrotation": 90,
             "increasefontsize": 0.75,
+            "labelverticalalignment": "bottom",
             "legend": False,
         }
         configure_ax(fig, ax_quench, quench_config)
         configure_ax(fig, ax_equil, equil_config)
         fig.subplots_adjust(wspace=0.01)
+        ax_equil.set_xlabel("")
 
 
         # plt.savefig(simulation_path + f"quench-process-{direciton}.png")
@@ -3299,7 +3329,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def prep_sim_data(equil_cutoff, simpath, value, T_min=0):
+    def prep_sim_data(equil_cutoff, simpath, value, T_min=0, T_max=np.infty):
         results_x = {}
         size_folders = find_size_folders(simpath)
         for size_folder in size_folders:
@@ -3309,18 +3339,20 @@ class amplitude_measurement(autonomous_measurement):
                 parameters = read_parameters_txt(parapath)
                 J_para = parameters["J"]
                 T_min = T_min * np.abs(J_para)
+                T_max = T_max * np.abs(J_para)
                 if os.path.isdir(size_folder_path):
                     T_xix, xix_arr, xix_err = amplitude_measurement.prep_folder_data(equil_cutoff, size_folder_path, value)
                     # cut minimum T
-                    xix_arr = xix_arr[T_xix > T_min]
-                    xix_err = xix_err[T_xix > T_min]
-                    T_xix = T_xix[T_xix > T_min]
+                    xix_arr = xix_arr[(T_xix > T_min) & (T_xix < T_max)]
+                    xix_err = xix_err[(T_xix > T_min) & (T_xix < T_max)]
+                    T_xix = T_xix[(T_xix > T_min) & (T_xix < T_max)]
 
                     # i guess we use errors that are not relative?
                     xix_err = xix_arr * xix_err
 
                     results_x[int(size_folder)] = (T_xix, xix_arr, xix_err)
                 T_min /= np.abs(J_para)
+                T_max /= np.abs(J_para)
         return results_x
 
     @staticmethod

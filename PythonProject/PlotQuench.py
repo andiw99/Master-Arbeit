@@ -2,6 +2,25 @@ from Suite import quench_measurement
 import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
+    simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/1"
+
+    taus = [2048, 256, 32]
+    xi_ampl = 1.987                 # h = 1.7
+    xi_ampl_perp = 0.194
+    Tc = 1.972
+
+    additional_ft_points = 50
+    min_tau = 0
+    cut_from_equil = 0.85
+    cut_zero_impuls = True
+    min_points = 4
+    fitfunc = lorentz_offset
+    yscale= "log"
+    plot_quench(Tc, additional_ft_points, cut_from_equil, cut_zero_impuls, fitfunc, min_tau, simpath, taus, xi_ampl,
+                xi_ampl_perp, min_points=min_points, yscale=yscale)
+
+
+def plot_h_05_eta_1():
     simpath = "../../Generated content/Final/Quenches-old/0.5/Damping/Quench/1"
 
     taus = [2048, 1024, 32]
@@ -17,8 +36,6 @@ def main():
     fitfunc = lorentz_offset
     plot_quench(Tc, additional_ft_points, cut_from_equil, cut_zero_impuls, fitfunc, min_tau, simpath, taus, xi_ampl,
                 xi_ampl_perp, min_points=min_points)
-
-
 def plot_h_1_eta_1():
     simpath = "../../Generated content/Final/Quenches-old/1/Damping/Quench/1"
 
@@ -52,14 +69,14 @@ def plot_h_5_eta_1():
                 xi_ampl_perp)
 
 def plot_quench(Tc, additional_ft_points, cut_from_equil, cut_zero_impuls, fitfunc, min_tau, simpath, taus, xi_ampl,
-                xi_ampl_perp, min_points=4):
+                xi_ampl_perp, min_points=4, yscale="log"):
     fig, axes = quench_measurement.plot_quench_process(simpath, taus, xi_ampl, Tc, cut_from_equil=cut_from_equil,
-                                                       direction="parallel")
+                                                       direction="parallel", yscale=yscale)
     create_directory_if_not_exists(simpath + f"/plots/")
     plt.savefig(simpath + f"/plots/quench-process-tau-{taus}.png", format="png")
     plt.show()
     fig, axes = quench_measurement.plot_quench_process(simpath, taus, xi_ampl_perp, Tc, cut_from_equil=cut_from_equil,
-                                                       direction="perp")
+                                                       direction="perp", yscale=yscale)
     plt.savefig(simpath + f"/plots/quench-process-perp-tau-{taus}.png", format="png")
     plt.show()
     size_tau_xix_dic, size_tau_xiy_dic = quench_measurement.get_size_quench_results(simpath,

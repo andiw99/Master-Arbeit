@@ -9,9 +9,9 @@ def main():
 
     simpath = "../../Generated content/Final/z-measurement-small/h=5/5/z"
 
-    Tc = 2.95
+    Tc = 2.85
     fold = 40
-    folder_avg_function=read_folder_avg
+    folder_avg_function=process_folder_avg_balanced
 
     sizes = np.linspace(48, 144, 4, dtype=np.int64)
 

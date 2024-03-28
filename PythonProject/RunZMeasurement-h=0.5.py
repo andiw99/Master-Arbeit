@@ -36,7 +36,7 @@ def main():
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 25000
+    z_min_nr_systems = 50000
     z_equil_error = 0.004
     fold=40
 
@@ -49,11 +49,11 @@ def main():
     val_write_density_test = 1 / 12
     Ly_Lx = 1 / 8
 
-    variation_error_rate = 0.007
+    variation_error_rate = 0.004
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1731 * 10
-    T_c = 1.731
+    T_c = 1.725
 
     for h in h_arr:
         print(h)
