@@ -10,6 +10,8 @@ def main():
     #plot_eta_05_h_1()
     plot_eta_1_h_05()
     plot_1_h_1()
+    plot_eta_1_h_5()
+    exit()
     #plot_eta_1_h_5()
     simpath = "../../Generated content/Final/z-measurement-small/0.5/z"
 
@@ -201,7 +203,7 @@ def plot_eta_1_h_05():
     simpath = "../../../Generated content without sync/Final/z-measurement-small/0.5/z"
     Tc = 1.731000
     fold = 40
-    folder_avg_function=read_folder_avg
+    folder_avg_function=process_folder_avg_balanced
 
     sizes = np.linspace(48, 144, 4, dtype=np.int64)
 
