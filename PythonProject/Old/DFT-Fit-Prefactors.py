@@ -52,7 +52,13 @@ def h_p_new(hp, E, J_para, J_perp, J_x, theta):
     return (h * (np.cos(np.pi / 2 * p) -np.cos(theta * p)) +
                  J_para * (2 * np.cos(2 * (theta  - np.pi / 2)) - 1 - np.cos(4 * theta)) +
             2 * J_x * (2 * np.cos(np.pi + 2 * theta) - 1 - np.cos(4 * theta)) - E,
-            h * p * np.sin(theta * p) + 4 * np.sin(4 * theta) * (J_para * J_perp))
+                h * p * np.sin(theta * p) + 4 * np.sin(4 * theta) * (J_para * J_perp))
+
+def h_final(h, p, E, J_para, J_x, theta):
+    return (h * (np.cos(np.pi / 2 * p) -np.cos(theta * p)) +
+                 J_para * (2 * np.cos(2 * (theta  - np.pi / 2)) - 1 - np.cos(4 * theta)) +
+            2 * J_x * (2 * np.cos(np.pi + 2 * theta) - 1 - np.cos(4 * theta)) - E)
+
 
 def eq_system(paras, equations, energies):
     """
@@ -106,7 +112,7 @@ def main():
     # theta_SDF_4L = 1.260
     # theta_SDF_5L = 1.243
 
-    # Same angles
+    # Same angles \vartheta = 71
     theta4x2 = 1.238
     theta2x2 = 1.238
     theta2x1 = 1.238
@@ -115,9 +121,18 @@ def main():
     theta_SDF_4L = 1.260
     theta_SDF_5L = 1.243
 
+    # Same angles \vartheta = 72
+    theta4x2 = 1.2566
+    theta2x2 = 1.2566
+    theta2x1 = 1.2566
+    theta4x1 = 1.2566
+    theta_SDF_3L = 1.244
+    theta_SDF_4L = 1.260
+    theta_SDF_5L = 1.243
+
     # wait no, we calculate p just from the thet
     p = np.pi / theta4x2
-
+    p = 2.5
     # the slap seems to have periodic boundary conditions so this prefactor is wrong? It is just two
     #d iagonal_prefactor = 2      # accounts for the fact that there are some diagonal interactions missing in the slap
 
@@ -204,9 +219,10 @@ def main():
     x, y = fsolve(h_p_functions, (400, 2.5), args=(theta4x2, E_B, J_para, J_perp))
     print(x, y)
     E_B = 74
-    x, y = fsolve(h_p_new, (400, 2.5), args=(E, J_para, J_perp, J_x, theta4x2))
+    x, y = fsolve(h_p_new, (400, 2.5), args=(E_B, J_para, J_perp, J_x, theta4x2))
     print(x, y)
-
+    h = fsolve(h_final, x0=np.array([1000]), args=(p, E_B, J_para, J_x, theta4x2))
+    print(f"h = {h} with fixed p = {p}")
     equations = [p2x2, p2x1, p4x1, sdf, flip]
     energies = [1.36, 74.21, 101.68, 111.3, 74]
     J_para, J_perp, J_x, h, p = fsolve(eq_system, (100, -20, -10, 400, 2.5), args=(equations, energies))

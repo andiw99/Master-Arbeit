@@ -232,6 +232,9 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
                 else:
                     nr_cells = 1    # If not subsystems the nr of cells is always 1
                     row = extract_rectangle_from_rectangle(row, config["cell_nr"], nr_cells, subsystem_Lx, subsystem_Ly, Lx, Ly)
+            if config["horizontal_center"]:
+                print("centering horizontally...")
+                row = center_horizontal(row)
             im = plot_rectangular_colormesh(ax, row, parameters, config)
             config["cell_L"] = actual_cell_L
             i += 1
@@ -282,6 +285,14 @@ def plot_multiple_times(filepath, config={"nr_of_meshs": 16, "cell_L": 128, "cel
     plt.show()
     name = plot_name_paras(parameters)
     return fig, axes, name
+
+
+def center_horizontal(lattice):
+    # I think we just assume -pi/2 pi/2 interval here
+    lattice += np.pi / 2
+    lattice[lattice > np.pi/2] -= np.pi
+    # is it really that easy?
+    return lattice
 
 def plot_colormesh(ax, row, parameters, config):
     title=f"t = {parameters['t']:.2f}, T = {parameters['T']}"
@@ -353,8 +364,10 @@ def plot_rectangular_colormesh(ax, row, parameters, config):
     colormap = config["colormap"]
     if config["angle"] == 1:
         cf = ax.pcolormesh(row, cmap=colormap, vmax=2 * np.pi, vmin=0)
+    elif config["angle"] == 4:
+        cf = ax.pcolormesh(row, cmap=colormap, vmax=np.pi/2 / 1.2, vmin=-np.pi/2/ 1.2, rasterized=True)
     elif config["angle"] == 2:
-        cf = ax.pcolormesh(row, cmap=colormap, vmax=np.pi/2, vmin=-np.pi/2)
+        cf = ax.pcolormesh(row, cmap=colormap, vmax=np.pi / 2, vmin=-np.pi / 2, rasterized=True)
     elif config["angle"] == 3:
         # this should actually use the minimum of the system, but well I think
         # we can calculate it?
@@ -1323,6 +1336,7 @@ def process_file(file_path, threshold, key='t', value='U_L'):
             f = np.array(df[:, 1])
         times = np.array(df[:, 0])
 
+
         f_avg = np.mean(f)
         f_dist_var = np.maximum(np.var(f), 1e-7)        # TODO quickfix because error of zero is unrealistic
 
@@ -1687,6 +1701,7 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
             filepath = os.path.join(folderpath, file)
             df = pd.read_csv(filepath, sep=";")
             times = df['t']
+            dt = times[1]- times[0]
             end_time = np.max(times)
             equil_time = end_time - quench_time
             for j, t in enumerate(times):
@@ -1703,11 +1718,38 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
     for t in t_ft_k:
         t_ft_k[t] /= nr_files
         t_ft_l[t] /= nr_files
+
+    t_ft_k = combine_close_values(t_ft_k, 1 / 2 * dt)
+    t_ft_l = combine_close_values(t_ft_l, 1 / 2 * dt)
     return t_ft_k, t_ft_l
 
 def xi_div(eps, xi0, nu):
     return xi0 / (np.abs(eps) ** nu)
 
+
+def combine_close_values(dictionary, threshold):
+    sorted_keys = sorted(dictionary.keys())
+    combined_dict = {}
+    current_key = sorted_keys[0]
+    current_value_sum = dictionary[current_key]
+    count = 1
+
+    for key in sorted_keys[1:]:
+        if key - current_key <= threshold:
+            current_value_sum += dictionary[key]
+            count += 1
+        else:
+            average_value = current_value_sum / count
+            combined_dict[current_key] = average_value
+            current_key = key
+            current_value_sum = dictionary[key]
+            count = 1
+
+    # Add the last key-value pair
+    average_value = current_value_sum / count
+    combined_dict[current_key] = average_value
+
+    return combined_dict
 
 def average_lastlines_ft(folderpath, ending=".ft", nr_add_lines=10):
     # like average_ft but it only returns the ft for the latest t
@@ -1751,7 +1793,7 @@ def get_avail_tau_dic(root_dir):
         if os.path.isdir(size_path) and size_folder[0] != ".":
             for tau_folder in os.listdir(size_path):
                 tau_path = os.path.join(size_path, tau_folder)
-                if os.path.isdir(tau_path) and tau_folder != "plots":
+                if os.path.isdir(tau_path) and tau_folder != "plots" and tau_folder[0] != ".":
                     if float(tau_folder) not in directory_dict:
                         directory_dict[float(tau_folder)] = []
                     directory_dict[float(tau_folder)].append(int(size_folder))

@@ -5,10 +5,6 @@ def main():
 
     equil_cutoff = 0.1
     J_para = 10
-    T_min = 0.252
-    T_min_perp = 0.252
-    T_min = 0.298
-    T_min_perp = 0.298
     T_min = 0.1976
     T_min_perp = 0.1976
 

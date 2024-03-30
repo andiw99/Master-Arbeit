@@ -26,7 +26,7 @@ def average_values_in_last_line(csv_file_path):
 
 
 # Example usage:
-csv_file_path = '../../../Generated content/Silicon/Quench/EquilibriumPosition/p=2.15/400/4096.000000/0-19:0-local-andi-B550.csv'  # Replace with the path to your CSV file
+csv_file_path = '../../../Generated content/Final/Quenches-old/process-final1/Damping/Quench/1/2048/2048.000000/0-20:1-6923011-gp002.cluster.csv'  # Replace with the path to your CSV file
 result = average_values_in_last_line(csv_file_path)
 
 print("Average of positive values:", result[0])

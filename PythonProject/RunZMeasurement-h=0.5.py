@@ -36,7 +36,7 @@ def main():
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 50000
+    z_min_nr_systems = 25000
     z_equil_error = 0.004
     fold=40
 

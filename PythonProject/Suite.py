@@ -1152,6 +1152,7 @@ class crit_temp_measurement(autonomous_measurement):
         create_directory_if_not_exists(f"{simulation_path}/plots/")
         fig.savefig(simulation_path + f"/plots/{plotname}-{size_min}-{size_max}-{equil_error}.png", format="png",
                     dpi=300, transparent=False)
+        fig.savefig(simulation_path + f"/plots/{plotname}-{size_min}-{size_max}-{equil_error}-svg.svg", format="svg")
 
         return fig, ax
 
@@ -2379,8 +2380,10 @@ class quench_measurement(autonomous_measurement):
         if xi_equilibrium:
             xi_equilibrium = np.array(xi_equilibrium)[np.argsort(T_equilibirum)]
             T_equilibirum= np.sort(T_equilibirum)
-            t_equilibrium = T_start - T_equilibirum
-            ax_quench.plot(t_equilibrium, xi_equilibrium, label="equilibrium values")
+            T_equilibirum = T_equilibirum[xi_equilibrium > 0.5]
+            xi_equilibrium = xi_equilibrium[xi_equilibrium > 0.5]
+            t_equilibrium = T_start - T_equilibirum - 1
+            ax_quench.plot(t_equilibrium, xi_equilibrium, label="equilibrium values", color="C1")
         # What is the tau of this T ?
 
         quench_config = {
@@ -2534,7 +2537,7 @@ class quench_measurement(autonomous_measurement):
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
                  poly(tau_scaling[min_tau_ind:max_tau_ind], quench_exp, (quench_ampl)),
                  color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp:.2f}")
+                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp:.3f}")
         ax.set_ylim(prev_y_low, prev_y_up)
 
         config = {
@@ -3153,7 +3156,7 @@ class amplitude_measurement(autonomous_measurement):
             configure_ax(fig, axy, config_y)
             lines, labels = axx.get_legend_handles_labels()
             lines2, labels2 = axy.get_legend_handles_labels()
-            axy.legend(lines + lines2, labels + labels2, loc=0,
+            axy.legend(lines[::-1] + lines2, labels[::-1] + labels2, loc=0,
                        fontsize=int(PLOT_DEFAULT_CONFIG["legendfontsize"] * (
                                1 + config_x["increasefontsize"])))
         else:
@@ -3380,7 +3383,7 @@ class z_measurement(autonomous_measurement):
                  size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=1e6, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
                  variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, val_write_density=1/100,
                  test_val_write_density=1 / 20, test_min_val_nr=2000, para_nr=200, max_moving_factor=0.005, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file, test_size=None):
+                 process_file_func=process_file, test_size=None, notest=False):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile, para_nr=para_nr)
@@ -3425,6 +3428,7 @@ class z_measurement(autonomous_measurement):
         self.check_function = check_cum_variation_valid
         self.value_name = value_name
         self.file_ending = file_ending
+        self.notest = notest
 
 
     def setup(self):
@@ -3450,35 +3454,38 @@ class z_measurement(autonomous_measurement):
             # now we check if the simulation is available
             # I dont think that we have to implement a checkfunction since it doesnt really matter if the variation of the differences is small since we only want to guess
             # the time
-            test_measurement_available = check_directory_structure([self.test_size], [self.Tc], self.simulation_path, self.file_ending)
-            if not test_measurement_available:
-                # If else we need to perform the simulation
-                # so we need to write parameters
-                self.cur_para_nr = 0
-                self.para_nr_run_dic[0] = self.para_nr
-                self.write_test_paras()
-                # If we did this we reset the cur para nr?
-                self.cur_para_nr = 0
-                # now we need to run those the jobs
-                self.run_jobs(self.test_exec_file)     # this should work like this if we have the correct current para nr and the nr of total runs
-                # no it doesnt work quite like this since we need to combine multiple parameter files with multiple runs for the same parameter value...
-                # sooo. what are we going to do ? I guess we need to implement some more elaborate get_para_nr logic.
-                # the thing is we need different behaviors depending on if we get the parameter number to write the parameter file or if we want to
-                # submit the job
-                # as soon as the rn jobs is done we can extract the test_equil_time
-            # if this is available, we read the parameters? or some other file and extract the last time. Sadly I dont write the quilibration time to a file so we just read the .cum file?
-            # We need the filepath
-            # plot the test measurement
-            size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size], self.simulation_path, Tc=self.Tc)
-            test_cum = size_cum_dic[self.test_size]
-            test_times = size_times_dic[self.test_size]
-            fig, ax = plt.subplots(1, 1)
-            ax.set_title(os.path.split(os.path.split(os.path.split(self.simulation_path)[0])[0])[1])
-            ax.plot(test_times, test_cum,  label=f"L = {self.test_size}")
-            ax.legend()
-            plt.show()
+            if self.notest:
+                self.test_equil_time = float(input(f"Please enter equilibration time for L = {self.test_size}"))
+            else:
+                test_measurement_available = check_directory_structure([self.test_size], [self.Tc], self.simulation_path, self.file_ending)
+                if not test_measurement_available:
+                    # If else we need to perform the simulation
+                    # so we need to write parameters
+                    self.cur_para_nr = 0
+                    self.para_nr_run_dic[0] = self.para_nr
+                    self.write_test_paras()
+                    # If we did this we reset the cur para nr?
+                    self.cur_para_nr = 0
+                    # now we need to run those the jobs
+                    self.run_jobs(self.test_exec_file)     # this should work like this if we have the correct current para nr and the nr of total runs
+                    # no it doesnt work quite like this since we need to combine multiple parameter files with multiple runs for the same parameter value...
+                    # sooo. what are we going to do ? I guess we need to implement some more elaborate get_para_nr logic.
+                    # the thing is we need different behaviors depending on if we get the parameter number to write the parameter file or if we want to
+                    # submit the job
+                    # as soon as the rn jobs is done we can extract the test_equil_time
+                # if this is available, we read the parameters? or some other file and extract the last time. Sadly I dont write the quilibration time to a file so we just read the .cum file?
+                # We need the filepath
+                # plot the test measurement
+                size_cum_dic, size_times_dic = self.get_results_time_resolved([self.test_size], self.simulation_path, Tc=self.Tc)
+                test_cum = size_cum_dic[self.test_size]
+                test_times = size_times_dic[self.test_size]
+                fig, ax = plt.subplots(1, 1)
+                ax.set_title(os.path.split(os.path.split(os.path.split(self.simulation_path)[0])[0])[1])
+                ax.plot(test_times, test_cum,  label=f"L = {self.test_size}")
+                ax.legend()
+                plt.show()
 
-            self.test_equil_time = self.get_last_time()
+                self.test_equil_time = self.get_last_time()
         # Now we have an equil time
         # This means we already have a test_equil_time
         # so we check if the simulations that are supposed to run have already run

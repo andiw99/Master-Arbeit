@@ -16,8 +16,8 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/eta=5/"
-
+    #simulation_path = "../../Generated content/Final/z-measurement-small/eta=5/"
+    simulation_path = "../../../Generated content without sync/Final/z-measurement-small/eta=5/"
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
     runfile_z = "run_cuda_gpu_a100_low.sh"
@@ -30,7 +30,7 @@ def main():
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 25000
+    z_min_nr_systems = 50000
     z_equil_error = 0.004
     fold=40
 
@@ -54,7 +54,7 @@ def main():
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1965 * 10
-
+    notest=True
 
     for h in h_arr:
         print(h)
@@ -66,7 +66,7 @@ def main():
                                       equil_error=z_equil_error, para_nr=para_nr_z, test_min_val_nr=test_min_val_nr,
                                       val_write_density=val_write_density, test_val_write_density=val_write_density_test,
                                       file_ending=file_ending, value_name=value_name, variation_error_rate=variation_error_rate,
-                                      nr_sites=nr_sites, test_size=z_test_size, fold=fold, Ly_Lx=Ly_Lx)
+                                      nr_sites=nr_sites, test_size=z_test_size, fold=fold, Ly_Lx=Ly_Lx, notest=notest)
             z_measure.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

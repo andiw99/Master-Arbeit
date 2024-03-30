@@ -162,16 +162,16 @@ def main():
 
     fig, ax = plt.subplots(1, 1)
 
-    ax.plot([], [], marker='s', **get_point_kwargs_color("black"), label="critical points")
-    ax.plot(Tc[:-1], h[:-1] , marker='s', **blue_point_kwargs, markeredgewidth=1, markersize=7, label="$j_\parallel = 3.1$")
+    #ax.plot([], [], marker='s', **get_point_kwargs_color("black"), label="critical points",)
+    ax.plot(Tc[:-1], h[:-1] , marker='s', **blue_point_kwargs, markeredgewidth=1, markersize=7, label="$j_\parallel = 3.11$")
     ax.plot(Tc3, h3, marker='s', **get_point_kwargs_color(colors[5], markeredgewidth=1), markersize=7, label="$j_\parallel =  110 \cdot 10^3$")
-    ax.plot(Tc_plot, h_est, label="$h \propto e^{-AT^2 e^{B / T}}$", color=colors[2])
+    ax.plot(Tc_plot, h_est, label="$h / T \propto e^{-AT^2 e^{B / T}}$", color=colors[1])
     ax.plot(TcXY, 0, marker="^", **get_point_kwargs_color(colors[0], markeredgewidth=1), markersize=7,)
-    ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7,)
+    #ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7,)
     ax.plot([], [], marker="^", **get_point_kwargs_color("black"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
-    ax.plot(Tc100 / 10, h100 / Tc100, marker="s", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7, label="$J_\parallel / J_\perp = 100$")
+    #ax.plot(Tc100 / 10, h100 / Tc100, marker="s", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7, label="$J_\parallel / J_\perp = 100$")
     xlims = ax.get_xlim()
-    ax.plot(T_given_J_given, h_T_given_plot, color="C3", alpha=0.5)
+    ax.plot(T_given_J_given, h_T_given_plot, color="C1", alpha=0.5, label="$h / J_\parallel = 0.1$")
     ax.set_xlim(xlims)
 
     # ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
@@ -192,6 +192,8 @@ def main():
 
     configure_ax(fig, ax, config)
     plt.savefig("phase_transition-h(T).png", dpi=500, format="png")
+    plt.savefig("phase_transition-h(T)-svg.svg", format="svg")
+
     plt.show()
 
     Tc_desired = 0.232

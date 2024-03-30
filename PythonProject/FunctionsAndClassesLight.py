@@ -6,6 +6,9 @@ from matplotlib import pyplot as plt
 import matplotlib.ticker as ticker
 from decimal import Decimal
 from glob import glob
+import matplotlib
+matplotlib.rcParams['mathtext.fontset'] = 'stix'
+matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 
 
@@ -262,7 +265,7 @@ def configure_ax(fig, ax, config=None):
     #legend
     if config["legend"]:
         ax.legend(title=config["legendtitle"], fontsize=config["legendfontsize"], loc=config["legendlocation"],
-                  title_fontsize=config["legendfontsize"], alignment="left")
+                  title_fontsize=config["legendfontsize"])
     if config["tight_layout"]:
         plt.tight_layout()
 

@@ -16,6 +16,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    simulation_path = "/bigdata/StrongFieldQED/Weitzel/eta=0.5"
     simulation_path = "../../Generated content/Final/z-measurement-small/eta=0.5/"
 
     z_exec_file = "AutoZ.cu"
@@ -50,7 +51,7 @@ def main():
     val_write_density_test = 1 / 16
     Ly_Lx = 1 / 12
 
-    variation_error_rate = 0.01
+    variation_error_rate = 0.005
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.197 * 10

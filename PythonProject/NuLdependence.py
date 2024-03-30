@@ -9,7 +9,7 @@ from scipy.optimize import curve_fit
 def main():
     #simulation_folder = '../../Generated content/Silicon/Subsystems/Suite/L/'
     simulation_folder = '../../Generated content/Final/Nu-L-old/'
-    threshold = 0.1
+    threshold = 0.5
     transparent_plots = False
     linewidth = 1
 
@@ -30,6 +30,7 @@ def main():
                 results[int(size_folder)] = size_result
 
     sizes = sorted(list(results.keys()))
+    print(sizes)
     # How do we know which sizes at the beginning were pairs? Do we just multiply it by two?
     results_pairs = {}   # this will be a dictionary that has a pair of sizes as keys
     for size in sizes:
@@ -105,6 +106,8 @@ def main():
     configure_ax(fig, ax, config)
     # save_plot(root, "/critical_exponent.pdf", format="pdf")
     fig.savefig(simulation_folder + "/critical_exponent_time_avg-all-L.png", format="png", dpi=250)
+    fig.savefig(simulation_folder + "/critical_exponent_time_avg-all-L-svg.svg", format="svg")
+
     plt.show()
     exit()
     # okay we will use the results_dic real quick to calculate the intersection in dependence of L
