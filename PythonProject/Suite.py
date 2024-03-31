@@ -1118,8 +1118,8 @@ class crit_temp_measurement(autonomous_measurement):
         size_max = np.max(sizes)
         first_dict = next(iter(results.values()))
         T_arr = first_dict["T"]
-        max_T = np.max(T_arr) * 1.01 / J_para
-        min_T = np.min(T_arr) * 0.99 / J_para
+        max_T = np.max(T_arr) * 1.005 / J_para
+        min_T = np.min(T_arr) * 0.995 / J_para
 
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
@@ -1209,7 +1209,7 @@ class crit_temp_measurement(autonomous_measurement):
 
         config = {
             "labelhorizontalalignment": "right",
-            "increasefontsize": 0.5
+            "increasefontsize": 0.75
         }
         configure_ax(fig, ax, config)
         return fig, ax
@@ -2385,7 +2385,7 @@ class quench_measurement(autonomous_measurement):
             T_equilibirum = T_equilibirum[xi_equilibrium > 0.5]
             xi_equilibrium = xi_equilibrium[xi_equilibrium > 0.5]
             t_equilibrium = T_start - T_equilibirum - 1
-            ax_quench.plot(t_equilibrium, xi_equilibrium, label="equilibrium values", color="C1")
+            ax_quench.plot(t_equilibrium, xi_equilibrium, label="eq. values", color="C1")
         # What is the tau of this T ?
 
         quench_config = {
@@ -2394,13 +2394,13 @@ class quench_measurement(autonomous_measurement):
             "ylabelsize": 0,
             "y_tickwidth": 0,
             "y_ticklength": 0,
-            "increasefontsize": 0.75,
+            "increasefontsize": 1.25,
         }
         equil_config = {
             "nr_x_major_ticks": 1,
             "nr_x_minor_ticks": 5,
             "labelrotation": 90,
-            "increasefontsize": 0.75,
+            "increasefontsize": 1.25,
             "labelverticalalignment": "bottom",
             "legend": False,
         }
@@ -2518,7 +2518,7 @@ class quench_measurement(autonomous_measurement):
         figy, ax = plt.subplots(1, 1, figsize=(10, 7))
         ax.set_yscale("log")
         ax.set_xscale("log")
-        ax.set_xlabel(r"$\tau / I$")
+        ax.set_xlabel(r"$\tau_Q\, /\, I$")
         ax.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
 
         sizes = sorted(list(size_tau_xi_dic.keys()))
@@ -2539,11 +2539,11 @@ class quench_measurement(autonomous_measurement):
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
                  poly(tau_scaling[min_tau_ind:max_tau_ind], quench_exp, (quench_ampl)),
                  color="black", alpha=0.5, linestyle="dashed",
-                 label=r"$\frac{\nu}{1 + \nu z} =$" + f"{quench_exp:.3f}")
+                 label=r"$\propto \,\tau_Q^{"+ f"{quench_exp:.3f}" + "}$")
         ax.set_ylim(prev_y_low, prev_y_up)
 
         config = {
-            "increasefontsize": 0.75,
+            "increasefontsize": 1.25,
             "labelverticalalignment": "bottom",
             "labelrotation": 90
         }
@@ -3144,7 +3144,7 @@ class amplitude_measurement(autonomous_measurement):
                 "grid": True,
                 "tight_layout": False,
                 "legend": False,
-                "increasefontsize": 0.75,
+                "increasefontsize": 1.25,
             }
             config_y = {
                 "labelrotation": 90,
@@ -3152,7 +3152,7 @@ class amplitude_measurement(autonomous_measurement):
                 "labelverticalalignment": "top",
                 "grid": False,
                 "legend": False,
-                "increasefontsize": 0.75,
+                "increasefontsize": 1.25,
             }
             configure_ax(fig, axx, config_x)
             configure_ax(fig, axy, config_y)
@@ -3266,7 +3266,7 @@ class amplitude_measurement(autonomous_measurement):
                 "labelrotation": 90,
                 "grid": True,
                 "tight_layout": True,
-                "increasefontsize": 0.75,
+                "increasefontsize": 1.25,
             }
 
             configure_ax(fig, axx, config_x)

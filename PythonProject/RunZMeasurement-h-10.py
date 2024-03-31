@@ -3,7 +3,7 @@ import numpy as np
 
 def main():
     h_arr = [10]
-    nr_gpus = 10
+    nr_gpus = 40
 
     J_para = -10
     J_perp = -0.1
@@ -14,7 +14,7 @@ def main():
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../../Generated content without sync/Final/z-measurement-small/h=5-3/"
-    simulation_path = "/bigdata/StrongFieldQED/Weitzel/Content without sync/z-measurement-small/h=10"
+    simulation_path = "/bigdata/StrongFieldQED/Weitzel/Content without sync/z-measurement-small/h=10/"
 
 
     z_exec_file = "AutoZ.cu"
@@ -31,7 +31,7 @@ def main():
     z_test_size = 24
     nr_sizes = 4
     z_min_nr_sites = 10e6
-    z_min_nr_systems = 50000
+    z_min_nr_systems = 20000
     z_equil_error = 0.004
     fold=40
 
@@ -47,8 +47,8 @@ def main():
     # val_write_density = 1 / 1000
     # val_write_density_test = 1 / 1000
     test_min_val_nr = 1000
-    val_write_density = 1 / 20
-    val_write_density_test = 1 / 20
+    val_write_density = 1 / 30
+    val_write_density_test = 1 / 30
     Ly_Lx = 1 / 8
 
     variation_error_rate = 0.001

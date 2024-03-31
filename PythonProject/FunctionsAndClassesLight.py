@@ -504,12 +504,12 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5):
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
                                              f"\tz = {best_z:.3f}", color=colors[2 * (i)], linewidth=2)
         ax.set_ylabel(r"$U_L$")
-        ax.set_xlabel("t / I")
+        ax.set_xlabel("$t \,/\, I$")
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
         config = {
-            "increasefontsize": 0.75,
+            "increasefontsize": 1.25,
             "labelhorizontalalignment": "right",
         }
 

@@ -2,6 +2,7 @@ from Suite import amplitude_measurement
 import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
+    small_h()
 
     equil_cutoff = 0.1
     J_para = 3

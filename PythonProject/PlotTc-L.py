@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
-    equil_cutoffs = np.linspace(0.02, 0.3, 15)
+    equil_cutoffs = np.linspace(0.02, 0.3, 1)
     for equil_cutoff in equil_cutoffs:
         print("equil_cutoff = ", equil_cutoff)
         process_file_func = recalculate_mag_file_to_U_L
@@ -17,7 +17,7 @@ def main():
                               process_file_func=process_file_func)
 
         config = {"labelhorizontalalignment": "right",
-                  "increasefontsize": 0.3}
+                  "increasefontsize": 0.6}
         fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=None, value_name="U_L", title="Binder Cumulant on T",
                                                plotname="cum_time_avg", equil_error=None, config=config)
         plt.show()
