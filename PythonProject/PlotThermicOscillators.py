@@ -101,6 +101,8 @@ def theoretical_trajectory(eta, alpha, x0, a, b, N=200):
 def main():
     root = "../../Generated content/BBK/MSD/BBK/0.025"
     root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.0005/eta comp"
+    root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.01/eta comp"
+    root = "../../Generated content/Final/Benchmarks/HO/BBK/T=20/dt = 0.05/eta comp"
     title = "Euler method"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
 
@@ -142,6 +144,7 @@ def main():
             axes.plot([], [], label=f"dt = {dt}", linestyle="dotted", color=colors[0])
 
             name = f"{T}-{dt}-{alpha}-{eta}.png"
+            name_svg = f"{T}-{dt}-{alpha}-{eta}.svg"
 
             config = {
                 "increasefontsize": 0.75,
@@ -154,6 +157,8 @@ def main():
             configure_ax(fig, axes, config)
             create_directory_if_not_exists(savepath)
             plt.savefig(os.path.join(savepath, name), format="png")
+            plt.savefig(os.path.join(savepath, name_svg), format="svg")
+
             plt.show()
 
         #plot_trajectories(df, parameters)

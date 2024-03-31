@@ -1190,11 +1190,13 @@ class crit_temp_measurement(autonomous_measurement):
         sizes = np.sort(sizes)
 
         # fitting
-        popt, _ = curve_fit(linear_fit, np.log(sizes), np.log(derivatives))
+        popt, pcov = curve_fit(linear_fit, np.log(sizes), np.log(derivatives))
+        perr = np.sqrt(np.diag(pcov))
         nu = 1 / popt[0]
+        nu_err = 1 / (popt[0] ** 2) * perr[0]
         print(sizes)
         print("FITTING RESULTS:")
-        print("nu = ", nu)
+        print(f"nu = {nu} +- {nu_err}")
 
         fig, ax = plt.subplots(1, 1)
 
@@ -1203,7 +1205,7 @@ class crit_temp_measurement(autonomous_measurement):
         ax.legend()
 
         ax.plot(sizes, derivatives, marker="s", **get_point_kwargs_color(colors[0]))
-        ax.plot(sizes, poly(sizes, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.2f}$", color=colors[0])
+        ax.plot(sizes, poly(sizes, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.3f} \pm {nu_err:.3f}$", color=colors[0])
 
         config = {
             "labelhorizontalalignment": "right",
@@ -3317,6 +3319,7 @@ class amplitude_measurement(autonomous_measurement):
 
         xix_ampl = - 1 / reg_x.intercept
         Tc_x = - reg_x.intercept / reg_x.slope
+        print(f"direction {direction} T_c = {Tc_x}")
         # Plot the fit
         if plot_until_pt:
             T_xix = np.concatenate(([Tc_x], T_xix))

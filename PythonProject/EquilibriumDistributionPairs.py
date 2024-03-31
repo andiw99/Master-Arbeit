@@ -71,7 +71,10 @@ def filter_cut(x, x_cut, dx):
 
 def main():
     root = "../../Generated content/Silicon/Benchmarks/Pairs/1e-5/longest/2"
+    #root = "../../Generated content/Final/Benchmarks/1e-4/Final/2"
     #root = "../../Generated content/Final/Benchmarks/2e-2/eta=1/h=100-J=40/T=50/longer/2"
+    #root = "../../Generated content/Final/Benchmarks/1e-2/eta=1/h=100-J=40/T=50/2"
+    root = "../../Generated content/Final/Benchmarks/5e-2/eta=1/h=100-J=40/T=50/2"
     root = "../../Generated content/Final/Benchmarks/1e-5/Final/2"
     root_dirs = list_directory_names(root)
     file_extension = ".csv"
@@ -111,64 +114,66 @@ def main():
                     break
 
         # first lets plot it in 3d to get a feeling for the distribution
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        X1, X2 = np.meshgrid(x_range, x_range)
-        pot_2d = functools.partial(potential_total, h=alpha, J=J, p=p)
-        pot_vals = pot_2d(X1, X2)
-        W = np.exp(-1 / T * pot_vals)
-        boltz_2d = functools.partial(boltzmann_dist_2d, beta=1 / T, potential=pot_2d)
-        Z = dblquad(boltz_2d, 0, 2 * np.pi, 0, 2 * np.pi)
-        W /= Z[0]
+            fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+            X1, X2 = np.meshgrid(x_range, x_range)
+            pot_2d = functools.partial(potential_total, h=alpha, J=J, p=p)
+            pot_vals = pot_2d(X1, X2)
+            W = np.exp(-1 / T * pot_vals)
+            boltz_2d = functools.partial(boltzmann_dist_2d, beta=1 / T, potential=pot_2d)
+            Z = dblquad(boltz_2d, 0, 2 * np.pi, 0, 2 * np.pi)
+            W /= Z[0]
 
-        surf = ax.plot_surface(X1, X2, W, cmap=cm.coolwarm,
-                               linewidth=0, antialiased=False)
-        # Customize the z axis.
-        ax.zaxis.set_major_locator(LinearLocator(10))
-        # A StrMethodFormatter is used automatically
-        ax.zaxis.set_major_formatter('{x:.02f}')
+            surf = ax.plot_surface(X1, X2, W, cmap=cm.coolwarm,
+                                   linewidth=0, antialiased=False)
+            # Customize the z axis.
+            ax.zaxis.set_major_locator(LinearLocator(10))
+            # A StrMethodFormatter is used automatically
+            ax.zaxis.set_major_formatter('{x:.02f}')
 
-        # Add a color bar which maps values to colors.
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+            # Add a color bar which maps values to colors.
+            fig.colorbar(surf, shrink=0.5, aspect=5)
 
-        plt.show()
+            plt.show()
 
-        beta = 1 / T
-        pot_single = functools.partial(potential, h=alpha, p=p)
-        pot_total = functools.partial(potential_total, h=alpha, J=J, p=p)
-        W_x = int_boltzmann_dist_x(x_range, beta, pot_total, x2_range)
-        W_x_single = boltzmann_dist_x(x_range, beta, pot_single)
-        Z = np.trapz(W_x, x_range)
-        Z_single = np.trapz(W_x_single, x_range)
-        W_x /= Z
-        W_x_single /= Z_single
-        fig, ax = plt.subplots(1, 1, figsize=(10, 10 * 4.8/6.4))
-        x_start = filter_cut(x[0][2:], x2, dx)
-        count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"d$\sigma= {dt}$", color=colors[1])
-        #ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0], linewidth=3)
-        ax.plot(x_range, W_x, label=r"$p(\vartheta_1) \propto $exp$({-\beta H(\vartheta_1, \vartheta_2)})$" + "\n" + rf"$\vartheta_2 = ${x2:.2f}",
-                color=colors[4], linewidth=3)
-        #ax.plot(x_range, W_x_single, label=f"single particle dist")
-        ax.set_title(f"t = {x[0][0]}, dt = {dt}")
-        ax.set_ylim(1e-7, 1.2 * np.max(W_x))
-        ax.set_xlim(np.min(x_range), np.max(x_range))
-        ax.set_ylabel(r"$p(\vartheta_1)$")
-        ax.set_xlabel(r"$\vartheta_1$")
+            beta = 1 / T
+            pot_single = functools.partial(potential, h=alpha, p=p)
+            pot_total = functools.partial(potential_total, h=alpha, J=J, p=p)
+            W_x = int_boltzmann_dist_x(x_range, beta, pot_total, x2_range)
+            W_x_single = boltzmann_dist_x(x_range, beta, pot_single)
+            Z = np.trapz(W_x, x_range)
+            Z_single = np.trapz(W_x_single, x_range)
+            W_x /= Z
+            W_x_single /= Z_single
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10 * 4.8/6.4))
+            x_start = filter_cut(x[0][2:], x2, dx)
+            count, bins, bars = ax.hist(x_start, nr_bins, density=True, label=f"d$\sigma= {dt}$", color=colors[1])
+            #ax.plot(x_range, W_x, label=f"T = {T:.2f}\n"+rf"$\vartheta_2 = ${x2:.2f}", color=colors[0], linewidth=3)
+            ax.plot(x_range, W_x, label=r"$p(\vartheta_1) \propto $exp$({-\beta H(\vartheta_1, \vartheta_2)})$" + "\n" + rf"$\vartheta_2 = ${x2:.2f}",
+                    color=colors[4], linewidth=3)
+            #ax.plot(x_range, W_x_single, label=f"single particle dist")
+            ax.set_title(f"t = {x[0][0]}, dt = {dt}")
+            ax.set_ylim(1e-7, 1.2 * np.max(W_x))
+            ax.set_xlim(np.min(x_range), np.max(x_range))
+            ax.set_ylabel(r"$p(\vartheta_1)$")
+            ax.set_xlabel(r"$\vartheta_1$")
 
-        #ax.set_yscale("log")
-        config = {
-            "increasefontsize": 1.5,
-            "labelhorizontalalignment": "right",
-        }
-        configure_ax(fig, ax, config)
-        ax.xaxis.set_major_locator(MultipleLocator(base=np.pi / 8))
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
-        ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
-        animation = partial(start_ani, ax=ax, bars=bars, x=x, x_cut=x2, dx=dx, nr_bins=nr_bins)
-        fig.canvas.mpl_connect("button_press_event", animation)
-        create_directory_if_not_exists(root + "/plots/")
-        plt.show()
-        ax.set_title(f"")
-        fig.savefig(root + f"/plots/p-dt-{dt}-theta2-{x2:.2f}.png", dpi=300)
+            #ax.set_yscale("log")
+            config = {
+                "increasefontsize": 1.5,
+                "labelhorizontalalignment": "right",
+            }
+            configure_ax(fig, ax, config)
+            ax.xaxis.set_major_locator(MultipleLocator(base=np.pi / 8))
+            ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+            ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+            animation = partial(start_ani, ax=ax, bars=bars, x=x, x_cut=x2, dx=dx, nr_bins=nr_bins)
+            fig.canvas.mpl_connect("button_press_event", animation)
+            create_directory_if_not_exists(root + "/plots/")
+            plt.show()
+            ax.set_title(f"")
+            fig.savefig(root + f"/plots/p-dt-{dt}-theta2-{x2:.2f}.png", dpi=300)
+            fig.savefig(root + f"/plots/p-dt-{dt}-theta2-{x2:.2f}-svg.svg")
+
 
 
 
