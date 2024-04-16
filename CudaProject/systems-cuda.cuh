@@ -1856,7 +1856,7 @@ public:
                                             0.0, // initial value for the reduction (sum)
                                             std::plus<double>(), // transformation (square)
                                             [](double m) -> double { return m * m; });
-        cout << "Dividing by " << m_vec.size() << endl;
+        // cout << "Dividing by " << m_vec.size() << endl;
         // exit(0);
         m_L2 /= (double)m_vec.size();
         double m_L4 = std::transform_reduce(m_vec.begin(), m_vec.end(),
@@ -1866,7 +1866,7 @@ public:
         m_L4 /= (double)m_vec.size();
 
         double cum = m_L4 / (m_L2 * m_L2);
-        cout << "cum = " << cum << endl << endl;
+        // cout << "cum = " << cum << endl << endl;
         return cum;
     }
 

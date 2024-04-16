@@ -3071,6 +3071,9 @@ public:
             // I guess I want to know the current h now?
             double h = sys.get_h();
             cout << "Current h = " << h << endl;
+            double T = sys.get_cur_T();
+            cout << "Current T = " << T << endl;
+            cout << "h/T = " << h / T << endl;
             // write
             if(startpoint){
                 this->write_state(sys, x, t);

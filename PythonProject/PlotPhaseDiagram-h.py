@@ -155,9 +155,9 @@ def main():
     # J_given = 3.11
 
     h_given = 1
-    h_given = np.linspace(1, 0.55, 1000)
-    J_given = 10
-    T_given = np.linspace(4, 2, 1000)
+    h_given = np.linspace(0.5, 0.25, 1000)
+    J_given = 3.11
+    T_given = np.linspace(0.4 * J_given, 0.2 * J_given, 1000)
     h_T_given_plot = h_given / T_given      # those are my x values
     T_given_J_given = T_given / J_given     # those are the y values
 
@@ -166,7 +166,6 @@ def main():
 
     angle_int, _ = find_first_intersection(T_given_J_given[::-1], T_given_J_given[::-1], h_T_given_plot[::-1], h_est_angle[::-1])
     print("Path and PB intersect at T / J = ", angle_int)
-
     angle = angle_between_curves(T_given_J_given[::-1], h_T_given_plot[::-1], h_est_angle[::-1], angle_int)
     print("angle = ", angle)
 
