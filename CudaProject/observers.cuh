@@ -3068,6 +3068,12 @@ public:
             // we check if we se the s_eq_t of the quench system to a time that is smaller or equal to the current time
             // we have to get the equilibration time with a detour
             double eq_t = sys.get_end_quench_time() - quench_t;     // this should be the time that the quench ends, so eq_t + quench_t - the time that the quench takes, so quench_t
+            // I guess I want to know the current h now?
+            double h = sys.get_h();
+            cout << "Current h = " << h << endl;
+            double T = sys.get_cur_T();
+            cout << "Current T = " << T << endl;
+            cout << "h/T = " << h / T << endl;
             // write
             if(startpoint){
                 this->write_state(sys, x, t);

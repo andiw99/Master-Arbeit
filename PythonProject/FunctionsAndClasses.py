@@ -730,7 +730,7 @@ def configure_ax(fig, ax, config=None):
     #legend
     if config["legend"]:
         ax.legend(title=config["legendtitle"], fontsize=config["legendfontsize"], loc=config["legendlocation"],
-                  title_fontsize=config["legendfontsize"], alignment="left")
+                  title_fontsize=config["legendfontsize"])
     if config["tight_layout"]:
         plt.tight_layout()
 
@@ -2506,12 +2506,40 @@ def central_difference_coefficients(n, p):
 
 def calculate_angle_from_slopes(slope1, slope2):
     # Calculate angle between lines using arctan
-    angle_radians = math.atan(abs((slope2 - slope1) / (1 + slope1 * slope2)))
-
+    # angle_radians = math.atan(abs((slope2 - slope1) / (1 + slope1 * slope2)))
+    angle_radians = np.arctan(slope1) - np.arctan(slope2)
     # Convert angle to degrees
-    angle_degrees = math.degrees(angle_radians)
+    # angle_degrees = math.degrees(angle_radians)
+    print("angle in radians ", angle_radians)
+    angle_degrees = np.abs(angle_radians / np.pi * 180)
+    return angle_degrees
+def angle_between_curves(x_values, y1_values, y2_values, x_star):
+    """
+    Calculate the angle between two curves y1(x) and y2(x) at their intersection point x_star.
+
+    Parameters:
+        x_values (array-like): Array of x values.
+        y1_values (array-like): Array of y values corresponding to y1(x).
+        y2_values (array-like): Array of y values corresponding to y2(x).
+        x_star (float): Intersection point of the two curves.
+
+    Returns:
+        float: Angle between the curves at the intersection point in radians.
+    """
+    # Find the index corresponding to the intersection point x*
+    index_x_star = np.argmin(np.abs(x_values - x_star))
+
+    # Calculate derivatives using finite differences
+    dy1_dx = np.gradient(y1_values, x_values)
+    dy2_dx = np.gradient(y2_values, x_values)
+
+    slope1 = dy1_dx[index_x_star]
+    slope2 = dy2_dx[index_x_star]
+    # Calculate angle in degrees from previous routine
+    angle_degrees = calculate_angle_from_slopes(slope1, slope2)
 
     return angle_degrees
+
 
 def main():
     print("This file is made to import, not to execute")

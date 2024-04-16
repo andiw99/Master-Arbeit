@@ -155,12 +155,21 @@ def main():
     # J_given = 3.11
 
     h_given = 1
-    J_given = 10
-    T_given = np.linspace(100 * h_given, h_given / 2, 1000)
+    h_given = np.linspace(0.5, 0.25, 1000)
+    J_given = 3.11
+    T_given = np.linspace(0.4 * J_given, 0.2 * J_given, 1000)
     h_T_given_plot = h_given / T_given      # those are my x values
     T_given_J_given = T_given / J_given     # those are the y values
 
-    fig, ax = plt.subplots(1, 1)
+    # Angle
+    h_est_angle = crit_h(T_given_J_given, *popt)
+
+    angle_int, _ = find_first_intersection(T_given_J_given[::-1], T_given_J_given[::-1], h_T_given_plot[::-1], h_est_angle[::-1])
+    print("Path and PB intersect at T / J = ", angle_int)
+    angle = angle_between_curves(T_given_J_given[::-1], h_T_given_plot[::-1], h_est_angle[::-1], angle_int)
+    print("angle = ", angle)
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 12))
 
     #ax.plot([], [], marker='s', **get_point_kwargs_color("black"), label="critical points",)
     ax.plot(Tc[:-1], h[:-1] , marker='s', **blue_point_kwargs, markeredgewidth=1, markersize=7, label="$j_\parallel = 3.11$")
@@ -171,8 +180,10 @@ def main():
     ax.plot([], [], marker="^", **get_point_kwargs_color("black"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
     #ax.plot(Tc100 / 10, h100 / Tc100, marker="s", **get_point_kwargs_color("C1", markeredgewidth=1), markersize=7, label="$J_\parallel / J_\perp = 100$")
     xlims = ax.get_xlim()
-    ax.plot(T_given_J_given, h_T_given_plot, color="C1", alpha=0.5, label="$h / J_\parallel = 0.1$")
+    ylims = ax.get_ylim()
+    ax.plot(T_given_J_given, h_T_given_plot, color="C1", alpha=0.5, label=f"$\phi = {angle}$")
     ax.set_xlim(xlims)
+    ax.set_ylim(ylims)
 
     # ax.plot(TcXY100, 0, marker="^", **get_point_kwargs_color("C4"), label="$T_c^{\mathrm{XY}}~ / ~J_\parallel $")
     # point from J/J = 100
