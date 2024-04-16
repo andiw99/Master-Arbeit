@@ -1,0 +1,60 @@
+This is BibTeX, Version 0.99d (TeX Live 2022/dev/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: Master Thesis2.aux
+The style file: plain.bst
+Database file #1: references.bib
+Repeated entry---line 275 of file references.bib
+ : @article{larini2007langevin
+ :                            ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 516 of file references.bib
+ : @article{pillay2004revisit
+ :                           ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 854 of file references.bib
+ : @article{dammann1993dynamical
+ :                              ,
+I'm skipping whatever remains of this entry
+Warning--can't use both volume and number fields in potts1952some
+You've used 75 entries,
+            2118 wiz_defined-function locations,
+            933 strings with 16870 characters,
+and the built_in function-call counts, 24844 in all, are:
+= -- 2349
+> -- 1342
+< -- 5
++ -- 538
+- -- 456
+* -- 1922
+:= -- 4305
+add.period$ -- 225
+call.type$ -- 75
+change.case$ -- 444
+chr.to.int$ -- 0
+cite$ -- 76
+duplicate$ -- 845
+empty$ -- 1850
+format.name$ -- 456
+if$ -- 5010
+int.to.chr$ -- 0
+int.to.str$ -- 75
+missing$ -- 77
+newline$ -- 375
+num.names$ -- 150
+pop$ -- 381
+preamble$ -- 1
+purify$ -- 375
+quote$ -- 0
+skip$ -- 576
+stack$ -- 0
+substring$ -- 1415
+swap$ -- 104
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 288
+warning$ -- 1
+while$ -- 233
+width$ -- 77
+write$ -- 813
+(There were 3 error messages)

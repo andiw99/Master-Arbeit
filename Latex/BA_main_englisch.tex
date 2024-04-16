@@ -1,0 +1,185 @@
+\input{preamble}
+\begin{document}
+
+\frontmatter
+
+
+% Titelpageseite
+\begin{titlepage}
+ \begin{tabularx}{\linewidth}{X}
+  \includegraphics[width=6cm]{TU_Logo_SW} \\\hline\hline
+
+  \vspace{4.5em}
+
+  \begin{singlespace}\begin{center}\bfseries\Huge
+  
+  KZM on Si(1, 0, 0) Surface
+  
+  \end{center}\end{singlespace}
+
+  \vspace{5.5em}
+
+  \begin{singlespace}\begin{center}\large
+   Master-Arbeit \\ zur Erlangung des Hochschulgrades \\ 
+   Master of Science \\ 
+   im Master-Studiengang Physik
+  \end{center}\end{singlespace}\medskip
+
+  \begin{center}vorgelegt von\end{center}
+  \begin{center}
+   {\large Andreas Weitzel} \\ geboren am 10.08.1999 in Fulda
+  \end{center}\medskip
+
+  \begin{singlespace}\begin{center}\large
+   Institut für Theoretische Physik \\
+   Fakultät Physik \\
+   Bereich Mathematik und Naturwissenschaften \\
+   Technische Universität Dresden \\ 2023
+  \end{center}\end{singlespace}
+ \end{tabularx}
+\end{titlepage}
+
+
+% Gutachterseite
+\thispagestyle{empty}\vspace*{48em}
+
+Eingereicht am xx.~Monat~20xx\vspace{1.5em}
+\par{\large\begin{tabular}{ll}
+ 1. Gutachter: & Prof.~Dr.~XX \\
+ 2. Gutachter: & Prof.~Dr.~YY \\
+\end{tabular}}
+
+
+% Abstractseite
+\newpage
+\begin{center}\large\bfseries Summary\end{center}
+
+
+Abstract \\ 
+English: \\
+
+\vspace{20em}
+Abstract \\ 
+Deutsch \\
+ 
+ 
+% Inhaltsverzeichnis
+
+%\cleardoublepage
+\tableofcontents
+
+
+
+% Hauptteil
+
+\chapter{Introduction}
+
+
+
+\chapter{Main Part}
+\section{Theoretical Background}
+\subsection{Phase Transitions}
+	\subsubsection{Basics}
+		\textbf{Definition}
+		
+		Many Systems exhibit a phase transition when changing an external parameter like their Temperature T through a certain critical temperature $T_c$. This usually means, that they transition from a unordered state to a ordered one. The order of the system is described by the \textbf{order parameter} $\Psi$. In the unordered phase, the (time averaged) value of the order parameter is $\left\langle \Psi \right\rangle = 0$, and in the ordered phase $\left\langle \Psi \right\rangle \neq 0$. In simple words, what happens for (classical) phase transitions is: Above the critical Temperature $T > T_c$, the thermal fluctuations of the system are to strong and destroy every order the system wants to establish. Is the system Temperature lowered to the critical point $T = T_c$, the thermal fluctuations and the interaction between microscopic parts of the system are of the same size but we are still in an unordered state. Below the critical temperature ate $T < T_c$, the microscopic interactions gain the upper hand and the system begins to order in a manner that is determined by the nature of the (microscopic) Hamiltonian. In other words, the system wants to minimize its \textbf{free energy} $F =	U - TS$ and above the critical Temperature the term $-TS$ has greater influence, so the System minimizes its free energy by maximizing its \textbf{entropy S}. Below the temperature the contribution of the \textbf{internal energy U} is greater, so that U is minimized. This minimization is usually achieved through some kind of ordering
+		\\
+	 	\\
+		A system can have many phase-transition driving parameters (like the temperature), that are then also called \textbf{coupling constants}. For classical phase transition those are usually $T$ and pressure $p$. Depending on the coupling constants, the system can be in one or another phase, so that we can draw phase diagrams with transition lines, like the phase diagram of water.
+		\\
+		\\
+		The static (the system is in equilibrium all the time) properties of the System, like the behavior of the order parameter when changing the $T$ or an external driving force, are usually dealt with by statistical physics. A more mathematical definition of phase transitions can be achieved with the free energy (density) of a lattice with $N$ sites which is depending on the coupling constants K:
+		\begin{equation}
+			f_b\left\lbrace K \right\rbrace = \lim_{N \rightarrow \infty} \frac{F\left\lbrace K \right\rbrace}{N}	
+		\end{equation}
+		The limit $N \rightarrow \infty$ is called the \textbf{thermodynamic limit} and is usually assumed when dealing with phase transitions, even though strictly speaking it is never realized in the real world, but is a good approximation for real life systems.
+		
+		The regions where $f_b\left\lbrace K \right\rbrace$ is an analytic (no kinks or jumps) function of the coupling constants are to be identified with the \textbf{phases} and the regions between are the \textbf{phase boundaries}.
+		\\
+		\\
+		\textbf{Types of Phase Transitions}
+		
+		Actually, $f_b\left\lbrace K \right\rbrace$ is continuous everywhere(everytime?), so there are no jumps. But it could have a kink, whisch would be the first type of phase Transition:
+		\begin{enumerate}
+			\item $\frac{\partial f_b}{\partial K_i}$ are discontinuous at the phase boundary, this is the \textbf{first order phase transition}. Here, $f_b\left\lbrace K \right\rbrace$ has a kink at the phase transition and its derivative jumps.
+			\item $\frac{\partial f_b}{\partial K_i}$ are also continuous, but have a kink at the phase boundary, in this case $f_b\left\lbrace K \right\rbrace$ is smooth and we call this kind \textbf{second order phase transition} or better \textbf{continuous phase transition}.
+		\end{enumerate}
+		Those considerations of $f_b\left\lbrace K \right\rbrace$ are again exactly only true in the thermodynamic limit, which is never obtained. How do we know if this approximation is reliable? Seems that we can do this by introducing the concept of the \textbf{correlation length} $\boldsymbol{\xi}$, which describes the spatial extent of fluctuations in a physical quantity about the average of that quantity, for example density, or in the Silicon-dimer case deviations from the average inclination angle (How is that helping to see if our approximation is valid? probably if system size $ L \gg \xi$). The correlation length depends on the coupling constants and especially on the temperature, \textbf{diverging to infinity at the transition itself}. More on that later? Since $\xi$ cannot exceed the system size $L$, a finite system differs from an ideal infinite system described by $\boldsymbol{\xi}$. Since in my computations we can only look at relatively small systems, those finite size effects could be important for me.
+		\newline
+		\newline
+		\textbf{Models}
+		Often phase transitions and systems in statistical mechanics are described by models like the Ising Model, Heisenberg Model, etc. Those Models usually build on a (microscopic) Hamiltonian which describes the interaction of the parts of the system and for which the partition function is exactly computable. Those Models can be a \textbf{benchmark} for my computations. But since the solution methods for Ising, XY, do not generalize well and more complicated systems are still not solved today, i probably won't be able to put up a microscopic Hamiltonian and derive system properties from there. But maybe i can show that the Ising Hamiltonian is some kind of limit of my Hamilton and maybe i can derive a Langevin equation from my Hamiltonian, which wont be a solution for system properties but describes the dynamic evolution of my system. And maybe i can do some RG calculations when i know my Hamiltonian.  
+		\newline
+		\newline
+		\textbf{Spontanous Symmetry Breaking}
+		
+		The ordering of the Order paramter usually means that some kind of symmetry gets broken. For the Ising Model this would for example mean that above the phase transition, the spins are isotropically distributed in space, meaning that the system looks the same no matter from which ''angle'' i look at it. The Ising Model usually satisfies $\mathbb{Z}_2$-Symmetry, meaning that i could flip every spin and my System would still look the same. After the phase Transition, the degenerate equilibrium states are $\left|\uparrow \uparrow \cdot \cdot \cdot \uparrow \right\rangle$ and $\left|\downarrow \downarrow \cdot \cdot \cdot \downarrow \right\rangle$ and a spin flip results in a Transition between those two states. That means the symmetry is broken? Spontaneous means in this case, that i did not change the Hamiltonian of the System, but the System broke the Symmetry by itself just because the Temperature was lowered. The symmetry group that the considered system belongs to is an important factor for the scaling behavior of the system. \\
+
+		Symmetry of the Ising Model: One (the?) symmetry of the Ising model is the so called up-down symmetry or \textbf{time-reversal symmetry}. What this Symmetry basically describes is if i have an external field $M$ and a Spin Configuration $\left\lbrace S_i \right\rbrace$, that the $f_b\left\lbrace K \right\rbrace$, $Z$, etc... are the same if i flip all spins and flip the external field. Flipping the external field is basically equivalent to reversing the time (since the trajectories would run backwards and this is as if the field was flipped?). But this symmetry isn't broken after the phase transition i think? So does the Ising Model not exhibit symmetry breaking? (It obviously does, but which symmetry?) \\
+		
+		I think the symmetry that is broken by the phase transition is the spin-flip symmetry, which is a different thing than the time reversal symmetry. However, i don't know how this behaves if we have an external field which already breaks the spin flip symmetry. It says here, that event though the Hamiltonian is invariant under time-reversal symmetry, the statistical expectation values are not (like the magnetization $M$). But why not? If I time reverse all my spins, I flip the magnetization and in reverse time this would be okay again? Or can i just flip the time once and the resulting $M$ is the M in reversed time? The fact that the Ising model has a discrete symmetry means that the width of the domain walls must be finite (What does this mean? With intermediate states i could tilt every spin only an infinitesimal small bit and never really reach the other end of the domain wall? Thus an infinite width?). In Ising the thickness can only be one lattice unit. \\
+		
+		Note that the 1D (d=1) Ising Model does not exhibit a ferromagnetic phase transition for $T > 0$ because there is no \textbf{long range order} (no long range interactions? Even not indirect ones?). Whereas for d=2, long range order can exist above $ T = 0$ The dimension \textbf{above which} a given transition occurs for $T > 0$ is referred to as the \textbf{lower critical dimension}. In the thermodynamic limit, the Ising system can lower its free energy by creating a \textbf{domain wall}, since the penalty for short range interaction is just flat $2J$ (Interaction energy), but the released energy in terms of entropy ist $k_B T \ln(N)$ which becomes arbitrarily large in the thermodynamic limit. So the System is instable concerning thermal fluctuations. \\
+		
+		Besides the Ising Model there is also the Heisenberg model, where the spins can line up in any direction which is in general a more realistic model, but sometimes Interaction between the spins and the lattice prefers a certain axis so that the spins line up with that axis and the Ising model is actually better. \\
+		
+		The Symmetry of the Heisenberg-Model is the $O(3)$-Symmetry (or even $SO(3)$ ?), meaning that the Hamiltonian is the invariant under the simultaneous rotation in 3 dimensions of all the spins. \textbf{Important:} We look at the rotation of the spins, keeping the lattice fixed! This continous rotational symmetry is spontaneously broken in the state of long range order. If the spins align in a certain direction, i am left with no symmetry transformation that leaves the statistical average values constant? I mean i could rotate the spins around the axis of direction they are pointing in, but does that count? And which symmetry group is that ($O(1)$))? I thought if i break $SO(3)$ i am left with $SO(2)$. Wasn't there a table somewhere in a book that i read? \\
+		
+		\textbf{Erodicity Breaking} \\
+		In statistical mechanics we identify the time average of an observable of one system with the ensemble average (the average over the whole ensemble, meaning many realizations of my system). In other words: that the time integral over the system observable is the same as the integral over the probability for the system to be in a state times the value of the observable in this state (The probability distribution is extracted out of the ensemble). This is the \textbf{ergodic hypothesis}, or in other words, that one System comes arbitrarily close to every possible configuration as $t \rightarrow \infty$. But if we look at phase broken systems in the thermodynamic limit, the lifetime of one of the degenerate ground states will grow to infinity, so the system is effectively trapped in one or the other region of configuration or phase space. This is known as \textbf{ergodicity breaking}. In my words: The time average over the observable wont be the same as the average over the ensemble, since the broken system will have the same magnetization for example for arbitrarily large times. \\
+		
+		By the way: the configuration space of the broken symmetry has been fragmented into two regions corresponding to negative or positive magnetization. But those states are time-reversed, so there exists a one-to-one mapping from one to another. This mapping is achieved through the same symmetry that was originally spontaneously broken. (My example is the Ising model, we have the ground states $\left|\uparrow \uparrow \cdot \cdot \cdot \uparrow \right\rangle$ and $\left|\downarrow \downarrow \cdot \cdot \cdot \downarrow \right\rangle$ which are converted into one another by appliying the time reverse symmetry). \\
+		
+		\textbf{Scaling}
+		
+		We have this thing called scaling, where important parameters of the System like:					
+		\begin{itemize}
+			\item The Correlation Length $\xi$
+			\item the Relaxation Time $\tau$
+			\item the order parameter, e.g. $\Psi$
+			\item probably some more?
+		\end{itemize}
+		scale around the phase transition with critical exponents called $\alpha, \beta, \gamma, \delta, \nu, \eta$. Those are not all independent as we will see in the renormalization group calculations. They scale with the reduced temperature $\epsilon = \frac{T - T_c}{T_c}$ A List of The system parameters and their corresponding scaling:
+						
+		\begin{itemize}
+			\item specific heat: $C \propto \tau^{-\alpha}$
+			\item order parameter: $\Psi \propto |\tau|^\beta$. Order Parameter is assumed to be zero at the phase transition and non zero below the critical point
+			\item response function to driving force J: $\frac{d\Psi}{dJ} \propto	\tau^{-\gamma}$
+			\item Order parameter to driving Force: $J\propto \Psi^\delta$
+			\item \textbf{correlation length:} $\xi \propto \tau^{-\nu}$
+			\item ''size of correlations at the critical point'' (isn't that the correlation length?). Correlation function scales as $ \propto r^{-d + 2 -\eta}$  
+		\end{itemize}
+		   
+	\subsubsection{Mean-Field-Methods}
+	\subsubsection{Ginzburg Landau Methods and Time dependant GL}
+	\subsubsection{Renormalization Group Methods}
+
+\subsection{Kibble-Zurek-Mechanism}
+
+
+\subsection{Langevin Equation and Stochastic Differential Equations}
+
+
+\subsection{Numerical Methods}
+
+
+\subsection{System under consideration}
+
+
+\chapter{Summary and Outlook}
+
+
+% Erklärung
+\clearpage
+\thispagestyle{empty}
+\minisec{Erklärung}\vspace*{1.5em}
+
+Hiermit erkläre ich, dass ich diese Arbeit im Rahmen der Betreuung am Institut
+für ??? Physik ohne unzulässige Hilfe Dritter verfasst und alle Quellen als solche gekennzeichnet habe.
+
+\vspace*{45em}
+
+Vorname Nachname \par
+Dresden, Monat 2019
+
+\end{document}

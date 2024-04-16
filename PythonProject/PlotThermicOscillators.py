@@ -102,8 +102,8 @@ def main():
     root = "../../Generated content/BBK/MSD/BBK/0.025"
     root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.0005/eta comp"
     root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.01/eta comp"
-    root = "../../Generated content/Final/Benchmarks/HO/BBK/T=20/dt = 0.05/eta comp"
-    title = "Euler method"
+    root = "../../Generated content/Final/Benchmarks/HO/BBK/T=20/dt = 0.01/eta comp"
+    title = "BBK method"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
 
     a = 0
