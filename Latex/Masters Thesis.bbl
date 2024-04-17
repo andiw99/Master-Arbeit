@@ -1,0 +1,261 @@
+\begin{thebibliography}{10}
+
+\bibitem{ahnert2014solving}
+Karsten Ahnert, Denis Demidov, and Mario Mulansky.
+\newblock Solving ordinary differential equations on gpus.
+\newblock In {\em Numerical Computations with GPUs}, pages 125--157. Springer,
+  2014.
+
+\bibitem{berezinskii1971destruction}
+VL314399 Berezinskii.
+\newblock Destruction of long-range order in one-dimensional and
+  two-dimensional systems having a continuous symmetry group i. classical
+  systems.
+\newblock {\em Sov. Phys. JETP}, 32(3):493--500, 1971.
+
+\bibitem{binder1981finite}
+Kurt Binder.
+\newblock Finite size scaling analysis of ising model block distribution
+  functions.
+\newblock {\em Zeitschrift f{\"u}r Physik B Condensed Matter}, 43:119--140,
+  1981.
+
+\bibitem{binder2022monte}
+Kurt Binder.
+\newblock Monte carlo simulations in statistical physics.
+\newblock In {\em Statistical and Nonlinear Physics}, pages 85--97. Springer,
+  2022.
+
+\bibitem{brand2023dimer}
+Christian Brand, Alfred Hucht, Giriraj Jnawali, Jonas~D Fortmann, Bj{\"o}rn
+  Sothmann, Hamid Mehdipour, Peter Kratzer, Ralf Sch{\"u}tzhold, and Michael
+  Horn-von Hoegen.
+\newblock Dimer coupling energies of the si (001) surface.
+\newblock {\em Physical Review Letters}, 130(12):126203, 2023.
+
+\bibitem{brand2023critical}
+Christian Brand, Alfred Hucht, Hamid Mehdipour, Giriraj Jnawali, Jonas~D
+  Fortmann, Mohammad Tajik, R{\"u}diger Hild~Bj{\"o}rn Sothmann, Peter Kratzer,
+  Ralf Sch{\"u}tzhold, and Michael Horn-von Hoegen.
+\newblock Critical behavior of the dimerized si (001) surface: A continuous
+  order-disorder phase transition in the 2d ising universality class.
+\newblock {\em arXiv preprint arXiv:2310.10488}, 2023.
+
+\bibitem{brunger1984stochastic}
+Axel Br{\"u}nger, Charles~L Brooks~III, and Martin Karplus.
+\newblock Stochastic boundary conditions for molecular dynamics simulations of
+  st2 water.
+\newblock {\em Chemical physics letters}, 105(5):495--500, 1984.
+
+\bibitem{caldeira1981influence}
+Amir~O Caldeira and Anthony~J Leggett.
+\newblock Influence of dissipation on quantum tunneling in macroscopic systems.
+\newblock {\em Physical Review Letters}, 46(4):211, 1981.
+
+\bibitem{cardy1996scaling}
+John Cardy.
+\newblock {\em Scaling and renormalization in statistical physics}, volume~5.
+\newblock Cambridge university press, 1996.
+
+\bibitem{chadi1979atomic}
+DJ~Chadi.
+\newblock Atomic and electronic structures of reconstructed si (100) surfaces.
+\newblock {\em Physical Review Letters}, 43(1):43, 1979.
+
+\bibitem{frenkel2023understanding}
+Daan Frenkel and Berend Smit.
+\newblock {\em Understanding molecular simulation: from algorithms to
+  applications}.
+\newblock Elsevier, 2023.
+
+\bibitem{gillespie1996mathematics}
+Daniel~T Gillespie.
+\newblock The mathematics of brownian motion and johnson noise.
+\newblock {\em American Journal of Physics}, 64(3):225--240, 1996.
+
+\bibitem{goldenfeld2018lectures}
+Nigel Goldenfeld.
+\newblock {\em Lectures on phase transitions and the renormalization group}.
+\newblock CRC Press, 2018.
+
+\bibitem{hasenbusch2008critical}
+Martin Hasenbusch, Andrea Pelissetto, and Ettore Vicari.
+\newblock Critical behavior of three-dimensional ising spin glass models.
+\newblock {\em Physical Review B}, 78(21):214205, 2008.
+
+\bibitem{ihm1983structural}
+J~Ihm, DH~Lee, JD~Joannopoulos, and JJ~Xiong.
+\newblock Structural phase diagrams for the surface of a solid: a total-energy,
+  renormalization-group approach.
+\newblock {\em Physical review letters}, 51(20):1872, 1983.
+
+\bibitem{izaguirre2001langevin}
+Jes{\'u}s~A Izaguirre, Daniel~P Catarello, Justin~M Wozniak, and Robert~D
+  Skeel.
+\newblock Langevin stabilization of molecular dynamics.
+\newblock {\em The Journal of chemical physics}, 114(5):2090--2098, 2001.
+
+\bibitem{janssen1989new}
+HK~Janssen, B~Schaub, and B~Schmittmann.
+\newblock New universal short-time scaling behaviour of critical relaxation
+  processes.
+\newblock {\em Zeitschrift f{\"u}r Physik B Condensed Matter}, 73:539--549,
+  1989.
+
+\bibitem{jose1977renormalization}
+Jorge~V Jos{\'e}, Leo~P Kadanoff, Scott Kirkpatrick, and David~R Nelson.
+\newblock Renormalization, vortices, and symmetry-breaking perturbations in the
+  two-dimensional planar model.
+\newblock {\em Physical Review B}, 16(3):1217, 1977.
+
+\bibitem{kadanoff1966scaling}
+Leo~P Kadanoff.
+\newblock Scaling laws for ising models near $t_c$.
+\newblock {\em Physics Physique Fizika}, 2(6):263, 1966.
+
+\bibitem{kloeden1992stochastic}
+Peter~E Kloeden, Eckhard Platen, Peter~E Kloeden, and Eckhard Platen.
+\newblock {\em Stochastic differential equations}.
+\newblock Springer, 1992.
+
+\bibitem{JMKosterlitz_1973}
+J~M Kosterlitz and D~J Thouless.
+\newblock Ordering, metastability and phase transitions in two-dimensional
+  systems.
+\newblock {\em Journal of Physics C: Solid State Physics}, 6(7):1181, apr 1973.
+
+\bibitem{ladewig2020kibble}
+Bj{\"o}rn Ladewig, Steven Mathey, and Sebastian Diehl.
+\newblock Kibble-zurek mechanism from different angles: The transverse xy model
+  and subleading scalings.
+\newblock {\em Physical Review B}, 102(10):104306, 2020.
+
+\bibitem{laguna1997density}
+Pablo Laguna and Wojciech~Hubert Zurek.
+\newblock Density of kinks after a quench: When symmetry breaks, how big are
+  the pieces?
+\newblock {\em Physical Review Letters}, 78(13):2519, 1997.
+
+\bibitem{landemark1992core}
+Erik Landemark, CJ~Karlsson, Y-C Chao, and RIG Uhrberg.
+\newblock Core-level spectroscopy of the clean si (001) surface: Charge
+  transfer within asymmetric dimers of the 2$\times$ 1 and c (4$\times$ 2)
+  reconstructions.
+\newblock {\em Physical review letters}, 69(10):1588, 1992.
+
+\bibitem{landi2022nonequilibrium}
+Gabriel~T Landi, Dario Poletti, and Gernot Schaller.
+\newblock Nonequilibrium boundary-driven quantum systems: Models, methods, and
+  properties.
+\newblock {\em Reviews of Modern Physics}, 94(4):045006, 2022.
+
+\bibitem{larini2007langevin}
+L~Larini, Riccardo Mannella, and Dino Leporini.
+\newblock Langevin stabilization of molecular-dynamics simulations of polymers
+  by means of quasisymplectic algorithms.
+\newblock {\em The Journal of Chemical Physics}, 126(10), 2007.
+
+\bibitem{li1995dynamic}
+ZB~Li, L~Sch{\"u}lke, and B~Zheng.
+\newblock Dynamic monte carlo measurement of critical exponents.
+\newblock {\em Physical review letters}, 74(17):3396, 1995.
+
+\bibitem{mattis1984transfer}
+Daniel~C Mattis.
+\newblock Transfer matrix in plane-rotator model.
+\newblock {\em Physics Letters A}, 104(6-7):357--360, 1984.
+
+\bibitem{mccoy1973two}
+Barry~M McCoy and Tai~Tsun Wu.
+\newblock {\em The two-dimensional Ising model}.
+\newblock Harvard University Press, 1973.
+
+\bibitem{mermin1966absence}
+N~David Mermin and Herbert Wagner.
+\newblock Absence of ferromagnetism or antiferromagnetism in one-or
+  two-dimensional isotropic heisenberg models.
+\newblock {\em Physical Review Letters}, 17(22):1133, 1966.
+
+\bibitem{migdal1975phase}
+AA~Migdal.
+\newblock Phase transitions in gauge and spin-lattice systems.
+\newblock {\em Zh. Eksp. Teor. Fiz}, 69:1457, 1975.
+
+\bibitem{nightingale2000monte}
+MP~Nightingale and HWJ Bl{\"o}te.
+\newblock Monte carlo computation of correlation times of independent
+  relaxation modes at criticality.
+\newblock {\em Physical Review B}, 62(2):1089, 2000.
+
+\bibitem{cuda}
+NVIDIA, Péter Vingelmann, and Frank~H.P. Fitzek.
+\newblock Cuda, release: 10.2.89, 2020.
+
+\bibitem{onsager1944crystal}
+Lars Onsager.
+\newblock Crystal statistics. i. a two-dimensional model with an order-disorder
+  transition.
+\newblock {\em Physical Review}, 65(3-4):117, 1944.
+
+\bibitem{pelissetto2002critical}
+Andrea Pelissetto and Ettore Vicari.
+\newblock Critical phenomena and renormalization-group theory.
+\newblock {\em Physics Reports}, 368(6):549--727, 2002.
+
+\bibitem{pillay2004revisit}
+Devina Pillay, Brett Stewart, Chee~Burm Shin, and Gyeong~S Hwang.
+\newblock Revisit to the ising model for order--disorder phase transition on si
+  (0 0 1).
+\newblock {\em Surface science}, 554(2-3):150--158, 2004.
+
+\bibitem{potts1952some}
+Renfrey~Burnard Potts.
+\newblock Some generalized order-disorder transformations.
+\newblock In {\em Mathematical proceedings of the cambridge philosophical
+  society}, volume~48, pages 106--109. Cambridge University Press, 1952.
+
+\bibitem{ramstad1995theoretical}
+A~Ramstad, G~Brocks, and PJ~Kelly.
+\newblock Theoretical study of the si (100) surface reconstruction.
+\newblock {\em Physical Review B}, 51(20):14504, 1995.
+
+\bibitem{risken1996fokker}
+Hannes Risken and Hannes Risken.
+\newblock {\em Fokker-planck equation}.
+\newblock Springer, 1996.
+
+\bibitem{schaller2023sequential}
+Gernot Schaller, Friedemann Queisser, Seyedeh~Parya Katoorani, Christian Brand,
+  Christian Kohlf{\"u}rst, Mark~R Freeman, Alfred Hucht, Peter Kratzer,
+  Bj{\"o}rn Sothmann, Michael Horn-von Hoegen, et~al.
+\newblock Sequential kibble-zurek dynamics in the anisotropic ising model of
+  the si (001) surface.
+\newblock {\em arXiv preprint arXiv:2310.18216}, 2023.
+
+\bibitem{tabata1987order}
+Takeshi Tabata, Tetsuya Aruga, and Yoshitada Murata.
+\newblock Order-disorder transition on si (001): c (4$\times$ 2) to (2$\times$
+  1).
+\newblock {\em Surface Science Letters}, 179(1):L63--L70, 1987.
+
+\bibitem{thrust}
+Thrust~Development Team.
+\newblock Thrust: The c++ parallel algorithms library, 2023.
+
+\bibitem{tiesinga2021codata}
+Eite Tiesinga, Peter~J Mohr, David~B Newell, and Barry~N Taylor.
+\newblock Codata recommended values of the fundamental physical constants:
+  2018.
+\newblock {\em Journal of Physical and Chemical Reference Data}, 50(3), 2021.
+
+\bibitem{zurek1985cosmological}
+Wojciech~H Zurek.
+\newblock Cosmological experiments in superfluid helium?
+\newblock {\em Nature}, 317(6037):505--508, 1985.
+
+\bibitem{zurek1996cosmological}
+Wojciech~H Zurek.
+\newblock Cosmological experiments in condensed matter systems.
+\newblock {\em Physics Reports}, 276(4):177--221, 1996.
+
+\end{thebibliography}

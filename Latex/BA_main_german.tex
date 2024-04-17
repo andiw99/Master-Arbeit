@@ -1,0 +1,108 @@
+\input{preamble}
+\begin{document}
+
+\frontmatter
+
+
+% Titelpageseite
+\begin{titlepage}
+ \begin{tabularx}{\linewidth}{X}
+  \includegraphics[width=6cm]{TU_Logo_SW} \\\hline\hline
+
+  \vspace{4.5em}
+
+  \begin{singlespace}\begin{center}\bfseries\Huge
+  
+  Titel der Bachelor-Arbeit
+  
+  \end{center}\end{singlespace}
+
+  \vspace{5.5em}
+
+  \begin{singlespace}\begin{center}\large
+   Bachelor-Arbeit \\ zur Erlangung des Hochschulgrades  \\ 
+  Bachelor of Science \\ 
+   im Bachelor-Studiengang Physik
+  \end{center}\end{singlespace}\medskip
+
+  \begin{center}vorgelegt von\end{center}
+  \begin{center}
+   {\large VORNAME NACHNAME} \\ geboren am XX.XX.19XX in GEBURTSORT
+  \end{center}\medskip
+
+  \begin{singlespace}\begin{center}\large
+   Institut für ??? Physik \\
+   Fakultät Physik \\
+   Bereich Mathematik und Naturwissenschaften \\
+   Technische Universität Dresden \\ 2019
+  \end{center}\end{singlespace}
+ \end{tabularx}
+\end{titlepage}
+
+
+% Gutachterseite
+\thispagestyle{empty}\vspace*{48em}
+
+Eingereicht am xx.~Monat~20xx\vspace{1.5em}
+\par{\large\begin{tabular}{ll}
+ 1. Gutachter: & Prof.~Dr.~XX \\
+ 2. Gutachter: & Prof.~Dr.~YY \\
+\end{tabular}}
+
+
+% Abstractseite
+\newpage
+\begin{center}\large\bfseries Zusammenfassung\end{center}
+
+Zusammenfassung \\  
+Deutsch \\
+
+\vspace{20em}
+Abstract \\ 
+English: \\
+ 
+ 
+% Inhaltsverzeichnis
+
+%\cleardoublepage
+\tableofcontents
+
+
+
+% Hauptteil
+
+\chapter{Einleitung}
+
+\begin{equation}
+\left[ x{\left(t \right)} = - \frac{m \left(- 2 D m + 2 \eta + m\right)}{2 \eta k} - \frac{m \left(- 4 D \eta k m \left(\eta^{2} + k m\right) + \eta^{4} \left(2 D m - 2 \eta + 4 k - m\right) + 2 \eta^{3} k m + 2 \eta^{2} k m \left(2 D m - 2 \eta + 2 k - m\right) + 2 \eta k^{2} m^{2} - k^{2} m^{2} \left(- 2 D m + 2 \eta + m\right)\right) e^{- \frac{2 \eta k t}{\eta^{2} + k m}}}{2 \eta k \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)}, \  v{\left(t \right)} = - \frac{m \left(2 D \left(\eta - 2 k\right) - \eta + 4 k\right) e^{- t}}{2 \left(\eta^{2} - 2 \eta k + k m\right)} + \frac{k m \left(- 2 D m \left(\eta^{2} + k m\right) + 2 \eta^{3} + \eta^{2} m + 2 \eta k m + k m^{2}\right) e^{- \frac{2 \eta k t}{\eta^{2} + k m}}}{2 \eta \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)} - \frac{m \left(- 2 D \left(\eta^{2} \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2} + k m \left(\eta^{2} + k m\right)\right) - 2 \eta k^{2} m \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + k^{2} m^{2} \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right) + 2 \eta^{3} k \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + \eta^{2} \left(- 4 k^{2} \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + k m \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}\right) - 2 \eta k \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2} + k^{2} m^{2} \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right)}{2 \eta \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}}, \  \operatorname{xv}{\left(t \right)} = - \frac{m \left(- 2 D m \left(\eta^{2} + k m\right) + 2 \eta^{3} + \eta^{2} m + 2 \eta k m + k m^{2}\right) e^{- \frac{2 \eta k t}{\eta^{2} + k m}}}{2 \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)} + \frac{m \left(- 2 D m + 2 \eta + m\right) e^{- t}}{2 \left(\eta^{2} - 2 \eta k + k m\right)} - \frac{m \left(- 2 D m \left(\eta^{4} + 2 \eta^{2} k m + k^{2} m^{2}\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + \eta^{2} \left(\eta^{2} + k m\right) \left(2 D m - 2 \eta + 4 k - m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + 2 \eta \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2} + k m \left(\eta^{2} + k m\right)\right) - k m \left(\eta^{2} + k m\right) \left(- 2 D m + 2 \eta + m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) + m \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}\right)}{2 \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}}\right]
+\end{equation}
+
+\begin{equation}
+	\left[ x{\left(t \right)} = - \frac{C_{1} \left(\eta^{2} - 2 \eta k + k m\right) e^{- \frac{2 \eta k t}{\eta^{2} + k m}}}{\eta k} - \frac{m \left(\eta^{2} + k m\right) \left(\eta^{2} - 2 \eta k + k m\right) \left(- 2 D m + 2 \eta + m\right)}{2 \eta k \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)}, \  v{\left(t \right)} = - \frac{C_{1} k e^{- \frac{2 \eta k t}{\eta^{2} + k m}}}{\eta} + C_{2} e^{- t} + \frac{m \left(\eta \left(2 D \left(\eta \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) - 2 k^{2} m \left(\eta^{2} + k m\right)\right) + \eta \left(- \eta^{4} + 2 \eta^{3} k - 2 \eta^{2} k m + 2 \eta k^{2} m + k^{2} \left(4 \eta^{2} + 4 k m - m^{2}\right)\right) + 2 k^{2} m \left(\eta^{2} + k m\right) + 2 k \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) - k \left(\eta^{2} + k m\right)^{2} \left(- 2 D m + 2 \eta + m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right)}{2 \eta \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}}, \  \operatorname{xv}{\left(t \right)} = C_{1} e^{- \frac{2 \eta k t}{\eta^{2} + k m}} + C_{3} e^{- t} + \frac{m \left(\left(\eta^{2} + k m\right)^{2} \left(- 2 D m + 2 \eta + m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right) - \left(- 2 D m \left(\eta^{4} + 2 \eta^{2} k m + k^{2} m^{2}\right) + 4 \eta^{2} k \left(\eta^{2} + k m\right) + 2 \eta \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2} + k m \left(\eta^{2} + k m\right)\right) + m \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)\right)}{2 \left(\eta^{2} + k m\right) \left(\eta^{4} - 2 \eta^{3} k + 2 \eta^{2} k m - 2 \eta k^{2} m + k^{2} m^{2}\right)^{2}}\right]
+\end{equation}
+
+\begin{equation}
+\operatorname{x^{2}}{\left(t \right)} = \frac{D m^{2}}{\eta k} - \frac{D m^{2} e^{- \frac{2 k t}{\eta}}}{\eta k}
+\end{equation}
+\begin{equation}
+\operatorname{x^{2}}{\left(t \right)} = \frac{D \eta^{3}}{k} - \frac{D \eta^{3} e^{- \frac{2 k t}{\eta}}}{k}
+\end{equation}
+\chapter{Hauptteil}
+
+\chapter{Zusammenfassung}
+
+
+% Erklärung
+\clearpage
+\thispagestyle{empty}
+\minisec{Erklärung}\vspace*{1.5em}
+
+Hiermit erkläre ich, dass ich diese Arbeit im Rahmen der Betreuung am Institut
+für ??? Physik ohne unzulässige Hilfe Dritter verfasst und alle Quellen als solche gekennzeichnet habe.
+
+\vspace*{45em}
+
+Vorname Nachname \par
+Dresden, Monat 2019
+
+\end{document}

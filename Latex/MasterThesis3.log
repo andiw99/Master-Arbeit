@@ -1,0 +1,2543 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.15)  1 APR 2024 20:03
+entering extended mode
+ \write18 enabled.
+ %&-line parsing enabled.
+**MasterThesis3.tex
+(./MasterThesis3.tex
+LaTeX2e <2021-11-15> patch level 1
+L3 programming layer <2022-01-21> (./preamble.tex
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrbook.cls
+Document Class: scrbook 2021/11/13 v3.35 KOMA-Script document class (book)
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrkbase.sty
+Package: scrkbase 2021/11/13 v3.35 KOMA-Script package (KOMA-Script-dependent b
+asics and keyval usage)
+
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrbase.sty
+Package: scrbase 2021/11/13 v3.35 KOMA-Script package (KOMA-Script-independent 
+basics and keyval usage)
+
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrlfile.sty
+Package: scrlfile 2021/11/13 v3.35 KOMA-Script package (file load hooks)
+
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrlfile-hook.sty
+Package: scrlfile-hook 2021/11/13 v3.35 KOMA-Script package (using LaTeX hooks)
+
+
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrlogo.sty
+Package: scrlogo 2021/11/13 v3.35 KOMA-Script package (logo)
+)))
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks16
+)
+Applying: [2021/05/01] Usage of raw or classic option list on input line 252.
+Already applied: [0000/00/00] Usage of raw or classic option list on input line
+ 368.
+))
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/tocbasic.sty
+Package: tocbasic 2021/11/13 v3.35 KOMA-Script package (handling toc-files)
+\scr@dte@tocline@numberwidth=\skip47
+\scr@dte@tocline@numbox=\box50
+)
+Package tocbasic Info: babel extension for `toc' omitted
+(tocbasic)             because of missing \bbl@set@language on input line 137.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/fleqn.clo
+File: fleqn.clo 2016/12/29 v1.2b Standard LaTeX option (flush left equations)
+\mathindent=\skip48
+Applying: [2015/01/01] Make \[ robust on input line 50.
+LaTeX Info: Redefining \[ on input line 51.
+Already applied: [0000/00/00] Make \[ robust on input line 62.
+Applying: [2015/01/01] Make \] robust on input line 74.
+LaTeX Info: Redefining \] on input line 75.
+Already applied: [0000/00/00] Make \] robust on input line 83.
+)
+
+Class scrbook Warning: You've used obsolete option `bibtotocnumbered'.
+(scrbook)              Usage of this option indicates an old document
+(scrbook)              and changes compatibility level using
+(scrbook)              `bibliography=totocnumbered,version=first,
+(scrbook)              enabledeprecatedfontcommands' that may result
+(scrbook)              in further warnings.
+(scrbook)              If you don't want this, you should simply
+(scrbook)              replace option `bibtotocnumbered' by `bibliography=totoc
+numbered'.
+
+Class scrbook Info: Switching compatibility level to `first'.
+
+Class scrbook Warning: deprecated option `enabledeprecatedfontcommands'.
+(scrbook)              Note, that this option was already depreacted when
+(scrbook)              it has been defined. Support for old font commands
+(scrbook)              has been removed from KOMA-Script more than one
+(scrbook)              decade ago. It is not recommended to use them any
+(scrbook)              longer. Therefore usage of this class option also
+(scrbook)              is not recommended.
+
+
+Class scrbook Warning: You've used obsolete option `liststotoc'.
+(scrbook)              Usage of this option indicates an old document
+(scrbook)              and changes compatibility level using
+(scrbook)              `listof=totoc,version=first,
+(scrbook)              enabledeprecatedfontcommands' that may result
+(scrbook)              in further warnings.
+(scrbook)              If you don't want this, you should simply
+(scrbook)              replace option `liststotoc' by `listof=totoc'.
+
+Class scrbook Info: Switching compatibility level to `first'.
+
+Class scrbook Warning: deprecated option `enabledeprecatedfontcommands'.
+(scrbook)              Note, that this option was already depreacted when
+(scrbook)              it has been defined. Support for old font commands
+(scrbook)              has been removed from KOMA-Script more than one
+(scrbook)              decade ago. It is not recommended to use them any
+(scrbook)              longer. Therefore usage of this class option also
+(scrbook)              is not recommended.
+
+
+Class scrbook Warning: You've used obsolete option `listsleft'.
+(scrbook)              Usage of this option indicates an old document
+(scrbook)              and changes compatibility level using
+(scrbook)              `listof=flat,version=first,
+(scrbook)              enabledeprecatedfontcommands' that may result
+(scrbook)              in further warnings.
+(scrbook)              If you don't want this, you should simply
+(scrbook)              replace option `listsleft' by `listof=flat'.
+
+Class scrbook Info: Switching compatibility level to `first'.
+
+Class scrbook Warning: deprecated option `enabledeprecatedfontcommands'.
+(scrbook)              Note, that this option was already depreacted when
+(scrbook)              it has been defined. Support for old font commands
+(scrbook)              has been removed from KOMA-Script more than one
+(scrbook)              decade ago. It is not recommended to use them any
+(scrbook)              longer. Therefore usage of this class option also
+(scrbook)              is not recommended.
+
+
+Class scrbook Warning: You've used obsolete option `pointlessnumbers'.
+(scrbook)              Usage of this option indicates an old document
+(scrbook)              and changes compatibility level using
+(scrbook)              `numbers=noenddot,version=first,
+(scrbook)              enabledeprecatedfontcommands' that may result
+(scrbook)              in further warnings.
+(scrbook)              If you don't want this, you should simply
+(scrbook)              replace option `pointlessnumbers' by `numbers=noenddot'.
+
+
+Class scrbook Info: Switching compatibility level to `first'.
+
+Class scrbook Warning: deprecated option `enabledeprecatedfontcommands'.
+(scrbook)              Note, that this option was already depreacted when
+(scrbook)              it has been defined. Support for old font commands
+(scrbook)              has been removed from KOMA-Script more than one
+(scrbook)              decade ago. It is not recommended to use them any
+(scrbook)              longer. Therefore usage of this class option also
+(scrbook)              is not recommended.
+
+Class scrbook Info: File `scrsize12pt.clo' used to setup font sizes on input li
+ne 2490.
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrsize12pt.clo
+File: scrsize12pt.clo 2021/11/13 v3.35 KOMA-Script font size class option (12pt
+)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/typearea.sty
+Package: typearea 2021/11/13 v3.35 KOMA-Script package (type area)
+\ta@bcor=\skip49
+\ta@div=\count185
+\ta@hblk=\skip50
+\ta@vblk=\skip51
+\ta@temp=\skip52
+\footheight=\skip53
+Package typearea Info: These are the values describing the layout:
+(typearea)             DIV  = 22
+(typearea)             BCOR = 42.67912pt
+(typearea)             \paperwidth      = 597.50793pt
+(typearea)              \textwidth      = 479.17036pt
+(typearea)              DIV departure   = -14%
+(typearea)              \evensidemargin = -21.83102pt
+(typearea)              \oddsidemargin  = -4.37138pt
+(typearea)             \paperheight     = 845.04694pt
+(typearea)              \textheight     = 693.5pt
+(typearea)              \topmargin      = -33.85876pt
+(typearea)              \headheight     = 18.125pt
+(typearea)              \headsep        = 21.75pt
+(typearea)              \topskip        = 12.0pt
+(typearea)              \footskip       = 50.75pt
+(typearea)              \baselineskip   = 14.5pt
+(typearea)              on input line 1743.
+)
+\c@part=\count186
+\c@chapter=\count187
+\c@section=\count188
+\c@subsection=\count189
+\c@subsubsection=\count190
+\c@paragraph=\count191
+\c@subparagraph=\count192
+\scr@dte@chapter@maxnumwidth=\skip54
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\chapter on input line 5715.
+\scr@dte@section@maxnumwidth=\skip55
+Class scrbook Info: using compatibility default `runin=bysign'
+(scrbook)           for `\section on input line 5726.
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\section on input line 5726.
+\scr@dte@part@maxnumwidth=\skip56
+Class scrbook Info: using compatibility default `afterindent=true'
+(scrbook)           for `\part on input line 5735.
+\scr@dte@subsection@maxnumwidth=\skip57
+Class scrbook Info: using compatibility default `runin=bysign'
+(scrbook)           for `\subsection on input line 5745.
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\subsection on input line 5745.
+\scr@dte@subsubsection@maxnumwidth=\skip58
+Class scrbook Info: using compatibility default `runin=bysign'
+(scrbook)           for `\subsubsection on input line 5755.
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\subsubsection on input line 5755.
+\scr@dte@paragraph@maxnumwidth=\skip59
+Class scrbook Info: using compatibility default `runin=bysign'
+(scrbook)           for `\paragraph on input line 5766.
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\paragraph on input line 5766.
+\scr@dte@subparagraph@maxnumwidth=\skip60
+Class scrbook Info: using compatibility default `runin=bysign'
+(scrbook)           for `\subparagraph on input line 5776.
+Class scrbook Info: using compatibility default `afterindent=bysign'
+(scrbook)           for `\subparagraph on input line 5776.
+\abovecaptionskip=\skip61
+\belowcaptionskip=\skip62
+\c@pti@nb@sid@b@x=\box51
+Package tocbasic Info: babel extension for `lof' omitted
+(tocbasic)             because of missing \bbl@set@language on input line 6962.
+
+\scr@dte@figure@maxnumwidth=\skip63
+\c@figure=\count193
+Package tocbasic Info: babel extension for `lot' omitted
+(tocbasic)             because of missing \bbl@set@language on input line 6978.
+
+\scr@dte@table@maxnumwidth=\skip64
+\c@table=\count194
+Class scrbook Info: Using old \@makefntext due to compatibility level
+(scrbook)           less than 3.22 on input line 7133.
+Class scrbook Info: Redefining `\numberline' on input line 7146.
+\bibindent=\dimen138
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/inputenc.sty
+Package: inputenc 2021/02/14 v1.3d Input encoding file
+\inpenc@prehook=\toks17
+\inpenc@posthook=\toks18
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty
+Package: fontenc 2021/04/29 v2.0v Standard LaTeX package
+)
+(/usr/share/texlive/texmf-dist/tex/generic/babel/babel.sty
+Package: babel 2022/01/26 3.70 The Babel package
+\babel@savecnt=\count195
+\U@D=\dimen139
+\l@unhyphenated=\language8
+
+(/usr/share/texlive/texmf-dist/tex/generic/babel/txtbabel.def)
+\bbl@readstream=\read2
+\bbl@dirlevel=\count196
+
+(/usr/share/texlive/texmf-dist/tex/generic/babel-english/english.ldf
+Language: english 2017/06/06 v3.3r English support from the babel system
+Package babel Info: Hyphen rules for 'british' set to \l@english
+(babel)             (\language0). Reported on input line 82.
+Package babel Info: Hyphen rules for 'UKenglish' set to \l@english
+(babel)             (\language0). Reported on input line 83.
+Package babel Info: Hyphen rules for 'canadian' set to \l@english
+(babel)             (\language0). Reported on input line 102.
+Package babel Info: Hyphen rules for 'australian' set to \l@english
+(babel)             (\language0). Reported on input line 105.
+Package babel Info: Hyphen rules for 'newzealand' set to \l@english
+(babel)             (\language0). Reported on input line 108.
+))
+(/usr/share/texlive/texmf-dist/tex/latex/cmap/cmap.sty
+Package: cmap 2021/02/06 v1.0j CMap support: searchable PDF
+
+
+Package cmap Warning: fontenc already loaded - some fonts may be unprocessed.
+
+) (/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrlayer-scrpage.sty
+Package: scrlayer-scrpage 2021/11/13 v3.35 KOMA-Script package (end user interf
+ace for scrlayer)
+
+(/usr/share/texlive/texmf-dist/tex/latex/koma-script/scrlayer.sty
+Package: scrlayer 2021/11/13 v3.35 KOMA-Script package (defining layers and pag
+e styles)
+Package scrlayer Info: Using already defined \footheight
+(scrlayer)             hoping, that this is a length and
+(scrlayer)             not only a macro on input line 136.
+Package scrlayer Info: patching LaTeX kernel macro \pagestyle on input line 216
+2.
+)
+Package scrlayer-scrpage Info: Makeing stand-alone element `pagehead' from
+(scrlayer-scrpage)             alias to `pageheadfoot' on input line 1085.
+Package scrlayer-scrpage Info: deactivating warning for font element
+(scrlayer-scrpage)             `pagefoot' on input line 1109.
+)
+Package scrlayer-scrpage Info: auto-selection of `pagestyleset=KOMA-Script'.
+
+
+Package scrlayer-scrpage Warning: replacing deprecated \clearscrheadfoot by
+(scrlayer-scrpage)                \clearpairofpagestyles on input line 22.
+
+1: subsection
+1: section
+1: section
+1: subsection
+
+Package scrlayer-scrpage Warning: Command deprecated!
+(scrlayer-scrpage)                Usage of `\setheadtopline', `\setheadsepline'
+,
+(scrlayer-scrpage)                `\setfootsepline', and `\setfootbotline'
+(scrlayer-scrpage)                became deprecated with scrlayer-scrpage.
+(scrlayer-scrpage)                You should use KOMA-Script options
+(scrlayer-scrpage)                `headsepline', `headtopline', `footsepline',
+(scrlayer-scrpage)                or `footbotline' with values
+(scrlayer-scrpage)                `<line thickness>:<line length>' to setup
+(scrlayer-scrpage)                the line length and thickness, and
+(scrlayer-scrpage)                `\setkomafont' or `\addtokomafont' to
+(scrlayer-scrpage)                setup the colour on input line 25.
+
+(/usr/share/texlive/texmf-dist/tex/latex/setspace/setspace.sty
+Package: setspace 2011/12/19 v6.7a set line spacing
+)
+(/usr/share/texlive/texmf-dist/tex/latex/enumitem/enumitem.sty
+Package: enumitem 2019/06/20 v3.9 Customized lists
+\labelindent=\skip65
+\enit@outerparindent=\dimen140
+\enit@toks=\toks19
+\enit@inbox=\box52
+\enit@count@id=\count197
+\enitdp@description=\count198
+)
+Class scrbook Info: Using old \@makefntext due to compatibility level
+(scrbook)           less than 3.22 on input line 28.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package: hyperref 2021-06-07 v7.00m Hypertext links for LaTeX
+
+(/usr/share/texlive/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+Package: ltxcmds 2020-05-10 v1.25 LaTeX kernel commands for general use (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2020/03/06 v1.0d TeX engine tests
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(/usr/share/texlive/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+)
+(/usr/share/texlive/texmf-dist/tex/generic/kvsetkeys/kvsetkeys.sty
+Package: kvsetkeys 2019/12/15 v1.18 Key value parser (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hycolor/hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/letltxmacro/letltxmacro.sty
+Package: letltxmacro 2019/12/03 v1.6 Let assignment for LaTeX macros (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/auxhook/auxhook.sty
+Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/kvoptions/kvoptions.sty
+Package: kvoptions 2020-10-07 v3.14 Key value format for package options (HO)
+)
+\@linkdim=\dimen141
+\Hy@linkcounter=\count199
+\Hy@pagecounter=\count266
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2021-06-07 v7.00m Hyperref: PDFDocEncoding definition (HO)
+Now handling font encoding PD1 ...
+... no UTF-8 mapping file for font encoding PD1
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref-langpatches.def
+File: hyperref-langpatches.def 2021-06-07 v7.00m Hyperref: patches for babel la
+nguages
+)
+(/usr/share/texlive/texmf-dist/tex/generic/intcalc/intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/etexcmds/etexcmds.sty
+Package: etexcmds 2019/12/15 v1.7 Avoid name clashes with e-TeX commands (HO)
+)
+\Hy@SavedSpaceFactor=\count267
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/puenc.def
+File: puenc.def 2021-06-07 v7.00m Hyperref: PDF Unicode definition (HO)
+Now handling font encoding PU ...
+... no UTF-8 mapping file for font encoding PU
+)
+Package hyperref Info: Hyper figures OFF on input line 4192.
+Package hyperref Info: Link nesting OFF on input line 4197.
+Package hyperref Info: Hyper index ON on input line 4200.
+Package hyperref Info: Plain pages OFF on input line 4207.
+Package hyperref Info: Backreferencing OFF on input line 4212.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4445.
+\c@Hy@tempcnt=\count268
+
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip16
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4804.
+\XeTeXLinkMargin=\dimen142
+
+(/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count269
+\Field@Width=\dimen143
+\Fld@charsize=\dimen144
+Package hyperref Info: Hyper figures OFF on input line 6076.
+Package hyperref Info: Link nesting OFF on input line 6081.
+Package hyperref Info: Hyper index ON on input line 6084.
+Package hyperref Info: backreferencing OFF on input line 6091.
+Package hyperref Info: Link coloring OFF on input line 6096.
+Package hyperref Info: Link coloring with OCG OFF on input line 6101.
+Package hyperref Info: PDF/A mode OFF on input line 6106.
+LaTeX Info: Redefining \ref on input line 6146.
+LaTeX Info: Redefining \pageref on input line 6150.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/atbegshi-ltx.sty
+Package: atbegshi-ltx 2021/01/10 v1.0c Emulation of the original atbegshi
+package with kernel methods
+)
+\Hy@abspage=\count270
+\c@Item=\count271
+\c@Hfootnote=\count272
+)
+Package hyperref Info: Driver (autodetected): hpdftex.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2021-06-07 v7.00m Hyperref driver for pdfTeX
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/atveryend-ltx.sty
+Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atveryend pac
+kage
+with kernel methods
+)
+\Fld@listcount=\count273
+\c@bookmark@seq@number=\count274
+
+(/usr/share/texlive/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+Package: rerunfilecheck 2019/12/05 v1.9 Rerun checks for auxiliary files (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+86.
+)
+\Hy@SectionHShift=\skip66
+)
+(/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
+Package: xcolor 2021/10/31 v2.13 LaTeX color extensions (UK)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package xcolor Info: Driver file: pdftex.def on input line 227.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2020/10/05 v1.2a Graphics/color driver for pdftex
+)
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1352.
+Package xcolor Info: Model `hsb' substituted by `rgb' on input line 1356.
+Package xcolor Info: Model `RGB' extended on input line 1368.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1370.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1371.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1372.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1373.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1374.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1375.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/dvipsnam.def
+File: dvipsnam.def 2016/06/17 v3.0m Driver-dependent file (DPC,SPQR)
+))
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2021/09/16 v1.2d Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2021/03/04 v1.4d Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 2021/08/11 v1.11 sin cos tan (DPC)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 107.
+)
+\Gin@req@height=\dimen145
+\Gin@req@width=\dimen146
+)
+(/usr/share/texlive/texmf-dist/tex/latex/svg/svg.sty
+Package: svg 2020/11/26 v2.02k (include SVG pictures)
+
+(/usr/share/texlive/texmf-dist/tex/latex/trimspaces/trimspaces.sty
+Package: trimspaces 2009/09/17 v1.1 Trim spaces around a token list
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/shellesc.sty
+Package: shellesc 2019/11/08 v1.0c unified shell escape interface for LaTeX
+Package shellesc Info: Unrestricted shell escape enabled on input line 75.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/ifplatform/ifplatform.sty
+Package: ifplatform 2017/10/13 v0.4a Testing for the operating system
+
+(/usr/share/texlive/texmf-dist/tex/generic/catchfile/catchfile.sty
+Package: catchfile 2019/12/09 v1.8 Catch the contents of a file (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/ifluatex.sty
+Package: ifluatex 2019/10/25 v1.5 ifluatex legacy package. Use iftex instead.
+)
+runsystem(uname -s > "MasterThesis3.w18")...executed.
+
+
+(./MasterThesis3.w18)
+runsystem(rm -- "MasterThesis3.w18")...executed.
+
+)
+\c@svg@param@lastpage=\count275
+\svg@box=\box53
+\c@svg@param@currpage=\count276
+)
+(/usr/share/texlive/texmf-dist/tex/latex/transparent/transparent.sty
+Package: transparent 2019/11/29 v1.4 Transparency via pdfTeX's color stack (HO)
+
+)
+(/usr/share/texlive/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty
+(/usr/share/texlive/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex
+\pgfutil@everybye=\toks20
+\pgfutil@tempdima=\dimen147
+\pgfutil@tempdimb=\dimen148
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfutil-common-lists.t
+ex)) (/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def
+\pgfutil@abb=\box54
+) (/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfrcs.code.tex
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/pgf.revision.tex)
+Package: pgfrcs 2021/05/15 v3.1.9a (3.1.9a)
+))
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.code.tex
+Package: pgfsys 2021/05/15 v3.1.9a (3.1.9a)
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex
+\pgfkeys@pathtoks=\toks21
+\pgfkeys@temptoks=\toks22
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/utilities/pgfkeysfiltered.code.t
+ex
+\pgfkeys@tmptoks=\toks23
+))
+\pgf@x=\dimen149
+\pgf@y=\dimen150
+\pgf@xa=\dimen151
+\pgf@ya=\dimen152
+\pgf@xb=\dimen153
+\pgf@yb=\dimen154
+\pgf@xc=\dimen155
+\pgf@yc=\dimen156
+\pgf@xd=\dimen157
+\pgf@yd=\dimen158
+\w@pgf@writea=\write3
+\r@pgf@reada=\read3
+\c@pgf@counta=\count277
+\c@pgf@countb=\count278
+\c@pgf@countc=\count279
+\c@pgf@countd=\count280
+\t@pgf@toka=\toks24
+\t@pgf@tokb=\toks25
+\t@pgf@tokc=\toks26
+\pgf@sys@id@count=\count281
+ (/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg
+File: pgf.cfg 2021/05/15 v3.1.9a (3.1.9a)
+)
+Driver file for pgf: pgfsys-pdftex.def
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-pdftex.def
+File: pgfsys-pdftex.def 2021/05/15 v3.1.9a (3.1.9a)
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-common-pdf.de
+f
+File: pgfsys-common-pdf.def 2021/05/15 v3.1.9a (3.1.9a)
+)))
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgfsyssoftpath.code.
+tex
+File: pgfsyssoftpath.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfsyssoftpath@smallbuffer@items=\count282
+\pgfsyssoftpath@bigbuffer@items=\count283
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/systemlayer/pgfsysprotocol.code.
+tex
+File: pgfsysprotocol.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)) (/usr/share/texlive/texmf-dist/tex/latex/wrapfig/wrapfig.sty
+\wrapoverhang=\dimen159
+\WF@size=\dimen160
+\c@WF@wrappedlines=\count284
+\WF@box=\box55
+\WF@everypar=\toks27
+Package: wrapfig 2003/01/31  v 3.6
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
+Package: tabularx 2020/01/15 v2.11c `tabularx' package (DPC)
+
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
+Package: array 2021/10/04 v2.5f Tabular extension package (FMi)
+\col@sep=\dimen161
+\ar@mcellbox=\box56
+\extrarowheight=\dimen162
+\NC@list=\toks28
+\extratabsurround=\skip67
+\backup@length=\skip68
+\ar@cellbox=\box57
+)
+\TX@col@width=\dimen163
+\TX@old@table=\dimen164
+\TX@old@col=\dimen165
+\TX@target=\dimen166
+\TX@delta=\dimen167
+\TX@cols=\count285
+\TX@ftn=\toks29
+)
+(/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
+\heavyrulewidth=\dimen168
+\lightrulewidth=\dimen169
+\cmidrulewidth=\dimen170
+\belowrulesep=\dimen171
+\belowbottomsep=\dimen172
+\aboverulesep=\dimen173
+\abovetopsep=\dimen174
+\cmidrulesep=\dimen175
+\cmidrulekern=\dimen176
+\defaultaddspace=\dimen177
+\@cmidla=\count286
+\@cmidlb=\count287
+\@aboverulesep=\dimen178
+\@belowrulesep=\dimen179
+\@thisruleclass=\count288
+\@lastruleclass=\count289
+\@thisrulewidth=\dimen180
+)
+(/usr/share/texlive/texmf-dist/tex/latex/makecell/makecell.sty
+Package: makecell 2009/08/03 V0.1e Managing of Tab Column Heads and Cells
+\rotheadsize=\dimen181
+\c@nlinenum=\count290
+\TeXr@lab=\toks30
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2021/10/15 v2.17l AMS math features
+\@mathmargin=\skip69
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2021/08/26 v2.01 AMS text
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks31
+\ex@=\dimen182
+))
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen183
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2021/08/26 v2.02 operator names
+)
+\inf@bad=\count291
+LaTeX Info: Redefining \frac on input line 234.
+\uproot@=\count292
+\leftroot@=\count293
+LaTeX Info: Redefining \overline on input line 399.
+\classnum@=\count294
+\DOTSCASE@=\count295
+LaTeX Info: Redefining \ldots on input line 496.
+LaTeX Info: Redefining \dots on input line 499.
+LaTeX Info: Redefining \cdots on input line 620.
+\Mathstrutbox@=\box58
+\strutbox@=\box59
+\big@size=\dimen184
+LaTeX Font Info:    Redeclaring font encoding OML on input line 743.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 744.
+\macc@depth=\count296
+\c@MaxMatrixCols=\count297
+\dotsspace@=\muskip17
+\c@parentequation=\count298
+\dspbrk@lvl=\count299
+\tag@help=\toks32
+\row@=\count300
+\column@=\count301
+\maxfields@=\count302
+\andhelp@=\toks33
+\eqnshift@=\dimen185
+\alignsep@=\dimen186
+\tagshift@=\dimen187
+\tagwidth@=\dimen188
+\totwidth@=\dimen189
+\lineht@=\dimen190
+\@envbody=\toks34
+\multlinegap=\skip70
+\multlinetaggap=\skip71
+\mathdisplay@stack=\toks35
+LaTeX Info: Redefining \[ on input line 2938.
+LaTeX Info: Redefining \] on input line 2939.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/flafter.sty
+Package: flafter 2021/07/31 v1.4e Standard LaTeX floats after reference (FMi)
+Applying: [2015/01/01] float order in 2-column on input line 49.
+Already applied: [0000/00/00] float order in 2-column on input line 151.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/afterpage.sty
+Package: afterpage 2014/10/28 v1.08 After-Page Package (DPC)
+\AP@output=\toks36
+\AP@partial=\box60
+\AP@footins=\box61
+)
+(/usr/share/texlive/texmf-dist/tex/latex/placeins/placeins.sty
+Package: placeins 2005/04/18  v 2.2
+)
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2020/10/26 v3.5g Customizing captions (AR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2020/10/21 v2.2e caption3 kernel (AR)
+\captionmargin=\dimen191
+\captionmargin@=\dimen192
+\captionwidth=\dimen193
+\caption@tempdima=\dimen194
+\caption@indent=\dimen195
+\caption@parindent=\dimen196
+\caption@hangindent=\dimen197
+Package caption Info: KOMA-Script document class detected.
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption-koma.sto
+File: caption-koma.sto 2020/09/21 v2.0b Adaption of the caption package to the 
+KOMA-Script document classes (AR)
+))
+\c@caption@flags=\count303
+\c@continuedfloat=\count304
+Package caption Info: hyperref package is loaded.
+Package caption Info: wrapfig package is loaded.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/caption/subcaption.sty
+Package: subcaption 2020/10/07 v1.3j Sub-captions (AR)
+\c@subfigure=\count305
+\c@subtable=\count306
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/multicol.sty
+Package: multicol 2021/10/28 v1.9b multicolumn formatting (FMi)
+\c@tracingmulticols=\count307
+\mult@box=\box62
+\multicol@leftmargin=\dimen198
+\c@unbalance=\count308
+\c@collectmore=\count309
+\doublecol@number=\count310
+\multicoltolerance=\count311
+\multicolpretolerance=\count312
+\full@width=\dimen199
+\page@free=\dimen256
+\premulticols=\dimen257
+\postmulticols=\dimen258
+\multicolsep=\skip72
+\multicolbaselineskip=\skip73
+\partial@page=\box63
+\last@line=\box64
+\maxbalancingoverflow=\dimen259
+\mult@rightbox=\box65
+\mult@grightbox=\box66
+\mult@firstbox=\box67
+\mult@gfirstbox=\box68
+\@tempa=\box69
+\@tempa=\box70
+\@tempa=\box71
+\@tempa=\box72
+\@tempa=\box73
+\@tempa=\box74
+\@tempa=\box75
+\@tempa=\box76
+\@tempa=\box77
+\@tempa=\box78
+\@tempa=\box79
+\@tempa=\box80
+\@tempa=\box81
+\@tempa=\box82
+\@tempa=\box83
+\@tempa=\box84
+\@tempa=\box85
+\@tempa=\box86
+\@tempa=\box87
+\@tempa=\box88
+\@tempa=\box89
+\@tempa=\box90
+\@tempa=\box91
+\@tempa=\box92
+\@tempa=\box93
+\@tempa=\box94
+\@tempa=\box95
+\@tempa=\box96
+\@tempa=\box97
+\@tempa=\box98
+\@tempa=\box99
+\@tempa=\box100
+\@tempa=\box101
+\@tempa=\box102
+\@tempa=\box103
+\@tempa=\box104
+\c@minrows=\count313
+\c@columnbadness=\count314
+\c@finalcolumnbadness=\count315
+\last@try=\dimen260
+\multicolovershoot=\dimen261
+\multicolundershoot=\dimen262
+\mult@nat@firstbox=\box105
+\colbreak@box=\box106
+\mc@col@check@num=\count316
+))
+(/usr/share/texlive/texmf-dist/tex/latex/lipsum/lipsum.sty
+(/usr/share/texlive/texmf-dist/tex/latex/l3packages/l3keys2e/l3keys2e.sty
+(/usr/share/texlive/texmf-dist/tex/latex/l3kernel/expl3.sty
+Package: expl3 2022-01-21 L3 programming layer (loader) 
+
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count317
+\l__pdf_internal_box=\box107
+))
+Package: l3keys2e 2022-01-12 LaTeX2e option processing using LaTeX3 keys
+)
+Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
+\g__lipsum_par_int=\count318
+\l__lipsum_a_int=\count319
+\l__lipsum_b_int=\count320
+
+(/usr/share/texlive/texmf-dist/tex/latex/lipsum/lipsum.ltd.tex))
+(./MasterThesis3.aux)
+\openout1 = `MasterThesis3.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 2.
+LaTeX Font Info:    ... okay on input line 2.
+Package scrbase Info: activating english \contentsname on input line 2.
+Package scrbase Info: activating english \listfigurename on input line 2.
+Package scrbase Info: activating english \listtablename on input line 2.
+Package hyperref Info: Link coloring OFF on input line 2.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
+
+(/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+)
+\c@section@level=\count321
+)
+LaTeX Info: Redefining \ref on input line 2.
+LaTeX Info: Redefining \pageref on input line 2.
+LaTeX Info: Redefining \nameref on input line 2.
+
+(./MasterThesis3.out) (./MasterThesis3.out)
+\@outlinefile=\write4
+\openout4 = `MasterThesis3.out'.
+
+Class scrbook Info: loading recommended package `bookmark'.
+(scrbook)           Using `bookmark' together with `hyperref' is recommended,
+(scrbook)           because of handling of possible bookmark level gaps.
+(scrbook)           You can avoid loading `bookmark' with KOMA-Script option
+(scrbook)           `bookmarkpackage=false' before \begin{document} and
+(scrbook)           you can avoid this message adding:
+(scrbook)             \usepackage{bookmark}
+(scrbook)           before \begin{document} on input line 2.
+
+(/usr/share/texlive/texmf-dist/tex/latex/bookmark/bookmark.sty
+Package: bookmark 2020-11-06 v1.29 PDF bookmarks (HO)
+
+(/usr/share/texlive/texmf-dist/tex/latex/bookmark/bkm-pdftex.def
+File: bkm-pdftex.def 2020-11-06 v1.29 bookmark driver for pdfTeX (HO)
+\BKM@id=\count322
+))
+(/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count323
+\scratchdimen=\dimen263
+\scratchbox=\box108
+\nofMPsegments=\count324
+\nofMParguments=\count325
+\everyMPshowfont=\toks37
+\MPscratchCnt=\count326
+\MPscratchDim=\dimen264
+\MPnumerator=\count327
+\makeMPintoPDFobject=\count328
+\everyMPtoPDFconversion=\toks38
+) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
+Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
+85.
+
+(/usr/share/texlive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
+))
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
+<<ot1.cmap>><<oml.cmap>><<oms.cmap>><<omx.cmap>>
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd)<<t1.cmap>>
+File: TU_Logo_SW.pdf Graphic file (type pdf)
+<use TU_Logo_SW.pdf>
+Package pdftex.def Info: TU_Logo_SW.pdf  used on input line 37.
+(pdftex.def)             Requested size: 170.71652pt x 50.01544pt.
+ [1
+
+
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./TU_Logo_SW.pdf>] [2] [3]
+
+[4
+
+
+]
+LaTeX Font Info:    Trying to load font information for T1+cmss on input line 6
+7.
+ (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmss.fd
+File: t1cmss.fd 2019/12/16 v2.5j Standard LaTeX font definitions
+)
+(./MasterThesis3.toc
+Underfull \vbox (badness 2913) has occurred while \output is active []
+
+ [5])
+\tf@toc=\write5
+\openout5 = `MasterThesis3.toc'.
+
+
+[6]
+chapter 1.
+
+Underfull \hbox (badness 10000) in paragraph at lines 78--79
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--81
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 82--83
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 84--85
+
+ []
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.85 	
+       [1
+
+
+
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 87--88
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 89--90
+
+ []
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.2}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.90 	\chapter
+              {The Si(001) Surface} \label{Section::Silicon} [2]
+chapter 2.
+Package svg Info: Last page of `./svg-inkscape/Sili-color-svg_svg-tex.pdf' is 2
+ on input line 94.
+(./svg-inkscape/Sili-color-svg_svg-tex.pdf_tex
+<./svg-inkscape/Sili-color-svg_svg-tex.pdf, id=227, page=1, 853.58266pt x 820.3
+648pt>
+File: ./svg-inkscape/Sili-color-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/Sili-color-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/Sili-color-svg_svg-tex.pdf , page1 used
+ on input line 56.
+(pdftex.def)             Requested size: 215.6252pt x 207.23123pt.
+<./svg-inkscape/Sili-color-svg_svg-tex.pdf, id=228, page=2, 853.58266pt x 820.3
+648pt>
+File: ./svg-inkscape/Sili-color-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/Sili-color-svg_svg-tex.pdf, page 2>
+Package pdftex.def Info: ./svg-inkscape/Sili-color-svg_svg-tex.pdf , page2 used
+ on input line 60.
+(pdftex.def)             Requested size: 215.6252pt x 207.23123pt.
+)
+Package svg Info: Last page of `./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf
+' is 1 on input line 102.
+
+(./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf_tex
+<./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf, id=252, page=1, 860.26674pt x
+ 653.19614pt>
+File: ./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf , page
+1 used on input line 56.
+(pdftex.def)             Requested size: 191.66887pt x 145.52754pt.
+)
+Package svg Info: Last page of `./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf' is
+ 1 on input line 107.
+
+(./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf_tex
+<./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf, id=254, page=1, 860.26686pt x 663
+.677pt>
+File: ./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/c(4x2)-color-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 191.66887pt x 147.86261pt.
+)
+Overfull \hbox (2.61047pt too wide) in paragraph at lines 100--110
+[]$[]$ $[]$ 
+ []
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.3}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.113 	\section
+               {Phase Transition of the Si(001) Surface} [3
+
+
+ <./svg-inkscape/Sili-color-svg_svg-tex.pdf> <./svg-inkscape/Sili-color-svg_svg
+-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/Sili-color-svg_svg-tex.p
+df): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+Underfull \hbox (badness 10000) in paragraph at lines 114--115
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 116--117
+
+ []
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.4}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.119 	\chapter
+               {Phase Transitions} \label{Chapter::Phase-Transitions} [4 <./svg
+-inkscape/p(2x1)-sym-color-svg_svg-tex.pdf> <./svg-inkscape/c(4x2)-color-svg_sv
+g-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/c(4x2)-color-svg_svg-tex
+.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+chapter 3.
+
+Underfull \hbox (badness 10000) in paragraph at lines 121--122
+
+ []
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.5}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.138 		\item A
+               t least one of the first derivatives $\frac{\partial f}{\part...
+[5
+
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 141--143
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf' 
+is 1 on input line 149.
+(./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf, id=534, page=1, 797.2448pt x 84
+7.1963pt>
+File: ./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf , page1 
+used on input line 56.
+(pdftex.def)             Requested size: 335.41779pt x 356.44052pt.
+)pdfTeX warning (ext4): destination with the same identifier (name{page.6}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.162 	\end{equation}
+                      [6] [7 <./svg-inkscape/RG-Iteration-4-svg_svg-tex.pdf>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [8]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [9]
+Underfull \hbox (badness 10000) in paragraph at lines 249--250
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 254--256
+
+ []
+
+[10]
+Underfull \hbox (badness 10000) in paragraph at lines 291--292
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [11]
+Underfull \hbox (badness 10000) in paragraph at lines 296--298
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 315--316
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 323--324
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 325--326
+
+ []
+
+[12]
+Underfull \hbox (badness 10000) in paragraph at lines 330--331
+
+ []
+
+[13]
+Underfull \hbox (badness 10000) in paragraph at lines 349--351
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/xi-divergence5-svg_svg-tex.pdf' 
+is 1 on input line 354.
+(./svg-inkscape/xi-divergence5-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-divergence5-svg_svg-tex.pdf, id=697, page=1, 462.52802pt x 3
+46.89601pt>
+File: ./svg-inkscape/xi-divergence5-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/xi-divergence5-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-divergence5-svg_svg-tex.pdf , page1 
+used on input line 56.
+(pdftex.def)             Requested size: 335.41779pt x 251.57521pt.
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [14]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [15 <./svg-inkscape/xi-divergence5-svg_svg-tex.pdf>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 403.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\tau' on input line 403.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 403.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 403.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 403.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 411--414
+
+ []
+
+[16]
+Underfull \hbox (badness 10000) in paragraph at lines 421--422
+
+ []
+
+[17]
+Package svg Info: Last page of `./svg-inkscape/KZM-divergences-svg_svg-tex.pdf'
+ is 1 on input line 439.
+ (./svg-inkscape/KZM-divergences-svg_svg-tex.pdf_tex
+<./svg-inkscape/KZM-divergences-svg_svg-tex.pdf, id=778, page=1, 620.25917pt x 
+531.34085pt>
+File: ./svg-inkscape/KZM-divergences-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/KZM-divergences-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/KZM-divergences-svg_svg-tex.pdf , page1
+ used on input line 56.
+(pdftex.def)             Requested size: 335.41779pt x 287.33327pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 454--457
+
+ []
+
+[18] [19 <./svg-inkscape/KZM-divergences-svg_svg-tex.pdf>] [20
+
+
+]
+chapter 4.
+
+Underfull \hbox (badness 10000) in paragraph at lines 470--472
+
+ []
+
+[21]
+Underfull \vbox (badness 1067) has occurred while \output is active []
+
+ [22]
+[23]
+Underfull \hbox (badness 10000) in paragraph at lines 563--564
+
+ []
+
+[24]
+Package svg Info: Last page of `./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf' is 
+1 on input line 593.
+ (./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf_tex
+<./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf, id=952, page=1, 2067.27115pt x 130
+2.65417pt>
+File: ./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf , page1 use
+d on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 241.5438pt.
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [25]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [26]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [27 <./svg-inkscape/OQS-Silicon-svg_svg-tex.pdf>] [28]
+Underfull \hbox (badness 10000) in paragraph at lines 711--713
+
+ []
+
+[29]
+Underfull \hbox (badness 10000) in paragraph at lines 727--737
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 741--742
+
+ []
+
+
+Underfull \vbox (badness 1178) has occurred while \output is active []
+
+ [30]
+Underfull \hbox (badness 10000) in paragraph at lines 754--756
+
+ []
+
+
+Underfull \hbox (badness 2359) in paragraph at lines 766--766
+\T1/cmr/m/n/10.95 rized. The es-ti-mates are ob-tained
+ []
+
+
+Underfull \hbox (badness 1852) in paragraph at lines 766--766
+\T1/cmr/m/n/10.95 by Monte-Carlo meth-ods (MC) [[]],
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 779--781
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 785--797
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 798--799
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [31]
+Package svg Info: Last page of `./svg-inkscape/Phase-diagram-Ising-XY-clean-svg
+_svg-tex.pdf' is 1 on input line 821.
+
+(./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-tex.pdf_tex
+<./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-tex.pdf, id=1134, page=1, 
+553.05376pt x 534.61377pt>
+File: ./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-tex.pdf Graphic file 
+(type pdf)
+<use ./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-te
+x.pdf , page1 used on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 370.56435pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 826--827
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [32]
+[33 <./svg-inkscape/Phase-diagram-Ising-XY-clean-svg_svg-tex.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 831--833
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/Allowed-States-svg_svg-tex.pdf' 
+is 1 on input line 839.
+(./svg-inkscape/Allowed-States-svg_svg-tex.pdf_tex
+<./svg-inkscape/Allowed-States-svg_svg-tex.pdf, id=1222, page=1, 8671.8099pt x 
+1776.45653pt>
+File: ./svg-inkscape/Allowed-States-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/Allowed-States-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/Allowed-States-svg_svg-tex.pdf , page1 
+used on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 78.52756pt.
+)
+Package svg Info: Last page of `./svg-inkscape/State-Mapping-svg_svg-tex.pdf' i
+s 1 on input line 844.
+
+(./svg-inkscape/State-Mapping-svg_svg-tex.pdf_tex
+<./svg-inkscape/State-Mapping-svg_svg-tex.pdf, id=1224, page=1, 8663.70247pt x 
+1745.0233pt>
+File: ./svg-inkscape/State-Mapping-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/State-Mapping-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/State-Mapping-svg_svg-tex.pdf , page1 u
+sed on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 77.19131pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 850--851
+
+ []
+
+
+Underfull \vbox (badness 7504) has occurred while \output is active []
+
+ [34]
+Underfull \hbox (badness 10000) in paragraph at lines 860--862
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/XY-Silicon-potential2-svg_svg-te
+x.pdf' is 1 on input line 866.
+(./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf_tex
+<./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf, id=1239, page=1, 709.899
+pt x 398.11562pt>
+File: ./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf Graphic file (type p
+df)
+<use ./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf ,
+ page1 used on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 214.97922pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 877--878
+
+ []
+
+
+Underfull \vbox (badness 2460) has occurred while \output is active []
+
+ [35 <./svg-inkscape/Allowed-States-svg_svg-tex.pdf> <./svg-inkscape/State-Mapp
+ing-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/State-Mapping-svg_svg-te
+x.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>] [36 <./svg-inkscape/XY-Silicon-potential2-svg_svg-tex.pdf>]
+chapter 5.
+
+Underfull \hbox (badness 10000) in paragraph at lines 899--900
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf' is
+ 1 on input line 904.
+(./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf, id=1345, page=1, 1980.13838pt x 7
+03.44888pt>
+File: ./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 136.17911pt.
+)
+LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 9
+09.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
+File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
+) [37
+
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 914--915
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [38 <./svg-inkscape/CPU-vs-GPU-2-svg_svg-tex.pdf>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [39]
+Package svg Info: Last page of `./svg-inkscape/surface-configurations-2-svg_svg
+-tex.pdf' is 1 on input line 995.
+
+(./svg-inkscape/surface-configurations-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/surface-configurations-2-svg_svg-tex.pdf, id=1412, page=1, 768.
+22452pt x 213.1934pt>
+File: ./svg-inkscape/surface-configurations-2-svg_svg-tex.pdf Graphic file (typ
+e pdf)
+<use ./svg-inkscape/surface-configurations-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/surface-configurations-2-svg_svg-tex.pd
+f , page1 used on input line 56.
+(pdftex.def)             Requested size: 479.17036pt x 132.97552pt.
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [40]
+Underfull \hbox (badness 10000) in paragraph at lines 999--1000
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [41 <./svg-inkscape/surface-configurations-2-svg_svg-tex.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 1051--1053
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [42]
+Underfull \hbox (badness 10000) in paragraph at lines 1072--1073
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1078--1080
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1090--1091
+
+ []
+
+[43]
+Underfull \hbox (badness 10000) in paragraph at lines 1095--1097
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [44]
+Package svg Info: Last page of `./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pd
+f' is 1 on input line 1115.
+
+(./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf, id=1620, page=1, 437.81172pt
+ x 323.28009pt>
+File: ./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf , pag
+e1 used on input line 56.
+(pdftex.def)             Requested size: 221.92pt x 163.8693pt.
+)
+Package svg Info: Last page of `./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.
+pdf' is 1 on input line 1119.
+
+(./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.pdf, id=1622, page=1, 438.1435p
+t x 323.28009pt>
+File: ./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.pdf Graphic file (type pdf
+)
+<use ./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/cum_time_avg-zoom-2-svg_svg-tex.pdf , p
+age1 used on input line 56.
+(pdftex.def)             Requested size: 221.92pt x 163.74103pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1128--1130
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1138--1140
+
+ []
+
+
+Underfull \vbox (badness 2529) has occurred while \output is active []
+
+ [45]
+Underfull \hbox (badness 10000) in paragraph at lines 1147--1148
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/Tc_L-5-svg_svg-tex.pdf' is 1 on 
+input line 1152.
+(./svg-inkscape/Tc_L-5-svg_svg-tex.pdf_tex
+<./svg-inkscape/Tc_L-5-svg_svg-tex.pdf, id=1650, page=1, 462.52798pt x 346.8960
+1pt>
+File: ./svg-inkscape/Tc_L-5-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/Tc_L-5-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/Tc_L-5-svg_svg-tex.pdf , page1 used on 
+input line 56.
+(pdftex.def)             Requested size: 383.33775pt x 287.51604pt.
+) [46 <./svg-inkscape/cum_time_avg-Tc-2-svg_svg-tex.pdf> <./svg-inkscape/cum_ti
+me_avg-zoom-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/cum_time_avg-zoom-2-svg_
+svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a single
+ page
+>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1156.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\nu' on input line 1156.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1156.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1157--1158
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/slope-at-critical-point-4-svg_sv
+g-tex.pdf' is 1 on input line 1168.
+(./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.pdf, id=1777, page=1, 438
+.72583pt x 323.28009pt>
+File: ./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.pdf Graphic file (ty
+pe pdf)
+<use ./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.p
+df , page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 159.33107pt.
+)
+Package svg Info: Last page of `./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf' is 1 
+on input line 1172.
+
+(./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf, id=1779, page=1, 442.26984pt x 320.5
+5148pt>
+File: ./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/nu-0.02-2-svg_svg-tex.pdf , page1 used 
+on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 156.71942pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1163--1178
+
+ []
+
+
+Underfull \vbox (badness 7116) has occurred while \output is active []
+
+ [47]
+Underfull \hbox (badness 10000) in paragraph at lines 1187--1189
+
+ []
+
+[48 <./svg-inkscape/Tc_L-5-svg_svg-tex.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 1190--1191
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1194--1195
+
+ []
+
+[49 <./svg-inkscape/slope-at-critical-point-4-svg_svg-tex.pdf> <./svg-inkscape/
+nu-0.02-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/nu-0.02-2-svg_svg-tex.pd
+f): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+Package svg Info: Last page of `./svg-inkscape/phase_transition-h(T)-svg_svg-te
+x.pdf' is 1 on input line 1199.
+ (./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf_tex
+<./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf, id=1990, page=1, 462.527
+98pt x 346.89601pt>
+File: ./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf Graphic file (type p
+df)
+<use ./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf ,
+ page1 used on input line 56.
+(pdftex.def)             Requested size: 431.2504pt x 323.45157pt.
+)
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\xi' on input line 1203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\delta' on input line 1203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 1203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1203.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [50 <./svg-inkscape/phase_transition-h(T)-svg_svg-tex.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 1211--1213
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1217--1219
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1220--1221
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1222--1223
+
+ []
+
+[51]
+Underfull \hbox (badness 10000) in paragraph at lines 1224--1225
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/xi-inv-divergence-30-4-svg_svg-t
+ex.pdf' is 1 on input line 1236.
+(./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf, id=2159, page=1, 669.87
+141pt x 496.51624pt>
+File: ./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf Graphic file (type 
+pdf)
+<use ./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf 
+, page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 160.2673pt.
+)
+Package svg Info: Last page of `./svg-inkscape/xi-divergence-30-4-svg_svg-tex.p
+df' is 1 on input line 1240.
+
+(./svg-inkscape/xi-divergence-30-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-divergence-30-4-svg_svg-tex.pdf, id=2161, page=1, 665.18661p
+t x 496.51624pt>
+File: ./svg-inkscape/xi-divergence-30-4-svg_svg-tex.pdf Graphic file (type pdf)
+
+<use ./svg-inkscape/xi-divergence-30-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-divergence-30-4-svg_svg-tex.pdf , pa
+ge1 used on input line 56.
+(pdftex.def)             Requested size: 219.65015pt x 163.95692pt.
+)
+Package svg Info: Last page of `./svg-inkscape/xi-inv-divergence-100-4-svg_svg-
+tex.pdf' is 1 on input line 1243.
+
+(./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf, id=2163, page=1, 669.8
+7141pt x 496.51624pt>
+File: ./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf Graphic file (type
+ pdf)
+<use ./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf
+ , page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 160.2673pt.
+)
+Package svg Info: Last page of `./svg-inkscape/xi-divergence-100-4-svg_svg-tex.
+pdf' is 1 on input line 1246.
+
+(./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf, id=2165, page=1, 665.08626
+pt x 495.71469pt>
+File: ./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf Graphic file (type pdf
+)
+<use ./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf , p
+age1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 161.15831pt.
+)
+Package svg Info: Last page of `./svg-inkscape/xi-inv-divergence-small-h-5-svg_
+svg-tex.pdf' is 1 on input line 1249.
+
+(./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex.pdf, id=2167, page=1, 6
+69.87141pt x 493.06425pt>
+File: ./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex.pdf Graphic file (
+type pdf)
+<use ./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex
+.pdf , page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 159.15306pt.
+)
+Package svg Info: Last page of `./svg-inkscape/xi-divergence-small-h-5-svg_svg-
+tex.pdf' is 1 on input line 1253.
+
+(./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf_tex
+<./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf, id=2169, page=1, 664.9
+959pt x 496.51624pt>
+File: ./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf Graphic file (type
+ pdf)
+<use ./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf
+ , page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 161.44162pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1234--1254
+
+ []
+
+
+LaTeX Warning: Float too large for page by 4.58937pt on input line 1257.
+
+[52] [53 <./svg-inkscape/xi-inv-divergence-30-4-svg_svg-tex.pdf> <./svg-inkscap
+e/xi-divergence-30-4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/xi-divergence-30-4-svg_s
+vg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a single 
+page
+> <./svg-inkscape/xi-inv-divergence-100-4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/xi-inv-divergence-100-4-
+svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a si
+ngle page
+> <./svg-inkscape/xi-divergence-100-4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/xi-divergence-100-4-svg_
+svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a single
+ page
+> <./svg-inkscape/xi-inv-divergence-small-h-5-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/xi-inv-divergence-small-
+h-5-svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in 
+a single page
+> <./svg-inkscape/xi-divergence-small-h-5-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/xi-divergence-small-h-5-
+svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a si
+ngle page
+>]
+Overfull \hbox (8.27026pt too wide) in paragraph at lines 1259--1260
+\T1/cmr/m/n/12 The dy-namic uni-ver-sal-ity classes are sub-groups of the stati
+c ones [[]] and the adapted anisotropic
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1259--1260
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1276--1277
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1278--1279
+
+ []
+
+[54]
+Package svg Info: Last page of `./svg-inkscape/Quench-concept-plot-svg_svg-tex.
+pdf' is 1 on input line 1282.
+ (./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf_tex
+<./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf, id=2574, page=1, 1691.9284
+5pt x 2113.104pt>
+File: ./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf Graphic file (type pdf
+)
+<use ./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf , p
+age1 used on input line 56.
+(pdftex.def)             Requested size: 431.2504pt x 538.59258pt.
+)
+
+LaTeX Warning: Float too large for page by 4.70241pt on input line 1285.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1286--1287
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/quench-process-tau-1-svg_svg-tex
+.pdf' is 1 on input line 1292.
+(./svg-inkscape/quench-process-tau-1-svg_svg-tex.pdf_tex
+<./svg-inkscape/quench-process-tau-1-svg_svg-tex.pdf, id=2581, page=1, 697.9890
+9pt x 482.25984pt>
+File: ./svg-inkscape/quench-process-tau-1-svg_svg-tex.pdf Graphic file (type pd
+f)
+<use ./svg-inkscape/quench-process-tau-1-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/quench-process-tau-1-svg_svg-tex.pdf , 
+page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 149.39598pt.
+)
+Package svg Info: Last page of `./svg-inkscape/quench-process-perp-1-svg_svg-te
+x.pdf' is 1 on input line 1296.
+
+(./svg-inkscape/quench-process-perp-1-svg_svg-tex.pdf_tex
+<./svg-inkscape/quench-process-perp-1-svg_svg-tex.pdf, id=2583, page=1, 698.601
+12pt x 482.25984pt>
+File: ./svg-inkscape/quench-process-perp-1-svg_svg-tex.pdf Graphic file (type p
+df)
+<use ./svg-inkscape/quench-process-perp-1-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/quench-process-perp-1-svg_svg-tex.pdf ,
+ page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 149.26352pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1290--1297
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf
+' is 1 on input line 1300.
+(./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf, id=2585, page=1, 697.92188pt 
+x 479.90431pt>
+File: ./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf , page
+1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 148.68092pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf' is
+ 1 on input line 1304.
+
+(./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf, id=2587, page=1, 698.5339pt x 479
+.90431pt>
+File: ./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 148.54912pt.
+)
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1309.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1309.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1310--1311
+
+ []
+
+
+LaTeX Warning: Command \textasciiacute invalid in math mode on input line 1319.
+
+
+
+LaTeX Warning: Command \textasciiacute invalid in math mode on input line 1319.
+
+
+Missing character: There is no ´ in font cmr12!
+
+Underfull \vbox (badness 7379) has occurred while \output is active []
+
+ [55]
+[56 <./svg-inkscape/Quench-concept-plot-svg_svg-tex.pdf>] [57 <./svg-inkscape/q
+uench-process-tau-1-svg_svg-tex.pdf> <./svg-inkscape/quench-process-perp-1-svg_
+svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/quench-process-perp-1-sv
+g_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a sing
+le page
+> <./svg-inkscape/tau-xi-parallel4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-parallel4-svg_svg
+-tex.pdf): PDF inclusion: multiple pdfs with page group included in a single pa
+ge
+> <./svg-inkscape/tau-xi-perp4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-perp4-svg_svg-tex
+.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+Package svg Info: Last page of `./svg-inkscape/z-2-svg_svg-tex.pdf' is 1 on inp
+ut line 1324.
+ (./svg-inkscape/z-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/z-2-svg_svg-tex.pdf, id=2862, page=1, 698.76372pt x 530.54013pt
+>
+File: ./svg-inkscape/z-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/z-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/z-2-svg_svg-tex.pdf , page1 used on inp
+ut line 56.
+(pdftex.def)             Requested size: 311.45781pt x 236.47414pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1334--1335
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [58]
+Underfull \hbox (badness 10000) in paragraph at lines 1336--1337
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1340--1341
+
+ []
+
+[59 <./svg-inkscape/z-2-svg_svg-tex.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 1342--1343
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/tau-xi-parallel-large-h4-svg_svg
+-tex.pdf' is 1 on input line 1347.
+(./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pdf, id=2953, page=1, 697.
+98909pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pdf Graphic file (typ
+e pdf)
+<use ./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pd
+f , page1 used on input line 56.
+(pdftex.def)             Requested size: 216.22769pt x 148.66628pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex
+.pdf' is 1 on input line 1350.
+
+(./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex.pdf, id=2955, page=1, 698.6011
+2pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex.pdf Graphic file (type pd
+f)
+<use ./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-perp-large-h4-svg_svg-tex.pdf , 
+page1 used on input line 56.
+(pdftex.def)             Requested size: 218.50601pt x 150.10153pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1346--1351
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/tau-xi-parallel-small-h4-svg_svg
+-tex.pdf' is 1 on input line 1354.
+(./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pdf, id=2957, page=1, 697.
+98909pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pdf Graphic file (typ
+e pdf)
+<use ./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pd
+f , page1 used on input line 56.
+(pdftex.def)             Requested size: 218.50601pt x 150.23334pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex
+.pdf' is 1 on input line 1358.
+
+(./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf, id=2959, page=1, 698.6011
+2pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf Graphic file (type pd
+f)
+<use ./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf , 
+page1 used on input line 56.
+(pdftex.def)             Requested size: 218.50601pt x 150.10153pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1352--1359
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/z-h-10-svg_svg-tex.pdf' is 1 on 
+input line 1362.
+(./svg-inkscape/z-h-10-svg_svg-tex.pdf_tex
+<./svg-inkscape/z-h-10-svg_svg-tex.pdf, id=2961, page=1, 698.58653pt x 514.8600
+9pt>
+File: ./svg-inkscape/z-h-10-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/z-h-10-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/z-h-10-svg_svg-tex.pdf , page1 used on 
+input line 56.
+(pdftex.def)             Requested size: 218.50601pt x 161.03479pt.
+)
+Package svg Info: Last page of `./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf' is 1 
+on input line 1366.
+
+(./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf, id=2963, page=1, 698.58653pt x 516.0
+969pt>
+File: ./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf , page1 used 
+on input line 56.
+(pdftex.def)             Requested size: 218.50601pt x 161.42163pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-parallel-large-eta-1-svg_
+svg-tex.pdf' is 1 on input line 1373.
+
+(./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex.pdf, id=2969, page=1, 6
+97.98909pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex.pdf Graphic file (
+type pdf)
+<use ./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex
+.pdf , page1 used on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 151.79309pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-
+tex.pdf' is 1 on input line 1376.
+
+(./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf, id=2971, page=1, 698.6
+0112pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf Graphic file (type
+ pdf)
+<use ./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf
+ , page1 used on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 151.66127pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1372--1377
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/tau-xi-parallel-small-eta-3-svg_
+svg-tex.pdf' is 1 on input line 1380.
+(./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex.pdf, id=2973, page=1, 6
+97.92188pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex.pdf Graphic file (
+type pdf)
+<use ./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex
+.pdf , page1 used on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 151.81505pt.
+)
+Package svg Info: Last page of `./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-
+tex.pdf' is 1 on input line 1384.
+
+(./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf_tex
+<./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf, id=2975, page=1, 698.5
+339pt x 479.90431pt>
+File: ./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf Graphic file (type
+ pdf)
+<use ./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf
+ , page1 used on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 151.67592pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1378--1385
+
+ []
+
+Package svg Info: Last page of `./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf' is 1 
+on input line 1388.
+(./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf_tex
+<./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf, id=2977, page=1, 698.58653pt x 516.0
+969pt>
+File: ./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf , page1 used 
+on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 163.10687pt.
+)
+Package svg Info: Last page of `./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf' is 
+1 on input line 1392.
+
+(./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf, id=2979, page=1, 698.58653pt x 516
+.0969pt>
+File: ./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf , page1 use
+d on input line 56.
+(pdftex.def)             Requested size: 220.78085pt x 163.10687pt.
+) [60] [61 <./svg-inkscape/tau-xi-parallel-large-h4-svg_svg-tex.pdf> <./svg-ink
+scape/tau-xi-perp-large-h4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-perp-large-h4-svg
+_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a singl
+e page
+> <./svg-inkscape/tau-xi-parallel-small-h4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-parallel-small-h4
+-svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a s
+ingle page
+> <./svg-inkscape/tau-xi-perp-small-h4-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-perp-small-h4-svg
+_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a singl
+e page
+> <./svg-inkscape/z-h-10-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/z-h-10-svg_svg-tex.pdf):
+ PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/z-h-0.5-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/z-h-0.5-2-svg_svg-tex.pd
+f): PDF inclusion: multiple pdfs with page group included in a single page
+>] [62 <./svg-inkscape/tau-xi-parallel-large-eta-1-svg_svg-tex.pdf> <./svg-inks
+cape/tau-xi-perp-large-eta-1-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-perp-large-eta-1-
+svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a si
+ngle page
+> <./svg-inkscape/tau-xi-parallel-small-eta-3-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-parallel-small-et
+a-3-svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in 
+a single page
+> <./svg-inkscape/tau-xi-perp-small-eta-3-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/tau-xi-perp-small-eta-3-
+svg_svg-tex.pdf): PDF inclusion: multiple pdfs with page group included in a si
+ngle page
+> <./svg-inkscape/z-eta-5-3-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/z-eta-5-3-svg_svg-tex.pd
+f): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/z-eta-0.5-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/z-eta-0.5-2-svg_svg-tex.
+pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+Underfull \hbox (badness 10000) in paragraph at lines 1398--1399
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1400--1401
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1405--1407
+
+ []
+
+
+Underfull \vbox (badness 1436) has occurred while \output is active []
+
+ [63]
+[64]
+chapter 6.
+
+Underfull \hbox (badness 10000) in paragraph at lines 1422--1423
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [65
+
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 1447--1449
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1452--1453
+
+ []
+
+[66]
+Underfull \hbox (badness 10000) in paragraph at lines 1454--1455
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1456--1457
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1458--1460
+
+ []
+
+[67] [68
+
+
+]
+chapter A.
+[69]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [70]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [71]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [72]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [73]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [74]
+Underfull \hbox (badness 10000) in paragraph at lines 1694--1695
+
+ []
+
+[75]
+Package svg Info: Last page of `./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf'
+ is 1 on input line 1726.
+ (./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf_tex
+<./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf, id=3773, page=1, 462.52798pt x
+ 346.89601pt>
+File: ./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf , page1
+ used on input line 56.
+(pdftex.def)             Requested size: 219.63817pt x 164.72968pt.
+)
+Package svg Info: Last page of `./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf' i
+s 1 on input line 1730.
+
+(./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf_tex
+<./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf, id=3775, page=1, 462.52798pt x 3
+46.89601pt>
+File: ./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/HO-Euler-0.01-svg_svg-tex.pdf , page1 u
+sed on input line 56.
+(pdftex.def)             Requested size: 219.63817pt x 164.72968pt.
+)
+Package svg Info: Last page of `./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf' i
+s 1 on input line 1734.
+
+(./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf, id=3777, page=1, 462.52798pt x 3
+46.89601pt>
+File: ./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf , page1 u
+sed on input line 56.
+(pdftex.def)             Requested size: 219.63817pt x 164.72968pt.
+)
+Package svg Info: Last page of `./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf' i
+s 1 on input line 1738.
+
+(./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf_tex
+<./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf, id=3779, page=1, 462.52798pt x 3
+46.89601pt>
+File: ./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf , page1 u
+sed on input line 56.
+(pdftex.def)             Requested size: 219.63817pt x 164.72968pt.
+)
+Underfull \hbox (badness 10000) in paragraph at lines 1744--1745
+
+ []
+
+[76]
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf' is
+ 1 on input line 1754.
+ (./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf, id=3796, page=1, 677.42079pt x 49
+3.90553pt>
+File: ./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.92358pt.
+)
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf' i
+s 1 on input line 1758.
+
+(./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf, id=3798, page=1, 677.42079pt x 4
+93.90553pt>
+File: ./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.001-svg_svg-tex.pdf , page1 u
+sed on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.92358pt.
+)
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf' is
+ 1 on input line 1762.
+
+(./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf, id=3800, page=1, 678.92642pt x 49
+3.90553pt>
+File: ./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.58444pt.
+)
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf' is
+ 1 on input line 1766.
+
+(./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf, id=3802, page=1, 678.92642pt x 49
+3.90553pt>
+File: ./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf , page1 us
+ed on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.58444pt.
+)
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf' 
+is 1 on input line 1770.
+
+(./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf, id=3804, page=1, 678.92642pt x 
+493.90553pt>
+File: ./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf , page1 
+used on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.58444pt.
+)
+Package svg Info: Last page of `./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf'
+ is 1 on input line 1774.
+
+(./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf_tex
+<./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf, id=3806, page=1, 678.92642pt x
+ 493.90553pt>
+File: ./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf Graphic file (type pdf)
+<use ./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf, page 1>
+Package pdftex.def Info: ./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf , page1
+ used on input line 56.
+(pdftex.def)             Requested size: 206.99834pt x 150.58444pt.
+) [77 <./svg-inkscape/HO-Euler-0.0005-svg_svg-tex.pdf> <./svg-inkscape/HO-Euler
+-0.01-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/HO-Euler-0.01-svg_svg-te
+x.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/HO-BBK-0.05-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/HO-BBK-0.05-2-svg_svg-te
+x.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/HO-BBK-0.01-2-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/HO-BBK-0.01-2-svg_svg-te
+x.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>] [78 <./svg-inkscape/eq-dist-0.01-svg_svg-tex.pdf> <./svg-inkscape/eq-dist-0.
+001-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/eq-dist-0.001-svg_svg-te
+x.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/eq-dist-0.02-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/eq-dist-0.02-svg_svg-tex
+.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/eq-dist-0.05-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/eq-dist-0.05-svg_svg-tex
+.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+> <./svg-inkscape/eq-dist-0.0001-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/eq-dist-0.0001-svg_svg-t
+ex.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+
+> <./svg-inkscape/eq-dist-0.00001-svg_svg-tex.pdf
+
+pdfTeX warning: /usr/bin/pdflatex (file ./svg-inkscape/eq-dist-0.00001-svg_svg-
+tex.pdf): PDF inclusion: multiple pdfs with page group included in a single pag
+e
+>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [79]
+Underfull \hbox (badness 10000) in paragraph at lines 1835--1838
+
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [80]
+Underfull \hbox (badness 10000) in paragraph at lines 1849--1850
+
+ []
+
+[81]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1887.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1887.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1891--1893
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1894--1895
+
+ []
+
+[82] (./MasterThesis3.bbl [83] [84
+
+
+]
+chapter B.
+[85]
+Underfull \hbox (badness 1107) in paragraph at lines 90--93
+[]\T1/cmr/m/n/12 Wojciech H. Zurek.  Cos-mo-log-i-cal ex-per-i-ments in su-per-
+fluid he-lium?  \T1/cmr/m/it/12 Na-ture\T1/cmr/m/n/12 ,
+ []
+
+[86] [87] [88] [89] [90] [91]) [92]
+Underfull \hbox (badness 10000) in paragraph at lines 1938--1939
+
+ []
+
+[93
+
+] [94
+
+] (./MasterThesis3.aux)
+Package rerunfilecheck Info: File `MasterThesis3.out' has not changed.
+(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+ ) 
+Here is how much of TeX's memory you used:
+ 22045 strings out of 480194
+ 448033 string characters out of 5893742
+ 980560 words of memory out of 5000000
+ 38812 multiletter control sequences out of 15000+600000
+ 495307 words of font info for 96 fonts, out of 8000000 for 9000
+ 14 hyphenation exceptions out of 8191
+ 113i,22n,109p,10650b,709s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1440.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0800.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1095.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1728.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsl1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx2488.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1440.600p
+k> </home/andi/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx2488.600p
+k></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb></usr/share/
+texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texliv
+e/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/
+public/amsfonts/cmextra/cmmib8.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8
+.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><
+/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/sh
+are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/tex
+live/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on MasterThesis3.pdf (100 pages, 5704674 bytes).
+PDF statistics:
+ 7327 PDF objects out of 7423 (max. 8388607)
+ 4953 compressed objects within 50 object streams
+ 538 named destinations out of 1000 (max. 500000)
+ 1005 words of extra memory for PDF output out of 10000 (max. 10000000)
+

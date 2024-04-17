@@ -1,0 +1,5 @@
+\babel@toc {ngerman}{}\relax 
+\contentsline {chapter}{\nonumberline Einleitung}{vii}{}%
+\contentsline {chapter}{\nonumberline Hauptteil}{ix}{}%
+\contentsline {chapter}{\nonumberline Zusammenfassung}{xi}{}%
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 
