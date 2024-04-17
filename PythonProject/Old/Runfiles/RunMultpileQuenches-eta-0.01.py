@@ -9,14 +9,14 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [10]
+    eta_arr = [0.01]
     #eta_arr = [0.01, 0.05]
     dt = 1e-5
     dt = 0.01
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Quenches-old/"
+    simulation_path = "../../../../Generated content/Final/Quenches-old/"
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda_gpu_a100_low.sh"
@@ -24,9 +24,9 @@ def main():
 
     # Quench parameters
     max_size = 10000
-    min_nr_sites = 2e6
+    min_nr_sites = 4e6
     max_nr_quench_steps = 1e7
-    nr_sites = 8e6
+    nr_sites = 4e6
     max_tau = 20000
     min_nr_systems = 10
     Ly_Lx = 1 / 8

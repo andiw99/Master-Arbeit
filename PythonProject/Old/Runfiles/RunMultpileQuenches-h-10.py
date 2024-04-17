@@ -14,7 +14,7 @@ def main():
     h_arr = np.array([10])
     h_arr = [0.1, 0.2, 0.4161791450287818, 1.7320508075688776, 3, 7.208434242404265, 10]
     h_arr = [5200] #, 1000, 10000, 20000]
-    h_arr = [0.5]
+    h_arr = [10]
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -32,23 +32,24 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Quenches-old/"
+    simulation_path = "../../../../Generated content/Final/Quenches-old/large-h/"
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
 
     # Quench parameters
     max_size = 5000
+    min_size = 128
     min_nr_sites = 4e6
-    max_nr_quench_steps = 1e6
+    max_nr_quench_steps = 10e6
     nr_sites = 4e6
-    max_tau = 5000
+    max_tau = 20000
     min_nr_systems = 10
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 
     #T_c = 21351     # maybe this T_c is to low?
-    T_c = 0.1731 * 10
+    T_c = 0.33 * 10
     #T_c = 1.15
     min_nr_corr_values = 100
 
@@ -61,7 +62,7 @@ def main():
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
                                         para_nr=para_nr_quench, tau_max=max_tau, nr_sites=nr_sites,
                                         min_nr_systems=min_nr_systems, min_nr_corr_values=min_nr_corr_values,
-                                        Ly_Lx=Ly_Lx)
+                                        Ly_Lx=Ly_Lx, size_min=min_size)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

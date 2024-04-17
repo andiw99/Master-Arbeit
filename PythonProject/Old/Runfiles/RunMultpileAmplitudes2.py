@@ -25,7 +25,7 @@ def main():
 
     #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=17000/Jx_Jy=31/"
+    simulation_path = "../../../../Generated content/Silicon/Subsystems/Suite/Exp/h=17000/Jx_Jy=31/"
     #simulation_path = "../../Generated content/Silicon/Subsystems/Suite/Exp/h=40000/Jx_Jy=60-2/"
 
     Tc_exec_file = "AutoCumulant.cu"

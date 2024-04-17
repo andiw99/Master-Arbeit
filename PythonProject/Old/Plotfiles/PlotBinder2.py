@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.5
     process_file_func = process_new_mag_file_to_U_L
-    simulation_path = "../../Generated content/Final/CriticalTemperature/h=5000Tc"
+    simulation_path = "../../../../Generated content/Final/CriticalTemperature/h=5000Tc"
 
 
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,

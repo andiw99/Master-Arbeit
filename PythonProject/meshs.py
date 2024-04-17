@@ -16,7 +16,7 @@ def main():
     root = "../../Generated content/Final/Amplitude/J_J=30/Lx_Ly=0.25/Amplitude/128/"
     root = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-3/"
     root = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/4096"
-    root = "../../Generated content/Final/Quenches-old/10-3/Damping/Quench/1"
+    root = "../../Generated content/h Quench/First/"
     fig_format = "png"
     dpi = 200
     #root = "../../Generated content/Silicon Test/Anisotrop Antisymmetric Rectangular Subsystems Small2"

@@ -22,7 +22,7 @@ def main():
 
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/z-measurement-small/"
+    simulation_path = "../../../../Generated content/Final/z-measurement-small/"
 
     z_exec_file = "AutoZ.cu"
     z_test_exec_file = "AutoCumulantOBC.cu"
