@@ -617,9 +617,10 @@ public:
         Singleton_timer::set_startpoint(sys.get_name() + calc_diff_checkpoint_name);
         sys.calc_diff(theta, t);
         Singleton_timer::set_endpoint(sys.get_name() + calc_diff_checkpoint_name);
+
         // half a kick
-        //                     v(n+1/2)           F(q_n+1)               R_n+1
         Singleton_timer::set_startpoint(bbk_checkpoint_v2);
+        //                     v(n+1/2)           F(q_n+1)               R_n+1
         algebra::for_each(x.begin() + n, F.begin() + n, theta.begin() + n, n, apply_bbk_v2(dt, sys.get_eta()));
         Singleton_timer::set_endpoint(bbk_checkpoint_v2);
 

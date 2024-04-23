@@ -2,14 +2,7 @@ from Suite import quench_measurement
 import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
-    #plot_h_5_eta_1()
-    ##exit()
-    #plot_h_05_eta_1()
-    #plot_h_1_eta_10()
-    #plot_h_1_eta_001()
-    #plot_h_1_eta_1()
-    simpath = "../../Generated content/Final/Quenches-old/process-final1/Damping/Quench/1"
-    simpath = "../../Generated content/Final/Quenches-old/large-h/10/Damping/Quench/1"
+    simpath = "../../Generated content/h Quench/1/Damping/Quench/1"
     taus = [2048, 256, 32]
     xi_ampl = 1.987                 # h = 1.7
     xi_ampl_perp = 0.194
