@@ -11,8 +11,8 @@ def main():
     eta_arr = [1]
     dt = 0.01
 
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/h Quench/"
 
     quench_exec_file = "AutoQuench-h.cu"
