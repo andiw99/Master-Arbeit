@@ -338,6 +338,66 @@ private:
 
 };
 
+struct rand_normal_values
+{
+    double mu, sigma, ampl;
+
+    __host__ __device__
+    rand_normal_values(double ampl, double mu = 0.0, double sigma = 1.0) : ampl(ampl), mu(mu), sigma(sigma) {};
+
+    __host__ __device__
+    float operator()(const unsigned int ind) const
+    {
+        thrust::default_random_engine rng;
+        thrust::normal_distribution<double> dist(mu, sigma);
+        rng.discard(ind);
+
+        // dist * ampl zu returnen ist wie... aus dist mit std ampl zu ziehen: b * N(m, o) = N(m, b*o)
+        double rnr = (double)dist(rng);
+        // if the drawn number is greater than 3 * sigma we cut it
+/*        printf(
+        "%f  ", rnr
+        );
+        printf("\n");*/
+        if(abs(rnr) > 2.0 * sigma) {
+            rnr = (rnr < 0) ? (-1.0) * 2.0 * sigma : 2.0 * sigma;
+/*            printf(
+                    "rnr changed to %f", rnr
+                    );*/
+        }
+        return (double)ampl * rnr;
+    }
+};
+
+struct rand_uni_values
+{
+    float xmin, xmax;
+
+    __host__ __device__
+    rand_uni_values(float xmin, float xmax) : xmin(xmin), xmax(xmax) {};
+
+    __host__ __device__
+    float operator()(const unsigned int ind) const
+    {
+        thrust::default_random_engine rng;
+        thrust::uniform_real_distribution<float> dist(xmin, xmax);
+        rng.discard(ind);
+        auto rnr = dist(rng);
+        return rnr;
+    }
+};
+
+struct thrustDivideBy
+{
+    double dividor;
+    thrustDivideBy(double dividor): dividor(dividor) {}
+
+    __host__ __device__
+    double operator()(double x) const
+    {
+        return x / dividor;
+    }
+};
 
 template <class value_type>
 __host__ __device__
