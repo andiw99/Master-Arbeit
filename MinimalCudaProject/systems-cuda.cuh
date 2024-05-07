@@ -389,7 +389,7 @@ public:
     quench(map<Parameter, double>& paras): System(paras),
                                         tau(paras[Parameter::tau]), T_end(paras[Parameter::end_temp]),
                                         s_eq_t(paras[Parameter::equil_time]),
-                                        e_eq_t(paras[Parameter::equil_time]),
+                                        e_eq_t(paras[Parameter::equil_time_end]),
                                         T_start(paras[Parameter::starting_temp]) {
         // for what are we using end_quench_t again? for get_end_t, right and this is used in simulation.run to start
         // the step until, what do we do if we want to have this quench that dynamically equilibrates, quenches and stops?

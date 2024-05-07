@@ -28,7 +28,6 @@ int main(int argc, char* argv[]) {
     // end_T reading is different
     auto* quench_obs =
             new quench_equilibration_observer<quench_system, state_type>(nr_save_values);
-    auto* cum_obs = new cum_observer<quench_system, state_type>(paras[nr_cum_values]);
     auto* corr_combined_obs = new quench_combined_corr_observer<quench_system, state_type>(paras[nr_corr_values]);
 /*    quench_observer* quench_obs =
             new quench_observer(nr_save_values);*/
@@ -38,7 +37,6 @@ int main(int argc, char* argv[]) {
                                                 algebra, operations,
                                                 quench_system>(paras, simulation_path);
     simulation.register_observer(corr_combined_obs);
-    simulation.register_observer(cum_obs);
     simulation.register_observer(quench_obs);
     simulation.simulate_subsystems();
 
