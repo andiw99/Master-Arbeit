@@ -16,6 +16,7 @@ add_executable(CudaProject
         steppers.cuh
         SubsystemQuench.cu
         AutoQuench-h.cu
+        AutoQuench.cu
 )
 
 set_target_properties(CudaProject PROPERTIES

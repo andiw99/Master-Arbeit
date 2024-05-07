@@ -432,7 +432,7 @@ public:
 };
 
 struct quench_nonlinear: virtual public quench {
-    int gamma;
+    int gamma_val;
     void print_info() override {
         quench::print_info();
         cout << "gamma = " << gamma << endl;
@@ -442,7 +442,7 @@ public:
     double nonlinear_T(double t) {
         if(s_eq_t < t) {
             // if we are in the quench phase, we reduce T
-            System::T = max(T_start - pow((t - s_eq_t) / tau, gamma), T_end);
+            System::T = max(T_start - pow((t - s_eq_t) / tau, gamma_val), T_end);
         }
         return System::T;
     }
@@ -458,14 +458,14 @@ public:
         }
     }
 
-    quench_nonlinear(map<Parameter, double>& paras): System(paras), quench(paras), gamma(paras[Parameter::gamma]) {
+    quench_nonlinear(map<Parameter, double>& paras): System(paras), quench(paras), gamma_val(paras[Parameter::gamma_exp]) {
     }
 
     double get_quench_time() const override {
         // returns the time it takes to do the quench
         // in this system, we use a linear quench
         // cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
-        return pow(T_start - T_end, 1.0 / (double)gamma) * tau;
+        return pow(T_start - T_end, 1.0 / (double)gamma_val) * tau;
     }
 
 };

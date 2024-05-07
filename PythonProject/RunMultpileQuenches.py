@@ -15,7 +15,7 @@ def main():
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     # simulation_path = "../../Generated content/h Quench/"
     simulation_path = "../../Generated content/Final/Quenches-old/"
-    equil_time_end = 100
+    equil_time_end = 0
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"

@@ -1929,7 +1929,7 @@ class quench_measurement(autonomous_measurement):
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
                  host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty,
-                 min_nr_corr_values = 500, equil_time_end=0, gamma=1):
+                 min_nr_corr_values = 500, equil_time_end=0, gamma=1, project="CudaProject"):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr, runfile=runfile)
         self.size_min = size_min        # The starting size at which we do go higher
@@ -1959,6 +1959,7 @@ class quench_measurement(autonomous_measurement):
 
         self.equil_time_end = equil_time_end
         self.gamma = gamma
+        self.project = project
 
     def setup(self):
         # We decide the start and end temperature
@@ -2017,7 +2018,7 @@ class quench_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def iteration(self):
