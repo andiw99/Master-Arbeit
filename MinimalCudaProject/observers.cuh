@@ -1797,10 +1797,15 @@ public:
             ft_file << endl;
             equil_counter++;
 
-            double s_eq_t = sys.get_end_quench_time() - quench_t;       // i think this returns infinity if we are not equilibrated?
+            double end_quench_t = sys.get_end_quench_time();
+            double s_eq_t = end_quench_t - quench_t;       // i think this returns infinity if we are not equilibrated?
             // shouldnt it be as easy as this?
             if (t > s_eq_t) {
-                write_interval = quench_t / ((double)nr_values);
+                if (t > end_quench_t) {
+                    write_interval = (1.0 / density) * dt;
+                } else {
+                    write_interval = quench_t / ((double)nr_values);
+                }
             }
             else {
                 xix.push_back(xix_val);
