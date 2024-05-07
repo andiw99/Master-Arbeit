@@ -431,6 +431,45 @@ public:
     }
 };
 
+struct quench_nonlinear: virtual public quench {
+    int gamma;
+    void print_info() override {
+        quench::print_info();
+        cout << "gamma = " << gamma << endl;
+    }
+
+public:
+    double nonlinear_T(double t) {
+        if(s_eq_t < t) {
+            // if we are in the quench phase, we reduce T
+            System::T = max(T_start - pow((t - s_eq_t) / tau, gamma), T_end);
+        }
+        return System::T;
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        System::D = sqrt(2 * nonlinear_T(t) * System::eta);
+        System::calc_diff(theta, t);
+        // this is a bit clunky but tbh i don't care to much at this moment anymore
+        if(t > get_end_t()) {
+            equilibrated = true;
+        }
+    }
+
+    quench_nonlinear(map<Parameter, double>& paras): System(paras), quench(paras), gamma(paras[Parameter::gamma]) {
+    }
+
+    double get_quench_time() const override {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        // cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
+        return pow(T_start - T_end, 1.0 / (double)gamma) * tau;
+    }
+
+};
+
 class XY_model : virtual public System {
 public:
     const double p_XY = 2;     // for the potential, will be 2 for bistable XY and 2.5 for silicon
@@ -1425,6 +1464,29 @@ public:
 
     string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench";
+    }
+};
+
+struct XY_silicon_anisotrop_subsystems_nonlinear_quench: public XY_silicon_anisotrop_subsystems, public quench_nonlinear{
+public:
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench_nonlinear::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_nonlinear_quench(map<Parameter, double> paras):
+            quench(paras),
+            quench_nonlinear(paras),
+            XY_silicon_anisotrop_subsystems(paras),
+            XY_Silicon(paras),
+            XY_model(paras),
+            subsystems(paras),
+            System(paras){
+        cout << "XY_silicon_anisotrop_subsystems_nonlinear_quench system constructed";
+    }
+
+    string get_name() const override {
+        return "XY_silicon_anisotrop_subsystems_nonlinear_quench";
     }
 };
 

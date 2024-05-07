@@ -58,6 +58,7 @@ enum Parameter {
     min_tau_factor,
     max_tau_factor,
     equil_time,
+    equil_time_end,
     logspaced,
     step_nr,
     run_nr,
@@ -90,6 +91,7 @@ enum Parameter {
     mag_write_density,
     corr_second,
     observed_direction,
+    gamma,
 };
 
 map<Parameter, string> parameter_names {
@@ -121,6 +123,7 @@ map<Parameter, string> parameter_names {
         {min_tau_factor,"min_tau_factor"},
         {max_tau_factor,"max_tau_factor"},
         {equil_time,"equil_time"},
+        {equil_time_end, "equil_time_end"},
         {logspaced,"logspaced"},
         {step_nr,"step_nr"},
         {run_nr,"run_nr"},
@@ -153,6 +156,7 @@ map<Parameter, string> parameter_names {
         {ft_write_density, "ft_write_density"},
         {corr_second, "corr_second"},
         {observed_direction, "observed_direction"},
+        {gamma, "gamma"},
 };
 
 map<string, Parameter> string_to_parameter {
@@ -184,6 +188,7 @@ map<string, Parameter> string_to_parameter {
         {"min_tau_factor", min_tau_factor},
         {"max_tau_factor", max_tau_factor},
         {"equil_time", equil_time},
+        {"equil_time_end", equil_time_end},
         {"logspaced", logspaced},
         {"step_nr", step_nr},
         {"run_nr", run_nr},
@@ -216,6 +221,7 @@ map<string, Parameter> string_to_parameter {
         {"ft_write_density", ft_write_density},
         {"corr_second", corr_second},
         {"observed_direction", observed_direction},
+        {"gamma", gamma},
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {

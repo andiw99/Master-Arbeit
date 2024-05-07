@@ -1923,11 +1923,13 @@ class efficient_crit_temp_measurement_corr(efficient_crit_temp_measurement):
             return L
         else:
             return int(L * self.Ly_Lx)
+
 class quench_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc,
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
-                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty, min_nr_corr_values = 500):
+                 host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100, tau_max=np.infty,
+                 min_nr_corr_values = 500, equil_time_end=0, gamma=1):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr, runfile=runfile)
         self.size_min = size_min        # The starting size at which we do go higher
@@ -1954,6 +1956,9 @@ class quench_measurement(autonomous_measurement):
         self.nr_measured_values = 300   # standard number of measured values during the quench
         self.min_tau_scaling_fit = 10   # this is whack, it should automatically find the best regression
         self.second = False
+
+        self.equil_time_end = equil_time_end
+        self.gamma = gamma
 
     def setup(self):
         # We decide the start and end temperature
@@ -2006,7 +2011,9 @@ class quench_measurement(autonomous_measurement):
                     f"equil_error, {self.equil_error} \n"
                     f"min_cum_nr, 50\n"
                     f"min_corr_nr, {self.min_nr_corr_values}\n"
-                    f"corr_second, {int(self.second)}")
+                    f"corr_second, {int(self.second)}\n"
+                    f"equil_time_end, {self.equil_time_end}\n"
+                    f"gamma, {self.gamma}")
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
@@ -2506,7 +2513,7 @@ class quench_measurement(autonomous_measurement):
 
     @staticmethod
     def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
-                         min_tau_ind, direction="parallel", color="C0"):
+                         min_tau_ind, direction="parallel", color="C0", fig=None, ax=None, label=True):
         try:
             quench_exp = reg.slope
             quench_ampl = np.exp(reg.intercept)
@@ -2515,11 +2522,12 @@ class quench_measurement(autonomous_measurement):
             quench_ampl = 0
 
         # xiy scaling
-        figy, ax = plt.subplots(1, 1, figsize=(10, 7))
-        ax.set_yscale("log")
-        ax.set_xscale("log")
-        ax.set_xlabel(r"$\tau_Q\, /\, I$")
-        ax.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
+        if not fig:
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            ax.set_yscale("log")
+            ax.set_xscale("log")
+            ax.set_xlabel(r"$\tau_Q\, /\, I$")
+            ax.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
 
         sizes = sorted(list(size_tau_xi_dic.keys()))
 
@@ -2532,15 +2540,19 @@ class quench_measurement(autonomous_measurement):
             if direction == "perp":
                 size //= 8
             print(size)
+            if label:
+                label_str = rf"$L_\{direction} = {size}$"
+            else:
+                label_str = ""
             ax.plot(tau, xi, marker=markers[i], markersize=8,
-                    **get_point_kwargs_color(color, markeredgewidth=2), label=rf"$L_\{direction} = {size}$")
-        prev_y_low = ax.get_ylim()[0]
-        prev_y_up = ax.get_ylim()[1]
+                    **get_point_kwargs_color(color, markeredgewidth=2), label=label_str)
+        # prev_y_low = ax.get_ylim()[0]
+        # prev_y_up = ax.get_ylim()[1]
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
                  poly(tau_scaling[min_tau_ind:max_tau_ind], quench_exp, (quench_ampl)),
-                 color="black", alpha=0.5, linestyle="dashed",
+                 color=color, alpha=0.5, linestyle="dashed",
                  label=r"$\propto \,\tau_Q^{"+ f"{quench_exp:.3f}" + "}$")
-        ax.set_ylim(prev_y_low, prev_y_up)
+        # ax.set_ylim(prev_y_low, prev_y_up)
 
         config = {
             "increasefontsize": 1.25,
@@ -2548,7 +2560,8 @@ class quench_measurement(autonomous_measurement):
             "labelrotation": 90
         }
 
-        configure_ax(figy, ax, config)
+        configure_ax(fig, ax, config)
+        return fig, ax
 
 
     @staticmethod

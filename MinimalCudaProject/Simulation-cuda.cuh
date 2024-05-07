@@ -160,8 +160,6 @@ public:
         // now we still need all the observing logic, damn that was more work than anticipated
         cout << "For a " << (int)paras[Parameter::dim_size_x] << " x " << (int)paras[Parameter::dim_size_y] << " System" << endl;
         stepper->step_until(end_t, Sys, x, paras[Parameter::dt], t, obsvers);
-        cout << "Sys.get_step_nr():" << Sys.get_step_nr() << endl;
-        step_nr += Sys.get_step_nr();
         // After the run we call the Singleton_timer so that it can write its stuff into the folder
         Singleton_timer::set_endpoint(run_checkpoint_name);
         Singleton_timer::write(folder_path, nr);
