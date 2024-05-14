@@ -16,10 +16,13 @@ def main():
     # simulation_path = "../../Generated content/h Quench/"
     simulation_path = "../../Generated content/Final/Quenches-old/"
     equil_time_end = 0
+    equil_time_start = 50
+    gamma = 1
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
-    runfile_quench = "run_cuda_gpu_a100_low.sh"
+    runfile_quench = "run_cuda_gpu_a100_low_minimal.sh"
+    project = "MinimalCudaProject"
 
 
     # Quench parameters
@@ -46,7 +49,8 @@ def main():
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
                                         para_nr=para_nr_quench, tau_max=max_tau, nr_sites=nr_sites,
                                         min_nr_systems=min_nr_systems, min_nr_corr_values=min_nr_corr_values,
-                                        Ly_Lx=Ly_Lx, equil_time_end=equil_time_end)
+                                        Ly_Lx=Ly_Lx, equil_time=equil_time_start, equil_time_end=equil_time_end,
+                                        project=project, gamma=gamma)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so
