@@ -9,15 +9,16 @@ def main():
 
     p = 2.5
     eta_arr = [50, 100]
+    eta_arr = [0.01]
     dt = 0.01
 
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Final/Quenches-old/"
-    equil_time_end = 0
+    simulation_path = "../../Generated content/Final/Quenches-old/end-equilibration-longer/"
+    equil_time_end = 500
     equil_time_start = 50
-    gamma = 1
+    gamma = 2
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"

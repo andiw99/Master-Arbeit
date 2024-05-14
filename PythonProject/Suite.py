@@ -2516,7 +2516,8 @@ class quench_measurement(autonomous_measurement):
 
     @staticmethod
     def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
-                         min_tau_ind, direction="parallel", color="C0", fig=None, ax=None, label=True):
+                         min_tau_ind, direction="parallel", color="C0", fig=None, ax=None, label=True, marker=None,
+                         last_tau=True, name=""):
         try:
             quench_exp = reg.slope
             quench_ampl = np.exp(reg.intercept)
@@ -2537,8 +2538,8 @@ class quench_measurement(autonomous_measurement):
         for i, size in enumerate(sizes):
             # Plotting, every size should get its own color and/or symbol?
             # construct the lists to plot
-            tau = list(size_tau_xi_dic[size].keys())
-            xi = list(size_tau_xi_dic[size].values())
+            tau = sorted(list(size_tau_xi_dic[size].keys()))
+            xi = sorted(list(size_tau_xi_dic[size].values()))
 
             if direction == "perp":
                 size //= 8
@@ -2547,14 +2548,23 @@ class quench_measurement(autonomous_measurement):
                 label_str = rf"$L_\{direction} = {size}$"
             else:
                 label_str = ""
-            ax.plot(tau, xi, marker=markers[i], markersize=8,
+            if not marker:
+                marker = markers[i]
+            if last_tau:
+                tau_plot = tau
+                xi_plot = xi
+            else:
+                print("tau_arr:", tau)
+                tau_plot = tau[:-1]
+                xi_plot = xi[:-1]
+            ax.plot(tau_plot, xi_plot, marker=marker, markersize=8,
                     **get_point_kwargs_color(color, markeredgewidth=2), label=label_str)
         # prev_y_low = ax.get_ylim()[0]
         # prev_y_up = ax.get_ylim()[1]
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
                  poly(tau_scaling[min_tau_ind:max_tau_ind], quench_exp, (quench_ampl)),
-                 color=color, alpha=0.5, linestyle="dashed",
-                 label=r"$\propto \,\tau_Q^{"+ f"{quench_exp:.3f}" + "}$")
+                 color=color, alpha=0.75, linestyle="dashed",
+                 label=r"$\propto \,\tau_Q^{"+ f"{quench_exp:.3f}" + "}$" + name)
         # ax.set_ylim(prev_y_low, prev_y_up)
 
         config = {
