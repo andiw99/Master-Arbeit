@@ -2549,7 +2549,9 @@ class quench_measurement(autonomous_measurement):
             else:
                 label_str = ""
             if not marker:
-                marker = markers[i]
+                cur_marker = markers[i]
+            else:
+                cur_marker = marker
             if last_tau:
                 tau_plot = tau
                 xi_plot = xi
@@ -2557,7 +2559,7 @@ class quench_measurement(autonomous_measurement):
                 print("tau_arr:", tau)
                 tau_plot = tau[:-1]
                 xi_plot = xi[:-1]
-            ax.plot(tau_plot, xi_plot, marker=marker, markersize=8,
+            ax.plot(tau_plot, xi_plot, marker=cur_marker, markersize=8,
                     **get_point_kwargs_color(color, markeredgewidth=2), label=label_str)
         # prev_y_low = ax.get_ylim()[0]
         # prev_y_up = ax.get_ylim()[1]

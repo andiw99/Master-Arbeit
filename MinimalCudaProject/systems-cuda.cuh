@@ -435,7 +435,7 @@ struct quench_nonlinear: virtual public quench {
     int gamma_val;
     void print_info() override {
         quench::print_info();
-        cout << "gamma = " << gamma << endl;
+        cout << "gamma = " << gamma_val << endl;
     }
 
 public:

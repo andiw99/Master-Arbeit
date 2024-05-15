@@ -8,17 +8,17 @@ def main():
     J_perp = -0.1
 
     p = 2.5
+    eta_arr = [1]
     eta_arr = [50, 100]
-    eta_arr = [0.01]
     dt = 0.01
 
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Final/Quenches-old/end-equilibration-longer/"
-    equil_time_end = 500
-    equil_time_start = 50
-    gamma = 2
+    simulation_path = "../../Generated content/Final/Quenches-old/large damping gamma=1/"
+    equil_time_end = 0
+    equil_time_start = 100
+    gamma = 1
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
@@ -38,6 +38,7 @@ def main():
 
     #T_c = 21351     # maybe this T_c is to low?
     T_c = 0.296 * 3.11
+    T_c = 0.19725 * 10
     #T_c = 1.15
     min_nr_corr_values = 100
 
