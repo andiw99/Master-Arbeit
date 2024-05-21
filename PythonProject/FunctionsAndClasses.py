@@ -1695,7 +1695,15 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
     T_start = parameters["starting_temp"]
     T_end = parameters["end_temp"]
     tau = parameters["tau"]
-    quench_time = (T_start - T_end) * tau
+    try:
+        end_equil_time = parameters["equil_time_end"]
+    except KeyError:
+        end_equil_time = 0
+    try:
+        gamma = parameters["gamma"]
+    except KeyError:
+        gamma = 1
+    quench_time = (T_start - T_end) ** (1 / gamma) * tau
     for file in (files):
         if file.endswith(ending):
             filepath = os.path.join(folderpath, file)
@@ -1703,9 +1711,9 @@ def average_ft_unequal_times(folderpath, ending=".ft"):
             times = df['t']
             dt = times[1]- times[0]
             end_time = np.max(times)
-            equil_time = end_time - quench_time
+            start_equil_time = end_time - quench_time - end_equil_time
             for j, t in enumerate(times):
-                shift_t = t - equil_time
+                shift_t = t - start_equil_time
                 try:
                     t_ft_k[shift_t] += string_to_array(df["ft_k"][j])
                     t_ft_l[shift_t] += string_to_array(df["ft_l"][j])

@@ -4,14 +4,17 @@ from FunctionsAndClasses import *
 def main():
     #simpath = "../../Generated content/h Quench/1/Damping/Quench/1"
     #simpath = "../../Generated content/Final/Quenches-old/quadratic1/Damping/Quench/1"
-    simpath = "../../Generated content/Final/Quenches-old/end-equilibration/1/Damping/Quench/0.01"
-    taus = [2048, 256, 32]
+    #simpath = "../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01"
+    simpath = "../../Generated content/Final/Quenches-old/quadratic correct range/1/Damping/Quench/1"
+    simpath = "../../Generated content/Final/Quenches-old/process-final1/Damping/Quench/1"
+
+    taus = [2048, 256, 64]
     xi_ampl = 1.987                 # h = 1.7
     xi_ampl_perp = 0.194
     Tc = 1.972
 
     additional_ft_points = 50
-    min_tau = 400
+    min_tau = 40
     cut_from_equil = 0
     cut_zero_impuls = True
     min_points = 4

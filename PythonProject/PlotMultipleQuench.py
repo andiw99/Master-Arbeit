@@ -34,20 +34,20 @@ def plot_multiple_eta():
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/50-short-equil",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/100",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1",
-        "../../Generated content/Final/Quenches-old/end-equilibration-longer/1/Damping/Quench/0.01",
-        "../../Generated content/Final/Quenches-old/end-equilibration/1/Damping/Quench/0.01",
+        "../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01",
+        "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.01",
     ]
 
     names = [
-        " longer equil",
-        " shorter equil",
+        " equil",
+        " no equil",
         r"$, \eta = 1$",
         r"$, \eta = 10$",
         r"$, \eta = 0.1$",
         r"$, \eta = 0.01$",
     ]
     additional_ft_points = 5
-    min_tau = 400
+    min_tau = 40
     cut_zero_impuls = True
     min_points = 4
     fitfunc = lorentz_offset

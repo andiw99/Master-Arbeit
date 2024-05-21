@@ -8,17 +8,18 @@ def main():
     J_perp = -0.1
 
     p = 2.5
-    eta_arr = [1]
     eta_arr = [50, 100]
+    eta_arr = [1]
+    eta_arr = [0.01]
     dt = 0.01
 
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Final/Quenches-old/large damping gamma=1/"
-    equil_time_end = 0
-    equil_time_start = 100
-    gamma = 1
+    simulation_path = "../../Generated content/Final/Quenches-old/end-equilibration-longer-start/"
+    equil_time_end = 500
+    equil_time_start = 500
+    gamma = 2
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
@@ -31,7 +32,7 @@ def main():
     min_nr_sites = 1e6
     max_nr_quench_steps = 1e7
     nr_sites = 2e6
-    max_tau = 100000
+    max_tau = 10000
     min_nr_systems = 10
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))

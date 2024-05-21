@@ -8,20 +8,20 @@ def main():
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -130000
-    J_para = -10
+    J_para = -3.11
     #J_perp = -1300
     J_perp = -0.1
-    h = 0.5
+    h = 1
     #h = 0.5
     eta = 1
     p = 2.5
     dt = 0.00001
     dt = 0.01
-    max_size_Tc = 64
+    max_size_Tc = 32
     min_size_Tc = 128
-    nr_sizes_Tc = 2
+    nr_sizes_Tc = 4
     nr_Ts = 10
-    cum_error = 0.0014
+    cum_error = 0.002
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -32,15 +32,17 @@ def main():
 
 
     random_init = 0.0
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-OBC-h-0.5/"
+    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/"
+
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
     z_test_exec_file = "AutoCumulant.cu"
+    project = "MinimalCudaProject"
     # for the real measurements we have fixed end times and we extract the cumulant a fixed number of times
     # for the test measurement we extract a density of cumulants, calculate the error and run until we are equilibrated.
     # In both cases we start in a high temperature phase. For the testmeasurement we can actually just use the amplitude file?
@@ -48,15 +50,16 @@ def main():
     # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
     # want to work with the new error
     runfile = "run_cuda_gpu_a100_low.sh"
+    runfile = "run_cuda.sh"
 
     # T- parameters?
-    max_rel_intersection_error = 0.006
+    max_rel_intersection_error = 0.01
     min_cum_nr = 500
     moving_factor = 0.001
     # T_min = 29071.961123
     # T_max = 31494.624550
-    T_min = None
-    T_max = None
+    T_min = 0.22 * np.abs(J_para)
+    T_max = 0.38 * np.abs(J_para)
     #T_min = 0.83601154
     #T_max = 0.8701344599999999
 
@@ -80,8 +83,8 @@ def main():
 
     # Enter which calculations are supposed to run here
     measurements = {
-        "Tc": False,
-        "efficient Tc": True,
+        "Tc": True,
+        "efficient Tc": False,
         "Quench": False,
         "Amplitude": False,
         "z": False,
@@ -97,7 +100,7 @@ def main():
                                     min_val_nr=min_cum_nr, equil_error=cum_error, equil_cutoff=equil_cutoff_Tc,
                                     file_ending=file_ending, value_name=value_name, process_file_func=process_file_func,
                                     val_write_density=value_write_density, runfile=runfile,
-                                    T_min=T_min, T_max=T_max, para_nr=para_nr)
+                                    T_min=T_min, T_max=T_max, para_nr=para_nr, project=project)
         T_c, T_c_error = sim.routine()
     elif measurements["efficient Tc"]:
         para_nr = int(input("parameter number.."))

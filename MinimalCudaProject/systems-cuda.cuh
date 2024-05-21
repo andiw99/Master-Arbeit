@@ -459,6 +459,12 @@ public:
     }
 
     quench_nonlinear(map<Parameter, double>& paras): System(paras), quench(paras), gamma_val(paras[Parameter::gamma_exp]) {
+        if (s_eq_t == 0) {
+            // ... we just set s_eq_t to be really large in this case becauce this case means we dynamically equilibrate?
+            s_eq_t = 1e10;
+        }
+        t_quench = (this->get_quench_time());
+        end_quench_t = t_quench + s_eq_t;
     }
 
     double get_quench_time() const override {

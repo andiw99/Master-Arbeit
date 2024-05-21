@@ -626,7 +626,7 @@ class crit_temp_measurement(autonomous_measurement):
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100, max_moving_factor=0.005,
                  min_val_nr=2500, value_name="U_L", file_ending="cum",
                  process_file_func=process_file, random_init=0, second=False, observed_direction=0,
-                 val_write_density=1 / 100, sizes=None):
+                 val_write_density=1 / 100, sizes=None, project="CudaProject"):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
@@ -962,7 +962,7 @@ class crit_temp_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def write_advance_file(self, size, T, ind, mode=-1, done_path=None):
@@ -2321,33 +2321,52 @@ class quench_measurement(autonomous_measurement):
             except KeyError:
                 print(f"tau = {tau} not available")
 
-        # now the stuff with the twofold plot that you made sometime
-        fig, axes = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={'width_ratios': [1, 5]})
-        ax_equil = axes[0]
-        ax_quench = axes[1]
+
 
         for i, (tau, taupath) in enumerate(zip(taus, tau_paths)):
             if i == 0:
                 parafile = find_first_txt_file(taupath)
                 parameters = read_parameters_txt(parafile)
-            t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process = quench_measurement.get_time_resolved_xi(taupath, cut_around_peak,
+                if "equil_time_end" in parameters:
+                    if parameters["equil_time_end"] != 0:
+                        fig, axes = plt.subplots(1, 3, figsize=(10, 7),
+                                                 gridspec_kw={
+                                                     'width_ratios': [1, 4, 1]})
+                        ax_equil_end = axes[2]
+                    else:
+                        fig, axes = plt.subplots(1, 2, figsize=(10, 7),
+                                                 gridspec_kw={
+                                                     'width_ratios': [1, 5]})
+                        ax_equil_end = None
+                else:
+                    # now the stuff with the twofold plot that you made sometime
+                    fig, axes = plt.subplots(1, 2, figsize=(10, 3.5),
+                                             gridspec_kw={'width_ratios': [1, 5]})
+                    ax_equil_end = None
+                ax_equil = axes[0]
+                ax_quench = axes[1]
+            t_equil, t_process, t_end_equil, xix_equil, xiy_equil, xix_process, xiy_process, xix_end_equil, xiy_end_equil\
+                = quench_measurement.get_time_resolved_xi(taupath, cut_around_peak,
                             cut_zero_impuls, peak_cut_threshold, set_fts_to_zero, min_points_fraction, fitfunc)
             if direction == "parallel":
                 xi_equil = xix_equil
                 xi_process = xix_process
+                xi_equil_end = xix_end_equil
             else:
                 xi_equil = xiy_equil
                 xi_process = xiy_process
+                xi_equil_end = xiy_end_equil
 
             # usually the equilibration phase was way to long, so we cut the boring part?
-            if tau < 8000:
-                if cut_from_equil:
-                    t_equil, xi_equil = t_equil[:-int(cut_from_equil * len(t_equil))], xi_equil[:-int(cut_from_equil * len(t_equil)):]
-                    # t has to be set to zero again
-                    t_equil -= np.max(t_equil)
+            #if tau < 8000:
+            if cut_from_equil:
+                t_equil, xi_equil = t_equil[:-int(cut_from_equil * len(t_equil))], xi_equil[:-int(cut_from_equil * len(t_equil)):]
+                # t has to be set to zero again
+                t_equil -= np.max(t_equil)
 
             fold_nr = max(len(t_equil) // (visible_points // 5), 1)
             t_equil, xi_equil = fold(t_equil, xi_equil, fold_nr)
+            t_end_equil, xi_equil_end = fold(t_end_equil, xi_equil_end, fold_nr)
             ax_equil.plot(t_equil-1, xi_equil, linestyle="", markersize=7, marker=markers[i],
                                color=colors[2 * i], markerfacecolor="none")
             t_process /= tau
@@ -2356,6 +2375,10 @@ class quench_measurement(autonomous_measurement):
             t_process, xi_process = fold(t_process, xi_process, fold_nr)
             ax_quench.plot(t_process - 1, xi_process, linestyle="", markersize=7, marker=markers[i],
                                color=colors[2 * i], markerfacecolor="none", label=rf"$\tau_Q / I = {int(tau)}$")
+            if ax_equil_end:
+                ax_equil_end.plot(t_end_equil - np.min(t_end_equil), xi_equil_end, linestyle="",
+                               markersize=7, marker=markers[i],
+                               color=colors[2 * i], markerfacecolor="none")
 
        # plot the divergence
         # get the limits beforehand
@@ -2382,6 +2405,9 @@ class quench_measurement(autonomous_measurement):
 
         ax_quench.set_ylim(y_limits)
         ax_equil.set_ylim(y_limits)
+        if ax_equil_end:
+            ax_equil_end.set_ylim(y_limits)
+            ax_equil_end.set_yscale(yscale)
         ax_equil.set_xlim(ax_equil.get_xlim()[0], -1)
         ax_quench.set_xlim(-1, ax_quench.get_xlim()[1])
         ax_equil.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
@@ -2414,8 +2440,20 @@ class quench_measurement(autonomous_measurement):
             "labelverticalalignment": "bottom",
             "legend": False,
         }
+        equil_end_config = {
+            "nr_x_major_ticks": 1,
+            "nr_x_minor_ticks": 5,
+            "ytickfontsize": 0,
+            "ylabelsize": 0,
+            "y_tickwidth": 0,
+            "y_ticklength": 0,
+            "legend": False,
+        }
         configure_ax(fig, ax_quench, quench_config)
         configure_ax(fig, ax_equil, equil_config)
+        if ax_equil_end:
+            configure_ax(fig, ax_equil_end, equil_end_config)
+            ax_equil_end.set_xlabel("")
         fig.subplots_adjust(wspace=0.01)
         ax_equil.set_xlabel("")
 
@@ -2442,7 +2480,15 @@ class quench_measurement(autonomous_measurement):
         tau = parameters["tau"]
         T_start = parameters["starting_temp"]
         T_end = parameters["end_temp"]
-        quench_time = (T_start - T_end) * tau
+        try:
+            end_equil_time = parameters["equil_time_end"]
+        except KeyError:
+            end_equil_time = 0
+        try:
+            gamma = parameters["gamma"]
+        except KeyError:
+            gamma = 1
+        quench_duration = (T_start - T_end) ** (1/gamma) * tau
 
 
         for t in ft_k:
@@ -2476,13 +2522,19 @@ class quench_measurement(autonomous_measurement):
         xix_equil = xix[ts <= 0]
         xiy_equil = xiy[ts <= 0]
 
-        xix_process = xix[ts > 0]
-        xiy_process = xiy[ts > 0]
+        xix_process = xix[(ts > 0) & (ts <= quench_duration)]
+        xiy_process = xiy[(ts > 0) & (ts <= quench_duration)]
+
+        xix_equil_end = xix[(ts > quench_duration)]
+        xiy_equil_end = xiy[(ts > quench_duration)]
 
         t_equil = ts[ts <= 0]
-        t_process = ts[ts > 0]
+        t_process = ts[(ts > 0) & (ts <= quench_duration)]
+        t_equil_end = ts[ts > quench_duration]
 
-        return t_equil, t_process, xix_equil, xiy_equil, xix_process, xiy_process
+
+        return (t_equil, t_process, t_equil_end, xix_equil, xiy_equil,
+                xix_process, xiy_process, xix_equil_end, xiy_equil_end)
 
     @staticmethod
     def plot_equilibration_phase(ax, t, xi):
