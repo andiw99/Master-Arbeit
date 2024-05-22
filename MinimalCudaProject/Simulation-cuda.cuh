@@ -120,25 +120,27 @@ public:
                 x[i] = pre_lattice[i];
             }
         } else if(paras[random_init] == -2.0) {
-            cout << "Memory init with most similar run" << endl;
+            cout << "Memory init -2 detected" << endl;
+
             // This case should read a certain file and write it to another
             fs::path input_file_path = simulation_path.parent_path();
-            cout << "input_file_path = " << input_file_path << endl;
             input_file_path += ".csv";
-            cout << "input_file_path + .csv = " << input_file_path << endl;
             // read this and add
-            cout << "simulation_path = " << simulation_path << endl;
             ifstream previous_run = safe_read(input_file_path, true);
             double prev_T;          // I dont even think we need those?
             vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, t);
             for (int i = 0; i < n; i++) {
                 x[i] = pre_lattice[i];
             }
+            // we want the time to be zero
+            t = 0.0;
             // and the thing we want to write to will be
-            folder_path = simulation_path.parent_path() / to_string(paras[Parameter::subsystem_Lx]) /
+            folder_path = simulation_path.parent_path().parent_path().parent_path().parent_path() /
+                          to_string((int)paras[Parameter::subsystem_Lx]) /
                           to_string(paras[Parameter::T]);
+            cout << "folder path: " << folder_path << endl ;
             // okay so we read the corresponding state
-            // we dont read and write the observables like m_vec
+            // we dont read and write the observables like U_L
             // which is okay since for this usecase we dont want them as they are at another temperature anyway
             // If we want to use a whol other folder we will have to rewrite more stuff
             // then we would need to add two paths, one to read, one to write
