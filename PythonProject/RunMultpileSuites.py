@@ -7,7 +7,7 @@ def main():
     # If we choose our old values still, the h should go up to 30 which would be
     # the relation of J_parallel and h in the real system
     #h_arr = np.logspace(0.857840941039747, np.log10(30), 2)     # maybe logarithmic?
-    h_arr = np.array([0.1, 0.25, 0.5, 1, 2])
+    h_arr = np.array([0.01, 0.05, 0.125, 0.75, 1])
     nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
@@ -23,7 +23,7 @@ def main():
     min_size_Tc = 128
     nr_sizes_Tc = 2
     nr_Ts = 10
-    cum_error = 0.0015
+    cum_error = 0.0025
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -34,9 +34,10 @@ def main():
 
 
     random_init = 0.0
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=1/"
+    project = "MinimalCudaProject"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     quench_exec_file = "AutoQuench.cu"
@@ -49,11 +50,11 @@ def main():
     # for the other ones I think we need a new file. Okay we can maybe use the amplitude file, but it observes the correlation length
     # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
     # want to work with the new error
-    runfile = "run_cuda_gpu_a100_low.sh"
+    runfile = "run_cuda_gpu_a100_low_minimal.sh"
 
     # T- parameters?
     max_rel_intersection_error = 0.01
-    min_cum_nr = 500
+    min_cum_nr = 5000
     moving_factor = 0.001
     T_min = None
     T_max = None
@@ -71,23 +72,8 @@ def main():
                                               min_val_nr=min_cum_nr, file_ending=file_ending, value_name=value_name,
                                               process_file_func=process_file_func,
                                               val_write_density=value_write_density,
-                                              equil_cutoff=equil_cutoff_Tc, nr_sites=nr_sites)
+                                              equil_cutoff=equil_cutoff_Tc, nr_sites=nr_sites, project=project)
         T_c, T_c_error = sim.routine()
-        #T_c, T_c_error = Tc_sim.routine()
-        # We could in principle run the quenches in parallel, but that would
-        # require some work on my end
-
-        # Run Quench
-        # Quench can be influenced by eta
-        # for eta in eta_arr:
-        #     quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + f"Quench/{eta}",
-        #                                 quench_exec_file, runfile_quench, T_c, nr_GPUS=nr_gpus, size_max=max_size,
-        #                                 min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
-        #                                 para_nr=para_nr_quench, tau_max=max_tau)
-        #     quench.run()
-
-        # the good thing is, both of the simulation implement pickup capabilities so
-        # I dont need to worry to much that my computer loses connection and stuff (which it will)
 
 
 if __name__ == "__main__":

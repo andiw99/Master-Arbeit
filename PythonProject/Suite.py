@@ -672,6 +672,7 @@ class crit_temp_measurement(autonomous_measurement):
 
         self.sizes = sizes
         self.jobs_done = set()
+        self.project = project
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -962,7 +963,7 @@ class crit_temp_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         f"hemera:~/Code/Master-Arbeit/{project}/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def write_advance_file(self, size, T, ind, mode=-1, done_path=None):
@@ -1075,7 +1076,7 @@ class crit_temp_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
     @staticmethod
     def construct_results(simulation_path, threshold, selected_temps=None, selected_sizes=None, value_name="U_L", file_ending="cum",
@@ -1296,7 +1297,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                  size_max=80, max_steps=1e9, nr_sites=1e6, Ly_Lx = 1/8, equil_error=0.01, min_equil_error=0.0025,
                  intersection_error=0.02, equil_cutoff=0.1, T_min=None, T_max=None, para_nr=100,
                  random_init=0, max_moving_factor=0.005, min_val_nr=5000, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file, val_write_density=1/100, second=False):
+                 process_file_func=process_file, val_write_density=1/100, second=False, project="CudaProject"):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile)
@@ -1340,6 +1341,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         self.file_ending = file_ending
         self.process_file_func = process_file_func
         self.second = second
+        self.project = project
     def init(self):
         # this somehow needs the parameters, where do we put them? In a file? On the moon? User input?
         T_min = T_c_est(np.abs(self.J_para), np.abs(self.J_perp), self.h)[0]
@@ -1856,7 +1858,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
 class efficient_crit_temp_measurement_corr(efficient_crit_temp_measurement):

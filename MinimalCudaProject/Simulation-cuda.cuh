@@ -120,11 +120,15 @@ public:
                 x[i] = pre_lattice[i];
             }
         } else if(paras[random_init] == -2.0) {
+            cout << "Memory init with most similar run" << endl;
             // This case should read a certain file and write it to another
             fs::path input_file_path = simulation_path.parent_path();
+            cout << "input_file_path = " << input_file_path << endl;
             input_file_path += ".csv";
+            cout << "input_file_path + .csv = " << input_file_path << endl;
             // read this and add
-            ifstream previous_run = safe_read(simulation_path, true);
+            cout << "simulation_path = " << simulation_path << endl;
+            ifstream previous_run = safe_read(input_file_path, true);
             double prev_T;          // I dont even think we need those?
             vector<double> pre_lattice = readDoubleValuesAt(previous_run, -1, prev_T, t);
             for (int i = 0; i < n; i++) {
@@ -270,6 +274,7 @@ template <
         class relax_sys >
 class RelaxationSimulation : virtual public Simulation<stepper_type, state_type, alg, oper, relax_sys> {
     typedef Simulation<stepper_type, state_type, alg, oper, relax_sys> Simulation;
+public:
     using Simulation::paras;
     using Simulation::simulation_path;
     using Simulation::folder_path;
@@ -278,14 +283,14 @@ class RelaxationSimulation : virtual public Simulation<stepper_type, state_type,
     void initialize() override {
         // init the taus i want the simultion to run over
         temps = linspace(paras[min_temp],
-                             paras[max_temp], (int)paras[nr_runs] + 1);
+                         paras[max_temp], (int)paras[nr_runs] + 1);
         // call the general initialization
         cout << "Temperatures:" << endl;
         print_vector(temps);
         Simulation::initialize();
     }
 
-public:
+
 
     void simulate() {
         // we need to initialize here or think of a different architecture since
@@ -297,6 +302,7 @@ public:
             // update the parameters so we create the correct systems and stuff
             paras[Parameter::T] = T;
             folder_path = simulation_path / to_string(T);
+
             this->repeat((int)paras[nr_repeat]);      // and actually this should be it
         }
     }

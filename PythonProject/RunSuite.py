@@ -3,7 +3,7 @@ from Suite import *
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 20
+    nr_gpus = 6
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -49,8 +49,8 @@ def main():
     # for the other ones I think we need a new file. Okay we can maybe use the amplitude file, but it observes the correlation length
     # We want to observe the binder cumulant. But for the equilibration it should not make to much difference. But tbh i also
     # want to work with the new error
-    runfile = "run_cuda_gpu_a100_low.sh"
     runfile = "run_cuda.sh"
+    runfile = "run_cuda_gpu_a100_low_minimal.sh"
 
     # T- parameters?
     max_rel_intersection_error = 0.01

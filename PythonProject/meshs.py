@@ -17,13 +17,14 @@ def main():
     root = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=2-3/"
     root = "../../Generated content/Final/Amplitude/J_J=60/final/Amplitude/4096"
     root = "../../Generated content/h Quench/First/"
+    root = "../../Generated content/Final/Quenches-old/snapshots/1:4/Damping/Quench/1/1024/2048.000000"
     fig_format = "png"
     dpi = 200
     #root = "../../Generated content/Silicon Test/Anisotrop Antisymmetric Rectangular Subsystems Small2"
 
     plot_root = os.path.join(root, "plots/")
 
-    config = {"nr_of_meshs": 9,
+    config = {"nr_of_meshs": 16,
               "cell_L": 512,
               "cell_nr": 0,
               "chess_trafo": -1,
@@ -59,6 +60,8 @@ def main():
                 fig, axes, name = plot_multiple_times(filepath, config)
                 create_directory_if_not_exists(root + "/plots/")
                 fig.savefig(root + "/plots/" + file[0] + "-" + name + f".{fig_format}", format=fig_format, dpi=dpi)
+                fig.savefig(root + "/plots/" + name + f"-svg.svg", format="svg",
+                            dpi=2 * dpi)
 
     plt.show()
 
