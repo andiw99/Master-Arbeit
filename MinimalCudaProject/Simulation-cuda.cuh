@@ -243,8 +243,9 @@ class QuenchSimulation : virtual public Simulation<stepper_type, state_type, alg
     void initialize() {
         // init the taus i want the simultion to run over
         taus = logspace(paras[min_tau_factor],
-                                             paras[max_tau_factor],
-                                             (int)paras[nr_runs] + 1);
+                         paras[max_tau_factor],
+                         (int)paras[nr_runs] + 1,
+                         paras[tau_base]);
         paras[T] = paras[starting_temp];
         // call the general initialization
         Simulation::initialize();

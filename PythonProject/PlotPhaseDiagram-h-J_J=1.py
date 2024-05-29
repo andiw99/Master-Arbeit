@@ -19,8 +19,8 @@ def main():
     # I think it is easiest here just to copy the values, I will only need
     # this 3 times or so
     J_para = 1
-    h =  np.array([0.1, 0.25, 0.5, 1.0])#, 10]
-    Tc = np.array([1.0494, 1.1010, 1.1255, 1.3]) #1.2741]
+    h =  np.array([0.01, 0.05, 0.1, 0.25, 0.5])#, 10]
+    Tc = np.array([0.978, 1.0211, 1.0494, 1.1010, 1.1255]) #1.2741]
 
 
     h /= Tc
@@ -33,9 +33,9 @@ def main():
     TcXY = 1 / (2 * lambertw(1))
     Tc_fit = Tc
     h_fit = h
-    popt, _ = curve_fit(crit_h, Tc_fit - TcXY.real, h_fit, maxfev=100000, p0=(A, B, C, D))
+    popt, _ = curve_fit(crit_h, Tc_fit, h_fit, maxfev=100000, p0=(A, B, C, D))
     Tc_plot = np.linspace(TcXY, np.max(Tc_fit), 100)
-    h_est = crit_h(Tc_plot - TcXY.real, *popt)
+    h_est = crit_h(Tc_plot, *popt)
     print(h_est)
     print("correct popt?")
     print(popt)

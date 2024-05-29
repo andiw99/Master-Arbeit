@@ -8,23 +8,24 @@ def main():
     J_perp = -0.1
 
     p = 2.5
+    eta_arr = [0.01]
     eta_arr = [50, 100]
     eta_arr = [1]
-    eta_arr = [0.01]
     dt = 0.01
 
+    project = "MinimalCudaProject"
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Final/Quenches-old/end-equilibration-longer-start/"
-    equil_time_end = 500
+    simulation_path = "../../Generated content/Final/Quenches-old/h=/"
+    equil_time_end = 0
     equil_time_start = 500
     gamma = 2
+    base = np.sqrt(2)
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"
     runfile_quench = "run_cuda_gpu_a100_low_minimal.sh"
-    project = "MinimalCudaProject"
 
 
     # Quench parameters
@@ -53,7 +54,7 @@ def main():
                                         para_nr=para_nr_quench, tau_max=max_tau, nr_sites=nr_sites,
                                         min_nr_systems=min_nr_systems, min_nr_corr_values=min_nr_corr_values,
                                         Ly_Lx=Ly_Lx, equil_time=equil_time_start, equil_time_end=equil_time_end,
-                                        project=project, gamma=gamma)
+                                        project=project, gamma=gamma, base=base)
             quench.run()
 
         # the good thing is, both of the simulation implement pickup capabilities so

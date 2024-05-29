@@ -3,7 +3,7 @@ from Suite import *
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 6
+    nr_gpus = 20
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -11,7 +11,8 @@ def main():
     J_para = -3.11
     #J_perp = -1300
     J_perp = -0.1
-    h = 1
+    # h = 1
+    h = 0.282727
     #h = 0.5
     eta = 1
     p = 2.5
@@ -21,7 +22,7 @@ def main():
     min_size_Tc = 128
     nr_sizes_Tc = 4
     nr_Ts = 10
-    cum_error = 0.002
+    cum_error = 0.0005
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -34,7 +35,7 @@ def main():
     random_init = 0.0
     filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
     filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/smaller range/"
 
 
     Tc_exec_file = "AutoCumulantOBC.cu"
@@ -53,13 +54,13 @@ def main():
     runfile = "run_cuda_gpu_a100_low_minimal.sh"
 
     # T- parameters?
-    max_rel_intersection_error = 0.01
-    min_cum_nr = 500
+    max_rel_intersection_error = 0.5
+    min_cum_nr = 750
     moving_factor = 0.001
     # T_min = 29071.961123
     # T_max = 31494.624550
-    T_min = 0.22 * np.abs(J_para)
-    T_max = 0.38 * np.abs(J_para)
+    T_min = 0.267 * np.abs(J_para)
+    T_max = 0.281 * np.abs(J_para)
     #T_min = 0.83601154
     #T_max = 0.8701344599999999
 

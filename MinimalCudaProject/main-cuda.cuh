@@ -33,7 +33,7 @@ enum Parameter {
     subsystem_Lx, subsystem_Ly, subsystem_min_Lx, subsystem_max_Lx, nr_subsystem_sizes, nr_subsystems, x_y_factor,
     nr_cum_values, nr_mag_values, nr_corr_values, nr_ft_values, equil_error, min_cum_nr, min_corr_nr, equil_cutoff,
     cum_write_density, corr_write_density, ft_write_density, moving_factor, min_mag_nr, mag_write_density, corr_second,
-    observed_direction, equil_time_end, gamma_exp,
+    observed_direction, equil_time_end, gamma_exp, tau_base,
 };
 
 map<Parameter, string> parameter_names {
@@ -54,8 +54,7 @@ map<Parameter, string> parameter_names {
         {min_corr_nr, "min_corr_nr"}, {moving_factor, "moving_factor"}, {mag_write_density, "mag_write_density"},
         {min_mag_nr, "min_mag_nr"}, {ft_write_density, "ft_write_density"}, {corr_second, "corr_second"},
         {observed_direction, "observed_direction"}, {equil_time_end, "equil_time_end"}, {gamma_exp, "gamma"},
-
-
+        {tau_base, "tau_base"}
 };
 
 map<string, Parameter> string_to_parameter {
@@ -76,8 +75,7 @@ map<string, Parameter> string_to_parameter {
         {"min_corr_nr", min_corr_nr}, {"moving_factor", moving_factor}, {"mag_write_density", mag_write_density},
         {"min_mag_nr", min_mag_nr}, {"ft_write_density", ft_write_density}, {"corr_second", corr_second},
         {"observed_direction", observed_direction}, {"equil_time_end", equil_time_end}, {"gamma", gamma_exp},
-
-
+        {"tau_base", tau_base}
 };
 
 std::map<Parameter, double> readTxtFileToParameterMap(const path& filename, int startLine = 1) {

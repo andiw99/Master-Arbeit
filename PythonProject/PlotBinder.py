@@ -5,7 +5,8 @@ def main():
     equil_cutoff = 0.5
     process_file_func = recalculate_mag_file_to_U_L
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
-    simulation_path = "../../Generated content/Final/CriticalTemperature/Tc-copy/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/around Tc/Tc"
     selected_sizes = [128, 16, 48, 72]
     selected_sizes = None
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,
@@ -18,7 +19,7 @@ def main():
         val_intersection = val_intersections[0]
     except:
         pass
-    crit_point= None
+    crit_point = 1
 
     config = {"labelhorizontalalignment": "right",
               "increasefontsize": 0.6}

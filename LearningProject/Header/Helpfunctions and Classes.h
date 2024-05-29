@@ -1209,6 +1209,9 @@ std::vector<T> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
 template<typename T, typename S>
 std::vector<S> logspace(T start_in, T end_in, int num_in, T base_in = 2.0)
 {
+    if(base_in == 0.0) {
+        base_in = 2.0;
+    }
     std::vector<S> logspaced;
 
     double start = static_cast<double>(start_in);
