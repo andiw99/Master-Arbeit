@@ -2604,7 +2604,7 @@ class amplitude_measurement(autonomous_measurement):
     def __init__(self, J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file, runfile, Tc, nr_GPUS=6, nr_Ts=6, size=1024,
                  max_steps=1e9, Ly_Lx = 1/8, equil_error=0.01, equil_cutoff=0.1, T_range_fraction=0.05, T_min_fraction=0.01,
                  max_moving_factor=0.005, min_nr_sites=5e5, para_nr=150, second=False, observed_direction=0,
-                 min_corr_nr=5000, walltime="16:00:00"):
+                 min_corr_nr=5000, walltime="16:00:00", project="CudaProject"):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, para_nr=para_nr, runfile=runfile, walltime=walltime)
 
@@ -2640,6 +2640,7 @@ class amplitude_measurement(autonomous_measurement):
         self.observed_direction = observed_direction
 
         self.Ts_done = set()
+        self.project = project
     def setup(self):
         # This function will determine the initial T range
         # we want nr_Ts temperatures between
@@ -2730,7 +2731,7 @@ class amplitude_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def write_new_file(self, T, nr_subsystems):
@@ -2763,7 +2764,7 @@ class amplitude_measurement(autonomous_measurement):
                     f"corr_write_density, {self.corr_write_density}\n"
                     f"moving_factor, {self.max_moving_factor}\n"
                     f"corr_second, {int(self.second)}\n"
-                    f"observed_direction, {int(self.observed_direction)}")
+                    f"observed_direction, {int(self.observed_direction)}\n")
 
     def write_advance_file(self, T, nr_subsystems, mode=-1, done_path=None):
         if not done_path:

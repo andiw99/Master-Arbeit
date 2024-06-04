@@ -1374,7 +1374,6 @@ class corr_equilibration_observer_adaptive: public obsver<system, State>{
     double xi_cap = 0.2;            // We cap the xi size to be at most 0.2 of the corresponding system size, otherwise the extraction is unreliable and
     fs::path filepath;              // path this observer writes to
     double max_moving_factor = 0.005;
-    bool second = false;
     // will distort the error estimation. If the total run was meaningful will then be judged afterwards.
     // (If the xi is now close to this threshold this probably means that our system was evolving in a state with larger correlation length than we can meaningful extract)
     // Okay short recap, we will now check evertime we calculate a xi if it is smaller than xi_cap * L and if it is not, we will cut it there
@@ -1395,7 +1394,6 @@ public:
         // the subsystems sizes for the xi cutting
         Lx = (size_t)paras[Parameter::subsystem_Lx];
         Ly = (size_t)paras[Parameter::subsystem_Ly];
-        second = (bool)paras[Parameter::corr_second];
         observed_direction = (int)paras[Parameter::observed_direction];
         // the timepoint is only zero if we do not memory initialize
         timepoint = 0.0;
@@ -1446,11 +1444,7 @@ public:
             cout << "t > timepoint.... " << t << " > " << timepoint << endl;
             double xix_val, xiy_val;
             Singleton_timer::set_startpoint("Xi Calculation");
-            if(second) {
-                sys.calc_xi_2nd(x, xix_val, xiy_val);
-            } else {
-                sys.calc_xi(x, xix_val, xiy_val);
-            }
+            sys.calc_xi(x, xix_val, xiy_val);
             Singleton_timer::set_endpoint("Xi Calculation");
             // The logic of the cutting should take place here or only for calculating the mean? I think we also cut it
             // but we might change that later

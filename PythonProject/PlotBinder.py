@@ -7,6 +7,7 @@ def main():
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/around Tc/Tc"
+    simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     selected_sizes = [128, 16, 48, 72]
     selected_sizes = None
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,

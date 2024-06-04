@@ -9,29 +9,31 @@ def main():
     #    h_arr = np.logspace(-1, np.log10(30), 5)     # maybe logarithmic?
     h_arr = np.array([0.1])
     h_arr = np.array([0.4161791450287818])
+    h_arr = np.array([1])
 
-    nr_gpus = 6
+    nr_gpus = 2
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -120000
-    J_para = -3
+    J_para = -10
     #J_perp = -2000
     J_perp = -0.1
     #Ly_Lx = 1 / 16
     Ly_Lx = 1 / 8
-    p = 2.54
-    eta = 1.5
+    p = 2.5
+    eta = 1
     dt = 0.01
 
-    #filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Amplitude/J_J=30/final/Amplitude/"
+    project = "MinimalCudaProject"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Final/Amplitude/J_J=100/final/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
-    #runfile = "run_cuda_gpu_a100_low.sh"
     runfile = "run_cuda.sh"
+    runfile = "run_cuda_gpu_a100_low_minimal.sh"
     # Tc parameters
     max_size_Tc = 192
     min_size_Tc = 64
@@ -40,7 +42,6 @@ def main():
     process_file_func = process_new_mag_file_to_U_L
     nr_sizes_Tc = 2
     nr_Ts = 3
-    para_nr_Tc = int(input("para nr, please take seriously:"))
     # We use relatively large equilibration errors since for the quenches we only need a
     # rough estimate of the transition temperature
     # for future use we could extend the pickup of the Tc measurement to work with
@@ -60,19 +61,20 @@ def main():
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = -0.0175
+    T_min_fraction = 0.01
     T_range_fraction = 0.03
     nr_Ts = 1
     T_c = 1.7268
     T_c = 0.76
     T_c = 0.903
+    T_c = 1.976
 
     #amplitude_sizes = [2048, 1024]
     #amplitude_sizes = [32, 64, 128]
     #amplitude_sizes = [1024, 2048, 4096]
-    amplitude_sizes = [4096]
-    T_ranges = [-0.0125]
-    nr_Ts_per_range = 3
+    amplitude_sizes = [1024]
+    T_ranges = [0.1]
+    nr_Ts_per_range = 10
     next_T = None
     min_nr_sites = 4e6
 
@@ -89,7 +91,7 @@ def main():
                                      amplitude_exec_file, runfile, T_c, nr_GPUS=nr_gpus, size=size,
                                      equil_error=equil_error_amplitude, equil_cutoff=equil_cutoff, para_nr=para_nr_ampl,
                                      T_min_fraction=T_min, T_range_fraction=T_up, nr_Ts=nr_Ts_per_range, min_nr_sites=min_nr_sites,
-                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr)
+                                     Ly_Lx=Ly_Lx, observed_direction=observed_direction, min_corr_nr=min_corr_nr, project=project)
         ampl.run()
         last_T = T_up
 

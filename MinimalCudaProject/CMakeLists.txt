@@ -18,6 +18,7 @@ add_executable(CudaProject
         AutoQuench-h.cu
         AutoQuench.cu
         AutoCumulantOBC.cu
+        AutoAmplitude.cu
 )
 
 set_target_properties(CudaProject PROPERTIES
