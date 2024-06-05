@@ -8,15 +8,17 @@ def main():
     T_min = 0.1976
     T_min_perp = 0.1976
 
-    T_max = 0.206
-    T_max_perp = 0.206
+    T_max = 0.4
+    T_max_perp = 0.4
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=32/0.4161791450287818/Amplitude"
     #simpath_xix = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=32/Amplitude"
     simpath_xix = "../../Generated content/Final/Amplitude/J_J=60/final-h-1/Amplitude"
+    simpath_xix = "../../Generated content/Final/Amplitude/J_J=100/final/Amplitude"
     result_xix = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xix, "xix", T_min=T_min, T_max=T_max)
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=10-Lx_Ly=1/0.4161791450287818/Amplitude"
     #simpath_xiy = "../../Generated content/Silicon/Subsystems/Suite/h/Large Jx/Jx=3-Lx_Ly=1/Amplitude"
     simpath_xiy = "../../Generated content/Final/Amplitude/J_J=60/final-h-1/Amplitude"
+    simpath_xiy = "../../Generated content/Final/Amplitude/J_J=100/final/Amplitude"
     result_xiy = amplitude_measurement.prep_sim_data(equil_cutoff, simpath_xiy, "xiy", T_min=T_min_perp, T_max=T_max_perp)
     print(result_xix)
     print(result_xiy)
@@ -50,8 +52,11 @@ def main():
     amplitude_measurement.plot_xi_fit(axes[0], reg_x, T_xix, direction="parallel", Tc_label=False)
 
     fit_sizes_y = list(result_xiy.keys())
+    print("RESULT XIY")
+    print(result_xiy)
     T_xiy, reg_y = amplitude_measurement.perform_fit_on_sizes(result_xiy, fit_sizes_y, min_points=0, T_min=T_min_perp)
-    amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=colors[5], direction="perp", Tc_label=False)
+    if reg_y != None:
+        amplitude_measurement.plot_xi_fit(axes[1], reg_y, T_xiy, color=colors[5], direction="perp", Tc_label=False)
 
     amplitude_measurement.configure_xi_plot(axes, fig)
     create_directory_if_not_exists(simpath_xix + "/plots")

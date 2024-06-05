@@ -10,7 +10,7 @@ def main():
     p = 2.5
     eta_arr = [0.01]
     eta_arr = [50, 100]
-    eta_arr = [1]
+    eta_arr = [0.01]
     dt = 0.01
 
     project = "MinimalCudaProject"

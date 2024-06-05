@@ -8,8 +8,8 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 2.05504 
-max_temp, 2.05504 
+min_temp, 2.964 
+max_temp, 2.964 
 nr_runs, 0.0 
 random_init, 1.0 
 curand_random, 1 
@@ -22,7 +22,7 @@ nr_corr_values, 0
 nr_ft_values, 0 
 equil_error, 0.04
 equil_cutoff, 0.01
-min_corr_nr, 50000
+min_corr_nr, 5000
 corr_write_density, 0.01
 moving_factor, 0.005
 corr_second, 0
