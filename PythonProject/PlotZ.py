@@ -234,7 +234,10 @@ def plot_1_h_1():
     Tc = 1.975000
     fold = 120
     folder_avg_function=read_folder_avg
-
+    config = {
+        "increasefontsize": 0.6,
+        "labelhorizontalalignment": "right",
+    }
     sizes = np.linspace(72, 120, 3, dtype=np.int64)
     sizes = np.linspace(48, 144, 4, dtype=np.int64)
 
@@ -247,7 +250,7 @@ def plot_1_h_1():
     fig.savefig(simpath + f"/cum-over-time-scan-plotfile.svg", format="svg")
 
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+    fig, ax = plt.subplots(1, 1)
     fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold // 4, xlim=0.15)
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.png-plotfile", format="png")
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.svg", format="svg")

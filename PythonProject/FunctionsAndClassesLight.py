@@ -442,8 +442,7 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
 
             t_fold, cum_fold = fold(times, cum, fold=fold_nr)
             # plot the points
-            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i], markeredgewidth=1.5), marker=markers[i],
-                    markersize=8, label=f"$L_\parallel$={size}", alpha=0.5)
+            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i]), marker=markers[i], label=f"$L_\parallel$={size}", alpha=0.5)
             # the new interploation works with np.interp
             # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
             # what even happens when you try to use less values haha?
@@ -502,7 +501,7 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
                 ax.plot(best_t_compare_arr[1:],
                         best_cum_compare_arr[1:],
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
-                                             f"\tz = {best_z:.3f}", color=colors[2 * (i)], linewidth=2)
+                                             f"\tz = {best_z:.3f}", color=colors[2 * (i + 1)], linewidth=2)
         ax.set_ylabel(r"$U_L$")
         ax.set_xlabel("$t \,/\, I$")
         #ax.set_xscale("log")
