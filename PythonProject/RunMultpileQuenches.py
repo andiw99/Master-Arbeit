@@ -10,7 +10,7 @@ def main():
     p = 2.5
     eta_arr = [0.01]
     eta_arr = [50, 100]
-    eta_arr = [0.01]
+    eta_arr = [10]
     dt = 0.01
 
     project = "MinimalCudaProject"
@@ -34,7 +34,7 @@ def main():
     max_nr_quench_steps = 1e7
     nr_sites = 2e6
     max_tau = 10000
-    min_nr_systems = 10
+    min_nr_systems = 20
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 

@@ -29,18 +29,18 @@ def plot_multiple_h():
 
 def plot_multiple_eta():
     simpaths = [
-        #"../../Generated content/Final/Quenches-old/1/Damping/Quench/1",
+        "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/1",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/10",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/50-short-equil",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/100",
         #"../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1",
-        "../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01",
-        "../../Generated content/Final/Quenches-old/1/Damping/Quench/0.01",
+        #"../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01",
+        "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01",
     ]
 
     names = [
-        " equil",
-        " no equil",
+        #" equil",
+        #" no equil",
         r"$, \eta = 1$",
         r"$, \eta = 10$",
         r"$, \eta = 0.1$",

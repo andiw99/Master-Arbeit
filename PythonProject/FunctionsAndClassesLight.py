@@ -432,7 +432,7 @@ def get_results_time_resolved(sizes, simulation_path, Tc=None, file_ending="mag"
                 size_times_dic[size] = times
     return size_cum_dic, size_times_dic
 
-def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5):
+def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, config=None):
         z_list = np.linspace(1, 3, 201)
         sizes = list(size_cum_dic.keys())
         for i, size in enumerate(sizes):
@@ -508,10 +508,11 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5):
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
-        config = {
-            "increasefontsize": 1.25,
-            "labelhorizontalalignment": "right",
-        }
+        if config is None:
+            config = {
+                "increasefontsize": 1.25,
+                "labelhorizontalalignment": "right",
+            }
 
         configure_ax(fig, ax, config)
         #ax.set_title("z extraction")
