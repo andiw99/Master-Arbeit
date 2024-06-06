@@ -11,7 +11,7 @@ def main():
     h_arr = np.array([0.4161791450287818])
     h_arr = np.array([1])
 
-    nr_gpus = 9
+    nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -26,8 +26,8 @@ def main():
     dt = 0.01
 
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     simulation_path = "../../Generated content/Final/Amplitude/J_J=100/larger/Amplitude/"
 
     Tc_exec_file = "AutoCumulant.cu"
@@ -61,7 +61,7 @@ def main():
     para_nr_ampl = int(input("para nr amplitude, please take seriously:"))
     observed_direction = int(input("observed direction :"))
     #T_min_fraction = 0.0025
-    T_min_fraction = 0.005
+    T_min_fraction = 0.01
     T_range_fraction = 0.03
     T_c = 0.903
     T_c = 1.976
@@ -70,7 +70,7 @@ def main():
     #amplitude_sizes = [32, 64, 128]
     #amplitude_sizes = [1024, 2048, 4096]
     amplitude_sizes = [2048]
-    T_ranges = [1]
+    T_ranges = [0.1]
     nr_Ts_per_range = 10
     next_T = None
     min_nr_sites = 4e6
