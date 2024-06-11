@@ -250,8 +250,8 @@ def plot_1_h_1():
     fig.savefig(simpath + f"/cum-over-time-scan-plotfile.svg", format="svg")
 
 
-    fig, ax = plt.subplots(1, 1)
-    fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold // 4, xlim=0.15)
+    fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8))    # why do I need to give the standard figsize here? But otherwise it f*ed up the ratios
+    fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold // 4, xlim=0.15, config=config)
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.png-plotfile", format="png")
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.svg", format="svg")
 

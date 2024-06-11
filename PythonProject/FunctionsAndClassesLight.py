@@ -501,7 +501,7 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
                 ax.plot(best_t_compare_arr[1:],
                         best_cum_compare_arr[1:],
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
-                                             f"\tz = {best_z:.3f}", color=colors[2 * (i + 1)], linewidth=2)
+                                             f"\tz = {best_z:.3f}", color=colors[2 * (i + 1)])
         ax.set_ylabel(r"$U_L$")
         ax.set_xlabel("$t \,/\, I$")
         #ax.set_xscale("log")
