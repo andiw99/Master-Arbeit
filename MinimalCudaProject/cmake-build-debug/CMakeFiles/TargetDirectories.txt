@@ -1,3 +1,0 @@
-/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug/CMakeFiles/CudaProject.dir
-/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir

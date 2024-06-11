@@ -14,7 +14,7 @@ def main():
     xi_ampl_perp = 0.194
     Tc = 1.972
 
-    additional_ft_points = 50
+    additional_ft_points = 10
     min_tau = 40
     cut_from_equil = 0
     cut_zero_impuls = True

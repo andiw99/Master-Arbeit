@@ -1,4 +1,4 @@
-../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01
+../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/0.01
 dt, 0.01 
 J, -10 
 Jy, -0.1 
@@ -9,8 +9,8 @@ nr_repeat, 0
 starting_temp, 2.95875 
 end_temp, 0.9862500000000001 
 nr_runs, 0.0 
-min_tau_factor, 23.0 
-max_tau_factor, 23.0 
+min_tau_factor, 26.0 
+max_tau_factor, 26.0 
 random_init, 1.0 
 curand_random, 1 
 subsystem_min_Lx, 4096 
