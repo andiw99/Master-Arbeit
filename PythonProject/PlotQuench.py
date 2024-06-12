@@ -8,6 +8,8 @@ def main():
     simpath = "../../Generated content/Final/Quenches-old/quadratic correct range/1/Damping/Quench/1"
     simpath = "../../Generated content/Final/Quenches-old/irrelevant/process-final1/Damping/Quench/1"
     simpath = "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01"
+    simpath = "../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/10"
+
 
     taus = [2048, 256, 64]
     xi_ampl = 1.987                 # h = 1.7
