@@ -303,9 +303,12 @@ def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
             print(f"to few systems {total_nr_systems} vs {min_nr_systems}")
         return False
 
-def check_exists(folderpath, file_ending=".cum"):
+def check_exists(folderpath, file_ending=".perf"):
     """
     trivial check function that just returns true if the folder already exists
+    thing is the folder may exist but the simulation is not done
+    the perf file is only written if the simulation is done, so just use this
+    function only with perf ending?
     :param foderpath:
     :return: true if at least one file with the required ending exists
     """
@@ -793,7 +796,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.jobs_to_do = list(product(self.sizes, self.T_arr))
         avail_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_exists, check_function_args=[self.file_ending]        # what do we do with the file ending here
+                                                  check_exists, check_function_args=[".perf"]        # what do we do with the file ending here, we just set it to perf because perf is only written if the simulation is done
                                                   )
 
         for valid_sim in valid_simulations:
@@ -2441,7 +2444,7 @@ class quench_measurement(autonomous_measurement):
     @staticmethod
     def plot_kzm_scaling(tau_scaling, size_tau_xi_dic, reg, max_tau_ind,
                          min_tau_ind, direction="parallel", color="C0", fig=None, ax=None, label=True, marker=None,
-                         last_tau=True, name=""):
+                         last_tau=True, name="", config=None):
         try:
             quench_exp = reg.slope
             quench_ampl = np.exp(reg.intercept)
@@ -2451,7 +2454,7 @@ class quench_measurement(autonomous_measurement):
 
         # xiy scaling
         if not fig:
-            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            fig, ax = plt.subplots(1, 1)
             ax.set_yscale("log")
             ax.set_xscale("log")
             ax.set_xlabel(r"$\tau_Q\, /\, I$")
@@ -2483,8 +2486,8 @@ class quench_measurement(autonomous_measurement):
                 print("tau_arr:", tau)
                 tau_plot = tau[:-1]
                 xi_plot = xi[:-1]
-            ax.plot(tau_plot, xi_plot, marker=cur_marker, markersize=8,
-                    **get_point_kwargs_color(color, markeredgewidth=2), label=label_str)
+            ax.plot(tau_plot, xi_plot, marker=cur_marker,
+                    **get_point_kwargs_color(color), label=label_str)
         # prev_y_low = ax.get_ylim()[0]
         # prev_y_up = ax.get_ylim()[1]
         ax.plot(tau_scaling[min_tau_ind:max_tau_ind],
@@ -2492,12 +2495,12 @@ class quench_measurement(autonomous_measurement):
                  color=color, alpha=0.75, linestyle="dashed",
                  label=r"$\propto \,\tau_Q^{"+ f"{quench_exp:.3f}" + "}$" + name)
         # ax.set_ylim(prev_y_low, prev_y_up)
-
-        config = {
-            "increasefontsize": 1.25,
-            "labelverticalalignment": "bottom",
-            "labelrotation": 90
-        }
+        if config is None:
+            config = {
+                "increasefontsize": 1.25,
+                "labelverticalalignment": "bottom",
+                "labelrotation": 90
+            }
 
         configure_ax(fig, ax, config)
         return fig, ax

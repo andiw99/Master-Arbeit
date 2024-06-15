@@ -8,8 +8,8 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 1.55 
-max_temp, 1.55 
+min_temp, 1.9500000000000002 
+max_temp, 1.9500000000000002 
 nr_runs, 0.0 
 random_init, 0 
 curand_random, 1 
