@@ -13,8 +13,8 @@ min_tau_factor, 26.0
 max_tau_factor, 26.0 
 random_init, 1.0 
 curand_random, 1 
-subsystem_min_Lx, 4096 
-subsystem_max_Lx, 4096 
+subsystem_min_Lx, 8192 
+subsystem_max_Lx, 8192 
 nr_subsystem_sizes, 0  
 nr_subsystems, 1 
 x_y_factor, 0.125 
