@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+/snap/clion/282/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/282/bin/ninja/linux/x64/ninja -G Ninja -S /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject -B /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug
+-- The CUDA compiler identification is NVIDIA 12.1.105
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda-12.1/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Configuring done (10.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug
+=======
 /snap/clion/282/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/andi/Studium/Code/Master-Arbeit/MinimalCudaProject -B /home/andi/Studium/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug
 CMake Deprecation Warning:
   Support for "Extra Generators" like
@@ -22,3 +34,4 @@ CMake Error at CMakeLists.txt:5 (project):
 
 
 -- Configuring incomplete, errors occurred!
+>>>>>>> 5ab0000560b01c15eabd358c3ae6533b4f3b803a

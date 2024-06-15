@@ -9,8 +9,8 @@ nr_repeat, 0
 starting_temp, 2.95875 
 end_temp, 0.9862500000000001 
 nr_runs, 0.0 
-min_tau_factor, 26.0 
-max_tau_factor, 26.0 
+min_tau_factor, 24.0 
+max_tau_factor, 24.0 
 random_init, 1.0 
 curand_random, 1 
 subsystem_min_Lx, 1024 
@@ -26,5 +26,5 @@ min_corr_nr, 100
 corr_second, 0
 equil_time, 500
 equil_time_end, 0
-gamma, 2
+gamma, 1
 tau_base, 1.4142135623730951

@@ -13,10 +13,10 @@ max_temp, 1.55
 nr_runs, 0.0 
 random_init, 0 
 curand_random, 1 
-subsystem_min_Lx, 128 
-subsystem_max_Lx, 128 
+subsystem_min_Lx, 32 
+subsystem_max_Lx, 32 
 nr_subsystem_sizes, 0  
-nr_subsystems, 244 
+nr_subsystems, 3906 
 x_y_factor, 0.125 
 nr_corr_values, 0 
 nr_ft_values, 0 

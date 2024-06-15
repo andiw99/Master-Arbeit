@@ -303,9 +303,12 @@ def check_quench_valid(folderpath, min_nr_systems, min_nr_sites):
             print(f"to few systems {total_nr_systems} vs {min_nr_systems}")
         return False
 
-def check_exists(folderpath, file_ending=".cum"):
+def check_exists(folderpath, file_ending=".perf"):
     """
     trivial check function that just returns true if the folder already exists
+    thing is the folder may exist but the simulation is not done
+    the perf file is only written if the simulation is done, so just use this
+    function only with perf ending?
     :param foderpath:
     :return: true if at least one file with the required ending exists
     """
@@ -793,7 +796,7 @@ class crit_temp_measurement(autonomous_measurement):
         self.jobs_to_do = list(product(self.sizes, self.T_arr))
         avail_simulations = get_avail_jobs(self.jobs_to_do,
                                                   self.simulation_path,
-                                                  check_exists, check_function_args=[self.file_ending]        # what do we do with the file ending here
+                                                  check_exists, check_function_args=[".perf"]        # what do we do with the file ending here, we just set it to perf because perf is only written if the simulation is done
                                                   )
 
         for valid_sim in valid_simulations:

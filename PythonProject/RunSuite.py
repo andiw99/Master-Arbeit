@@ -3,16 +3,16 @@ from Suite import *
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 20
+    nr_gpus = 10
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
     #J_para = -130000
-    J_para = -3.11
+    J_para = -10
     #J_perp = -1300
     J_perp = -0.1
-    # h = 1
-    h = 0.282727
+    # h = 0.282727
+    h = 1
     #h = 0.5
     eta = 1
     p = 2.5
@@ -33,9 +33,10 @@ def main():
 
 
     random_init = 0.0
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/smaller range/"
+    project = "MinimalCudaProject"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/"
 
 
     Tc_exec_file = "AutoCumulantOBC.cu"
@@ -43,7 +44,6 @@ def main():
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
     z_test_exec_file = "AutoCumulant.cu"
-    project = "MinimalCudaProject"
     # for the real measurements we have fixed end times and we extract the cumulant a fixed number of times
     # for the test measurement we extract a density of cumulants, calculate the error and run until we are equilibrated.
     # In both cases we start in a high temperature phase. For the testmeasurement we can actually just use the amplitude file?
@@ -59,8 +59,14 @@ def main():
     moving_factor = 0.001
     # T_min = 29071.961123
     # T_max = 31494.624550
-    T_min = 0.267 * np.abs(J_para)
-    T_max = 0.281 * np.abs(J_para)
+    # for the rough J_J = 100, the minimum should be at T / J = 0.15
+    # Tc is at T / J = 0.197 so almost at 0.2?
+    # J_J = 31 detailed settings:
+    # T_min = 0.267 * np.abs(J_para)
+    # T_max = 0.281 * np.abs(J_para)
+    T_min = 0.155 * np.abs(J_para)
+    T_max = 0.245 * np.abs(J_para)
+
     #T_min = 0.83601154
     #T_max = 0.8701344599999999
 

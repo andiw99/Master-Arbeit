@@ -8,6 +8,8 @@ def main():
     simpath = "../../Generated content/Final/Quenches-old/quadratic correct range/1/Damping/Quench/1"
     simpath = "../../Generated content/Final/Quenches-old/irrelevant/process-final1/Damping/Quench/1"
     simpath = "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01"
+    simpath = "../../Generated content/Paper content/Quenches/gamma=2/h=/1/Damping/Quench/0.01"
+
 
     taus = [2048, 256, 64]
     xi_ampl = 1.987                 # h = 1.7
@@ -15,7 +17,7 @@ def main():
     Tc = 1.972
 
     additional_ft_points = 10
-    min_tau = 40
+    min_tau = 400
     cut_from_equil = 0
     cut_zero_impuls = True
     min_points = 4
