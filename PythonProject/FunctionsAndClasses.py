@@ -864,10 +864,10 @@ def remove_origin_ticks(ax):
 
 def get_spans(ax):
     # The base of those ticks should be read of the data
-    xmin = np.infty
-    xmax = -np.infty
-    ymin = np.infty
-    ymax = -np.infty
+    xmin = np.inf
+    xmax = -np.inf
+    ymin = np.inf
+    ymax = -np.inf
     for line in ax.get_lines():
         try:
             xmin = np.minimum(xmin, np.min(line.get_xdata()))
@@ -935,7 +935,7 @@ def find_nearest_value_and_index(x_arr, x_star):
 def get_intersection_index(y, z, x_y = [], x_z = []):
     def get_intersection_index(y, z):
         # assume two arrays y and z OF SAME SIZE and we find the index where the difference between them is the smallest
-        dif = np.infty
+        dif = np.inf
         ind = 0
         for i in range(len(y)):
             difference = (np.abs(y[i] - z[i]))
@@ -946,7 +946,7 @@ def get_intersection_index(y, z, x_y = [], x_z = []):
     if len(x_y) == 0:
         return get_intersection_index(y, z)
     else:
-        dif = np.infty
+        dif = np.inf
         ind_i, ind_j = 0, 0
         for i,j in product(range(len(y)), range(len(z))):
             # we need a metric for the difference, lets take RS
@@ -1287,7 +1287,7 @@ def find_fwhm(x, y):
 def critical_amplitude(eps, xi0):
     return xi0 / (eps ** 1)
 
-def process_file_old(file_path, threshold, key='t', value='U_L', L=np.infty, cap=0.2):
+def process_file_old(file_path, threshold, key='t', value='U_L', L=np.inf, cap=0.2):
     """
     Process a single file and calculate the average after the given threshold.
     Will now also return the error on the average
@@ -1609,7 +1609,7 @@ def process_temp_folder_old(temp_folder_path, threshold, file_ending, value, pro
             nr_subsys = parameters["nr_subsystems"]
             # fing sh... I guess It doesnt matter but it is so ugly
             if value== "U_L":
-                L = np.infty
+                L = np.inf
             else:
                 direction = value[-1]
                 L = parameters["subsystem_L" + direction]         # We need the subsystem sizes to see if the values we average make sense

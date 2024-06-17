@@ -140,10 +140,10 @@ def create_config(given_config, default_config):
         return config
 def get_spans(ax):
     # The base of those ticks should be read of the data
-    xmin = np.infty
-    xmax = -np.infty
-    ymin = np.infty
-    ymax = -np.infty
+    xmin = np.inf
+    xmax = -np.inf
+    ymin = np.inf
+    ymax = -np.inf
     for line in ax.get_lines():
         try:
             xmin = np.minimum(xmin, np.min(line.get_xdata()))
@@ -464,7 +464,7 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
                 b = next_size / size  # next size is the larger size so b > 0
                 # values to keep track wich z is the best
                 best_z = 0
-                best_msd = np.infty
+                best_msd = np.inf
                 best_t_compare_arr = []
                 best_cum_compare_arr = []
                 # we need to try out every z

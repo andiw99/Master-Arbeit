@@ -4,7 +4,7 @@ from FunctionsAndClasses import *
 from decimal import Decimal
 
 
-def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log", direction="parallel", sim_path=None):
+def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_curves=np.inf, y_scale="log", direction="parallel", sim_path=None):
     if quench:
         setting_var = r"$\tau$"
     # first we need to find out which taus we want to plot
@@ -93,7 +93,7 @@ def plot_process(size_dic, t_eq, t_eq_end=0, quench=True, quench_zoom=1, max_nr_
     fig.subplots_adjust(wspace=0.01)
     return fig, axes
 
-def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.infty, y_scale="log"):
+def plot_process2(size_dic, t_eq, quench=True, quench_zoom=1, max_nr_curves=np.inf, y_scale="log"):
     if quench:
         setting_var = r"$\tau$"
     # first we need to find out which taus we want to plot
@@ -164,7 +164,7 @@ def main():
     y_lower_lim = 0.1
     set_fts_to_zero = False
     min_tau_fit = 100
-    max_tau_fit = np.infty
+    max_tau_fit = np.inf
     plot_struct = True
     cut_around_peak = True
     peak_cut_threshold = 0.1

@@ -173,7 +173,7 @@ def main():
         #        color=f"C{i}")
         max_t = np.max(np.array(t_fold))
         min_t = np.min(np.array(t_fold))
-        min_squared_error = np.infty
+        min_squared_error = np.inf
         min_z = 1
         if(prev_size_temp):
             actual_size = size_temp[0]

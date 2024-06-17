@@ -379,7 +379,7 @@ def config_xi_inv_plot(axx, axy, fig, simulation_folder, sizey):
 def best_fit(T_arr, T_c_est_max, T_c_est_min, T_min_fit_max, T_min_fit_min, res, xi_sorted):
     T_c_ests = np.linspace(T_c_est_min, T_c_est_max, num=res, endpoint=True)
     T_mins_fit = np.linspace(T_min_fit_min, T_min_fit_max, num=res, endpoint=True)
-    min_mse = np.infty
+    min_mse = np.inf
     T_c_best = 0
     T_min_best = 0
     popt = ()

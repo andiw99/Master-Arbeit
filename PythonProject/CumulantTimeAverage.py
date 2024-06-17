@@ -45,7 +45,7 @@ def main():
     fig, ax = plt.subplots(1, 1)
 
     y_upper_lim = 0
-    y_lower_lim = np.infty
+    y_lower_lim = np.inf
     shown_inds = np.linspace(0, nr_curves, nr_curves+1, endpoint=True, dtype=np.int64)
     ind = 0
     for i, size in enumerate(sorted(results.keys())):
