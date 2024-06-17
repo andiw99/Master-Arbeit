@@ -1103,7 +1103,7 @@ class crit_temp_measurement(autonomous_measurement):
         return results
     @staticmethod
     def plot_value_curve(simulation_path, results, crit_point=None, value_name="U_L", title="Binder Cumulant on T",
-                         plotname="cum_time_avg", equil_error=None, config=None):
+                         plotname="cum_time_avg", equil_error=None, config=None, exclude=None, min_T=None, max_T=None):
         fig, ax = plt.subplots(1, 1)
         y_upper_lim = 0
         y_lower_lim = np.inf
@@ -1122,8 +1122,14 @@ class crit_temp_measurement(autonomous_measurement):
         size_max = np.max(sizes)
         first_dict = next(iter(results.values()))
         T_arr = first_dict["T"]
-        max_T = np.max(T_arr) * 1.005 / J_para
-        min_T = np.min(T_arr) * 0.995 / J_para
+        if min_T is None:
+            min_T = np.min(T_arr) * 0.995 / J_para
+        else:
+            min_T /= J_para
+        if max_T is None:
+            max_T = np.max(T_arr) * 1.005 / J_para
+        else:
+            max_T /= J_para
 
         for i, size in enumerate(sorted(results.keys())):
             if i in shown_inds:
@@ -1138,20 +1144,29 @@ class crit_temp_measurement(autonomous_measurement):
                     y_lower_lim = np.minimum(
                         np.min(val[(min_T <= T) & (T <= max_T)]), y_lower_lim)
         y_span = y_upper_lim - y_lower_lim
-        ax.set_xlabel("$T~/~J_\parallel$")
-        ax.set_ylabel(rf"${value_name}$")
+        ax.set_xlabel("effective temperature $T~/~J_\parallel$")
+        ax.set_ylabel(rf"Binder cumulant ${value_name}$")
         #ax.set_title(title)
         if min_T:
             ax.set_xlim(min_T, ax.get_xlim()[1])
-            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.02 * y_span)
         if max_T:
             ax.set_xlim(ax.get_xlim()[0], max_T)
-            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.1 * y_span)
+            ax.set_ylim(y_lower_lim - 0.1 * y_span, y_upper_lim + 0.02 * y_span)
         if crit_point:
             if crit_point == 1:
                 # In this case we want to calculate the critical point?
+                # We exclude the sizes in exclude
+                if exclude is not None:
+                    results_intersection = {}
+                    for size in results:
+                        if size not in exclude:
+                            results_intersection[size] = results[size]
+                else:
+                    results_intersection = results
+
                 intersections, intersections_y = get_first_intersections(
-                    results, value_name)
+                    results_intersection, value_name)
                 T_c = np.mean(intersections) / J_para
                 val_intersection = np.mean(intersections_y)
             else:
@@ -2457,8 +2472,8 @@ class quench_measurement(autonomous_measurement):
             fig, ax = plt.subplots(1, 1)
             ax.set_yscale("log")
             ax.set_xscale("log")
-            ax.set_xlabel(r"$\tau_Q\, /\, I$")
-            ax.set_ylabel(rf"$\xi_\{direction} / a_\{direction}$")
+            ax.set_xlabel(r"quench timescale $\tau_Q\, /\, I$")
+            ax.set_ylabel(rf"correlation length $\xi_\{direction} / a_\{direction}$")
 
         sizes = sorted(list(size_tau_xi_dic.keys()))
 

@@ -236,7 +236,10 @@ def plot_1_h_1():
     folder_avg_function=read_folder_avg
     config = {
         "increasefontsize": 0.6,
-        "labelhorizontalalignment": "right",
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "labelrotation": 90,
+
     }
     sizes = np.linspace(72, 120, 3, dtype=np.int64)
     sizes = np.linspace(48, 144, 4, dtype=np.int64)

@@ -12,35 +12,38 @@ def main():
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
-    J_para = -3.11
+    J_para = -10
     J_perp = -0.1
-    h = 0.2827272727272727
+    h = 1
     eta = 1
     p = 2.5
     dt = 0.01
 
-    # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Nu-L-old/"
+    project = "MinimalCudaProject"
+    # filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/nu/"
 
-    Tc_exec_file = "AutoCumulant.cu"
+    Tc_exec_file = "AutoCumulantOBC.cu"
     #runfile = "run_cuda_gpu_a100_low.sh"
-    runfile = "run_cuda_casus_low.sh"
     runfile = "run_cuda.sh"
+    runfile = "run_cuda_gpu_a100_low_minimal.sh"
     # Tc parameters
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
     equil_error = 0.001
-    min_equil_error = 0.0008
+    min_equil_error = 0.0006
     max_rel_intersection_error = 0.005       # is this to small or fine?
-    max_rel_intersection_error = 0.005
     equil_cutoff = 0.1
     # since we need quantitative exact values, we should know T_c beforehand
     #min_T = 0.94
     #max_T = 0.96
+    # Values of J_J = 31
+    # min_T = 0.98 * (0.853073)
+    # max_T = 1.02 * (0.853073)
 
-    min_T = 0.98 * (0.853073)
-    max_T = 1.02 * (0.853073)
+    min_T = 0.98 * (1.958)
+    max_T = 1.02 * (1.958)
     nr_Ts = 5
 
     # we should start at another parameter file nr because yeah
@@ -48,16 +51,16 @@ def main():
     file_ending = "mag"
     value_name = "U_L"
     val_write_density = 1 / 100
-    min_mag_nr = 500
+    min_mag_nr = 750
     process_file_func = process_new_mag_file_to_U_L
     equil_cutoff = 0.5
 
 
 
-    Ls = [16, 24, 32, 40, 48, 56, 64, 72, 96, 128]
     Ls = [56, 84, 96, 112, 128]
 
     Ls = [84, 112]
+    Ls = [16, 24, 32, 40, 48, 56, 64, 72, 80, 96, 128]
     Ly_Lx = 1 / 2
 
     crit_temps = []

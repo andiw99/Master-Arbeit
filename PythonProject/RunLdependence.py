@@ -19,9 +19,10 @@ def main():
     p = 2.5
     dt = 1e-5
 
-    # filepath = "/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/CudaProject"
-    filepath = "/home/andi/Studium/Code/Master-Arbeit/CudaProject"
-    simulation_path = "../../Generated content/Final/Nu-L/"
+    project = "MinimalCudaProject"
+    # filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/nu"
 
     Tc_exec_file = "AutoCumulant.cu"
     runfile = "run_cuda_gpu_a100_low.sh"

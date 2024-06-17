@@ -502,8 +502,8 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
                         best_cum_compare_arr[1:],
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
                                              f"\tz = {best_z:.3f}", color=colors[2 * (i + 1)])
-        ax.set_ylabel(r"$U_L$")
-        ax.set_xlabel("$t \,/\, I$")
+        ax.set_ylabel(r"Binder cumulant $U_L$")
+        ax.set_xlabel("dimensionless time$ t \,/\, I$")
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 

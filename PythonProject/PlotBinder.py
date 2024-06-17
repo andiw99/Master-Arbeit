@@ -4,13 +4,23 @@ from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.5
     process_file_func = recalculate_mag_file_to_U_L
+    process_file_func = process_new_mag_file_to_U_L
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/detailed/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
-    selected_sizes = [128, 16, 48, 72]
+    selected_sizes = [64, 96, 128]
     selected_sizes = None
-    results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,
+    exclude = [32]
+    selected_temps = None
+    #selected_temps = np.linspace(1.91, 2.0, 10)
+    #min_T_plot = 1.915
+    #max_T_plot = 2.0
+    min_T_plot = None
+    max_T_plot = None
+
+    results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=selected_temps,
                           selected_sizes=selected_sizes, value_name="U_L", file_ending="mag",
                           process_file_func=process_file_func)
     print(results)
@@ -22,11 +32,14 @@ def main():
         pass
     crit_point = 1
 
-    config = {"labelhorizontalalignment": "right",
-              "increasefontsize": 0.6}
+    config = {"labelhorizontalalignment": "center",
+              "labelverticalalignment": "bottom",
+              "increasefontsize": 0.6,
+              "labelrotation": 90,}
 
     fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=crit_point, value_name="U_L", title="Binder Cumulant on T",
-                                           plotname="cum_time_avg", equil_error=None, config=config)
+                                           plotname="cum_time_avg", equil_error=None, config=config, exclude=exclude,
+                                                     min_T=min_T_plot, max_T=max_T_plot)
     plt.show()
     #T_range = (0.836012, 0.870134)
     # T_range=None

@@ -2,7 +2,7 @@ from Suite import *
 import numpy as np
 
 def main():
-    h_arr = [1]
+    h_arr = [10]
     nr_gpus = 20
     J_para = -10
     J_perp = -0.1
@@ -10,7 +10,7 @@ def main():
     p = 2.5
     eta_arr = [0.01]
     eta_arr = [50, 100]
-    eta_arr = [10]
+    eta_arr = [1]
     dt = 0.01
 
     project = "MinimalCudaProject"
@@ -36,18 +36,18 @@ def main():
     max_tau = 10000
     min_nr_systems = 30
     Ly_Lx = 1 / 8
-    para_nr_quench = int(input("please just change the parameter nubmer :("))
 
     #T_c = 21351     # maybe this T_c is to low?
     T_c = 0.296 * 3.11
-    T_c = 0.19725 * 10
+    T_c = 0.3323 * 10
     #T_c = 1.15
     min_nr_corr_values = 100
 
     for h in h_arr:
-        print(h)
         curr_sim_path = simulation_path + f"{h}/"
         for eta in eta_arr:
+            input(f"h = {h}, eta = {eta}, Tc = {T_c} okay?")
+            para_nr_quench = int(input("please just change the parameter nubmer :("))
             quench = quench_measurement(J_para, J_perp, h, eta, p, dt, filepath, curr_sim_path + f"Damping/Quench/{eta}",
                                         quench_exec_file, runfile_quench, T_c, nr_GPUS=nr_gpus, size_max=max_size,
                                         min_nr_sites=min_nr_sites, max_nr_steps=max_nr_quench_steps,
