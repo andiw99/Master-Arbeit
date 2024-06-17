@@ -6,8 +6,8 @@ def main():
     process_file_func = recalculate_mag_file_to_U_L
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/around Tc/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
     selected_sizes = [128, 16, 48, 72]
     selected_sizes = None
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,

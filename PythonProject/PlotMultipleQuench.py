@@ -27,18 +27,17 @@ def plot_multiple_h():
     plot_multiple_quench_scalings(additional_ft_points, cut_zero_impuls, fitfunc, min_tau, simpaths,
                                   min_points=min_points, names=names)
 
+simpaths = [
+    "../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/1",
+    "../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/0.01",
+    "../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/10",
+    #"../../Generated content/Final/Quenches-old/1/Damping/Quench/10",
+    #"../../Generated content/Final/Quenches-old/1/Damping/Quench/50-short-equil",
+    #"../../Generated content/Final/Quenches-old/1/Damping/Quench/100",
+    #"../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1",
+    #"../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01",
+]
 def plot_multiple_eta():
-    simpaths = [
-        "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/1",
-        #"../../Generated content/Final/Quenches-old/1/Damping/Quench/10",
-        #"../../Generated content/Final/Quenches-old/1/Damping/Quench/50-short-equil",
-        #"../../Generated content/Final/Quenches-old/1/Damping/Quench/100",
-        #"../../Generated content/Final/Quenches-old/1/Damping/Quench/0.1",
-        #"../../Generated content/Final/Quenches-old/end-equilibration-correct-range/1/Damping/Quench/0.01",
-        "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01",
-        "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/10",
-
-    ]
 
     names = [
         #" equil",
@@ -48,7 +47,7 @@ def plot_multiple_eta():
         r"$, \eta = 10$",
         r"$, \eta = 0.1$",
     ]
-    additional_ft_points = 5
+    additional_ft_points = 20
     min_tau = 600
     cut_zero_impuls = True
     min_points = 4

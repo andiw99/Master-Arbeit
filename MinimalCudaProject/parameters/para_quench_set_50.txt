@@ -1,4 +1,4 @@
-../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/1
+../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/1
 dt, 0.01 
 J, -10 
 Jy, -0.1 
@@ -26,5 +26,5 @@ min_corr_nr, 100
 corr_second, 0
 equil_time, 500
 equil_time_end, 0
-gamma, 2
+gamma, 1
 tau_base, 1.4142135623730951

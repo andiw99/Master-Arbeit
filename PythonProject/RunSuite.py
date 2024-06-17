@@ -21,7 +21,7 @@ def main():
     max_size_Tc = 32
     min_size_Tc = 128
     nr_sizes_Tc = 4
-    nr_Ts = 10
+    nr_Ts = 11
     cum_error = 0.0005
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
@@ -34,9 +34,9 @@ def main():
 
     random_init = 0.0
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/detailed/"
 
 
     Tc_exec_file = "AutoCumulantOBC.cu"
@@ -64,8 +64,12 @@ def main():
     # J_J = 31 detailed settings:
     # T_min = 0.267 * np.abs(J_para)
     # T_max = 0.281 * np.abs(J_para)
-    T_min = 0.155 * np.abs(J_para)
-    T_max = 0.245 * np.abs(J_para)
+    # rough measurement J_J = 100
+    # T_min = 0.155 * np.abs(J_para)
+    # T_max = 0.245 * np.abs(J_para)
+    T_min = 0.19 * np.abs(J_para)
+    T_max = 0.20 * np.abs(J_para)
+
 
     #T_min = 0.83601154
     #T_max = 0.8701344599999999

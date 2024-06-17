@@ -1,9 +1,9 @@
-../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/0.01
+../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/1
 dt, 0.01 
 J, -10 
 Jy, -0.1 
 alpha, 1 
-eta, 0.01 
+eta, 1 
 nr_saves, 2 
 nr_repeat, 0 
 starting_temp, 2.95875 

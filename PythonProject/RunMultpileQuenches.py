@@ -14,8 +14,8 @@ def main():
     dt = 0.01
 
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     # simulation_path = "../../Generated content/h Quench/"
     simulation_path = "../../Generated content/Paper content/Quenches/h=/"
     equil_time_end = 0
@@ -34,7 +34,7 @@ def main():
     max_nr_quench_steps = 1e7
     nr_sites = 2e6
     max_tau = 10000
-    min_nr_systems = 20
+    min_nr_systems = 30
     Ly_Lx = 1 / 8
     para_nr_quench = int(input("please just change the parameter nubmer :("))
 

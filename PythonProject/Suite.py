@@ -1057,7 +1057,7 @@ class crit_temp_measurement(autonomous_measurement):
                 # If jobs done is not empty this means we alread have a measurment
                 # with the same parameters but at a different temperature
                 best_done_T = 0
-                min_T_diff = np.infty
+                min_T_diff = np.inf
                 for ind, (done_size, done_temp) in enumerate(self.jobs_done):
                     # the size has to coincide
                     if done_size == size:
@@ -1106,7 +1106,7 @@ class crit_temp_measurement(autonomous_measurement):
                          plotname="cum_time_avg", equil_error=None, config=None):
         fig, ax = plt.subplots(1, 1)
         y_upper_lim = 0
-        y_lower_lim = np.infty
+        y_lower_lim = np.inf
         shown_inds = np.linspace(0, len(results), len(results) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
@@ -1176,7 +1176,7 @@ class crit_temp_measurement(autonomous_measurement):
             T_max = max(T_range)
         else:
             T_min = 0
-            T_max = np.infty
+            T_max = np.inf
 
         sizes = []
         derivatives = []
@@ -1450,7 +1450,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                        title="Binder Cumulant on T", plotname="cum_time_avg", config=None):
         fig, ax = plt.subplots(1, 1)
         y_upper_lim = 0
-        y_lower_lim = np.infty
+        y_lower_lim = np.inf
         shown_inds = np.linspace(0, len(results), len(results) + 1, endpoint=True,
                                  dtype=np.int64)
         ind = 0
@@ -1638,7 +1638,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 elif not intersections:
                     # means intersection is empty so we measured far away U_L points that do not intersection
                     T_c = np.mean(T_arr)
-                    T_c_error = np.infty
+                    T_c_error = np.inf
 
                 T_interval_low = np.max(T_arr[T_arr <= T_c])
                 T_interval_up = np.min(T_arr[T_arr >= T_c]) # this should hopefully guaranteed to be always dT larger than lower interval?
@@ -1846,7 +1846,7 @@ class efficient_crit_temp_measurement(autonomous_measurement):
                 # If jobs done is not empty this means we alread have a measurment
                 # with the same parameters but at a different temperature
                 best_done_T = 0
-                min_T_diff = np.infty
+                min_T_diff = np.inf
                 for ind, (done_size, done_temp) in enumerate(self.jobs_done):
                     # the size has to coincide
                     if done_size == size:
@@ -1941,7 +1941,7 @@ class quench_measurement(autonomous_measurement):
                  nr_GPUS=6, size_min=64, size_max=4096, nr_sites=5e5, Ly_Lx=1/8,
                  min_quench_steps=100, min_nr_sites=1e6, min_nr_systems=10,
                  host="hemera", user="weitze73", wait=30, max_nr_steps=1e7, para_nr=100,
-                 tau_max=np.infty, min_nr_corr_values = 500, equil_time=0, equil_time_end=0,
+                 tau_max=np.inf, min_nr_corr_values = 500, equil_time=0, equil_time_end=0,
                  gamma=1, project="CudaProject", base=2):
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,  nr_GPUS=nr_GPUS,
                          Ly_Lx=Ly_Lx, wait=wait, para_nr=para_nr, runfile=runfile)
@@ -2497,7 +2497,7 @@ class quench_measurement(autonomous_measurement):
         # ax.set_ylim(prev_y_low, prev_y_up)
         if config is None:
             config = {
-                "increasefontsize": 1.25,
+                "increasefontsize": 0.6,
                 "labelverticalalignment": "bottom",
                 "labelrotation": 90
             }
@@ -2718,7 +2718,7 @@ class amplitude_measurement(autonomous_measurement):
                 else:
                     # This means there is a job but not with the same temperature, so we find the closest temperature
                     best_done_T = 0
-                    min_T_diff = np.infty
+                    min_T_diff = np.inf
                     for ind, (done_temp) in enumerate(self.Ts_done):
                         # the size has to coincide
                         temp_diff = np.abs(T - done_temp)
@@ -3291,7 +3291,7 @@ class amplitude_measurement(autonomous_measurement):
 
 
     @staticmethod
-    def prep_sim_data(equil_cutoff, simpath, value, T_min=0, T_max=np.infty):
+    def prep_sim_data(equil_cutoff, simpath, value, T_min=0, T_max=np.inf):
         results_x = {}
         size_folders = find_size_folders(simpath)
         for size_folder in size_folders:
@@ -3587,7 +3587,7 @@ class z_measurement(autonomous_measurement):
                 b = next_size / size  # next size is the larger size so b > 0
                 # values to keep track wich z is the best
                 best_z = 0
-                best_msd = np.infty
+                best_msd = np.inf
                 best_t_compare_arr = []
                 best_cum_compare_arr = []
                 # we need to try out every z
