@@ -13,10 +13,10 @@ min_tau_factor, 11.0
 max_tau_factor, 11.0 
 random_init, 1.0 
 curand_random, 1 
-subsystem_min_Lx, 256 
-subsystem_max_Lx, 256 
+subsystem_min_Lx, 512 
+subsystem_max_Lx, 512 
 nr_subsystem_sizes, 0  
-nr_subsystems, 245 
+nr_subsystems, 62 
 x_y_factor, 0.125 
 nr_corr_values, 300 
 nr_ft_values, 300 

@@ -16,6 +16,8 @@ markers = ["o", "s", "^", "v", "D", "p", "1", "2","*", "x", "+", "v", "^"]
 colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356"]
 colors += colors + colors + colors + colors
 colors += colors + colors + colors + colors
+z_colors = ["#00305d", "#009de0", "#65b32e", "C1"]
+
 
 PLOT_DEFAULT_CONFIG = {
     "ylabelsize": 11,
@@ -442,7 +444,7 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
 
             t_fold, cum_fold = fold(times, cum, fold=fold_nr)
             # plot the points
-            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(colors[2 * i]), marker=markers[i], label=f"$L_\parallel$={size}", alpha=0.5)
+            ax.plot(t_fold, cum_fold, **get_point_kwargs_color(z_colors[i]), marker=markers[i], label=f"$L_\parallel$={size}", alpha=0.5)
             # the new interploation works with np.interp
             # the number of points of interp should be... i dont know at least a bit larger than the number of folded values?
             # what even happens when you try to use less values haha?
@@ -501,9 +503,9 @@ def fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=3, xlim=0.5, con
                 ax.plot(best_t_compare_arr[1:],
                         best_cum_compare_arr[1:],
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
-                                             f"\tz = {best_z:.3f}", color=colors[2 * (i + 1)])
+                                             f"\tz = {best_z:.3f}", color=z_colors[i+1])
         ax.set_ylabel(r"Binder cumulant $U_L$")
-        ax.set_xlabel("dimensionless time$ t \,/\, I$")
+        ax.set_xlabel("dimensionless time $t \,/\, I$")
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
