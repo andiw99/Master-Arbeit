@@ -8,8 +8,8 @@ def main():
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/detailed/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/detailed/Tc"
     selected_sizes = [64, 96, 128]
     selected_sizes = None
     exclude = [32]
@@ -40,6 +40,14 @@ def main():
     fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=crit_point, value_name="U_L", title="Binder Cumulant on T",
                                            plotname="cum_time_avg", equil_error=None, config=config, exclude=exclude,
                                                      min_T=min_T_plot, max_T=max_T_plot)
+
+    fig, ax = crit_temp_measurement.fit_and_plot_nu(simulation_path, results,
+                                                    crit_point=None,
+                                                    value_name="U_L")
+    create_directory_if_not_exists(f"{simulation_path}/plots/")
+    fig.savefig(simulation_path + f"/plots/nu-{equil_cutoff}.png", format="png",
+                dpi=300, transparent=False)
+
     plt.show()
     #T_range = (0.836012, 0.870134)
     # T_range=None

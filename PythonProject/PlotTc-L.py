@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
-    equil_cutoffs = np.linspace(0.02, 0.3, 1)
+    equil_cutoffs = np.linspace(0.5, 0.3, 1)
     for equil_cutoff in equil_cutoffs:
         print("equil_cutoff = ", equil_cutoff)
         process_file_func = recalculate_mag_file_to_U_L
-        simulation_path = "../../Generated content/Final/Nu-L-old (copy)"
+        process_file_func = process_new_mag_file_to_U_L
+        simulation_path = "../../Generated content/Paper content/Binder intersection/nu2"
 
         J_para = 3.11
         selected_sizes = [128, 16, 48, 72]
@@ -16,7 +17,9 @@ def main():
                               selected_sizes=selected_sizes, value_name="U_L", file_ending="mag",
                               process_file_func=process_file_func)
 
-        config = {"labelhorizontalalignment": "right",
+        config = {"labelhorizontalalignment": "center",
+                  "labelrotation": 90,
+                  "labelverticalalalignment": "bottom",
                   "increasefontsize": 0.6}
         fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=None, value_name="U_L", title="Binder Cumulant on T",
                                                plotname="cum_time_avg", equil_error=None, config=config)

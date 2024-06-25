@@ -1226,15 +1226,17 @@ class crit_temp_measurement(autonomous_measurement):
 
         fig, ax = plt.subplots(1, 1)
 
-        ax.set_xlabel("L")
-        ax.set_ylabel(r"$\frac{d U_L}{d \varepsilon}$")
+        ax.set_xlabel(r"system size $L_\parallel$")
+        ax.set_ylabel(r"slope $~~\partial_\varepsilon U(0, L)$")
         ax.legend()
 
         ax.plot(sizes, derivatives, marker="s", **get_point_kwargs_color(colors[0]))
         ax.plot(sizes, poly(sizes, 1 / nu, np.exp(popt[1])), label=rf"$\nu = {nu:.3f} \pm {nu_err:.3f}$", color=colors[0])
 
         config = {
-            "labelhorizontalalignment": "right",
+            "labelhorizontalalignment": "center",
+            "labelrotation": 90,
+            "labelverticalalignment": "bottom",
             "increasefontsize": 0.75
         }
         configure_ax(fig, ax, config)
