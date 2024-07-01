@@ -97,6 +97,14 @@ build CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o: CUDA_COMPILER__CudaProject_
   TARGET_COMPILE_PDB = CMakeFiles/CudaProject.dir/
   TARGET_PDB = CudaProject.pdb
 
+build CMakeFiles/CudaProject.dir/AutoCumulantVectorialOBC.cu.o: CUDA_COMPILER__CudaProject_unscanned_Debug /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/AutoCumulantVectorialOBC.cu || cmake_object_order_depends_target_CudaProject
+  DEP_FILE = CMakeFiles/CudaProject.dir/AutoCumulantVectorialOBC.cu.o.d
+  FLAGS = -g -std=c++20 "--generate-code=arch=compute_75,code=[compute_75,sm_75]"
+  OBJECT_DIR = CMakeFiles/CudaProject.dir
+  OBJECT_FILE_DIR = CMakeFiles/CudaProject.dir
+  TARGET_COMPILE_PDB = CMakeFiles/CudaProject.dir/
+  TARGET_PDB = CudaProject.pdb
+
 
 # =============================================================================
 # Device Link build statements for EXECUTABLE target CudaProject
@@ -105,7 +113,7 @@ build CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o: CUDA_COMPILER__CudaProject_
 #############################################
 # Link the executable CMakeFiles/CudaProject.dir/cmake_device_link.o
 
-build CMakeFiles/CudaProject.dir/cmake_device_link.o: CUDA_EXECUTABLE_DEVICE_LINKER__CudaProject_Debug CMakeFiles/CudaProject.dir/SubsystemRelaxation-cuda.cu.o CMakeFiles/CudaProject.dir/SubsystemQuench.cu.o CMakeFiles/CudaProject.dir/AutoQuench-h.cu.o CMakeFiles/CudaProject.dir/AutoQuench.cu.o CMakeFiles/CudaProject.dir/AutoCumulantOBC.cu.o CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o
+build CMakeFiles/CudaProject.dir/cmake_device_link.o: CUDA_EXECUTABLE_DEVICE_LINKER__CudaProject_Debug CMakeFiles/CudaProject.dir/SubsystemRelaxation-cuda.cu.o CMakeFiles/CudaProject.dir/SubsystemQuench.cu.o CMakeFiles/CudaProject.dir/AutoQuench-h.cu.o CMakeFiles/CudaProject.dir/AutoQuench.cu.o CMakeFiles/CudaProject.dir/AutoCumulantOBC.cu.o CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o CMakeFiles/CudaProject.dir/AutoCumulantVectorialOBC.cu.o
   LANGUAGE_COMPILE_FLAGS = -g "--generate-code=arch=compute_75,code=[compute_75,sm_75]"
   LINK_LIBRARIES = -lcudadevrt -lcudart_static -lrt -lpthread -ldl
   OBJECT_DIR = CMakeFiles/CudaProject.dir
@@ -120,7 +128,7 @@ build CMakeFiles/CudaProject.dir/cmake_device_link.o: CUDA_EXECUTABLE_DEVICE_LIN
 #############################################
 # Link the executable CudaProject
 
-build CudaProject: CUDA_EXECUTABLE_LINKER__CudaProject_Debug CMakeFiles/CudaProject.dir/SubsystemRelaxation-cuda.cu.o CMakeFiles/CudaProject.dir/SubsystemQuench.cu.o CMakeFiles/CudaProject.dir/AutoQuench-h.cu.o CMakeFiles/CudaProject.dir/AutoQuench.cu.o CMakeFiles/CudaProject.dir/AutoCumulantOBC.cu.o CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o CMakeFiles/CudaProject.dir/cmake_device_link.o
+build CudaProject: CUDA_EXECUTABLE_LINKER__CudaProject_Debug CMakeFiles/CudaProject.dir/SubsystemRelaxation-cuda.cu.o CMakeFiles/CudaProject.dir/SubsystemQuench.cu.o CMakeFiles/CudaProject.dir/AutoQuench-h.cu.o CMakeFiles/CudaProject.dir/AutoQuench.cu.o CMakeFiles/CudaProject.dir/AutoCumulantOBC.cu.o CMakeFiles/CudaProject.dir/AutoAmplitude.cu.o CMakeFiles/CudaProject.dir/AutoCumulantVectorialOBC.cu.o CMakeFiles/CudaProject.dir/cmake_device_link.o
   FLAGS = -g "--generate-code=arch=compute_75,code=[compute_75,sm_75]"
   LINK_LIBRARIES = -lcudadevrt  -lcudart_static  -lrt  -lpthread  -ldl
   OBJECT_DIR = CMakeFiles/CudaProject.dir

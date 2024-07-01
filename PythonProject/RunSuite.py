@@ -20,9 +20,9 @@ def main():
     dt = 0.01
     max_size_Tc = 32
     min_size_Tc = 128
-    nr_sizes_Tc = 4
-    nr_Ts = 11
-    cum_error = 0.0005
+    nr_sizes_Tc = 2
+    nr_Ts = 5
+    cum_error = 0.001
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
@@ -36,10 +36,10 @@ def main():
     project = "MinimalCudaProject"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/detailed/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial"
 
 
-    Tc_exec_file = "AutoCumulantOBC.cu"
+    Tc_exec_file = "AutoCumulantVectorialOBC.cu"
     quench_exec_file = "AutoQuench.cu"
     amplitude_exec_file = "AutoAmplitude.cu"
     z_exec_file = "AutoZ.cu"        # what dow we need here? Maybe different files depending if we are doing the test measurement or the real one?
@@ -67,8 +67,8 @@ def main():
     # rough measurement J_J = 100
     # T_min = 0.155 * np.abs(J_para)
     # T_max = 0.245 * np.abs(J_para)
-    T_min = 0.19 * np.abs(J_para)
-    T_max = 0.20 * np.abs(J_para)
+    T_min = 0.17 * np.abs(J_para)
+    T_max = 0.22 * np.abs(J_para)
 
 
     #T_min = 0.83601154

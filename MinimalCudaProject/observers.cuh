@@ -399,7 +399,7 @@ public:
         return "m equilibration observer";
     }
 
-    void operator()(system &sys, const State &x , double t ) override {
+    void operator()(system &sys, const State &x , double t) override {
         if(t > timepoint - dt_half) {
             // advancing the cum nr
             m_nr++;
@@ -650,6 +650,214 @@ public:
         }
     }
 
+};
+
+template <class system, class State>
+class m_vectorial_equilibration_observer_adaptive: public obsver<system, State> {
+    // does the same stuff as the normal equilibration observer but adapts the write density
+    typedef obsver<system, State> obsver;
+    using obsver::ofile;
+    using obsver::open_stream;
+    using obsver::open_app_stream;
+    using obsver::close_stream;
+    double write_interval = 1;
+    double timepoint = 0;
+    vector<pair<double, double>> m_vec{};
+    vector<double> times{};
+    int min_m_nr = 500;
+    int m_nr_gpu = 2000;                 // nr of cum values at which the calculation switches to gpu
+    double write_density = 1.0 /
+                           100.0;      // we increase the write density to get a more useful value for the autocorrelation function?
+    double min_write_density = 1.0 / 10000.0;   // I think 500 was already a bit slow for my taste
+    double dt = 0.01;
+    double dt_half;
+    double equil_cutoff = 0.1;              // since the equilibration might influce the mean of m_vec a lot we cut a certain portion of m_vec values
+    double max_error = 0.001;
+    int m_nr = 0;                         // current number in the averageing process
+    bool equilibrated = false;                      // for the usecase of the quench with dynamic equilibration
+    double eval_factor = 10000.0;
+    fs::path filepath;
+
+public:
+    m_vectorial_equilibration_observer_adaptive(int min_m_nr) : min_m_nr(min_m_nr) {}
+
+    m_vectorial_equilibration_observer_adaptive(int min_m_nr, double write_density) : min_m_nr(min_m_nr),
+                                                                                      write_density(write_density) {}
+
+    m_vectorial_equilibration_observer_adaptive(int min_cum_nr, double write_density, double equil_cutoff) :
+            min_m_nr(min_cum_nr), write_density(write_density), equil_cutoff(equil_cutoff) {}
+
+    void init(fs::path path, map<Parameter, double> &paras, const system &sys) override {
+        cout << "initializing m equilibration observer" << endl;
+        int run_nr = (int) paras[Parameter::run_nr];
+        max_error = paras[Parameter::equil_error];
+        if (paras[Parameter::min_cum_nr]) {
+            min_m_nr = (int) paras[Parameter::min_cum_nr];
+        }
+        timepoint = paras[Parameter::start_time];
+        dt = paras[Parameter::dt];
+        equilibrated = false;
+        // we also need to reset m_vec and times, dont we?
+        m_vec = vector<pair<double, double>>{};
+        times = vector<double>{};
+        close_stream();
+
+        bool pick_up = (paras[Parameter::random_init] == -1.0);
+        if (!pick_up) {
+            filepath = path / (obsver::construct_filename(run_nr) + ".mag");
+            open_stream(filepath);
+            ofile << "t;m" << endl;
+        } else {
+            path += ".mag";
+            filepath = path;
+            readMagFromFile(path, m_vec, times);
+            write_interval = times[1] - times[0];
+            write_density = dt / write_interval;    // We should adapt the write interval of the file that we read
+            cout << "picked up write density of " << write_density << "  corresponding to a write interval of "
+                 << write_interval;
+            // the other observers that dont read the values in actually have a problem with defining the timepoint?
+            // problem is that you set the timepoint here to the back of m_vec, but it might be that the .csv
+            // file has not written that many states because it somehow didnt finish...
+            timepoint += write_interval;
+            cout << "Pickup, setting timepoint of " << this->get_name() << " to " << timepoint << endl;
+            open_app_stream(path);
+        }
+        cout << this->get_name() << " init called" << endl;
+
+
+        // I think the starting write interval should be every one hundred steps
+        dt_half = dt / 2.0;
+        write_interval = dt / write_density;
+        cout << "I am sure the write interval is " << write_interval << endl;
+    }
+
+    string get_name() override {
+        return "m equilibration observer";
+    }
+
+    void operator()(system &sys, const State &x, double t) override {
+        if (t > timepoint - dt_half) {
+            // advancing the cum nr
+            m_nr++;
+            // we calculate the cumulant and write it down
+            thrust::host_vector<pair<double, double>> m_val_vec = sys.calc_m_vec_vectorial(x);
+            // with this observer we could think about writing at the end of the simulation, or at least rewriting
+            // the file if we changed the stepsize
+            // How do we do this, we cannot save every m value... I think we will try for now?
+            ofile << t << ";";
+            for (auto m_val: m_val_vec) {
+                ofile << m_val.first << "," << m_val.second;
+            }
+            ofile << endl;
+            // add the cumulant and the times to the vectors to keep track
+            // m_vec.push_back(m_val);
+            m_vec.insert(m_vec.end(), m_val_vec.begin(), m_val_vec.end());
+            times.push_back(t);
+            // now we want to see if we have to adjust the write interval
+            // we have to make sure that we got 5 fresh cum values
+            if (!equilibrated) {
+                int nr_m_measurements = m_vec.size() / m_val_vec.size();      // check how often we measured
+                int nr_m_values = m_vec.size();
+                // cout << "nr_m_values: " << nr_m_values << endl;
+                // now use the last avg_nr of cum values to calculate a mean m_vec
+                // use transform reduce?
+                // does it work like this? m_vec.end() - avg_nr is the n-th last value in the vector?
+                if (nr_m_measurements >= min_m_nr) {
+                    int eval_every_n_steps = (int) (eval_factor * write_density) +
+                                             1;   // I think this + 1 makes everything nicer? Or does it?
+                    if (m_vec.size() % eval_every_n_steps == 0) {
+                        // We dont need to calculate the error and stuff everytime we write down a m_vec
+                        // IF the density is small, we should write down more often
+                        // the equilibration phase might influence the mean a lot, should we cut of the first x% of the values?
+                        int min_ind = (int) (equil_cutoff * nr_m_values);
+                        int nr_values_to_use = nr_m_values - min_ind;
+                        // we calculate the Binder cumulant according to the ergodic hyptheses from all the ms we extracted
+                        // TODO if you have time you can do this on GPU but it shouldnt be to useful
+                        pair<double, double> *m = &m_vec[min_ind];
+                        // cout << "min ind " << min_ind << endl;
+                        // cout << "nr_values_to_use " << nr_values_to_use << endl;
+                        double m_L2 = std::transform_reduce(m, m + nr_values_to_use,
+                                                            0.0, // initial value for the reduction (sum)
+                                                            std::plus<double>(),
+                                                            [](pair<double, double> m_val) -> double {
+                                                                return m_val.first * m_val.first +
+                                                                       m_val.second * m_val.second;
+                                                            });
+                        m_L2 /= (double) nr_values_to_use;
+                        // TODO strictly speaking we would have to calculate autocorrelation times for m² and m⁴ but I
+                        // want to get that running first
+                        double m_L2_err = std::transform_reduce(m, m + nr_values_to_use,
+                                                                0.0, // initial value for the reduction (sum)
+                                                                std::plus<double>(), // transformation (square)
+                                                                [&m_L2](pair<double, double> m_val) {
+                                                                    return pow((m_val.first * m_val.first +
+                                                                                m_val.second * m_val.second - m_L2), 2);
+                                                                });
+                        m_L2_err /= (double) pow(nr_values_to_use, 2);
+                        m_L2_err = sqrt(m_L2_err);
+                        double m_L4 = std::transform_reduce(m, m + nr_values_to_use,
+                                                            0.0, // initial value for the reduction (sum)
+                                                            std::plus<>(), // transformation (square)
+                                                            [](pair<double, double> m_val) {
+                                                                return (pow(m_val.first * m_val.first +
+                                                                            m_val.second * m_val.second, 2));
+                                                            });
+                        m_L4 /= nr_values_to_use;
+                        double m_L4_err = std::transform_reduce(m, m + nr_values_to_use,
+                                                                0.0, // initial value for the reduction (sum)
+                                                                std::plus<>(), // transformation (square)
+                                                                [&m_L4](pair<double, double> m_val) {
+                                                                    return pow(pow(m_val.first * m_val.first +
+                                                                                   m_val.second * m_val.second, 2) -
+                                                                               m_L4, 2);
+                                                                });
+                        m_L4_err /= (double) pow(nr_values_to_use, 2);
+                        m_L4_err = sqrt(m_L4_err);
+                        double U_L = m_L4 / (m_L2 * m_L2);
+                        double U_L_error = sqrt(
+                                pow(1 / m_L2 / m_L2 * m_L4_err, 2) + pow(2 * m_L4 / pow(m_L2, 3) * m_L2_err, 2));
+
+                        double U_L_variance = U_L_error * U_L_error;
+                        double rel_stddev_total = U_L_error / U_L;
+
+
+                        pair<double, double> avg_m_vec = std::reduce(m, m + nr_values_to_use, pair<double, double>(),
+                                                                     add_pair_functor<double>()); // / (double)nr_values_to_use;
+                        avg_m_vec.first /= (double) nr_values_to_use;
+                        avg_m_vec.second /= (double) nr_values_to_use;
+                        cout << "avg_m_vec = (" << avg_m_vec.first << ", " << avg_m_vec.second << ")" << endl;
+
+                        double avg_m = sqrt(avg_m_vec.first * avg_m_vec.first + avg_m_vec.second * avg_m_vec.second);
+                        cout << "avg_m = " << avg_m << endl;
+                        cout << "m_vec variance: " << U_L_variance << endl;
+                        cout << "U_L: " << U_L << endl;
+                        cout << "rel_stddev_total = " << rel_stddev_total << endl;
+
+                        if (rel_stddev_total < max_error) {
+                            cout << "U_L = " << U_L << " +- " << rel_stddev_total * U_L << endl;
+
+                            // we set the system to be equilibrated
+                            cout << "The system equilibrated, the equilibration lastet to t = " << t << endl;
+                            sys.set_equilibration(t);
+                            // write cumulant average
+                            append_parameter(filepath, "U_L", U_L);
+                            append_parameter(filepath, "m", avg_m);
+                            append_parameter(filepath, "m2", m_L2);
+                            append_parameter(filepath, "m4", m_L4);
+
+                            // write error
+                            append_parameter(filepath, "U_L_error", rel_stddev_total);
+                            // write autocorrelation time
+                            // append_parameter(filepath, "autocorrelation_time_U_L", autocorr_time);
+                            // once we did this, we dont want to do that a second time?
+                            equilibrated = true;
+                        }
+                    }
+                }
+            }
+            timepoint += write_interval;
+        }
+    }
 };
 
 template <class system, class State>

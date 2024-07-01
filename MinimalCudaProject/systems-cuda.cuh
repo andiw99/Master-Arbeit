@@ -526,6 +526,19 @@ public:
             return sin(p * x);
         }
     };
+
+    template <class T>
+    struct cos_functor_thrust
+    {
+        cos_functor_thrust(double p): p(p) {}
+        cos_functor_thrust(): p(1.0) {}
+        double p;
+        __host__ __device__
+        T operator()(const T& x) const {
+            return cos(p * x);
+        }
+    };
+
     struct xy_force {
         const double Jx, Jy, h, eta, p_XY, m;
 
@@ -1126,6 +1139,64 @@ public:
 
         return m_vec;
     }
+
+    template<class State>
+    thrust::host_vector<pair<double,double>> calc_m_vec_vectorial(State& x) {
+        // We return the average over the subsystems we have?
+        // so we need to extract the subsystems and calc m, average at the end
+        // actually we should implement this for the normal XY model and make it useable for everything
+        // ahh difficult becauso polymorphism doenst work and we inherit from two classes
+        // hmmm decisions...
+        // we also cannot really reuse the methods from our lattice calculations because we want to use
+
+        int nr_subsystems = dim_size_x / Lx;
+        thrust::host_vector<pair<double, double>> m_vec{};
+        // damn is this already it for the cell?
+        auto cell = thrust::make_permutation_iterator(
+                x.begin(),
+                thrust::make_transform_iterator(
+                        thrust::counting_iterator<size_t>(0),
+                        subsystem_running_index(dim_size_x, Lx, Ly)
+                )
+        );
+
+        // doing chess trafo
+        auto tuple = thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0)));
+        //BOOST_AUTO(tuple, thrust::make_zip_iterator(thrust::make_tuple(cell, thrust::counting_iterator<size_t>(0))));
+        auto cell_trafo = thrust::make_transform_iterator(tuple, running_chess_trafo_iterator(dim_size_x, Lx));
+
+        // before we used reduce by key, we extracted the sinus of the cell by using transform reduce,
+        // now we should transform beforehand i guess
+        auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(2.0));
+        auto cos_cell = thrust::make_transform_iterator(cell_trafo, cos_functor_thrust<double>(2.0));
+        thrust::device_vector<double> m_vec_gpu_sin(nr_subsystems);
+        thrust::device_vector<double> m_vec_gpu_cos(nr_subsystems);
+        //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
+        auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx * Ly));
+        thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
+                              segment_keys + (nr_subsystems * Lx * Ly),
+                              sin_cell,
+                              thrust::make_discard_iterator(),
+                              m_vec_gpu_sin.begin());
+
+        thrust::reduce_by_key(segment_keys,        // is it slow because of this this?
+                              segment_keys + (nr_subsystems * Lx * Ly),
+                              cos_cell,
+                              thrust::make_discard_iterator(),
+                              m_vec_gpu_cos.begin());
+
+        thrust::transform(m_vec_gpu_sin.begin(), m_vec_gpu_sin.end(), m_vec_gpu_sin.begin(), avg_functor((double)Lx, (double)Ly));
+        thrust::transform(m_vec_gpu_cos.begin(), m_vec_gpu_cos.end(), m_vec_gpu_cos.begin(), avg_functor((double)Lx, (double)Ly));
+        auto m_vec_sin = thrust::host_vector<double>(m_vec_gpu_sin);
+        auto m_vec_cos = thrust::host_vector<double>(m_vec_gpu_cos);
+
+        for(int i = 0; i < nr_subsystems; i++) {
+            m_vec.push_back(pair<double, double>(m_vec_sin[i], m_vec_cos[i]));
+        }
+
+        return m_vec;
+    }
+
 
     template<class State>
     double calc_chi(State& x) {

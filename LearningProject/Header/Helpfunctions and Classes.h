@@ -1551,6 +1551,50 @@ void readMagFromFile(const std::string& filename, std::vector<double>& m_vec, st
     file.close();
 }
 
+void readMagFromFile(const std::string& filename, std::vector<pair<double, double>>& m_vec, std::vector<double>& times) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    // the first line is the header
+    getline(file, line);
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string t, mVec;
+        if (std::getline(iss, t, ';') && std::getline(iss, mVec, ';')) {
+            std::istringstream mIss(mVec);
+            std::string mValue;
+            int comp = 0;
+            pair<double, double> m_val;
+            while (std::getline(mIss, mValue, ',')) {
+                if(comp < 1) {
+                    m_val.first = std::stod(mValue);
+                    comp += 1;
+                } else {
+                    m_val.second = std::stod(mValue);
+                    comp = 0;
+                    m_vec.push_back(m_val);
+                }
+            }
+            times.push_back(stod(t));
+        }
+    }
+
+    file.close();
+}
+
+template <class T>
+struct add_pair_functor
+{
+    add_pair_functor(){}
+    pair<T, T> operator()(const pair<T, T>& a, const pair<T, T>& b) const {
+        pair<T, T> c(a.first + b.first, a.second + b.second);
+        return c;
+    }
+};
 
 struct absDiff1DStd
 {
