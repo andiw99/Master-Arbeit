@@ -1561,6 +1561,42 @@ def recalculate_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
 
     return U_L, rel_error, moving_factor, total_nr_values
 
+def recalculate_vectorial_mag_file_to_U_L(file_path, threshold, key='t', value='m'):
+    df = read_large_df(file_path, skiprows=1, sep=";")
+
+    m = []
+    for ind, line in enumerate(df):
+        m += line
+    m = np.array(m)
+    mx = m[::2]
+    my = m[1::2]
+    if 0 < threshold < 1:
+        threshold = int(threshold * len(mx))
+    total_nr_values = len(mx)
+    if threshold:
+        mx = mx[threshold:]
+        my = my[threshold:]
+
+
+    m_avg = np.mean(m)
+
+    m2 = np.mean(mx ** 2 + my ** 2)
+
+    m2_err = np.std(mx ** 2 + my ** 2) / np.sqrt(len(mx))     # std is standard dev of dist
+    m4 = np.mean((mx ** 2 + my ** 2) ** 2)
+
+    m4_err = np.std((mx ** 2 + my ** 2) ** 2) / np.sqrt(len(mx))
+
+    U_L = m4 / m2 ** 2
+
+    U_L_error = np.sqrt(pow(1 / m2 / m2 * m4_err, 2) + pow(2 * m4 / pow(m2, 3) * m2_err, 2))
+
+    rel_error = U_L_error / U_L
+    moving_factor = getMovingFactor(m, m_avg)
+    print(f"U_L = {U_L}, error = {rel_error}")
+
+    return U_L, rel_error, moving_factor, total_nr_values
+
 def process_size_folder(size_folder, threshold, key='T', value='U_L', file_ending='cum',
                         selected_temperatures=None, process_file_func=process_file):
     """
