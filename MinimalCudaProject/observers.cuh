@@ -746,7 +746,7 @@ public:
             // How do we do this, we cannot save every m value... I think we will try for now?
             ofile << t << ";";
             for (auto m_val: m_val_vec) {
-                ofile << m_val.first << "," << m_val.second;
+                ofile << m_val.first << "," << m_val.second << ",";
             }
             ofile << endl;
             // add the cumulant and the times to the vectors to keep track
