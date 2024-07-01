@@ -1,4 +1,4 @@
-../../Generated content/Paper content/Binder intersection/nu/
+../../Generated content/Paper content/Binder intersection/nu3/
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -8,19 +8,19 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 1.9384199999999998 
-max_temp, 1.9384199999999998 
+min_temp, 1.90702 
+max_temp, 1.90702 
 nr_runs, 0.0 
 random_init, 0 
 curand_random, 1 
-subsystem_min_Lx, 32 
-subsystem_max_Lx, 32 
+subsystem_min_Lx, 48 
+subsystem_max_Lx, 48 
 nr_subsystem_sizes, 0  
-nr_subsystems, 976 
+nr_subsystems, 434 
 x_y_factor, 0.5 
 nr_corr_values, 0 
 nr_ft_values, 0 
-equil_error, 0.001
+equil_error, 0.0005
 equil_cutoff, 0.5
 mag_write_density, 0.01
 min_mag_nr, 750

@@ -194,7 +194,14 @@ def main():
     m = np.sin(p_sin * q)
     V_dashed = cos_potential(q_dashed, 1, p, interval)
     V = cos_potential(q, 1, p, interval)
+
+    sin_q = np.linspace(- np.pi/2, np.pi/2, 400)
+    sin_curve = np.sin(2 * sin_q)
+    sin_curve_p = np.sin(p/2 * sin_q)
+
     ax.plot(q_dashed, V_dashed, linestyle="dashed")
+    ax.plot(sin_q, sin_curve, color="C1", alpha=0.5)
+    ax.plot(sin_q, sin_curve_p, color="C2")
     ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
     # ax.plot(q, m, label=f"m", linestyle="dashed")
     ax.set_title(r"Cos on site potential")

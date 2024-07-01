@@ -50,7 +50,7 @@ def theo_sigma_xx(eta, alpha, T, a, b, N = 100):
     sum_4 = 1 / lambda_2 * np.exp(-2 * lambda_2 * t)
     return t, np.real(pref * (sum_1 + sum_2 - sum_3 - sum_4))
 
-def plot_theo_msd(fig, axes, df, parameters, savepath, title="", color=colors[5]):
+def plot_theo_msd(fig, axes, df, parameters, savepath, title="", color=colors[5], ls="dotted"):
     eta = parameters["eta"]
     alpha = parameters["alpha"]
     T = parameters["T"]
@@ -64,7 +64,6 @@ def plot_theo_msd(fig, axes, df, parameters, savepath, title="", color=colors[5]
 
     x_values = df.iloc[:, 2:-1]
     n = x_values.shape[1]
-    print(x_values)
 
     t, msd_theo = theo_sigma_xx(eta, alpha, T, a, b, N)
     msd_theo = msd_theo
@@ -75,13 +74,15 @@ def plot_theo_msd(fig, axes, df, parameters, savepath, title="", color=colors[5]
     dt = parameters["dt"]
 
     axes.plot(t, msd_theo, label=rf"$\eta = {eta:.1f}$", color=color)
-    axes.plot(times, msd_avg, linestyle="dotted", color=colors[0])
-    axes.set_xlabel("t")
-    axes.set_ylabel(r"$\left\langle x^2(t)\right \rangle$")
+    axes.plot(times, msd_avg, linestyle=ls, color=colors[0], linewidth=2)
+    axes.set_xlabel("dimensionless time t")
+    axes.set_ylabel(r"mean square displacement $\left\langle x^2(t)\right \rangle$")
     axes.set_ylim((0.9 * np.min(msd_avg), 1.05 * np.max(msd_avg)))
     axes.set_xlim((a, b))
     #axes.set_title(f"Uncoupled harmonic oscillators in T={T} \n dt = {dt}")
     axes.legend()
+
+    return fig, axes
 
 
 
@@ -103,9 +104,10 @@ def main():
     root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.0005/eta comp"
     root = "../../Generated content/Final/Benchmarks/HO/Euler/T=20/dt = 0.01/eta comp"
     root = "../../Generated content/Final/Benchmarks/HO/BBK/T=20/dt = 0.01/eta comp"
+    root = "../../Generated content/Final/Benchmarks/HO/BBK/T=20/combined/eta comp"
     title = "BBK method"
     # /home/andi/Documents/Master-Arbeit Code/Generated content/GPU Oscillators/eta=0.20/T=500.00/dt=0.0010
-
+    linestyles = ["dotted", "dashed", "dashdot"]
     a = 0
     b = 3
     T = 20
@@ -121,45 +123,50 @@ def main():
     plt.show()
     filepaths = list_directory_names(root)
     print(filepaths)
+    fig, axes = plt.subplots(1, 1)
+    ind2 = 0
     for fpath in filepaths:
         temppath = os.path.join(root, fpath)
         files = os.listdir(temppath)
         if fpath != "plots":
-            fig, axes = plt.subplots(1, 1)
             ind = 0
             for i, file in enumerate(files):
                 if os.path.splitext(file)[1] == ".csv":
 
                     filepath = os.path.join(temppath, file)
+                    print(filepath)
                     df = read_csv(filepath)
-                    print(df)
+                    #print(df)
                     txt_filepath = os.path.splitext(filepath)[0] + ".txt"
                     parameters = read_parameters_txt(txt_filepath)
                     dt = parameters["dt"]
 
                     # average and plot, actually no big deal
-                    plot_theo_msd(fig, axes, df, parameters, os.path.join(root, "plots/"), title=title, color=colors[3 + 2 * ind])
+                    print("ind2 = ", ind2)
+                    fig, axes = plot_theo_msd(fig, axes, df, parameters, os.path.join(root, "plots/"), title=title,
+                                              color=colors[5 + 5 * ind], ls=linestyles[ind2])
                     ind += 1
+            axes.plot([], [], label=f"dt = {dt}", linestyle=linestyles[ind2], color=colors[0])
+            ind2 += 1
 
-            axes.plot([], [], label=f"dt = {dt}", linestyle="dotted", color=colors[0])
 
-            name = f"{T}-{dt}-{alpha}-{eta}.png"
-            name_svg = f"{T}-{dt}-{alpha}-{eta}.svg"
+    name = f"{T}-{dt}-{alpha}-{eta}.png"
+    name_svg = f"{T}-{dt}-{alpha}-{eta}.svg"
 
-            config = {
-                "increasefontsize": 0.75,
-                "labelhorizontalalignment": "center",
-                "labelverticalalignment": "bottom",
-                "labelrotation": 90,
-                "legendtitle": title,
-            }
-            savepath =  os.path.join(root, "plots/")
-            configure_ax(fig, axes, config)
-            create_directory_if_not_exists(savepath)
-            plt.savefig(os.path.join(savepath, name), format="png")
-            plt.savefig(os.path.join(savepath, name_svg), format="svg")
+    config = {
+        "increasefontsize": 0.75,
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "labelrotation": 90,
+        "legendtitle": title,
+    }
+    savepath =  os.path.join(root, "plots/")
+    configure_ax(fig, axes, config)
+    create_directory_if_not_exists(savepath)
+    plt.savefig(os.path.join(savepath, name), format="png")
+    plt.savefig(os.path.join(savepath, name_svg), format="svg")
 
-            plt.show()
+    plt.show()
 
         #plot_trajectories(df, parameters)
 
