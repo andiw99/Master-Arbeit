@@ -4,13 +4,14 @@ from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.5
     process_file_func = process_new_mag_file_to_U_L
-    process_file_func = recalculate_mag_file_to_U_L
     process_file_func = recalculate_vectorial_mag_file_to_U_L
+    process_file_func = recalculate_mag_file_to_U_L
     simulation_path = "../../Generated content/Final/CriticalTemperature/Nu-L-old/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/Tc/"
     selected_sizes = [64, 96, 128]
     selected_sizes = None
     exclude = None

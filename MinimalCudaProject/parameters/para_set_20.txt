@@ -1,4 +1,4 @@
-../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/128/1.900000/0-12:0-7452440-ga006.cluster
+../../Generated content/Paper content/Binder intersection/m scalar/Tc
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -11,7 +11,7 @@ nr_repeat, 0
 min_temp, 1.9 
 max_temp, 1.9 
 nr_runs, 0.0 
-random_init, -1 
+random_init, 0 
 curand_random, 1 
 subsystem_min_Lx, 128 
 subsystem_max_Lx, 128 
@@ -20,9 +20,10 @@ nr_subsystems, 244
 x_y_factor, 0.125 
 nr_corr_values, 0 
 nr_ft_values, 0 
-equil_error, 0.00055
+equil_error, 0.00045
 equil_cutoff, 0.1
 mag_write_density, 0.01
 min_mag_nr, 750
-moving_factor, 0.001 
-corr_second, 0
+moving_factor, 0.001
+corr_second, 0 
+observed_direction, 0

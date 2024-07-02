@@ -1211,9 +1211,13 @@ public:
     }
 
     struct cos_real_to_complex {
+        double p;
+        cos_real_to_complex(double p): p(p) {
+        }
+        cos_real_to_complex(): p(1.0) {}
         template<class Tup>
         __host__ __device__ void operator()(Tup tup) const {
-            thrust::get<0>(tup).x = cos(thrust::get<1>(tup));
+            thrust::get<0>(tup).x = cos(p * thrust::get<1>(tup));
             thrust::get<0>(tup).y = 0.0;
         }
     };
@@ -1330,7 +1334,7 @@ public:
 
         // fill input vector with the real part being cos of theta
         BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
-        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex(2.0));
 
         // execute FFT
         cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
@@ -1349,7 +1353,7 @@ public:
 
         // Now everything again for the sin part?
         input_tuple = thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo));
-        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
+        thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex(2.0));    // fill input with sin
 
         // execute fft
         cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
