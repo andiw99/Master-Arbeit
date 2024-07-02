@@ -1104,7 +1104,7 @@ public:
         if (gpu) {
             // before we used reduce by key, we extracted the sinus of the cell by using transform reduce,
             // now we should transform beforehand i guess
-            auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(XY_Silicon::p_XY / 2.0));
+            auto sin_cell = thrust::make_transform_iterator(cell_trafo, sin_functor_thrust<double>(2.0));
             thrust::device_vector<double> m_vec_gpu(nr_subsystems);
             //auto segment_functor = [this] __device__ (int ind) {return ind / (Lx * Ly);};
             auto segment_keys = thrust::make_transform_iterator(thrust::counting_iterator<int>(0), segment_functor(Lx * Ly));

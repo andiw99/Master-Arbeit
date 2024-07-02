@@ -10,11 +10,11 @@ def main():
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorialTc/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/"
     selected_sizes = [64, 96, 128]
     selected_sizes = None
-    exclude = [32]
     exclude = None
+    exclude = [32]
     selected_temps = None
     #selected_temps = np.linspace(1.91, 2.0, 10)
     #min_T_plot = 1.915

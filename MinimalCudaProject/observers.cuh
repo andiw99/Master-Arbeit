@@ -732,7 +732,7 @@ public:
     }
 
     string get_name() override {
-        return "m equilibration observer";
+        return "m vectorial equilibration observer";
     }
 
     void operator()(system &sys, const State &x, double t) override {
