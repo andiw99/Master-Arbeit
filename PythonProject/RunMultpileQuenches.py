@@ -14,8 +14,8 @@ def main():
     dt = 0.01
 
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     # simulation_path = "../../Generated content/h Quench/"
     simulation_path = "../../Generated content/Paper content/Quenches/factor two2/"
     equil_time_end = 0

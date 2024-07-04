@@ -26,7 +26,7 @@ def main():
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
-    process_file_func = recalculate_vectorial_mag_file_to_U_L
+    process_file_func = recalculate_mag_file_to_U_L
     value_write_density = 0.01
     nr_sites = 4e6
     Ly_Lx = 1 / 8
@@ -34,8 +34,8 @@ def main():
 
     random_init = 0.0
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/detailed/"
 
 
