@@ -2,7 +2,7 @@ from Suite import *
 import numpy as np
 
 def main():
-    h_arr = [10]
+    h_arr = [1]
     nr_gpus = 20
     J_para = -10
     J_perp = -0.1
@@ -14,18 +14,18 @@ def main():
     dt = 0.01
 
     project = "MinimalCudaProject"
-    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Paper content/Quenches/h=/"
+    simulation_path = "../../Generated content/Paper content/Quenches/factor two2/"
     equil_time_end = 0
-    equil_time_start = 500
+    equil_time_start = 200
     gamma = 1
-    base = np.sqrt(2)
+    base = 2
 
     quench_exec_file = "AutoQuench.cu"
-    runfile_quench = "run_cuda_gpu_a100_low_minimal.sh"
     runfile_quench = "run_cuda.sh"
+    runfile_quench = "run_cuda_gpu_a100_low_minimal.sh"
 
 
     # Quench parameters
@@ -33,13 +33,16 @@ def main():
     min_nr_sites = 1e6
     max_nr_quench_steps = 1e7
     nr_sites = 2e6
-    max_tau = 10000
-    min_nr_systems = 30
+    max_tau = 3000
+    min_nr_systems = 5
     Ly_Lx = 1 / 8
 
     #T_c = 21351     # maybe this T_c is to low?
     T_c = 0.296 * 3.11
-    T_c = 0.3323 * 10
+
+    T_c = 0.3323 * 10   # h = 10?
+    T_c = 0.1966 * 10       # h = 1
+
     #T_c = 1.15
     min_nr_corr_values = 100
 

@@ -1,4 +1,4 @@
-../../Generated content/Paper content/Binder intersection/m scalar/Tc
+../../Generated content/Paper content/Binder intersection/m scalar/roughTc
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -8,8 +8,8 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 1.9249999999999998 
-max_temp, 1.9249999999999998 
+min_temp, 1.6500000000000001 
+max_temp, 1.6500000000000001 
 nr_runs, 0.0 
 random_init, 0 
 curand_random, 1 
@@ -20,7 +20,7 @@ nr_subsystems, 244
 x_y_factor, 0.125 
 nr_corr_values, 0 
 nr_ft_values, 0 
-equil_error, 0.00045
+equil_error, 0.00075
 equil_cutoff, 0.1
 mag_write_density, 0.01
 min_mag_nr, 750

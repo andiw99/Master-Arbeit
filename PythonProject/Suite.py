@@ -1049,6 +1049,9 @@ class crit_temp_measurement(autonomous_measurement):
         # and you need to do rsync after the jobs are finished!
         print("Writing the parameter files...")
         self.total_runs = len(self.jobs_to_do)
+        # We sort jobs to do so that we first do all measurements at the same temperatures
+        # so that we can use that temperature as starting point next time
+        self.jobs_to_do = sorted(self.jobs_to_do, key=lambda tup: tup[1])
         for i, (size, T) in enumerate(self.jobs_to_do):
             if (size, T) in self.jobs_done:
                 # we already have this job with a too large error
@@ -3359,7 +3362,7 @@ class z_measurement(autonomous_measurement):
                  size_max=256, nr_sizes=3, max_steps=1e9, nr_sites=1e6, Ly_Lx = 1/8, equil_error=0.005, equil_cutoff=0.5,
                  variation_error_rate=0.011, z_guess=2, min_nr_sites=1e6, min_nr_systems=100, fold=50, val_write_density=1/100,
                  test_val_write_density=1 / 20, test_min_val_nr=2000, para_nr=200, max_moving_factor=0.005, value_name="U_L", file_ending="cum",
-                 process_file_func=process_file, test_size=None, notest=False):
+                 process_file_func=process_file, test_size=None, notest=False, project="CudaProject"):
         # call the constructor of the parent classe
         super().__init__(J_para, J_perp, h, eta, p, dt, filepath, simulation_path, exec_file,
                          nr_GPUS=nr_GPUS, Ly_Lx=Ly_Lx, runfile=runfile, para_nr=para_nr)
@@ -3405,6 +3408,7 @@ class z_measurement(autonomous_measurement):
         self.value_name = value_name
         self.file_ending = file_ending
         self.notest = notest
+        self.project = project
 
 
     def setup(self):
@@ -3756,7 +3760,7 @@ class z_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
     def write_para_files(self):
         # you ..., you know that you have to construct the parameter file at hemera?
@@ -3799,7 +3803,7 @@ class z_measurement(autonomous_measurement):
         # we need to copy the files to hemera
         rsync_command = ["rsync", "-auv", "--rsh", "ssh",
                          f"{self.filepath}/parameters/",
-                         "hemera:~/Code/Master-Arbeit/CudaProject/parameters/"]
+                         f"hemera:~/Code/Master-Arbeit/{self.project}/parameters/"]
         subprocess.run(rsync_command, cwd=pathlib.Path.home())
 
     def get_write_para_nr(self):
