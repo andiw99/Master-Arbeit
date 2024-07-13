@@ -1,4 +1,4 @@
-../../Generated content/Paper content/Binder intersection/m scalar/detailed/Tc/64/1.935000/0-13:5-7456700-ga006.cluster
+../../Generated content/Paper content/Binder intersection/m cos/rough/Tc/64/2.450000/0-13:4-7498644-ga010.cluster
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -8,10 +8,10 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 1.935 
-max_temp, 1.935 
+min_temp, 2.6500000000000004 
+max_temp, 2.6500000000000004 
 nr_runs, 0.0 
-random_init, -1 
+random_init, -2 
 curand_random, 1 
 subsystem_min_Lx, 64 
 subsystem_max_Lx, 64 

@@ -6,8 +6,8 @@ def main():
     equil_cutoffs = np.linspace(0.05, 0.6, 12)
     for equil_cutoff in equil_cutoffs:
         print("equil_cutoff = ", equil_cutoff)
-        process_file_func = process_new_mag_file_to_U_L
         process_file_func = recalculate_mag_file_to_U_L
+        process_file_func = process_new_mag_file_to_U_L
         simulation_path = "../../Generated content/Paper content/Binder intersection/nu scalar"
 
         J_para = 10

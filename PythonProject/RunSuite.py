@@ -36,7 +36,7 @@ def main():
     project = "MinimalCudaProject"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/detailed/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m cos/rough/"
 
 
     Tc_exec_file = "AutoCumulantOBC.cu"
@@ -67,10 +67,10 @@ def main():
     # rough measurement J_J = 100
     # T_min = 0.155 * np.abs(J_para)
     # T_max = 0.245 * np.abs(J_para)
-    T_min = 0.155 * np.abs(J_para)
-    T_max = 0.245 * np.abs(J_para)
     T_min = 0.1925 * np.abs(J_para)
     T_max = 0.2015 * np.abs(J_para)
+    T_min = 0.155 * np.abs(J_para)
+    T_max = 0.245 * np.abs(J_para)
 
 
     #T_min = 0.83601154
