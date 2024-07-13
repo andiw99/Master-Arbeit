@@ -3646,14 +3646,16 @@ class z_measurement(autonomous_measurement):
                         best_cum_compare_arr[1:],
                         linestyle="-", label=rf"${next_size} \rightarrow {size}$,"
                                              f"\tz = {best_z:.3f}", color=colors[2 * (i)], linewidth=2)
-        ax.set_ylabel(r"$U_L$")
-        ax.set_xlabel("t / I")
+        ax.set_ylabel(r"Binder cumulant $U_L$")
+        ax.set_xlabel("dimensionless time t / I")
         #ax.set_xscale("log")
         ax.set_xlim(0, ax.get_xlim()[1] * xlim)
 
         config = {
             "increasefontsize": 0.75,
-            "labelhorizontalalignment": "right",
+            "labelhorizontalalignment": "center",
+            "labelrotation": 90,
+            "labelverticalalignment" : "bottom"
         }
 
         configure_ax(fig, ax, config)

@@ -3,7 +3,7 @@ from Suite import *
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 10
+    nr_gpus = 40
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -22,7 +22,7 @@ def main():
     min_size_Tc = 128
     nr_sizes_Tc = 4
     nr_Ts = 10
-    cum_error = 0.0005
+    cum_error = 0.0004
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"

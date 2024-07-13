@@ -22,7 +22,7 @@ def main():
     project = "MinimalCudaProject"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/nu3/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/nu scalar/"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     #runfile = "run_cuda_gpu_a100_low.sh"
@@ -42,8 +42,8 @@ def main():
     # min_T = 0.98 * (0.853073)
     # max_T = 1.02 * (0.853073)
 
-    min_T = 0.94 * (1.966)
-    max_T = 1.06 * (1.966)
+    min_T = 0.97 * (1.966)
+    max_T = 1.03 * (1.966)
     nr_Ts = 5
 
     # we should start at another parameter file nr because yeah
@@ -53,7 +53,7 @@ def main():
     val_write_density = 1 / 100
     min_mag_nr = 750
     process_file_func = process_new_mag_file_to_U_L
-    equil_cutoff = 0.5
+    equil_cutoff = 0.2
 
 
 
