@@ -8,11 +8,12 @@ def main():
         print("equil_cutoff = ", equil_cutoff)
         process_file_func = process_new_mag_file_to_U_L
         process_file_func = recalculate_mag_file_to_U_L
-        simulation_path = "../../Generated content/Paper content/Binder intersection/nu3"
+        simulation_path = "../../Generated content/Paper content/Binder intersection/nu scalar"
 
         J_para = 10
         selected_sizes = None
         selected_sizes = [40, 48, 56, 64, 72, 80, 96, 112, 128]
+        selected_sizes = [40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80]
         results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,
                               selected_sizes=selected_sizes, value_name="U_L", file_ending="mag",
                               process_file_func=process_file_func)
