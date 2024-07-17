@@ -11,7 +11,7 @@ def main():
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/roughTc/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m cos/rough/Tc/"
     selected_sizes = [64, 96, 128]
     selected_sizes = None
     exclude = None
