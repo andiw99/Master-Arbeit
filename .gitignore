@@ -82,3 +82,5 @@ CudaProject/*.out
 **/*.out
 **/*.pyc
 **/__pycache__
+Latex/
+/Latex/
