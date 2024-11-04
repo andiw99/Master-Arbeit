@@ -8,8 +8,13 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
+<<<<<<< HEAD
 min_temp, 2.0083800000000003 
 max_temp, 2.0083800000000003 
+=======
+min_temp, 1.9954900000000002 
+max_temp, 1.9954900000000002 
+>>>>>>> 708ebe7664abe38dcb71bbbf6d90686270388b98
 nr_runs, 0.0 
 random_init, 0 
 curand_random, 1 

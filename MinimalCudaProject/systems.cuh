@@ -21,9 +21,9 @@
 #include <filesystem>
 #include <chrono>
 #include <stdio.h>
-#include <curand_kernel.h>
-#include <cuda_runtime.h>
-#include <cufft.h>
+#include <hiprand_kernel.h>
+#include <hip/hip_runtime.h>
+#include <hipfft.h>
 
 
 // #include "cufft_utils.h"
@@ -40,7 +40,7 @@ public:
     // possibility of different sizes in the different directions
     const size_t dim_size_x;
     const size_t dim_size_y;
-    thrust::device_vector<curandState> curand_states;
+    thrust::device_vector<hiprandState> curand_states;
     bool curand_random = false;
     bool equilibrated = false;
 
@@ -59,19 +59,19 @@ public:
         cout << "n = " << n << endl;
     }
 
-    struct curand
+    struct hiprand
     {
         double mu, sigma, D;
 
         __host__ __device__
-        curand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
+        hiprand(double D, double mu = 0.0, double sigma = 1.0) : D(D), mu(mu), sigma(sigma) {};
 
         template<class Tuple>
         __device__
         float operator()(Tuple tup) const
         {
-            curandState local_state = thrust::get<1>(tup);
-            thrust::get<0>(tup) = D * curand_normal(&local_state);
+            hiprandState local_state = thrust::get<1>(tup);
+            thrust::get<0>(tup) = D * hiprand_normal(&local_state);
             thrust::get<1>(tup) = local_state;
         }
     };
@@ -82,12 +82,12 @@ public:
 
         curand_setup(long seed): seed(seed) {}
 
-        using init_tuple = thrust::tuple<int, curandState &>;
+        using init_tuple = thrust::tuple<int, hiprandState &>;
         __device__
         void operator()(init_tuple t) const{
-            curandState s;
+            hiprandState s;
             int id = thrust::get<0>(t);
-            curand_init(seed, id, 0, &s);
+            hiprand_init(seed, id, 0, &s);
             thrust::get<1>(t) = s;
         }
     };
@@ -201,7 +201,7 @@ public:
     void calc_diff(Stoch &theta, double t) {
         auto start = thrust::make_zip_iterator(thrust::make_tuple(theta.begin() + n, curand_states.begin()));
         // TODO does it work with start + n?
-        thrust::for_each(start, start + n, curand(D));
+        thrust::for_each(start, start + n, hiprand(D));
     }
 
     template<class State, class Deriv>
@@ -224,16 +224,16 @@ public:
         cout << "System constructor from Enumeration type Map is called with eta = " << eta << "  T = " << T << endl;
         cout << "Using curand_random: " << curand_random << endl;
         if(curand_random) {
-            curand_states = thrust::device_vector<curandState>(2 * n);  // TODO is this okay?
+            curand_states = thrust::device_vector<hiprandState>(2 * n);  // TODO is this okay?
             auto sInit = thrust::make_zip_iterator(thrust::make_tuple(thrust::counting_iterator<int>(0), curand_states.begin()));
             // counting iterator counting from 0 to n. Every lattice site needs its own state i think
             // a state that corresponds to a different sequence. That the sequences are only one apart should not be relevant
-            // now we call curand init with sequence numbers from the counting iterator
+            // now we call hiprand init with sequence numbers from the counting iterator
             chrono::microseconds mus = chrono::duration_cast<chrono::microseconds >(
                     chrono::system_clock::now().time_since_epoch()
             );
             // TODO are you still using this seed? Why is it not possible to get it to work with the default random
-            // engine just advancing? Maybe just switch to curand?
+            // engine just advancing? Maybe just switch to hiprand?
             long seed = (mus.count() % 10000000) * 1000000000;
             thrust::for_each(sInit, sInit + 2*n, curand_setup(seed));      // now 2n, moare states should not be a problem and then we can use it also for the bbk random numbers?
         }
@@ -312,7 +312,7 @@ public:
     }
 
     ~System() {
-        //cudaDeviceSynchronize();
+        //hipDeviceSynchronize();
         cout << "System destroyed" << endl;
     }
 };
@@ -677,7 +677,7 @@ public:
 class XY_Silicon: virtual public XY_model {
     // we only have to set the map functor new? And obviously the right p, m stuff
 public:
-    double p_XY = 2.57;           // does this work? Can i just redeclare them here?
+    double p_XY = 2.5;           // does this work? Can i just redeclare them here?
     const double m = 2.0;
 
     struct map_functor {        // TODO Question if this already works without redefining map_state?
@@ -1300,7 +1300,7 @@ public:
     template<class State>
     void get_ft_vectors(const State &x, thrust::host_vector<double> &ft_squared_k,
                    thrust::host_vector<double> &ft_squared_l) const {
-        cufftHandle plan;
+        hipfftHandle plan;
         Singleton_timer::set_startpoint("Xi calculation FFTs");
         using dim_t = array<int, 2>;
         dim_t fft_size = {(int) Ly, (int) Lx};
@@ -1312,11 +1312,11 @@ public:
 
         // sum vector for alter, this will be the squared ft
         thrust::device_vector<double> sum(batch_size);
-        cufftCreate(&plan);
-        cufftPlanMany(&plan, fft_size.size(), fft_size.data(),
+        hipfftCreate(&plan);
+        hipfftPlanMany(&plan, fft_size.size(), fft_size.data(),
                       nullptr, 1, 0,
                       nullptr, 1, 0,
-                      CUFFT_C2C, nr_batches);
+                      HIPFFT_C2C, nr_batches);
 
         auto cell = thrust::make_permutation_iterator(
                 x.begin(),
@@ -1330,16 +1330,16 @@ public:
 
         // from cell trafo we need to somehow create a pointer to complex<double>
 // workaraound -> device vector erstellen
-        thrust::device_vector<cufftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+        thrust::device_vector<hipfftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
 
         // fill input vector with the real part being cos of theta
         BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex(2.0));
 
         // execute FFT
-        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
-        cudaDeviceSynchronize();
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD);
+        hipDeviceSynchronize();
 
         //thrust::reduce_by_key(segment_keys, segment_keys + nr_batches * batch_size,
 //                      output_vector.begin(), thrust::make_discard_iterator(), sum.begin())
@@ -1348,7 +1348,7 @@ public:
         for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size,
                               output_vector.begin() + (i + 1) * batch_size,
-                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
         }
 
         // Now everything again for the sin part?
@@ -1356,14 +1356,14 @@ public:
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex(2.0));    // fill input with sin
 
         // execute fft
-        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD); // fft into output vector
-        cudaDeviceSynchronize();
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD); // fft into output vector
+        hipDeviceSynchronize();
 
         // sum up
         for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
-                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
         }
         Singleton_timer::set_endpoint("Xi calculation FFTs");
         Singleton_timer::set_startpoint("Xi calculation Evaluation of FFTs");
@@ -1393,7 +1393,7 @@ public:
                 Ly, 4)));
         thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(
                 Lx, 4)));// cut zero impuls, I think we can always do that and it won't be much of a difference?
-        cufftDestroy(plan);
+        hipfftDestroy(plan);
 
         ft_squared_k = thrust::host_vector<double>(ft_squared_k_gpu);
         ft_squared_l = thrust::host_vector<double>(ft_squared_l_gpu);
@@ -1412,12 +1412,12 @@ public:
         // sum vector for alter, this will be the squared ft
         thrust::device_vector<double> sum(Lx * Ly);
 
-        cufftHandle plan;
-        cufftCreate(&plan);
-        cufftPlanMany(&plan, fft_size.size(), fft_size.data(),
+        hipfftHandle plan;
+        hipfftCreate(&plan);
+        hipfftPlanMany(&plan, fft_size.size(), fft_size.data(),
                       nullptr, 1, 0,
                       nullptr, 1, 0,
-                      CUFFT_C2C, nr_batches);
+                      HIPFFT_C2C, nr_batches);
 
         auto cell = thrust::make_permutation_iterator(
                 x.begin(),
@@ -1431,21 +1431,21 @@ public:
 
         // from cell trafo we need to somehow create a pointer to complex<double>
         // workaraound -> device vector erstellen
-        thrust::device_vector<cufftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
+        thrust::device_vector<hipfftComplex> input_vector(dim_size_x * Ly), output_vector(dim_size_x * Ly);
 
         // fill input vector with the real part being cos of theta
         BOOST_AUTO(input_tuple, thrust::make_zip_iterator(thrust::make_tuple(input_vector.begin(), cell_trafo)));
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, cos_real_to_complex());
 
         // execute FFT
-        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD);
-        cudaDeviceSynchronize();
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD);
+        hipDeviceSynchronize();
 
         for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size,
                               output_vector.begin() + (i + 1) * batch_size,
-                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
         }
 
         // Now everything again for the sin part?
@@ -1453,14 +1453,14 @@ public:
         thrust::for_each(input_tuple, input_tuple + dim_size_x * Ly, sin_real_to_complex());    // fill input with sin
 
         // execute fft
-        cufftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
-                     thrust::raw_pointer_cast(output_vector.data()), CUFFT_FORWARD); // fft into output vector
-        cudaDeviceSynchronize();
+        hipfftExecC2C(plan, thrust::raw_pointer_cast(input_vector.data()),
+                     thrust::raw_pointer_cast(output_vector.data()), HIPFFT_FORWARD); // fft into output vector
+        hipDeviceSynchronize();
 
         // sum up
         for(int i = 0; i < nr_batches; i++) {
             thrust::transform(output_vector.begin() + i * batch_size, output_vector.begin() + (i + 1) * batch_size,
-                              sum.begin(), sum.begin(), sum_square_complex<cufftComplex>());
+                              sum.begin(), sum.begin(), sum_square_complex<hipfftComplex>());
         }
 
         thrust::transform(sum.begin(), sum.end(), sum.begin(), thrustDivideBy((double)nr_batches));
@@ -1488,7 +1488,7 @@ public:
                 Ly, 4)));
         thrust::transform(ft_squared_l_gpu.begin(), ft_squared_l_gpu.end(), ft_squared_l_gpu.begin(), thrustDivideBy((double)pow(
                 Lx, 4)));// cut zero impuls, I think we can always do that and it won't be much of a difference?
-        cufftDestroy(plan);
+        hipfftDestroy(plan);
 
         auto ft_squared_k = thrust::host_vector<double>(ft_squared_k_gpu);
         auto ft_squared_l = thrust::host_vector<double>(ft_squared_l_gpu);
@@ -1497,7 +1497,7 @@ public:
         ft_k = &ft_squared_k[0];
         ft_l = &ft_squared_l[0];
 
-        cufftDestroy(plan);
+        hipfftDestroy(plan);
     }
 
     string get_name() const override {

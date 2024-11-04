@@ -184,7 +184,10 @@ def main():
         "nr_y_minor_ticks": 3,
         "nr_y_major_ticks": 3,
         "gridalpha": 0.2,
-        "increasefontsize": 0.5
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "increasefontsize": 0.6,
+        "labelrotation": 90,
     }
     q = np.linspace(- 3/4 * np.pi * 0.95, 3/4 * np.pi * 0.95, 400)
     q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
@@ -200,13 +203,13 @@ def main():
     sin_curve_p = np.sin(p/2 * sin_q)
 
     ax.plot(q_dashed, V_dashed, linestyle="dashed")
-    ax.plot(sin_q, sin_curve, color="C1", alpha=0.5)
-    ax.plot(sin_q, sin_curve_p, color="C2")
+    # ax.plot(sin_q, sin_curve, color="C1", alpha=0.5)
+    # ax.plot(sin_q, sin_curve_p, color="C2")
     ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
     # ax.plot(q, m, label=f"m", linestyle="dashed")
-    ax.set_title(r"Cos on site potential")
-    ax.set_xlabel(r"$\vartheta$")
-    ax.set_ylabel(r"$V(\vartheta)$")
+    ax.set_title(r"Cos on site potential 1")
+    ax.set_xlabel(r"dimer angle $\vartheta$")
+    ax.set_ylabel(r"on site potential $V(\vartheta)$")
     ax.vlines([-np.pi/2, np.pi/2], -1.2, 1.2, linestyles="dashed", color="black")
     configure_ax(fig, ax, config)
     ax.xaxis.set_major_locator(MultipleLocator(base=np.pi/4))
@@ -215,6 +218,7 @@ def main():
     legend = ax.legend()
     legend.remove()
     plt.savefig(savepath + "potential" + f".{ending}", format=ending, dpi=dpi)
+
     plt.show()
 
     shrink = 0.5

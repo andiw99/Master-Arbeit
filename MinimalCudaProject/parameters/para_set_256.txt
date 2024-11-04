@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ../../Generated content/Paper content/Binder intersection/nu scalar closer/
+=======
+../../Generated content/Paper content/Binder intersection/nu scalar//44/1.936510/0-21:3-7498864-ga009.cluster
+>>>>>>> 708ebe7664abe38dcb71bbbf6d90686270388b98
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -8,11 +12,17 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
+<<<<<<< HEAD
 min_temp, 1.9690000000000003 
 max_temp, 1.9690000000000003 
+=======
+min_temp, 2.0249800000000002 
+max_temp, 2.0249800000000002 
+>>>>>>> 708ebe7664abe38dcb71bbbf6d90686270388b98
 nr_runs, 0.0 
-random_init, 0 
+random_init, -2 
 curand_random, 1 
+<<<<<<< HEAD
 subsystem_min_Lx, 64 
 subsystem_max_Lx, 64 
 nr_subsystem_sizes, 0  
@@ -21,9 +31,18 @@ x_y_factor, 0.5
 nr_corr_values, 0 
 nr_ft_values, 0 
 equil_error, 0.00035
+=======
+subsystem_min_Lx, 44 
+subsystem_max_Lx, 44 
+nr_subsystem_sizes, 0  
+nr_subsystems, 516 
+x_y_factor, 0.5 
+nr_corr_values, 0 
+nr_ft_values, 0 
+equil_error, 0.0004
+>>>>>>> 708ebe7664abe38dcb71bbbf6d90686270388b98
 equil_cutoff, 0.2
 mag_write_density, 0.01
 min_mag_nr, 750
-moving_factor, 0.005
-corr_second, 0 
-observed_direction, 0
+moving_factor, 0.005 
+corr_second, 0

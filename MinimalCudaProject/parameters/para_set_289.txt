@@ -1,4 +1,4 @@
-../../Generated content/Paper content/Binder intersection/nu2//128/2.005320/0-13:1-7424596-ga006.cluster
+../../Generated content/Paper content/Binder intersection/nu scalar//80/2.024980/0-20:4-7467675-ga009.cluster
 end_time, 10000000.0 
 dt, 0.01 
 J, -10 
@@ -8,20 +8,20 @@ eta, 1
 p, 2.5 
 nr_saves, 4 
 nr_repeat, 0 
-min_temp, 2.00532 
-max_temp, 2.00532 
+min_temp, 2.0249800000000002 
+max_temp, 2.0249800000000002 
 nr_runs, 0.0 
 random_init, -1 
 curand_random, 1 
-subsystem_min_Lx, 128 
-subsystem_max_Lx, 128 
+subsystem_min_Lx, 80 
+subsystem_max_Lx, 80 
 nr_subsystem_sizes, 0  
-nr_subsystems, 61 
+nr_subsystems, 156 
 x_y_factor, 0.5 
 nr_corr_values, 0 
 nr_ft_values, 0 
-equil_error, 0.0004
-equil_cutoff, 0.5
+equil_error, 0.00035
+equil_cutoff, 0.2
 mag_write_density, 0.01
 min_mag_nr, 750
 moving_factor, 0.005 

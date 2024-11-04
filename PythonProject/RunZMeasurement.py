@@ -52,7 +52,7 @@ def main():
     val_write_density_test = 1 / 10
     Ly_Lx = 1 / 8
 
-    variation_error_rate = 0.003
+    variation_error_rate = 0.002
     nr_sites = 10e6      # we use large systems because I think the cluster doesnt like it if we start very many runs
     T_c = 21700
     T_c = 0.1731 * 10

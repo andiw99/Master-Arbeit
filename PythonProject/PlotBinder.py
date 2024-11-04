@@ -10,8 +10,11 @@ def main():
     simulation_path = "../../Generated content/Paper content/Binder intersection/h=0.283/rough/Tc"
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m cos/rough/Tc/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/nu scalar/"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/detailed/Tc/"
+
     selected_sizes = [64, 96, 128]
     selected_sizes = None
     exclude = None
@@ -43,6 +46,7 @@ def main():
     fig, ax = crit_temp_measurement.plot_value_curve(simulation_path, results, crit_point=crit_point, value_name="U_L", title="Binder Cumulant on T",
                                            plotname="cum_time_avg", equil_error=None, config=config, exclude=exclude,
                                                      min_T=min_T_plot, max_T=max_T_plot)
+    plt.show()
 
     fig, ax = crit_temp_measurement.fit_and_plot_nu(simulation_path, results,
                                                     crit_point=None,

@@ -31,8 +31,8 @@ def main():
     # Tc parameters
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.00035
-    min_equil_error = 0.00035
+    equil_error = 0.0004
+    min_equil_error = 0.0004
     max_rel_intersection_error = 0.005       # is this to small or fine?
     equil_cutoff = 0.1
     # since we need quantitative exact values, we should know T_c beforehand

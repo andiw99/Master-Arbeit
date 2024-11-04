@@ -2028,6 +2028,7 @@ class quench_measurement(autonomous_measurement):
                     f"Jy, {self.J_perp} \n"
                     f"alpha, {self.h} \n"
                     f"eta, {self.eta} \n"
+                    f"p, {self.p} \n"
                     f"nr_saves, 2 \n"
                     f"nr_repeat, 0 \n"
                     f"starting_temp, {self.T_start} \n"

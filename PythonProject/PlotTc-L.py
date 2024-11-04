@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
-    equil_cutoffs = np.linspace(0.02, 0.1, 2)
+    equil_cutoffs = np.linspace(0.05, 0.6, 1)
     for equil_cutoff in equil_cutoffs:
         print("equil_cutoff = ", equil_cutoff)
         process_file_func = process_new_mag_file_to_U_L
@@ -13,7 +13,8 @@ def main():
         J_para = 10
         selected_sizes = None
         selected_sizes = [40, 48, 56, 64, 72, 80, 96, 112, 128]
-        selected_sizes = [40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80]
+        selected_sizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 80]
+
         results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=None,
                               selected_sizes=selected_sizes, value_name="U_L", file_ending="mag",
                               process_file_func=process_file_func)
