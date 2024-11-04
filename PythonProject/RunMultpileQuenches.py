@@ -3,7 +3,7 @@ import numpy as np
 
 def main():
     h_arr = [1]
-    nr_gpus = 20
+    nr_gpus = 1 #20
     J_para = -10
     J_perp = -0.1
 
@@ -17,11 +17,11 @@ def main():
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     # simulation_path = "../../Generated content/h Quench/"
-    simulation_path = "../../Generated content/Paper content/Quenches/factor two2/"
+    simulation_path = "../../Generated content/test/Quenches/"
     equil_time_end = 0
     equil_time_start = 200
-    gamma = 1
-    base = 2
+    gamma = 1       # what are those again??
+    base = 2 # 2 factor two? what was that again? something with nonlinear quenches, right? Ah or was it for tau spacing?
 
     quench_exec_file = "AutoQuench.cu"
     runfile_quench = "run_cuda.sh"

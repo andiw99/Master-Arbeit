@@ -917,6 +917,45 @@ public:
     }
 };
 
+struct quench_nonlinear: virtual public quench {
+    int gamma;
+    void print_info() override {
+        quench::print_info();
+        cout << "gamma = " << gamma << endl;
+    }
+
+public:
+    double nonlinear_T(double t) {
+        if(s_eq_t < t) {
+            // if we are in the quench phase, we reduce T
+            System::T = max(T_start - pow((t - s_eq_t) / tau, gamma), T_end);
+        }
+        return System::T;
+    }
+
+    template<class Stoch>
+    void calc_diff(Stoch &theta, double t) {
+        // I think this should work? We change the D of the System and then just calc the random numbers
+        System::D = sqrt(2 * nonlinear_T(t) * System::eta);
+        System::calc_diff(theta, t);
+        // this is a bit clunky but tbh i don't care to much at this moment anymore
+        if(t > get_end_t()) {
+            equilibrated = true;
+        }
+    }
+
+    quench_nonlinear(map<Parameter, double>& paras): System(paras), quench(paras), gamma(paras[Parameter::gamma]) {
+    }
+
+    double get_quench_time() const override {
+        // returns the time it takes to do the quench
+        // in this system, we use a linear quench
+        // cout << "running get_quench_time:" << endl << "T_start = " << T_start << endl << "T_end = " << T_end << endl << "tau = " << tau << endl << endl;
+        return pow(T_start - T_end, 1.0 / (double)gamma) * tau;
+    }
+
+};
+
 struct quench_ani : virtual public System_anitemp, virtual public quench {
     void print_info() override {
         System_anitemp::print_info();
@@ -1290,6 +1329,10 @@ public:
     : System(paras), J(paras[Parameter::J]), h(paras[alpha]), m(paras[Parameter::m]), p_XY(paras[Parameter::p]) {
         cout << "Xy model constructor is called "<< endl;
         print_info();
+    }
+
+    double get_h() {
+        return h;
     }
 };
 
@@ -1852,7 +1895,7 @@ public:
                                             0.0, // initial value for the reduction (sum)
                                             std::plus<double>(), // transformation (square)
                                             [](double m) -> double { return m * m; });
-        cout << "Dividing by " << m_vec.size() << endl;
+        // cout << "Dividing by " << m_vec.size() << endl;
         // exit(0);
         m_L2 /= (double)m_vec.size();
         double m_L4 = std::transform_reduce(m_vec.begin(), m_vec.end(),
@@ -1862,7 +1905,7 @@ public:
         m_L4 /= (double)m_vec.size();
 
         double cum = m_L4 / (m_L2 * m_L2);
-        cout << "cum = " << cum << endl << endl;
+        // cout << "cum = " << cum << endl << endl;
         return cum;
     }
 
@@ -2622,6 +2665,68 @@ public:
 
     string get_name() const override {
         return "XY_silicon_anisotrop_subsystems_quench";
+    }
+};
+
+struct XY_silicon_anisotrop_subsystems_quench_h : public XY_silicon_anisotrop_subsystems, public quench {
+    double h_start;
+    double h_end;
+
+    void linear_h(double t) {
+        // If I just overwrite the XY_model::h and call this thing everytime I want to call the force
+        if(s_eq_t < t) {
+            // if we are in the quench phase, we reduce T
+            XY_model::h = max(h_start - (h_start / quench::T_start) * (t - s_eq_t)/tau, h_end);
+        }
+    }
+public:
+    template<class State, class Deriv>
+    void calc_force(State &x, Deriv &dxdt, double t) {
+        linear_h(t);
+        XY_silicon_anisotrop_subsystems::calc_force(x, dxdt, t);
+    }
+
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_quench_h(map<Parameter, double> paras) : quench(paras),
+                                                                           XY_silicon_anisotrop_subsystems(paras),
+                                                                           XY_Silicon(paras),
+                                                                           XY_model(paras),
+                                                                           subsystems(paras),
+                                                                           System(paras){
+        h_start = XY_model::h;
+        h_end = (quench::T_end - quench::T_start) * quench::tau;
+        cout << "XY_silicon_anisotrop_subsystems_quench system constructed";
+    }
+
+    string get_name() const override {
+        return "XY_silicon_anisotrop_subsystems_quench_h";
+    }
+};
+
+struct XY_silicon_anisotrop_subsystems_nonlinear_quench: public XY_silicon_anisotrop_subsystems, public quench_nonlinear{
+public:
+    void print_info() override {
+        XY_silicon_anisotrop_subsystems::print_info();
+        quench_nonlinear::print_info();
+    }
+
+    XY_silicon_anisotrop_subsystems_nonlinear_quench(map<Parameter, double> paras):
+    quench(paras),
+    quench_nonlinear(paras),
+    XY_silicon_anisotrop_subsystems(paras),
+    XY_Silicon(paras),
+    XY_model(paras),
+    subsystems(paras),
+    System(paras){
+        cout << "XY_silicon_anisotrop_subsystems_nonlinear_quench system constructed";
+    }
+
+    string get_name() const override {
+        return "XY_silicon_anisotrop_subsystems_nonlinear_quench";
     }
 };
 
