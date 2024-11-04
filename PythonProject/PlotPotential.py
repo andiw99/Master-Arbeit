@@ -217,6 +217,52 @@ def main():
     plt.savefig(savepath + "potential" + f".{ending}", format=ending, dpi=dpi)
     plt.show()
 
+    shrink = 0.5
+    fig, ax = plt.subplots(1, 1, figsize=(6.4 * shrink, 4.8 * shrink))
+    config = {
+        "nr_y_minor_ticks": 3,
+        "nr_y_major_ticks": 3,
+        "gridalpha": 0.2,
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "increasefontsize": 0.6,
+        "labelrotation": 90,
+        "tight_layout": False,
+    }
+    q = np.linspace(- 3 / 4 * np.pi * 0.85, 3 / 4 * np.pi * 0.85, 400)
+    q_dashed = np.linspace(np.min(q) * 1.07, np.max(q) * 1.07, 400)
+    interval = (- np.pi / 2, np.pi / 2)
+    p = 2.5
+    p_sin = p / 2
+    m = np.sin(p_sin * q)
+    V_dashed = cos_potential(q_dashed, 1, p, interval)
+    V = cos_potential(q, 1, p, interval)
+
+    sin_q = np.linspace(- np.pi / 2, np.pi / 2, 400)
+    sin_curve = np.sin(2 * sin_q)
+    sin_curve_p = np.sin(p / 2 * sin_q)
+
+    ax.plot(q_dashed, V_dashed, linestyle="dashed")
+    ax.plot(q, V, label=f"p = {p:.2f}", color="C0")
+    # ax.plot(q, m, label=f"m", linestyle="dashed")
+    ax.set_xlabel(r"dimer angle $\vartheta$")
+    ax.set_ylabel(r"potential $V(\vartheta)$")
+    ax.vlines([-np.pi / 2, np.pi / 2], -1.2, 1.2, linestyles="dashed",
+              color="black")
+    ax.set_ylim((-1.40, 1.075))
+    configure_ax(fig, ax, config)
+    ax.xaxis.set_major_locator(MultipleLocator(base=np.pi / 4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(pi_formatter))
+    ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
+    ax.yaxis.set_major_locator(MultipleLocator(base=1))
+    ax.yaxis.set_minor_locator(MultipleLocator(base=1 / 3))
+    legend = ax.legend()
+    legend.remove()
+    plt.tight_layout()
+    plt.savefig(savepath + "potential" + f".{ending}", format=ending, dpi=dpi)
+    plt.show()
+    input("proceed?")
+
     fig, ax = plt.subplots(1, 1, figsize=(3 * 1.5, 2* 1.5))
     config = {
         "nr_y_minor_ticks": 3,
@@ -244,6 +290,7 @@ def main():
     ax.xaxis.set_minor_locator(MultipleLocator(base=np.pi / (5 * 4)))
     legend = ax.legend()
     legend.remove()
+    plt.tight_layout()
     plt.savefig(savepath + "potential2" + f".{ending}", format=ending, dpi=dpi)
     plt.show()
 

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from FunctionsAndClasses import *
 def main():
     equil_cutoff = 0.1
-    equil_cutoffs = np.linspace(0.05, 0.6, 12)
+    equil_cutoffs = np.linspace(0.02, 0.1, 2)
     for equil_cutoff in equil_cutoffs:
         print("equil_cutoff = ", equil_cutoff)
         process_file_func = process_new_mag_file_to_U_L

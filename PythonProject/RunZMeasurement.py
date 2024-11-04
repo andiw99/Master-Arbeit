@@ -21,8 +21,8 @@ def main():
     dt = 0.01
 
     project  = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     simulation_path = "../../Generated content/Paper content/z measurement/"
 
     z_exec_file = "AutoZ.cu"

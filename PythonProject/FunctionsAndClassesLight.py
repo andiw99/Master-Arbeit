@@ -17,6 +17,8 @@ colors = ["#00305d", "#006ab2", "#009de0", "#00893a", "#65b32e", "#94C356", "#00
 colors += colors + colors + colors + colors
 colors += colors + colors + colors + colors
 z_colors = ["#00305d", "#009de0", "#65b32e", "C1"]
+z_colors = ["#00305d","#00893a", "#009de0",  "C1"]
+
 
 
 PLOT_DEFAULT_CONFIG = {

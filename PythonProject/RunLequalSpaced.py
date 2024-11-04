@@ -20,9 +20,9 @@ def main():
     dt = 0.01
 
     project = "MinimalCudaProject"
-    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
     filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/nu3/"
+    filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/nu scalar closer/"
 
     Tc_exec_file = "AutoCumulantOBC.cu"
     #runfile = "run_cuda_gpu_a100_low.sh"
@@ -31,8 +31,8 @@ def main():
     # Tc parameters
     nr_Ts = 3
     # We use small equilibration errors since we want to have really accurate
-    equil_error = 0.0005
-    min_equil_error = 0.0005
+    equil_error = 0.00035
+    min_equil_error = 0.00035
     max_rel_intersection_error = 0.005       # is this to small or fine?
     equil_cutoff = 0.1
     # since we need quantitative exact values, we should know T_c beforehand
@@ -42,8 +42,8 @@ def main():
     # min_T = 0.98 * (0.853073)
     # max_T = 1.02 * (0.853073)
 
-    min_T = 0.94 * (1.966)
-    max_T = 1.06 * (1.966)
+    min_T = 0.98 * (1.969)
+    max_T = 1.02 * (1.969)
     nr_Ts = 5
 
     # we should start at another parameter file nr because yeah
@@ -53,7 +53,7 @@ def main():
     val_write_density = 1 / 100
     min_mag_nr = 750
     process_file_func = process_new_mag_file_to_U_L
-    equil_cutoff = 0.5
+    equil_cutoff = 0.2
 
 
 
@@ -61,6 +61,8 @@ def main():
 
     Ls = [84, 112]
     Ls = [32, 40, 48, 56, 64, 72, 80, 96, 112, 128]
+
+    Ls = [32, 36, 40, 44, 48, 52, 56, 60, 64]
     Ly_Lx = 1 / 2
 
     crit_temps = []

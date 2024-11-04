@@ -11,17 +11,17 @@ def main():
     simulation_path = "../../Generated content/Final/CriticalTemperature/J_J=100-old-obc/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/J_J=100/h=1/rough/Tc"
     simulation_path = "../../Generated content/Paper content/Binder intersection/m vectorial2/Tc/"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/roughTc/"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/detailed/Tc/"
     selected_sizes = [64, 96, 128]
     selected_sizes = None
     exclude = None
     exclude = [32]
     selected_temps = None
     #selected_temps = np.linspace(1.91, 2.0, 10)
-    #min_T_plot = 1.915
-    #max_T_plot = 2.0
     min_T_plot = None
     max_T_plot = None
+    min_T_plot = 1.925
+    max_T_plot = 2.015
 
     results = crit_temp_measurement.construct_results(simulation_path, equil_cutoff, selected_temps=selected_temps,
                           selected_sizes=selected_sizes, value_name="U_L", file_ending="mag",

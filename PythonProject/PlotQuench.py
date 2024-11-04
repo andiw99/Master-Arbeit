@@ -9,7 +9,7 @@ def main():
     simpath = "../../Generated content/Final/Quenches-old/irrelevant/process-final1/Damping/Quench/1"
     simpath = "../../Generated content/Final/Quenches-old/h=/1/Damping/Quench/0.01"
     simpath = "../../Generated content/Paper content/Quenches/h=/10/Damping/Quench/1"
-    simpath = "../../Generated content/Paper content/Quenches/h=/0.1/Damping/Quench/1"
+    simpath = "../../Generated content/Paper content/Quenches/gamma=2/h=/1/Damping/Quench/1"
 
 
     taus = [2048, 256, 64]

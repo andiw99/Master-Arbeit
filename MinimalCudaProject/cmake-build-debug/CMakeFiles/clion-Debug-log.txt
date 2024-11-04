@@ -1,10 +1,10 @@
-/snap/clion/284/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/284/bin/ninja/linux/x64/ninja -G Ninja -S /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject -B /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug
+/snap/clion/296/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/296/bin/ninja/linux/x64/ninja -G Ninja -S /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject -B /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug
 -- The CUDA compiler identification is NVIDIA 12.1.105
 -- Detecting CUDA compiler ABI info
 -- Detecting CUDA compiler ABI info - done
 -- Check for working CUDA compiler: /usr/local/cuda-12.1/bin/nvcc - skipped
 -- Detecting CUDA compile features
 -- Detecting CUDA compile features - done
--- Configuring done (6.6s)
+-- Configuring done (8.1s)
 -- Generating done (0.0s)
 -- Build files have been written to: /home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/MinimalCudaProject/cmake-build-debug

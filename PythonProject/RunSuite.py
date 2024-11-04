@@ -3,7 +3,7 @@ from Suite import *
 def main():
     # okay what is the first thing we need to do?
     # we need parameters like the number of gpus we are able to use
-    nr_gpus = 10
+    nr_gpus = 40
     # we somehow need the relevant parameters
     # The model defining parameters are J_perp J_para h eta
     # the simulation defining parameters are dt
@@ -22,11 +22,11 @@ def main():
     min_size_Tc = 128
     nr_sizes_Tc = 4
     nr_Ts = 10
-    cum_error = 0.0005
+    cum_error = 0.0004
     equil_cutoff_Tc = 0.1
     value_name = "U_L"
     file_ending = "mag"
-    process_file_func = recalculate_vectorial_mag_file_to_U_L
+    process_file_func = recalculate_mag_file_to_U_L
     value_write_density = 0.01
     nr_sites = 4e6
     Ly_Lx = 1 / 8
@@ -34,9 +34,9 @@ def main():
 
     random_init = 0.0
     project = "MinimalCudaProject"
-    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
     filepath = f"/home/weitze73/Documents/Master-Arbeit/Code/Master-Arbeit/{project}"
-    simulation_path = "../../Generated content/Paper content/Binder intersection/m scalar/detailed/"
+    filepath = f"/home/andi/Studium/Code/Master-Arbeit/{project}"
+    simulation_path = "../../Generated content/Paper content/Binder intersection/m cos/rough/"
 
 
     Tc_exec_file = "AutoCumulantOBC.cu"
@@ -67,10 +67,10 @@ def main():
     # rough measurement J_J = 100
     # T_min = 0.155 * np.abs(J_para)
     # T_max = 0.245 * np.abs(J_para)
-    T_min = 0.155 * np.abs(J_para)
-    T_max = 0.245 * np.abs(J_para)
     T_min = 0.1925 * np.abs(J_para)
     T_max = 0.2015 * np.abs(J_para)
+    T_min = 0.155 * np.abs(J_para)
+    T_max = 0.245 * np.abs(J_para)
 
 
     #T_min = 0.83601154

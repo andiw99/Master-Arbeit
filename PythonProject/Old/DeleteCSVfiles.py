@@ -10,4 +10,4 @@ def delete_csv_files(directory):
                 os.remove(csv_file)
 
 # Call the function with the directory path
-delete_csv_files('../../../Generated content/Paper content/Quenches/h=/1/Damping/Quench/0.01')
+delete_csv_files('../../../Generated content/Paper content/Binder intersection/nu3')

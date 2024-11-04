@@ -6,40 +6,45 @@ from glob import glob
 
 
 def main():
-    plot_eta_05_h_1()
+    #plot_eta_05_h_1()
     #plot_eta_5_h_1()
     #plot_eta_1_h_05()
     #plot_1_h_1()
     #plot_eta_1_h_5()
-    exit()
+    #exit()
     #plot_eta_1_h_5()
-    simpath = "../../Generated content/Final/z-measurement-small/0.5/z"
+    # simpath = "../../Generated content/Final/z-measurement-small/0.5/z"
+    simpath = "../../Generated content/Paper content/z measurement/1/z"
 
-    Tc = 1.725
+    # Tc = 1.725
+    Tc = 1.97
     fold =  200
-    folder_avg_function=read_folder_avg
     config = {
-        "increasefontsize": 1.25,
-        "labelhorizontalalignment": "right",
+        "increasefontsize": 0.6,
+        "labelhorizontalalignment": "center",
+        "labelverticalalignment": "bottom",
+        "labelrotation": 90,
+
     }
+    folder_avg_function=read_folder_avg
     sizes = np.linspace(48, 144, 4, dtype=np.int64)
 
     size_cum_dic, size_times_dic = get_results_time_resolved(sizes, simpath, Tc=Tc, file_ending="mag", value_name="U_L",
                                   process_folder_avg_func=folder_avg_function)
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+    fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8))
     fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold, config=config)
     fig.savefig(simpath + f"/cum-over-time-scan-plotfile.png", format="png")
     fig.savefig(simpath + f"/cum-over-time-scan-plotfile.svg", format="svg")
 
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+    fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8))
     fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold // 4, xlim=0.15, config=config)
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.png-plotfile", format="png")
     fig.savefig(simpath + f"/cum-over-time-scan-0.25.svg", format="svg")
 
     plt.show()
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4.8 / 6.4 * 10))
+    fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8))
     fit_and_plot(fig, ax, size_cum_dic, size_times_dic, fold_nr=fold, xlim=0.25, config=config)
     fig.savefig(simpath + f"/cum-over-time-scan-0.25-more-fold.png-plotfile", format="png")
     fig.savefig(simpath + f"/cum-over-time-scan-0.25-more-fold.svg", format="svg")

@@ -1,5 +1,5 @@
 ../../Generated content/Paper content/z measurement/1/z
-end_time, 400.0 
+end_time, 2177.7777777777783 
 dt, 0.01 
 J, -10 
 Jy, -0.1 
@@ -13,12 +13,12 @@ max_temp, 1.97
 nr_runs, 0.0 
 random_init, 1.0 
 curand_random, 1 
-subsystem_min_Lx, 48 
-subsystem_max_Lx, 48 
+subsystem_min_Lx, 112 
+subsystem_max_Lx, 112 
 nr_subsystem_sizes, 0  
-nr_subsystems, 34722 
+nr_subsystems, 6377 
 x_y_factor, 0.125 
-nr_mag_values, 4000.0 
+nr_mag_values, 21777.77777777778 
 nr_corr_values, 0 
 nr_ft_values, 0 
 equil_error, 0.004
