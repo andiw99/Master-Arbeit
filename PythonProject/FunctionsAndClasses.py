@@ -1910,6 +1910,22 @@ def pi_formatter(value, ticknumber):
     else:
         return r"$\frac{" + str(fraction[0]) +  "}{" + str(fraction[1]) + "} \pi$"
 
+def pi_formatter_fraction(value, ticknumber):
+    fraction = value / np.pi
+    fraction = fraction.as_integer_ratio()
+    zähler = abs(fraction[0])
+    if zähler == 1:
+        zähler = ""
+    else:
+        zähler = str(zähler)
+
+    if fraction[0] == 0:
+        return "0"
+    elif fraction[0] < 0:
+        return r"$-\frac{" + zähler +  "\,\pi\,}{" + str(fraction[1]) + "}$"
+    else:
+        return r"$\frac{" + zähler +  "\,\pi\,}{" + str(fraction[1]) + "}$"
+
 def cut_zero_imp(p, ft, ft_err=None):
     # nr cuts is the number of values to cut around zero
     p, ft = np.array(p), np.array(ft)
