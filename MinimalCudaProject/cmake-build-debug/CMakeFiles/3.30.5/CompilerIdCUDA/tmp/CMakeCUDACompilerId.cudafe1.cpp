@@ -33841,39 +33841,39 @@ const char info_simulate_version[] = {'I', 'N', 'F', 'O', ':', 's', 'i', 'm', 'u
 const char *info_platform = ("INFO:platform[Linux]"); 
 # 427
 const char *info_arch = ("INFO:arch[]"); 
-# 431
+# 447 "CMakeCUDACompilerId.cu"
 const char *info_language_standard_default = ("INFO:standard_default[17]"); 
-# 447
+# 465
 const char *info_language_extensions_default = ("INFO:extensions_default[ON]"); 
-# 458
-int main(int argc, char *argv[]) 
-# 459
-{ 
-# 460
-int require = 0; 
-# 461
-require += (info_compiler[argc]); 
-# 462
-require += (info_platform[argc]); 
-# 464
-require += (info_version[argc]); 
-# 467
-require += (info_simulate[argc]); 
-# 470
-require += (info_simulate_version[argc]); 
-# 472
-require += (info_language_standard_default[argc]); 
-# 473
-require += (info_language_extensions_default[argc]); 
-# 474
-(void)argv; 
-# 475
-return require; 
 # 476
+int main(int argc, char *argv[]) 
+# 477
+{ 
+# 478
+int require = 0; 
+# 479
+require += (info_compiler[argc]); 
+# 480
+require += (info_platform[argc]); 
+# 482
+require += (info_version[argc]); 
+# 485
+require += (info_simulate[argc]); 
+# 488
+require += (info_simulate_version[argc]); 
+# 490
+require += (info_language_standard_default[argc]); 
+# 491
+require += (info_language_extensions_default[argc]); 
+# 492
+(void)argv; 
+# 493
+return require; 
+# 494
 } 
 
 # 1 "CMakeCUDACompilerId.cudafe1.stub.c"
-#define _NV_ANON_NAMESPACE _GLOBAL__N__08bcf97c_22_CMakeCUDACompilerId_cu_bd57c623
+#define _NV_ANON_NAMESPACE _GLOBAL__N__bf716dc4_22_CMakeCUDACompilerId_cu_bd57c623
 #ifdef _NV_ANON_NAMESPACE
 #endif
 # 1 "CMakeCUDACompilerId.cudafe1.stub.c"

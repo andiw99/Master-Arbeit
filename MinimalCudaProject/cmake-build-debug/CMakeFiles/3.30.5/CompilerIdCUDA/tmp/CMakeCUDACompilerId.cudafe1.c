@@ -10,11 +10,9 @@ static const char info_simulate_version[41];
 # 426 "CMakeCUDACompilerId.cu"
 extern const char *info_platform;
 extern const char *info_arch;
-
-
-
-extern const char *info_language_standard_default;
 # 447 "CMakeCUDACompilerId.cu"
+extern const char *info_language_standard_default;
+# 465 "CMakeCUDACompilerId.cu"
 extern const char *info_language_extensions_default;
 # 534 "/usr/include/c++/11/bits/cpp_type_traits.h" 3
 extern  __attribute__((__weak__)) /* COMDAT group: _ZNSt24__is_memcmp_ordered_withISt4byteS0_Lb1EE7__valueE */ const char _ZNSt24__is_memcmp_ordered_withISt4byteS0_Lb1EE7__valueE __attribute__((visibility("default")));
@@ -809,11 +807,9 @@ static const char info_simulate_version[41] = {((char)73),((char)78),((char)70),
 # 426 "CMakeCUDACompilerId.cu"
 const char *info_platform = ((const char *)"INFO:platform[Linux]");
 const char *info_arch = ((const char *)"INFO:arch[]");
-
-
-
-const char *info_language_standard_default = ((const char *)"INFO:standard_default[17]");
 # 447 "CMakeCUDACompilerId.cu"
+const char *info_language_standard_default = ((const char *)"INFO:standard_default[17]");
+# 465 "CMakeCUDACompilerId.cu"
 const char *info_language_extensions_default = ((const char *)"INFO:extensions_default[ON]");
 # 534 "/usr/include/c++/11/bits/cpp_type_traits.h" 3
  __attribute__((__weak__)) /* COMDAT group: _ZNSt24__is_memcmp_ordered_withISt4byteS0_Lb1EE7__valueE */ const char _ZNSt24__is_memcmp_ordered_withISt4byteS0_Lb1EE7__valueE __attribute__((visibility("default"))) = ((char)1);
